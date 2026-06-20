@@ -1,0 +1,29 @@
+# ── 站点基本信息 ──
+title: 霜叶
+description: 霜叶的博客
+author: Huayuarc
+lang: zh-CN
+
+# ── 域名 ──
+# 如果有自定义域名，取消下面这行的注释并改为你的域名
+# domain: shuangye.github.io
+url: https://shuangye.github.io
+baseurl: ""
+
+# ── 主题 ──
+remote_theme: jekyll/minima
+
+# ── 插件 ──
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
+# ── 构建配置 ──
+markdown: kramdown
+permalink: /:year/:month/:day/:title/
+exclude:
+  - .github/
+  - Gemfile
+  - Gemfile.lock
+  - README.md
