@@ -23,8 +23,19 @@ jobs:
 
       - name: Setup Theos
         run: |
-          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+          # 克隆 Theos（跳过 install 脚本，避免 SDK 下载失败）
+          git clone --recursive https://github.com/theos/theos.git "$HOME/theos"
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
+          # 优先使用 Xcode 内置 SDK
+          XCODE_SDK="/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk"
+          if [ -d "$XCODE_SDK" ]; then
+            mkdir -p "$HOME/theos/sdks"
+            ln -sf "$XCODE_SDK" "$HOME/theos/sdks/iPhoneOS16.5.sdk"
+            echo "使用 Xcode 内置 SDK"
+          else
+            # 回退：尝试远程下载 SDK
+            $HOME/theos/bin/install-sdk latest || echo "SDK 下载失败，使用 Xcode 默认 SDK"
+          fi
 
       - name: Build ${{ matrix.project.name }}
         working-directory: debs
