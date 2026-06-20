@@ -1,6 +1,6 @@
 DEBUG := 0
 FINALPACKAGE := 1
-export THEOS := /var/mobile/theos
+export THEOS ?= /var/mobile/theos
 export ARCHS := arm64 arm64e
 TARGET := iphone:clang:16.5:14.0
 
