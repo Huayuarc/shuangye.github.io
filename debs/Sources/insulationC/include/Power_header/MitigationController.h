@@ -1,0 +1,61 @@
+#import <Foundation/Foundation.h>
+#import <UIKit/UIKit.h>
+
+@interface MitigationController : NSObject
+- (BOOL)getGPUUtilization:(int *)a3;
+- (BOOL)graphicsUpdateInFlight;
+- (BOOL)powerSaveActive;
+- (BOOL)proModeActive;
+- (int)CPULevel;
+- (int)CPUPower;
+- (int)DVD1Level;
+- (int)GPUPower;
+- (int)SGXLevel;
+// - (int)getCLPCWriteToReadPower_8_24_mW:(__CFString *)a3;
+- (int)getCPUTargetPower;
+- (int)getCurrentCPULoadingIndex:(int)a3;
+- (int)getCurrentCPUPower;
+- (int)getCurrentGPULoadingIndex:(int)a3;
+- (int)getCurrentGPUPower;
+- (int)getCurrentPackageLoadingIndex:(int)a3;
+- (int)getCurrentPackagePower;
+- (int)getGPUTargetPower;
+- (int)getPackageCPUPowerTarget;
+- (int)getPackageGPUPowerTarget;
+- (int)getPackagePowerZoneMetric;
+- (int)getPackageTargetPower;
+- (int)numberOfFields;
+- (int)powerSaveToken;
+- (int)proModeToken;
+- (int)requestListID;
+- (void)setCPMSMitigationsEnabled:(BOOL)a3;
+- (void)setCPULevel:(int)a3;
+- (void)setCPULowPowerTarget:(int)a3;
+- (void)setCPUPowerCeiling:(int)a3 forDVD1Contributor:(int)a4;
+- (void)setCPUPowerCeiling:(int)a3 fromDecisionSource:(int)a4;
+- (void)setCPUPowerFloor:(int)a3 fromDecisionSource:(int)a4;
+- (void)setCPUPowerZoneTarget:(int)a3;
+- (void)setDVD1Level:(int)a3;
+// - (void)setDieTempControllerProperty:(__CFString *)a3 level:(int)a4 scaleToFixedPoint:(BOOL)a5;
+- (void)setGPUPowerCeiling:(int)a3 fromDecisionSource:(int)a4;
+- (void)setGPUPowerFloor:(int)a3 fromDecisionSource:(int)a4;
+- (void)setGPUPowerZoneTarget:(int)a3;
+- (void)setGraphicsUpdateInFlight:(BOOL)a3;
+// - (void)setMaxCPUPowerTarget:(int)a3 useLegacyPath:(BOOL)a4 setProperty:(__CFString *)a5;
+- (void)setMaxGraphicsDrivePowerTarget:(int)a3;
+- (void)setMaxPackagePower:(int)a3;
+- (void)setPackageLowPowerTarget;
+// - (void)setPackagePowerBudgetDirect:(int)a3 withDetails:(unint64_t)a4;
+- (void)setPackagePowerCeiling:(int)a3 fromDecisionSource:(int)a4;
+- (void)setPackagePowerFloor:(int)a3 fromDecisionSource:(int)a4;
+- (void)setPackagePowerZoneTarget;
+- (void)setPowerSaveActive:(BOOL)a3;
+- (void)setPowerSaveToken:(int)a3;
+- (void)setProModeActive:(BOOL)a3;
+- (void)setProModeToken:(int)a3;
+- (void)setSGXLevel:(int)a3;
+- (void)updateCPU;
+- (void)updateGPU;
+- (void)updatePackage;
+- (id)initForFastLoop:(BOOL)a3 noDisplay:(BOOL)a4 powerSaveParams:(id)a5 powerZoneParams:(id)a6;
+@end

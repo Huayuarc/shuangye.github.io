@@ -1,0 +1,4 @@
+module InsulationPrefsC {
+    umbrella "."
+    export *
+}
