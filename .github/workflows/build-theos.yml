@@ -10,11 +10,6 @@ on:
 jobs:
   build:
     runs-on: macos-latest
-    strategy:
-      matrix:
-        project:
-          - name: InsulationPrefs
-            package-scheme: rootless
 
     steps:
       - uses: actions/checkout@v4
@@ -37,16 +32,11 @@ jobs:
             $HOME/theos/bin/install-sdk latest || echo "SDK 下载失败，使用 Xcode 默认 SDK"
           fi
 
-      - name: Build ${{ matrix.project.name }}
+      - name: Build CPUthermal (rootless + roothide)
         working-directory: debs
         run: |
-          export THEOS_PACKAGE_SCHEME=${{ matrix.project.package-scheme }}
           export ARCHS="arm64 arm64e"
-          make clean
-          make package FINALPACKAGE=1
-          # 复制 deb 到 packages/
-          mkdir -p ${{ github.workspace }}/packages
-          cp packages/*.deb ${{ github.workspace }}/packages/ 2>/dev/null || true
+          make build-all FINALPACKAGE=1
 
       - name: Commit and push deb
         run: |
@@ -54,6 +44,6 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add packages/
           if ! git diff --quiet --cached; then
-            git commit -m "chore: 自动构建 ${{ matrix.project.name }}"
+            git commit -m "chore: 自动构建 CPUthermal"
             git push
           fi
