@@ -1,0 +1,48 @@
+name: Build Theos Projects
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "debs/**"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        project:
+          - name: InsulationPrefs
+            package-scheme: rootless
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Theos
+        run: |
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+          echo "THEOS=$HOME/theos" >> $GITHUB_ENV
+
+      - name: Build ${{ matrix.project.name }}
+        working-directory: debs
+        run: |
+          export THEOS_PACKAGE_SCHEME=${{ matrix.project.package-scheme }}
+          export ARCHS="arm64 arm64e"
+          make clean
+          make package FINALPACKAGE=1
+          # 复制 deb 到 packages/
+          mkdir -p ${{ github.workspace }}/packages
+          cp packages/*.deb ${{ github.workspace }}/packages/ 2>/dev/null || true
+
+      - name: Commit and push deb
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add packages/
+          if ! git diff --quiet --cached; then
+            git commit -m "chore: 自动构建 ${{ matrix.project.name }}"
+            git push
+          fi
