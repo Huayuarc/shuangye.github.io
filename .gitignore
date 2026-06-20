@@ -8,3 +8,8 @@ vendor/
 
 # SSH 密钥（本地推送用，不上传）
 .ssh/
+
+# Theos 构建临时文件
+.theos/
+
+# Theos 构建缓存（每项目内 .gitignore 已处理）

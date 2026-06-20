@@ -6,4 +6,4 @@ Description: 解除温控，一切从简即可。代码已开源：https://githu
 Maintainer: be-huge
 Author: be-huge
 Section: Tweaks
-Depends: ${ORION}, firmware (>= 12.2)
+Depends: ${ORION}, firmware (>= 14.0)
