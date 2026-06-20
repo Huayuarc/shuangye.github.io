@@ -18,7 +18,7 @@ jobs:
 
       - name: Setup Theos
         run: |
-          # 克隆 Theos（跳过 install 脚本，避免 SDK 下载失败）
+          set -x
           git clone --recursive https://github.com/theos/theos.git "$HOME/theos"
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
           # 优先使用 Xcode 内置 SDK
@@ -26,17 +26,52 @@ jobs:
           if [ -d "$XCODE_SDK" ]; then
             mkdir -p "$HOME/theos/sdks"
             ln -sf "$XCODE_SDK" "$HOME/theos/sdks/iPhoneOS16.5.sdk"
-            echo "使用 Xcode 内置 SDK"
+            ls -la "$HOME/theos/sdks/"
           else
-            # 回退：尝试远程下载 SDK
-            $HOME/theos/bin/install-sdk latest || echo "SDK 下载失败，使用 Xcode 默认 SDK"
+            $HOME/theos/bin/install-sdk latest || echo "SDK 下载失败"
           fi
 
-      - name: Build CPUthermal (rootless + roothide)
+      - name: Verify Theos
         working-directory: debs
         run: |
+          set -x
+          echo "THEOS=$THEOS"
+          ls -la "$THEOS/makefiles/" | head -5
+          ls -la "$THEOS/sdks/" | head -5
+          echo "=== 尝试 make clean ==="
+          make clean || echo "clean 结果: $?"
+          echo "=== 环境变量 ==="
+          env | grep -E "THEOS|ARCH|SCHEME" || true
+
+      - name: Build rootless
+        working-directory: debs
+        run: |
+          set -x
+          export THEOS_PACKAGE_SCHEME=rootless
           export ARCHS="arm64 arm64e"
-          make build-all FINALPACKAGE=1
+          make clean
+          make FINALPACKAGE=1 2>&1
+          make package FINALPACKAGE=1 2>&1
+          ls -la packages/*.deb 2>/dev/null || echo "rootless: 未找到 deb"
+
+      - name: Build roothide
+        working-directory: debs
+        run: |
+          set -x
+          export THEOS_PACKAGE_SCHEME=roothide
+          export ARCHS="arm64 arm64e"
+          make clean
+          make FINALPACKAGE=1 SCHEME=roothide 2>&1
+          make package FINALPACKAGE=1 SCHEME=roothide 2>&1
+          ls -la packages/*.deb 2>/dev/null || echo "roothide: 未找到 deb"
+
+      - name: Collect debs
+        working-directory: debs
+        run: |
+          set -x
+          mkdir -p ${{ github.workspace }}/packages
+          cp packages/*.deb ${{ github.workspace }}/packages/ 2>/dev/null || echo "无 deb 可复制"
+          ls -la ${{ github.workspace }}/packages/ || echo "packages 目录为空"
 
       - name: Commit and push deb
         run: |
@@ -44,6 +79,8 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add packages/
           if ! git diff --quiet --cached; then
-            git commit -m "chore: 自动构建 CPUthermal"
+            git commit -m "chore: 自动构建 CPUthermal [ci skip]"
             git push
+          else
+            echo "无新 deb 需要提交"
           fi
