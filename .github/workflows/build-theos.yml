@@ -20,17 +20,9 @@ jobs:
       - name: Setup Theos
         run: |
           set -x
-          # 清除可能的缓存
           rm -rf "$HOME/theos"
-          # 带重试的 git clone
-          for i in 1 2 3; do
-            git clone --recursive --depth=1 https://github.com/theos/theos.git "$HOME/theos" && break
-            echo "clone 失败，第 $i 次重试..."
-            sleep 5
-          done
+          git clone --recursive https://github.com/theos/theos.git "$HOME/theos"
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
-          # 确认 clone 成功
-          test -d "$HOME/theos/makefiles" || { echo "Theos clone 失败"; exit 1; }
           # ldid: Theos 签名必需，macOS runner 默认没有
           brew install ldid 2>/dev/null || true
           # 下载 Theos SDK（含 IOKit for iOS）
@@ -46,10 +38,27 @@ jobs:
         run: |
           set -x
           export THEOS_PACKAGE_SCHEME=rootless
-          export ARCHS="arm64"
+          export ARCHS="arm64 arm64e"
           make clean
           make FINALPACKAGE=1 2>&1
           make package FINALPACKAGE=1 2>&1
+          ls -la packages/*.deb 2>/dev/null
+
+      - name: Build roothide
+        working-directory: debs
+        continue-on-error: true
+        run: |
+          set -x
+          # CI 没有 libroothide，跳过
+          if ! echo '#include <roothide.h>' | cc -x c - -fsyntax-only 2>/dev/null; then
+            echo "libroothide 不可用，跳过 roothide 构建"
+            exit 0
+          fi
+          export THEOS_PACKAGE_SCHEME=roothide
+          export ARCHS="arm64 arm64e"
+          make clean
+          make FINALPACKAGE=1 SCHEME=roothide 2>&1
+          make package FINALPACKAGE=1 SCHEME=roothide 2>&1
           ls -la packages/*.deb 2>/dev/null
 
       - name: Collect debs
