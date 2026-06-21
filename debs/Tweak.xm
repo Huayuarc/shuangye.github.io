@@ -132,14 +132,16 @@ static BOOL g_lowPowerSimulation    = NO;  // 模拟低电频率（主动压低 
 static BOOL g_suppressTempPopup     = NO;  // 禁温度计弹窗（阻断热通知 + SCPreferences）
 
 // 温度安全阀 — 超过此值不拦截任何保护
-static const int64_t kSafetyTempThreshold = 75000;  // 75°C (毫摄氏度)
+static const int64_t kSafetyTempThreshold = 75000; // 75°C (毫摄氏度)
 
 // 注意: 用 C 字符串而非 ObjC 常量，避免 roothide 重映射破坏 __cfstring
 static const char *kPrefPathC = "/var/mobile/Library/Preferences/com.huayuarc.CPUthermal.plist";
-
 static CommonProduct *g_commonProduct = nil;
 static ThermalManager *g_thermalManager = nil;
 static dispatch_source_t g_lowPowerTimer = NULL;
+
+// 核心修复：低电模拟主动下发保护锁状态，避免被自身 Hook 拦截
+static BOOL g_isApplyingSimulation = NO;
 
 static void loadPrefs(void) {
     @autoreleasepool {
@@ -210,15 +212,8 @@ static BOOL serviceIsThermal(io_service_t service) {
 // ============================================================================
 // 温度安全阀检查
 // ============================================================================
-// thermalmonitord 内部判定"高温"的阈值通常在 45°C-65°C 之间
-// 我们设置 75°C 作为硬性安全阀 — 超过此温度不拦截任何保护动作
-// 这样即使插件出 bug 导致温度失控，硬件仍能获得保护
 static BOOL isTemperatureAboveSafetyCeiling(void) {
-    // 如果关闭了安全阀或者没有启用，直接返回 NO
     if (!g_keepCPSMAlive) return NO;
-
-    // 通过 IOKit 读取实际温度 — 跳过拦截
-    // 如果读不到，保守返回 NO（不过度保护）
     CFMutableDictionaryRef matching = IOServiceMatching("AppleARMPlatform");
     if (!matching) return NO;
 
@@ -255,6 +250,11 @@ static BOOL isTemperatureAboveSafetyCeiling(void) {
 
 // --- IOConnectCallMethod — 拦截温度读取 + 降频操作 ---
 %hookf(kern_return_t, IOConnectCallMethod, mach_port_t connection, uint32_t selector, const uint64_t *input, uint32_t inputCnt, const void *inputStruct, size_t inputStructCnt, uint64_t *output, uint32_t *outputCnt, void *outputStruct, size_t *outputStructCnt) {
+    // 修复：如果内部正在下发低电模拟频率，不拦截下发请求
+    if (g_isApplyingSimulation) {
+        return %orig;
+    }
+
     if (!g_enabled || !isThermalConnection(connection)) {
         return %orig;
     }
@@ -272,13 +272,12 @@ static BOOL isTemperatureAboveSafetyCeiling(void) {
     if (g_thermalStateProtection && SELECTOR_IS_TEMP(selector)) {
         if (output && outputCnt && *outputCnt > 0) {
             for (uint32_t i = 0; i < MIN(*outputCnt, 4); i++) {
-                output[i] = 36000;  // 36°C — 永远显示正常温度
+                output[i] = 36000; // 36°C — 永远显示正常温度
             }
         }
         return KERN_SUCCESS;
     }
     if (g_cpuProtection && SELECTOR_IS_MITIGATION(selector)) {
-        // 注意: 不拦截 0x60-0x6F 紧急保护
         return KERN_SUCCESS;
     }
     return %orig;
@@ -286,9 +285,9 @@ static BOOL isTemperatureAboveSafetyCeiling(void) {
 
 // --- IOServiceSetProperty — 阻止写降频/降亮度属性 ---
 static kern_return_t (*orig_IOServiceSetProperty)(io_service_t, CFStringRef, CFTypeRef) = NULL;
-
 static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringRef key, CFTypeRef value) {
-    if (!g_enabled) {
+    // 修复：内部主动模拟限频时放行，不拦截
+    if (g_isApplyingSimulation || !g_enabled) {
         return orig_IOServiceSetProperty(service, key, value);
     }
 
@@ -302,7 +301,6 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
         static NSArray *cpuKeys;
         static dispatch_once_t once;
         dispatch_once(&once, ^{
-            // 用 C 字符串创建数组，避免 __cfstring
             cpuKeys = @[S("cpu"), S("CPU"), S("freq"), S("Freq"), S("frequency"), S("performance"), S("throttle"), S("mitigation"), S("speed"), S("limit")];
         });
         for (NSString *k in cpuKeys) {
@@ -324,9 +322,8 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
 
 // --- IORegistryEntryCreateCFProperty — 返回正常值 ---
 %hookf(CFTypeRef, IORegistryEntryCreateCFProperty, io_registry_entry_t entry, CFStringRef key, CFAllocatorRef allocator, IOOptionBits options) {
+    if (g_isApplyingSimulation) return %orig;
     if (!g_enabled || !g_thermalStateProtection) return %orig;
-
-    // 安全阀
     if (isTemperatureAboveSafetyCeiling()) return %orig;
 
     NSString *ks = (__bridge NSString *)key;
@@ -342,8 +339,7 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
         [ks localizedCaseInsensitiveContainsString:S("performance-state")] ||
         [ks localizedCaseInsensitiveContainsString:S("cpu-frequency")]) {
         if (g_lowPowerSimulation) {
-            // 低电模拟: 返回低频 (1.2 GHz)
-            long long lowFreq = 1200000000LL;
+            long long lowFreq = 1200000000LL; // 低电模拟: 返回低频 (1.2 GHz)
             return CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &lowFreq);
         } else {
             int max = INT_MAX;
@@ -360,16 +356,13 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
 
 // --- notify_post — 拦截高温广播 ---
 %hookf(uint32_t, notify_post, const char *name) {
+    if (g_isApplyingSimulation) return %orig;
     if (g_enabled && (g_thermalStateProtection || g_suppressTempPopup) && name) {
-        // 安全阀: 只有在温度正常时才拦截
         if (!isTemperatureAboveSafetyCeiling()) {
-            // 动态创建 NSString 避免 roothide __cfstring 损坏
             NSString *ns = [NSString stringWithUTF8String:name];
-            // 常规热状态通知拦截
             if ([ns containsString:S("thermalstate")] || ([ns containsString:S("thermal")] && [ns containsString:S("high")])) {
                 return NOTIFY_STATUS_OK;
             }
-            // 禁温度计弹窗: 额外拦截热压力级别通知
             if (g_suppressTempPopup && [ns containsString:S("thermalpressurelevel")]) {
                 return NOTIFY_STATUS_OK;
             }
@@ -379,20 +372,12 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
 }
 
 // ============================================================================
-// sysctlbyname hook — 第三方 CPU 监控 App 读取 CPU 频率的主要路径
-//
-// 常见查询:
-//   hw.cpufrequency       — 当前 CPU 频率
-//   hw.cpufrequency_max   — 最大 CPU 频率
-//   machdep.cpu.brand_string — CPU 品牌字符串 (部分 App 解析它显示频率)
-//
-// 开启低电模拟时, 统一返回 1.2GHz
+// sysctlbyname hook
 // ============================================================================
 %hookf(int, sysctlbyname, const char *name, void *oldp, size_t *oldlenp, void *newp, size_t newlen) {
     if (g_enabled && g_lowPowerSimulation && name && !newp) {
-        // hw.cpufrequency: 返回 1.2GHz
         if (strcmp(name, "hw.cpufrequency") == 0 || strcmp(name, "hw.cpufrequency_max") == 0) {
-            long long fakeFreq = 1200000000LL;  // 1.2 GHz
+            long long fakeFreq = 1200000000LL;
             if (oldp) {
                 if (*oldlenp >= sizeof(long long)) {
                     memcpy(oldp, &fakeFreq, sizeof(long long));
@@ -405,7 +390,6 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
             }
             return 0;
         }
-        // machdep.cpu.brand_string: 如 "Apple A15 Bionic @ 1.20 GHz"
         if (strcmp(name, "machdep.cpu.brand_string") == 0) {
             const char *fakeBrand = "Apple A15 Bionic @ 1.20 GHz";
             size_t brandLen = strlen(fakeBrand) + 1;
@@ -426,10 +410,8 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
 }
 
 // ============================================================================
-// ObjC 类钩子（第1层: CommonProduct / HidSensors — 已有）
+// ObjC 类钩子（第1层: CommonProduct / HidSensors）
 // ============================================================================
-
-// --- CommonProduct: thermalmonitord 核心热管理对象 ---
 %hook CommonProduct
 
 - (id)initProduct:(id)arg1 {
@@ -443,14 +425,21 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
 }
 
 - (void)tryTakeAction {
+    if (g_isApplyingSimulation) {
+        %orig;
+        return;
+    }
     if (g_enabled && g_cpuProtection) {
-        // 阻止所有热缓解动作
         return;
     }
     %orig;
 }
 
 - (void)simulateLightThermalPressure {
+    if (g_isApplyingSimulation) {
+        %orig;
+        return;
+    }
     if (g_enabled && g_cpuProtection) {
         return;
     }
@@ -458,6 +447,10 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
 }
 
 - (void)updatePowerzoneTelemetry {
+    if (g_isApplyingSimulation) {
+        %orig;
+        return;
+    }
     if (g_enabled && g_cpuProtection) {
         return;
     }
@@ -466,7 +459,6 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
 
 %end
 
-// --- HidSensors: HID 温度事件处理 ---
 %hook HidSensors
 
 - (void)handleTemperatureEvent:(int)arg1 service:(id)arg2 {
@@ -479,23 +471,16 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
 %end
 
 // ============================================================================
-// ObjC 类钩子（第2层: ThermalManager 决策层 — 新增自 1.dylib 分析）
-//
-// 冲突避免说明:
-//   - 传感器读数 getHighestSkinTemp/dieTempFilteredMaxAverage/thermalSensorValuesMaxFromIndexSet
-//     不在此处 hook (IOKit 层已拦截)
-//   - putDeviceInThermalSimulationMode: 不 hook (CPUthermal 自已调用会递归)
-//   - setCPMSMitigationState: 不 hook (IOKit 层已拦截 selector 0x40-0x5F)
-//   - setHiPFeatureEnabled/setPackageLowPowerTarget: 不 hook (IOKit 层已拦截)
+// ObjC 类钩子（第2层: ThermalManager 决策层）
 // ============================================================================
-
-// --- ThermalManager: hook 决策树和热压力升级 ---
 %hook ThermalManager
 
-// 决策树评估 — 这是 thermalmonitord 判断"要不要降频"的核心
 - (void)evaluateDecisionTree {
+    if (g_isApplyingSimulation) {
+        %orig;
+        return;
+    }
     if (g_enabled && g_cpuProtection) {
-        // 安全阀: 超过 75°C 不阻断
         if (!isTemperatureAboveSafetyCeiling()) {
             NSLog(@"[CPUthermal] 阻止决策树评估 (evaluateDecisionTree)");
             return;
@@ -504,8 +489,8 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
     %orig;
 }
 
-// 是否应执行轻度热压力 — 可阻止
 - (BOOL)shouldEnforceLightThermalPressure {
+    if (g_isApplyingSimulation) return %orig;
     if (g_enabled && g_thermalStateProtection) {
         if (!isTemperatureAboveSafetyCeiling()) {
             NSLog(@"[CPUthermal] 阻止 enforceLightThermalPressure");
@@ -515,12 +500,11 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
     return %orig;
 }
 
-// 获取组件释放速率 — 可以降低不放 0
 - (float)getReleaseRateForComponent:(id)component {
+    if (g_isApplyingSimulation) return %orig(component);
     if (g_enabled && g_cpuProtection) {
         if (!isTemperatureAboveSafetyCeiling()) {
             float rate = %orig(component);
-            // 软化: 降低 50% 但保留基础释放能力
             if (rate > 0.5) {
                 rate = rate * 0.5;
             }
@@ -531,19 +515,19 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
     return %orig(component);
 }
 
-// 获取强制热级别 — 返回最低级
 - (int)getPotentialForcedThermalLevel:(id)component {
+    if (g_isApplyingSimulation) return %orig(component);
     if (g_enabled && g_thermalStateProtection) {
         if (!isTemperatureAboveSafetyCeiling()) {
             NSLog(@"[CPUthermal] 覆盖强制热级别: %@ -> 0 (nominal)", component);
-            return 0; // kThermalLevelNominal
+            return 0;
         }
     }
     return %orig(component);
 }
 
-// 获取强制热压力级别 — 返回最低
 - (int)getPotentialForcedThermalPressureLevel {
+    if (g_isApplyingSimulation) return %orig;
     if (g_enabled && g_thermalStateProtection) {
         if (!isTemperatureAboveSafetyCeiling()) {
             NSLog(@"[CPUthermal] 覆盖强制热压力级别 -> 0");
@@ -553,9 +537,8 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
     return %orig;
 }
 
-// 散热/电池服务建议 — 关闭时返回 nil 屏蔽系统散热提示
-// (适配自 fuckThermal 逆向还原分析)
 - (id)getBatteryServiceSuggestion:(id)suggestion {
+    if (g_isApplyingSimulation) return %orig(suggestion);
     id result = %orig(suggestion);
     if (g_enabled && g_thermalStateProtection) {
         if (!isTemperatureAboveSafetyCeiling()) {
@@ -566,7 +549,6 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
     return result;
 }
 
-// === 新增: 存储 ThermalManager 引用 + 应用低电模拟 (适配自 Insulation) ===
 - (id)initWithComponentControllers:(id)components hotspotControllers:(id)hotspots decisionTreeTable:(id)table {
     id res = %orig(components, hotspots, table);
     if (res && g_enabled) {
@@ -580,8 +562,11 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
     return res;
 }
 
-// 热通知 — 加强: 新增 g_suppressTempPopup 检查
 - (void)updateThermalNotification:(id)notification {
+    if (g_isApplyingSimulation) {
+        %orig;
+        return;
+    }
     if (g_enabled && (g_thermalStateProtection || g_suppressTempPopup)) {
         if (!isTemperatureAboveSafetyCeiling()) {
             NSLog(@"[CPUthermal] 阻止热通知: %@", notification);
@@ -591,8 +576,11 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
     %orig;
 }
 
-// 热压力升级通知 — 加强: 新增 g_suppressTempPopup 检查
 - (void)updateThermalPressureLevelNotification:(id)notification shouldForceThermalPressure:(BOOL)force {
+    if (g_isApplyingSimulation) {
+        %orig(notification, force);
+        return;
+    }
     if (g_enabled && (g_thermalStateProtection || g_suppressTempPopup)) {
         if (!isTemperatureAboveSafetyCeiling()) {
             NSLog(@"[CPUthermal] 阻止热压力升级: %@ force:%d", notification, force);
@@ -608,14 +596,13 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
 // --- ThermalControl: hook 控制力度计算 ---
 %hook ThermalControl
 
-// 计算控制力度 — 这是 throttle 量的核心
-// soften 模式下减半但不归零，保留基础调节能力
 - (float)calculateControlEffort:(id)trigger trigger:(id)arg2 {
+    if (g_isApplyingSimulation) return %orig(trigger, arg2);
     if (g_enabled && g_cpuProtection) {
         if (!isTemperatureAboveSafetyCeiling()) {
             float effort = %orig(trigger, arg2);
-            float newEffort = effort * 0.5;  // 减半，不归零
-            if (newEffort < 0 && effort > 0) newEffort = 0;  // 保护负值
+            float newEffort = effort * 0.5;
+            if (newEffort < 0 && effort > 0) newEffort = 0;
             NSLog(@"[CPUthermal] 软化控制力度: %.2f -> %.2f", effort, newEffort);
             return newEffort;
         }
@@ -623,8 +610,11 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
     return %orig(trigger, arg2);
 }
 
-// actionComponentControl — 组件控制动作
 - (void)actionComponentControl {
+    if (g_isApplyingSimulation) {
+        %orig;
+        return;
+    }
     if (g_enabled && g_cpuProtection) {
         if (!isTemperatureAboveSafetyCeiling()) {
             NSLog(@"[CPUthermal] 阻止 actionComponentControl");
@@ -634,8 +624,11 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
     %orig;
 }
 
-// readReleaseRateForAllComponents — 全组件释放速率
 - (void)readReleaseRateForAllComponents {
+    if (g_isApplyingSimulation) {
+        %orig;
+        return;
+    }
     if (g_enabled && g_cpuProtection) {
         if (!isTemperatureAboveSafetyCeiling()) {
             NSLog(@"[CPUthermal] 阻止 readReleaseRateForAllComponents");
@@ -648,32 +641,21 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
 %end
 
 // ============================================================================
-// C 函数钩子: _getConfigurationFor → ___New_getConfigurationFor___
-//
-// 在 thermalmonitord 初始化时，会调用 _getConfigurationFor(NSString*)
-// 来获取热配置字典。通过返回修改后的配置，可以影响所有热管理参数。
+// C 函数钩子: _getConfigurationFor
 // ============================================================================
-
-// 原函数类型: NSDictionary* _getConfigurationFor(NSString *key)
 static NSDictionary* (*orig_getConfigurationFor)(NSString *key) = NULL;
-
 static NSDictionary* new_getConfigurationFor(NSString *key) {
     NSDictionary *config = orig_getConfigurationFor(key);
     if (!g_enabled || !g_cpuProtection || !config) return config;
-
-    // 安全阀
     if (isTemperatureAboveSafetyCeiling()) return config;
 
     @autoreleasepool {
         NSMutableDictionary *modified = [config mutableCopy];
         if (!modified) return config;
 
-        // 修改系统热配置
-        // 增大所有热等级的触发阈值（延迟触发）
         static NSArray *tempThresholdKeys;
         static dispatch_once_t once;
         dispatch_once(&once, ^{
-            // 用 C 字符串创建数组，避免 __cfstring
             tempThresholdKeys = @[
                 S("thermalThresholds"),
                 S("dieTemperatureThresholds"),
@@ -682,13 +664,11 @@ static NSDictionary* new_getConfigurationFor(NSString *key) {
                 S("hotTemperatureThresholds")
             ];
         });
-
         for (NSString *tk in tempThresholdKeys) {
             id thresholds = modified[tk];
             if ([thresholds isKindOfClass:[NSArray class]]) {
                 NSMutableArray *newThresholds = [NSMutableArray array];
                 for (NSNumber *val in (NSArray *)thresholds) {
-                    // 将每个阈值提高 5°C (5000 毫摄氏度)
                     int64_t raised = [val longLongValue] + 5000;
                     [newThresholds addObject:@(raised)];
                 }
@@ -713,16 +693,13 @@ static NSDictionary* new_getConfigurationFor(NSString *key) {
 }
 
 // ============================================================================
-// 热配置 plist 修补（适配自 insulation 的 IDictHepler）
+// 热配置 plist 修补
 // ============================================================================
 static void patchThermalPlistDict(NSMutableDictionary *dict) {
     if (!g_enabled || !g_brightnessProtection) return;
-
-    // 用 C 字符串 key 动态创建，避免 __cfstring
     NSMutableDictionary *backlight = [[dict objectForKey:S("backlightComponentControl")] mutableCopy];
     if (!backlight) return;
 
-    // 锁定背光亮度数组 — 所有 thermal 级别亮度一致（不降亮度）
     NSMutableArray *brightnessArr = [[backlight objectForKey:S("BacklightBrightness")] mutableCopy];
     if (brightnessArr.count > 1) {
         id first = brightnessArr[0];
@@ -732,7 +709,6 @@ static void patchThermalPlistDict(NSMutableDictionary *dict) {
         backlight[S("BacklightBrightness")] = brightnessArr;
     }
 
-    // 锁定背光功耗数组
     NSMutableArray *powerArr = [[backlight objectForKey:S("BacklightPower")] mutableCopy];
     if (powerArr.count > 1) {
         id first = powerArr[0];
@@ -742,8 +718,6 @@ static void patchThermalPlistDict(NSMutableDictionary *dict) {
         backlight[S("BacklightPower")] = powerArr;
     }
 
-    // 禁用 CPMS（CPU/GPU 电源管理子系统）
-    // 注: 如果 g_keepCPSMAlive 为 YES，不关闭 CPMS
     if (!g_keepCPSMAlive) {
         backlight[S("expectsCPMSSupport")] = @0;
     }
@@ -751,8 +725,6 @@ static void patchThermalPlistDict(NSMutableDictionary *dict) {
     dict[S("backlightComponentControl")] = backlight;
 }
 
-// --- NSDictionary: 拦截 thermal plist 加载并修补 ---
-// 注意: hook 系统类有风险，仅在亮度保护开启时实际执行
 %hook NSDictionary
 
 + (id)dictionaryWithContentsOfFile:(id)path {
@@ -760,7 +732,6 @@ static void patchThermalPlistDict(NSMutableDictionary *dict) {
     if (g_enabled && g_brightnessProtection && [path isKindOfClass:[NSString class]]) {
         NSString *pathStr = (NSString *)path;
         if ([pathStr containsString:S("/System/Library/ThermalMonitor/")]) {
-            // 安全阀
             if (!isTemperatureAboveSafetyCeiling()) {
                 NSMutableDictionary *patched = [res mutableCopy];
                 if (patched) {
@@ -777,63 +748,53 @@ static void patchThermalPlistDict(NSMutableDictionary *dict) {
 %end
 
 // ============================================================================
-// 模拟低电频率 — 主动压低 CPU/Package 功率 (适配自 Insulation 逆向)
-//
-// 注意: setCPULowPowerTarget:0 在 Apple 实现中可能表示"不限制"而非"最低"
-// 改用正数 1 确保触发限频逻辑
-//
-// 第三方 CPU 监控 App 通过 sysctlbyname("hw.cpufrequency") 或 IOKit 属性
-// 读取频率，详见下方的 %hookf(sysctlbyname) 和 IORegistryEntryCreateCFProperty 修改
+// 模拟低电频率核心应用逻辑 — 修复锁与决策源
 // ============================================================================
 static void applyLowPowerSimulation(void) {
     if (!g_thermalManager || !g_enabled) return;
     @autoreleasepool {
-        NSLog(@"[CPUthermal] 激活模拟低电频率");
+        // 关键修复 1：开启保护锁，放行此方法内下发的所有底层 IOKit 和属性调用
+        g_isApplyingSimulation = YES;
+        NSLog(@"[CPUthermal] 激活模拟低电频率...");
 
         // 开启省电模式
         [g_thermalManager setPowerSaveActive:YES];
-
-        // CPU Low Power Target — 使用正数 1，避免 0 被解释为"不限制"
+        // 使用正数 1，避免 0 被系统内核解释为"不限制"
         [g_thermalManager setCPULowPowerTarget:1];
-
-        // CPU 功率上限 — 压到极低 (单位: mW)
-        [g_thermalManager setCPUPowerCeiling:300 fromDecisionSource:S("CPUthermal")];
-
-        // CPU 功率下限 — 也压低，防止 thermalmonitord 自动回升
-        [g_thermalManager setCPUPowerFloor:100 fromDecisionSource:S("CPUthermal")];
-
-        // Package 低功耗目标
+        
+        // 关键修复 2：决策源改用原生常见源 "CLTM"（或 "SMC"），防止自定义字符串被系统白名单机制拒绝
+        [g_thermalManager setCPUPowerCeiling:300 fromDecisionSource:S("CLTM")];
+        [g_thermalManager setCPUPowerFloor:100 fromDecisionSource:S("CLTM")];
+        
+        // Package 低功耗目标与功率控制
         [g_thermalManager setPackageLowPowerTarget];
-
-        // Package 功率上限/下限
-        [g_thermalManager setPackagePowerCeiling:500 fromDecisionSource:S("CPUthermal")];
-        [g_thermalManager setPackagePowerFloor:200 fromDecisionSource:S("CPUthermal")];
-
-        // CPU Power Zone 目标
+        [g_thermalManager setPackagePowerCeiling:500 fromDecisionSource:S("CLTM")];
+        [g_thermalManager setPackagePowerFloor:200 fromDecisionSource:S("CLTM")];
+        
+        // Zone 目标压低
         [g_thermalManager setCPUPowerZoneTarget:1];
         [g_thermalManager setPackagePowerZoneTarget];
-
-        // GPU 也压低
-        [g_thermalManager setGPUPowerCeiling:300 fromDecisionSource:S("CPUthermal")];
-
-        // 强制 CPU 最低级别
+        
+        // GPU 功率限制
+        [g_thermalManager setGPUPowerCeiling:300 fromDecisionSource:S("CLTM")];
+        // 强制 CPU 调频至最低 Level 0
         [g_thermalManager setCPULevel:0];
-
-        // 限制最大 Package 功率
+        // 限制全局整机功耗上限 500mW
         [g_thermalManager setMaxPackagePower:500];
 
-        // 触发更新
+        // 同步通知各组件生效
         [g_thermalManager updateCPU];
         [g_thermalManager updateGPU];
         [g_thermalManager updatePackage];
 
+        // 关闭保护锁，恢复常规防降频拦截逻辑
+        g_isApplyingSimulation = NO;
         NSLog(@"[CPUthermal] 模拟低电频率已应用");
     }
 }
 
 // ============================================================================
-// 低电模拟定时器 — thermalmonitord 会周期性重算功率值
-// 每隔 3 秒重新应用一次，确保功率值不被重置
+// 低电模拟定时器
 // ============================================================================
 static void startLowPowerTimer(void) {
     if (g_lowPowerTimer) return;
@@ -863,23 +824,17 @@ static void stopLowPowerTimer(void) {
 }
 
 // ============================================================================
-// 禁温度计弹窗 — 通过 SCPreferences + 通知阻断 (适配自 Insulation 逆向)
-//
-// SCPreferences API 在 iOS SDK 中被标记为 unavailable， 无法直接链接
-// 通过 dlsym 运行时动态加载 SystemConfiguration.framework 中的函数指针
+// 禁温度计弹窗
 // ============================================================================
 static void applySuppressTempPopup(BOOL enable) {
     @autoreleasepool {
         NSLog(@"[CPUthermal] %@ 温度计弹窗", enable ? S("禁用") : S("恢复"));
-
-        // 运行时动态加载 SystemConfiguration
         void *sc = dlopen("/System/Library/Frameworks/SystemConfiguration.framework/SystemConfiguration", RTLD_NOW | RTLD_GLOBAL);
         if (!sc) {
             NSLog(@"[CPUthermal] 无法加载 SystemConfiguration.framework");
             return;
         }
 
-        // dlsym 获取 SCPreferences API 函数指针
         SCPreferencesRef (*dyn_SCPreferencesCreate)(CFAllocatorRef, CFStringRef, CFStringRef) =
             (SCPreferencesRef (*)(CFAllocatorRef, CFStringRef, CFStringRef))dlsym(sc, "SCPreferencesCreate");
         Boolean (*dyn_SCPreferencesSetValue)(SCPreferencesRef, CFStringRef, CFPropertyListRef) =
@@ -888,7 +843,6 @@ static void applySuppressTempPopup(BOOL enable) {
             (Boolean (*)(SCPreferencesRef))dlsym(sc, "SCPreferencesCommitChanges");
         Boolean (*dyn_SCPreferencesApplyChanges)(SCPreferencesRef) =
             (Boolean (*)(SCPreferencesRef))dlsym(sc, "SCPreferencesApplyChanges");
-
         if (!dyn_SCPreferencesCreate || !dyn_SCPreferencesSetValue ||
             !dyn_SCPreferencesCommitChanges || !dyn_SCPreferencesApplyChanges) {
             NSLog(@"[CPUthermal] dlsym SCPreferences API 失败");
@@ -896,7 +850,6 @@ static void applySuppressTempPopup(BOOL enable) {
             return;
         }
 
-        // 创建 SCPreferences 会话
         SCPreferencesRef prefs = dyn_SCPreferencesCreate(NULL,
             (__bridge CFStringRef)S("CPUthermal"),
             (__bridge CFStringRef)S("OSThermalStatus"));
@@ -906,27 +859,11 @@ static void applySuppressTempPopup(BOOL enable) {
             return;
         }
 
-        // 禁用/启用 OS 热通知
-        dyn_SCPreferencesSetValue(prefs,
-            (__bridge CFStringRef)S("OSThermalNotificationEnabled"),
-            enable ? kCFBooleanFalse : kCFBooleanTrue);
-
-        // 持久化禁用的热通知状态
-        dyn_SCPreferencesSetValue(prefs,
-            (__bridge CFStringRef)S("OSThermalNotificationPersistentlyEnabled"),
-            enable ? kCFBooleanFalse : kCFBooleanTrue);
-
-        // 禁用高温 override
-        dyn_SCPreferencesSetValue(prefs,
-            (__bridge CFStringRef)S("hipOverride"),
-            enable ? kCFBooleanFalse : kCFBooleanTrue);
-
-        // 持久化禁用
-        dyn_SCPreferencesSetValue(prefs,
-            (__bridge CFStringRef)S("hipPersistentlyEnabled"),
-            enable ? kCFBooleanFalse : kCFBooleanTrue);
-
-        // 提交 + 应用
+        dyn_SCPreferencesSetValue(prefs, (__bridge CFStringRef)S("OSThermalNotificationEnabled"), enable ? kCFBooleanFalse : kCFBooleanTrue);
+        dyn_SCPreferencesSetValue(prefs, (__bridge CFStringRef)S("OSThermalNotificationPersistentlyEnabled"), enable ? kCFBooleanFalse : kCFBooleanTrue);
+        dyn_SCPreferencesSetValue(prefs, (__bridge CFStringRef)S("hipOverride"), enable ? kCFBooleanFalse : kCFBooleanTrue);
+        dyn_SCPreferencesSetValue(prefs, (__bridge CFStringRef)S("hipPersistentlyEnabled"), enable ? kCFBooleanFalse : kCFBooleanTrue);
+        
         Boolean committed = dyn_SCPreferencesCommitChanges(prefs);
         Boolean applied = dyn_SCPreferencesApplyChanges(prefs);
         if (committed && applied) {
@@ -940,7 +877,7 @@ static void applySuppressTempPopup(BOOL enable) {
 }
 
 // ============================================================================
-// 运行时配置重载（设置变更后不重启 thermalmonitord 即时生效）
+// 运行时配置重载
 // ============================================================================
 static void reloadSettings(void) {
     @autoreleasepool {
@@ -948,7 +885,6 @@ static void reloadSettings(void) {
         loadPrefs();
         if (!g_enabled) return;
 
-        // 管理低电模拟 + 定时器
         if (g_lowPowerSimulation && g_thermalManager) {
             applyLowPowerSimulation();
             startLowPowerTimer();
@@ -956,13 +892,12 @@ static void reloadSettings(void) {
             stopLowPowerTimer();
         }
 
-        // 重新应用弹窗抑制
         applySuppressTempPopup(g_suppressTempPopup);
     }
 }
 
 // ============================================================================
-// Puppet 事件（由 Preferences 面板触发 — 模拟热级别切换）
+// Puppet 事件
 // ============================================================================
 static void executePuppetEvent(void) {
     if (!g_commonProduct) return;
@@ -994,7 +929,6 @@ static void onSettingsChanged(CFNotificationCenterRef center, void *observer, CF
             return;
         }
 
-        // 确保 IOKit 已加载
         void *iokit = dlopen("/System/Library/Frameworks/IOKit.framework/IOKit", RTLD_NOW | RTLD_GLOBAL);
         if (iokit) {
             kern_return_t (*ptr)(io_service_t, CFStringRef, CFTypeRef) = (kern_return_t (*)(io_service_t, CFStringRef, CFTypeRef))dlsym(iokit, "IOServiceSetProperty");
@@ -1006,7 +940,6 @@ static void onSettingsChanged(CFNotificationCenterRef center, void *observer, CF
             }
         }
 
-        // _getConfigurationFor — C 函数钩子
         void *monitor = dlopen("/System/Library/PrivateFrameworks/DeviceMonitor.framework/DeviceMonitor", RTLD_NOW | RTLD_GLOBAL);
         if (monitor) {
             void *getConfig = dlsym(monitor, "_getConfigurationFor");
@@ -1020,7 +953,6 @@ static void onSettingsChanged(CFNotificationCenterRef center, void *observer, CF
             NSLog(@"[CPUthermal] 未找到 DeviceMonitor.framework (非致命)");
         }
 
-        // 启动时立即应用禁温度计弹窗 (SCPreferences 写入)
         if (g_suppressTempPopup) {
             applySuppressTempPopup(YES);
         }
@@ -1031,15 +963,12 @@ static void onSettingsChanged(CFNotificationCenterRef center, void *observer, CF
               g_blockHidEvents, g_keepCPSMAlive,
               g_lowPowerSimulation, g_suppressTempPopup);
 
-        // 设置变更监听 — 不重启 thermalmonitord 即时生效
         CFNotificationCenterRef c = CFNotificationCenterGetDarwinNotifyCenter();
         if (c) {
-            // 设置变更通知
             CFNotificationCenterAddObserver(c, NULL, onSettingsChanged,
                 (__bridge CFStringRef)S("com.huayuarc.CPUthermal/settingsChanged"),
                 NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 
-            // 模拟热级别监听（独立功能）
             CFNotificationCenterAddObserver(c, NULL, onPuppetEvent,
                 (__bridge CFStringRef)S("com.huayuarc.CPUthermal.puppet"),
                 NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
