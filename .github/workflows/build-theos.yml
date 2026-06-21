@@ -52,59 +52,35 @@ jobs:
       - name: Build rootless
         id: build_rootless
         working-directory: debs
-        continue-on-error: true
         run: |
           set -x
           export THEOS_PACKAGE_SCHEME=rootless
           export ARCHS="arm64 arm64e"
-          {
-            echo "## Build rootless"
-            make clean
-            make FINALPACKAGE=1 2>&1
-            echo "make exit: $?"
-            make package FINALPACKAGE=1 2>&1
-            echo "package exit: $?"
-            echo "### Packages:"
-            ls -la packages/*.deb 2>/dev/null || echo "未找到 deb"
-          } 2>&1 | tee /tmp/build-rootless.log
-          # 截取最后 80 行到 summary
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          tail -80 /tmp/build-rootless.log >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          # 标记失败
-          if [ ! -f packages/*.deb ] 2>/dev/null; then
-            echo "❌ rootless 构建失败" >> $GITHUB_STEP_SUMMARY
-            exit 1
-          fi
-          echo "✅ rootless 构建成功" >> $GITHUB_STEP_SUMMARY
+          make clean
+          make FINALPACKAGE=1 2>&1
+          make package FINALPACKAGE=1 2>&1
+          ls -la packages/*.deb 2>/dev/null || echo "rootless: 未找到 deb"
 
-      - name: Build roothide
+      - name: Build roothide (optional, 需要 libroothide)
+        id: build_roothide
         working-directory: debs
-        if: success() || steps.build_rootless.outcome == 'failure'
+        continue-on-error: true
         run: |
           set -x
+          # 检查是否可用 libroothide
+          if ! echo '#include <roothide.h>' | cc -x c - -fsyntax-only 2>/dev/null; then
+            echo "libroothide 不可用（CI 环境），跳过 roothide 构建"
+            exit 0
+          fi
           export THEOS_PACKAGE_SCHEME=roothide
           export ARCHS="arm64 arm64e"
-          {
-            echo "## Build roothide"
-            make clean
-            make FINALPACKAGE=1 SCHEME=roothide 2>&1
-            echo "make exit: $?"
-            make package FINALPACKAGE=1 SCHEME=roothide 2>&1
-            echo "package exit: $?"
-            echo "### Packages:"
-            ls -la packages/*.deb 2>/dev/null || echo "未找到 deb"
-          } 2>&1 | tee /tmp/build-roothide.log
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          tail -80 /tmp/build-roothide.log >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          if [ ! -f packages/*.deb ] 2>/dev/null; then
-            echo "❌ roothide 构建失败" >> $GITHUB_STEP_SUMMARY
-            exit 1
-          fi
-          echo "✅ roothide 构建成功" >> $GITHUB_STEP_SUMMARY
+          make clean
+          make FINALPACKAGE=1 SCHEME=roothide 2>&1
+          make package FINALPACKAGE=1 SCHEME=roothide 2>&1
+          ls -la packages/*.deb 2>/dev/null || echo "roothide: 未找到 deb"
 
       - name: Collect debs
+        if: always()
         working-directory: debs
         run: |
           set -x
@@ -113,13 +89,14 @@ jobs:
           ls -la ${{ github.workspace }}/packages/ || echo "packages 目录为空"
 
       - name: Commit and push deb
+        if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add packages/
-          if ! git diff --quiet --cached; then
+          if git diff --quiet --cached; then
+            echo "无新 deb 需要提交"
+          else
             git commit -m "chore: 自动构建 CPUthermal [ci skip]"
             git push
-          else
-            echo "无新 deb 需要提交"
           fi
