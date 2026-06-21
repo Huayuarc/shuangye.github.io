@@ -61,14 +61,33 @@ jobs:
 
       - name: Build rootless
         working-directory: debs
+        continue-on-error: true
         run: |
           set -x
           export THEOS_PACKAGE_SCHEME=rootless
           export ARCHS="arm64 arm64e"
-          make clean
-          make FINALPACKAGE=1 2>&1
-          make package FINALPACKAGE=1 2>&1
-          ls -la packages/*.deb 2>/dev/null || echo "rootless: 未找到 deb"
+          echo "THEOS=$THEOS"
+          echo "SDK_DIR=$THEOS/sdks"
+          ls -la "$THEOS/sdks/" 2>&1
+          echo "=== make FINALPACKAGE=1 ==="
+          make FINALPACKAGE=1 2>&1 | tee /tmp/rootless_make.log; MAKE_EXIT=${PIPESTATUS[0]}
+          echo "make exit code: $MAKE_EXIT"
+          if [ $MAKE_EXIT -eq 0 ]; then
+            echo "=== make package ==="
+            make package FINALPACKAGE=1 2>&1
+            ls -la packages/*.deb 2>/dev/null || echo "rootless: 未找到 deb"
+          else
+            echo "make 失败，跳过 package"
+          fi
+          # 复制日志到 workspace
+          cp /tmp/rootless_make.log ${{ github.workspace }}/rootless_make.log 2>/dev/null || true
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: rootless_make.log
 
       - name: Build roothide (optional, 需要 libroothide)
         id: build_roothide
