@@ -1,6 +1,7 @@
 #import <Foundation/Foundation.h>
 #import <dlfcn.h>
 #import <notify.h>
+#include <roothide.h>
 #import <IOKit/IOKitLib.h>
 
 // ============================================================================
@@ -15,7 +16,13 @@
 //   - 不 hook putDeviceInThermalSimulationMode: (CPUthermal 调用方)
 //   - 所有新增 hook 有独立开关
 //   - 保留紧急热保护安全阀 (75°C+ 不拦截)
+//
+// 注意: 禁止使用 @"" ObjC 字符串常量（roothide 重映射会破坏 __cfstring）
+// 所有字符串通过 C 字符串 + stringWithUTF8String: 动态创建
 // ============================================================================
+
+// 动态创建 NSString 的辅助宏 — 避免编译期 __cfstring
+#define S(str) [NSString stringWithUTF8String:(str)]
 
 // ============================================================================
 // ObjC 类声明（thermalmonitord 内部类，class-dump 获取）
@@ -102,29 +109,31 @@ static BOOL g_keepCPSMAlive        = NO; // 保留 CPMS 紧急保护(安全阀) 
 // 温度安全阀 — 超过此值不拦截任何保护
 static const int64_t kSafetyTempThreshold = 75000;  // 75°C (毫摄氏度)
 
-static NSString *const kPrefPath = @"/var/mobile/Library/Preferences/com.huayuarc.cputhermal.plist";
+// 注意: 用 C 字符串而非 ObjC 常量，避免 roothide 重映射破坏 __cfstring
+static const char *kPrefPathC = "/var/mobile/Library/Preferences/com.huayuarc.CPUthermal.plist";
 
 static CommonProduct *g_commonProduct = nil;
 
 static void loadPrefs(void) {
     @autoreleasepool {
-        NSDictionary *d = [NSDictionary dictionaryWithContentsOfFile:kPrefPath];
+        NSString *path = [NSString stringWithUTF8String:jbroot(kPrefPathC)];
+        NSDictionary *d = [NSDictionary dictionaryWithContentsOfFile:path];
         if (!d) return;
-        g_enabled              = [d[@"enabled"] ?: @NO boolValue];
-        g_blockCPUMitigation   = [d[@"blockCPUMitigation"] ?: @NO boolValue];
-        g_blockBrightness      = [d[@"blockBrightness"] ?: @NO boolValue];
-        g_forceNominal         = [d[@"forceNominalState"] ?: @NO boolValue];
-        g_patchThermalPlist    = [d[@"patchThermalPlist"] ?: @NO boolValue];
-        g_blockObjCHooks       = [d[@"blockObjCHooks"] ?: @NO boolValue];
-        g_blockHidEvents       = [d[@"blockHidEvents"] ?: @NO boolValue];
+        g_enabled              = [d[S("enabled")] ?: [NSNumber numberWithBool:NO] boolValue];
+        g_blockCPUMitigation   = [d[S("blockCPUMitigation")] ?: [NSNumber numberWithBool:NO] boolValue];
+        g_blockBrightness      = [d[S("blockBrightness")] ?: [NSNumber numberWithBool:NO] boolValue];
+        g_forceNominal         = [d[S("forceNominalState")] ?: [NSNumber numberWithBool:NO] boolValue];
+        g_patchThermalPlist    = [d[S("patchThermalPlist")] ?: [NSNumber numberWithBool:NO] boolValue];
+        g_blockObjCHooks       = [d[S("blockObjCHooks")] ?: [NSNumber numberWithBool:NO] boolValue];
+        g_blockHidEvents       = [d[S("blockHidEvents")] ?: [NSNumber numberWithBool:NO] boolValue];
 
         // 新增精细控制
-        g_blockDecisionTree    = [d[@"blockDecisionTree"] ?: @NO boolValue];
-        g_softenControlEffort  = [d[@"softenControlEffort"] ?: @NO boolValue];
-        g_blockThermalPressure = [d[@"blockThermalPressure"] ?: @NO boolValue];
-        g_modifyConfig         = [d[@"modifyConfig"] ?: @NO boolValue];
-        g_overrideForceLevel   = [d[@"overrideForceLevel"] ?: @NO boolValue];
-        g_keepCPSMAlive        = [d[@"keepCPMSAlive"] ?: @NO boolValue];
+        g_blockDecisionTree    = [d[S("blockDecisionTree")] ?: [NSNumber numberWithBool:NO] boolValue];
+        g_softenControlEffort  = [d[S("softenControlEffort")] ?: [NSNumber numberWithBool:NO] boolValue];
+        g_blockThermalPressure = [d[S("blockThermalPressure")] ?: [NSNumber numberWithBool:NO] boolValue];
+        g_modifyConfig         = [d[S("modifyConfig")] ?: [NSNumber numberWithBool:NO] boolValue];
+        g_overrideForceLevel   = [d[S("overrideForceLevel")] ?: [NSNumber numberWithBool:NO] boolValue];
+        g_keepCPSMAlive        = [d[S("keepCPMSAlive")] ?: [NSNumber numberWithBool:NO] boolValue];
     }
 }
 
@@ -273,7 +282,8 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
         static NSArray *cpuKeys;
         static dispatch_once_t once;
         dispatch_once(&once, ^{
-            cpuKeys = @[@"cpu", @"CPU", @"freq", @"Freq", @"frequency", @"performance", @"throttle", @"mitigation", @"speed", @"limit"];
+            // 用 C 字符串创建数组，避免 __cfstring
+            cpuKeys = @[S("cpu"), S("CPU"), S("freq"), S("Freq"), S("frequency"), S("performance"), S("throttle"), S("mitigation"), S("speed"), S("limit")];
         });
         for (NSString *k in cpuKeys) {
             if ([ks containsString:k]) return KERN_SUCCESS;
@@ -283,7 +293,7 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
         static NSArray *brightKeys;
         static dispatch_once_t once2;
         dispatch_once(&once2, ^{
-            brightKeys = @[@"brightness", @"Brightness", @"backlight", @"Backlight"];
+            brightKeys = @[S("brightness"), S("Brightness"), S("backlight"), S("Backlight")];
         });
         for (NSString *k in brightKeys) {
             if ([ks containsString:k]) return KERN_SUCCESS;
@@ -300,20 +310,20 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
     if (isTemperatureAboveSafetyCeiling()) return %orig;
 
     NSString *ks = (__bridge NSString *)key;
-    if ([ks localizedCaseInsensitiveContainsString:@"temperature"] ||
-        [ks localizedCaseInsensitiveContainsString:@"thermal-level"] ||
-        [ks localizedCaseInsensitiveContainsString:@"hot-level"] ||
-        [ks localizedCaseInsensitiveContainsString:@"thermalstate"]) {
+    if ([ks localizedCaseInsensitiveContainsString:S("temperature")] ||
+        [ks localizedCaseInsensitiveContainsString:S("thermal-level")] ||
+        [ks localizedCaseInsensitiveContainsString:S("hot-level")] ||
+        [ks localizedCaseInsensitiveContainsString:S("thermalstate")]) {
         int zero = 0;
         return CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &zero);
     }
-    if ([ks localizedCaseInsensitiveContainsString:@"freq"] ||
-        [ks localizedCaseInsensitiveContainsString:@"speed"]) {
+    if ([ks localizedCaseInsensitiveContainsString:S("freq")] ||
+        [ks localizedCaseInsensitiveContainsString:S("speed")]) {
         int max = INT_MAX;
         return CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &max);
     }
-    if ([ks localizedCaseInsensitiveContainsString:@"brightness"] ||
-        [ks localizedCaseInsensitiveContainsString:@"backlight"]) {
+    if ([ks localizedCaseInsensitiveContainsString:S("brightness")] ||
+        [ks localizedCaseInsensitiveContainsString:S("backlight")]) {
         float one = 1.0;
         return CFNumberCreate(kCFAllocatorDefault, kCFNumberFloatType, &one);
     }
@@ -325,8 +335,9 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
     if (g_enabled && g_forceNominal && name) {
         // 安全阀: 只有在温度正常时才拦截
         if (!isTemperatureAboveSafetyCeiling()) {
-            NSString *ns = @(name);
-            if ([ns containsString:@"thermalstate"] || ([ns containsString:@"thermal"] && [ns containsString:@"high"])) {
+            // 动态创建 NSString 避免 roothide __cfstring 损坏
+            NSString *ns = [NSString stringWithUTF8String:name];
+            if ([ns containsString:S("thermalstate")] || ([ns containsString:S("thermal")] && [ns containsString:S("high")])) {
                 return NOTIFY_STATUS_OK;
             }
         }
@@ -345,7 +356,7 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
     id res = %orig;
     if (g_enabled) {
         g_commonProduct = self;
-        [self putDeviceInThermalSimulationMode:@"nominal"];
+        [self putDeviceInThermalSimulationMode:S("nominal")];
         NSLog(@"[CPUthermal] CommonProduct init, 已重置热状态为 nominal");
     }
     return res;
@@ -487,6 +498,19 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
     return %orig;
 }
 
+// 散热/电池服务建议 — 关闭时返回 nil 屏蔽系统散热提示
+// (适配自 fuckThermal 逆向还原分析)
+- (id)getBatteryServiceSuggestion:(id)suggestion {
+    id result = %orig(suggestion);
+    if (g_enabled && g_blockThermalPressure) {
+        if (!isTemperatureAboveSafetyCeiling()) {
+            NSLog(@"[CPUthermal] 拦截 ThermalManager 散热建议");
+            return nil;
+        }
+    }
+    return result;
+}
+
 %end
 
 // --- ThermalControl: hook 控制力度计算 ---
@@ -557,12 +581,13 @@ static NSDictionary* new_getConfigurationFor(NSString *key) {
         static NSArray *tempThresholdKeys;
         static dispatch_once_t once;
         dispatch_once(&once, ^{
+            // 用 C 字符串创建数组，避免 __cfstring
             tempThresholdKeys = @[
-                @"thermalThresholds",
-                @"dieTemperatureThresholds",
-                @"skinTemperatureThresholds",
-                @"componentTemperatureThresholds",
-                @"hotTemperatureThresholds"
+                S("thermalThresholds"),
+                S("dieTemperatureThresholds"),
+                S("skinTemperatureThresholds"),
+                S("componentTemperatureThresholds"),
+                S("hotTemperatureThresholds")
             ];
         });
 
@@ -601,51 +626,56 @@ static NSDictionary* new_getConfigurationFor(NSString *key) {
 static void patchThermalPlistDict(NSMutableDictionary *dict) {
     if (!g_enabled || !g_patchThermalPlist) return;
 
-    NSMutableDictionary *backlight = [[dict objectForKey:@"backlightComponentControl"] mutableCopy];
+    // 用 C 字符串 key 动态创建，避免 __cfstring
+    NSMutableDictionary *backlight = [[dict objectForKey:S("backlightComponentControl")] mutableCopy];
     if (!backlight) return;
 
     // 锁定背光亮度数组 — 所有 thermal 级别亮度一致（不降亮度）
-    NSMutableArray *brightnessArr = [[backlight objectForKey:@"BacklightBrightness"] mutableCopy];
+    NSMutableArray *brightnessArr = [[backlight objectForKey:S("BacklightBrightness")] mutableCopy];
     if (brightnessArr.count > 1) {
         id first = brightnessArr[0];
         for (NSUInteger i = 1; i < brightnessArr.count; i++) {
             brightnessArr[i] = first;
         }
-        backlight[@"BacklightBrightness"] = brightnessArr;
+        backlight[S("BacklightBrightness")] = brightnessArr;
     }
 
     // 锁定背光功耗数组
-    NSMutableArray *powerArr = [[backlight objectForKey:@"BacklightPower"] mutableCopy];
+    NSMutableArray *powerArr = [[backlight objectForKey:S("BacklightPower")] mutableCopy];
     if (powerArr.count > 1) {
         id first = powerArr[0];
         for (NSUInteger i = 1; i < powerArr.count; i++) {
             powerArr[i] = first;
         }
-        backlight[@"BacklightPower"] = powerArr;
+        backlight[S("BacklightPower")] = powerArr;
     }
 
     // 禁用 CPMS（CPU/GPU 电源管理子系统）
     // 注: 如果 g_keepCPSMAlive 为 YES，不关闭 CPMS
     if (!g_keepCPSMAlive) {
-        backlight[@"expectsCPMSSupport"] = @0;
+        backlight[S("expectsCPMSSupport")] = @0;
     }
 
-    dict[@"backlightComponentControl"] = backlight;
+    dict[S("backlightComponentControl")] = backlight;
 }
 
 // --- NSDictionary: 拦截 thermal plist 加载并修补 ---
+// 注意: hook 系统类有风险，仅在 g_patchThermalPlist 开启时实际执行
 %hook NSDictionary
 
 + (id)dictionaryWithContentsOfFile:(id)path {
     id res = %orig;
-    if (g_enabled && g_patchThermalPlist && [path containsString:@"/System/Library/ThermalMonitor/"]) {
-        // 安全阀
-        if (!isTemperatureAboveSafetyCeiling()) {
-            NSMutableDictionary *patched = [res mutableCopy];
-            if (patched) {
-                patchThermalPlistDict(patched);
-                NSLog(@"[CPUthermal] 已修补热配置 plist: %@", [path lastPathComponent]);
-                return patched;
+    if (g_enabled && g_patchThermalPlist && [path isKindOfClass:[NSString class]]) {
+        NSString *pathStr = (NSString *)path;
+        if ([pathStr containsString:S("/System/Library/ThermalMonitor/")]) {
+            // 安全阀
+            if (!isTemperatureAboveSafetyCeiling()) {
+                NSMutableDictionary *patched = [res mutableCopy];
+                if (patched) {
+                    patchThermalPlistDict(patched);
+                    NSLog(@"[CPUthermal] 已修补热配置 plist: %@", [pathStr lastPathComponent]);
+                    return patched;
+                }
             }
         }
     }
@@ -660,25 +690,21 @@ static void patchThermalPlistDict(NSMutableDictionary *dict) {
 static void executePuppetEvent(void) {
     if (!g_commonProduct) return;
     @autoreleasepool {
-        NSDictionary *prefs = [NSDictionary dictionaryWithContentsOfFile:kPrefPath];
-        NSString *level = prefs[@"thermalPuppetValue"] ?: @"nominal";
+        NSString *path = [NSString stringWithUTF8String:jbroot(kPrefPathC)];
+        NSDictionary *prefs = [NSDictionary dictionaryWithContentsOfFile:path];
+        NSString *level = prefs[S("thermalPuppetValue")] ?: S("nominal");
         [g_commonProduct putDeviceInThermalSimulationMode:level];
         NSLog(@"[CPUthermal] Puppet 事件: 热模式设为 %@", level);
     }
-}
-
-// ============================================================================
-// %ctor — 构造函数
-// ============================================================================
-static void onPrefsChanged(CFNotificationCenterRef center, void *observer, CFNotificationName name, const void *object, CFDictionaryRef userInfo) {
-    loadPrefs();
-    NSLog(@"[CPUthermal] 配置已重载");
 }
 
 static void onPuppetEvent(CFNotificationCenterRef center, void *observer, CFNotificationName name, const void *object, CFDictionaryRef userInfo) {
     executePuppetEvent();
 }
 
+// ============================================================================
+// %ctor — 构造函数（配置仅在进程启动时加载一次）
+// ============================================================================
 %ctor {
     @autoreleasepool {
         loadPrefs();
@@ -709,7 +735,6 @@ static void onPuppetEvent(CFNotificationCenterRef center, void *observer, CFNoti
             } else {
                 NSLog(@"[CPUthermal] 未找到 _getConfigurationFor (非致命)");
             }
-            dlclose(monitor);
         } else {
             NSLog(@"[CPUthermal] 未找到 DeviceMonitor.framework (非致命)");
         }
@@ -720,15 +745,14 @@ static void onPuppetEvent(CFNotificationCenterRef center, void *observer, CFNoti
               g_blockDecisionTree, g_softenControlEffort, g_blockThermalPressure,
               g_modifyConfig, g_overrideForceLevel);
 
-        // 监听配置变化
+        // 注意: 配置仅在进程启动时加载一次
+        // 修改设置后需重启 thermalmonitord 才生效
+
+        // 模拟热级别监听（独立功能，不影响配置重载）
         CFNotificationCenterRef c = CFNotificationCenterGetDarwinNotifyCenter();
         if (c) {
-            CFNotificationCenterAddObserver(c, NULL, onPrefsChanged,
-                (__bridge CFStringRef)@"com.huayuarc.cputhermal.prefschanged",
-                NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
-
             CFNotificationCenterAddObserver(c, NULL, onPuppetEvent,
-                (__bridge CFStringRef)@"com.huayuarc.cputhermal.puppet",
+                (__bridge CFStringRef)S("com.huayuarc.CPUthermal.puppet"),
                 NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
         }
     }

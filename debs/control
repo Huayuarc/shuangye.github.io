@@ -6,3 +6,4 @@ Depends: mobilesubstrate, preferenceloader
 Maintainer: Huayuarc
 Section: Tweaks
 Version: 1.0.0
+Architecture: iphoneos-arm64-arm64e
