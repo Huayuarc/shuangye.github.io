@@ -1,110 +1,87 @@
 #!/var/jb/usr/bin/bash
-# ==============================================================
-#  build-push.sh — 推送 Theos 项目源码到 GitHub Actions 编译
-#
-#  用法:
-#    1. 将 .deb 文件 或 Theos 项目源码放入 debs/
-#    2. 运行此脚本
-#    3. 自动完成：git add → commit → push
-#    4. GitHub Actions 自动编译并部署
-# ==============================================================
+#==========================================
+# build-push.sh — 推送 Theos 项目源码到 GitHub Actions 编译
+# 用法: 在 Filza 中点击执行，或终端直接运行
+#==========================================
 
 set -e
 export LC_ALL=C
 
-# ── 颜色 ──
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
-NC='\033[0m'
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR" || exit 1
 
-# ── 路径 ──
-REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
-DEBS_DIR="$REPO_DIR/debs"
 TIMESTAMP="$(date '+%Y-%m-%d %H:%M:%S')"
 
-echo -e "${CYAN}============================================${NC}"
-echo -e "${CYAN}  GitHub Actions 推送脚本${NC}"
-echo -e "${CYAN}  $TIMESTAMP${NC}"
-echo -e "${CYAN}============================================${NC}"
+echo "============================================"
+echo "  GitHub Actions 推送脚本"
+echo "  目录: $SCRIPT_DIR"
+echo "  时间: $TIMESTAMP"
+echo "============================================"
 echo ""
 
-# ── 检查 Git 仓库 ──
-if [ ! -d "$REPO_DIR/.git" ]; then
-    echo -e "${RED}[错误] 这不是 Git 仓库根目录${NC}"
-    exit 1
-fi
-
-# ── 检查 debs/ ──
-if [ ! -d "$DEBS_DIR" ]; then
-    echo -e "${YELLOW}[提示] 创建 debs/ 目录${NC}"
-    mkdir -p "$DEBS_DIR"
-    echo -e "${YELLOW}请将 .deb 文件或 Theos 项目放入: $DEBS_DIR${NC}"
-    echo -e "${YELLOW}然后重新运行此脚本${NC}"
-    exit 0
-fi
-
+DEBS_DIR="$SCRIPT_DIR/debs"
+[ -d "$DEBS_DIR" ] || { echo "[错误] debs/ 目录不存在!"; exit 1; }
 cd "$DEBS_DIR"
 
-# ── 判断类型 ──
-HAS_DEB=$(ls *.deb 2>/dev/null | head -1)
+#=== 处理 git safe.directory ===
+if ! GIT_TOP=$(git rev-parse --show-toplevel 2>/dev/null); then
+    GIT_ERR=$(git rev-parse --show-toplevel 2>&1)
+    GIT_PATH=$(echo "$GIT_ERR" | grep -o "dubious ownership in repository at '[^']*'" | sed "s/^.*at '//;s/'$//")
+    [ -n "$GIT_PATH" ] && git config --global --add safe.directory "$GIT_PATH" 2>/dev/null
+fi
+
+#=== 判断项目类型 ===
 HAS_THEOS=""
 if [ -f "Makefile" ] && grep -qE "(TWEAK_NAME|TOOL_NAME|APPLICATION_NAME|SUBPROJECTS)" Makefile 2>/dev/null; then
     HAS_THEOS="yes"
 fi
 
+HAS_DEB=$(ls *.deb 2>/dev/null | head -1)
+
 if [ -z "$HAS_DEB" ] && [ -z "$HAS_THEOS" ]; then
-    echo -e "${RED}[错误] debs/ 为空，请放入 .deb 文件或 Theos 项目源码${NC}"
+    echo "[错误] debs/ 为空，请放入 .deb 文件或 Theos 项目源码"
     exit 1
 fi
 
-# ── 显示项目信息 ──
+#=== 显示项目信息 ===
 PROJ_NAME=""
 if [ -n "$HAS_THEOS" ]; then
-    if grep -q "^TWEAK_NAME" Makefile 2>/dev/null; then
-        PROJ_NAME=$(grep "^TWEAK_NAME" Makefile | head -1 | awk '{print $3}')
-    fi
-    if grep -q "^SUBPROJECTS" Makefile 2>/dev/null; then
-        PROJ_NAME=$(grep "^SUBPROJECTS" Makefile | head -1 | awk '{print $3}')
-    fi
+    PROJ_NAME=$(grep "^TWEAK_NAME" Makefile | head -1 | awk '{print $3}')
+    [ -z "$PROJ_NAME" ] && PROJ_NAME=$(grep "^SUBPROJECTS" Makefile | head -1 | awk '{print $3}')
     [ -z "$PROJ_NAME" ] && PROJ_NAME="$(basename "$DEBS_DIR")"
+    VERSION=$(grep "^Version:" control 2>/dev/null | awk '{print $2}') || VERSION="?"
 
-    VERSION="?"
-    if [ -f "control" ]; then
-        VERSION=$(grep "^Version:" control | awk '{print $2}')
-    fi
-
-    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${CYAN}  Theos 项目: $PROJ_NAME v$VERSION${NC}"
-    echo -e "${CYAN}  推送到 GitHub Actions 编译${NC}"
-    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "  Theos 项目: $PROJ_NAME v$VERSION"
+    echo "  推送到 GitHub Actions 编译"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
-fi
 
-# ── 列出要推送的内容 ──
-if [ -n "$HAS_THEOS" ]; then
-    echo -e "${GREEN}推送项目源码: $PROJ_NAME${NC}"
-    # 清理构建缓存（不上传）
-    rm -rf .theos/ 2>/dev/null || true
-    rm -rf .swiftpm/ 2>/dev/null || true
+    # 清理构建缓存
+    rm -rf .theos/ .swiftpm/ 2>/dev/null || true
 else
-    echo -e "${GREEN}推送 ${HAS_DEB} 个 deb:${NC}"
+    echo "[信息] 推送 ${HAS_DEB} 个 deb:"
     for f in *.deb; do
-        size=$(du -h "$f" | cut -f1)
-        echo -e "  ${GREEN}• $(basename "$f")${NC} (${size})"
+        echo "  • $(basename "$f") ($(du -h "$f" | cut -f1))"
     done
 fi
 echo ""
 
-cd "$REPO_DIR"
+cd "$SCRIPT_DIR"
 
-# ── Git 提交 ──
+#=== 检查 git 仓库 ===
+if [ ! -d ".git" ]; then
+    echo "[错误] 不是 Git 仓库，请先 git init"
+    exit 1
+fi
+
+#=== 检查是否有变更 ===
 if git diff --quiet && git diff --cached --quiet && [ -z "$(git ls-files --others --exclude-standard -- debs/)" ]; then
-    echo -e "${YELLOW}没有新的变更需要提交${NC}"
+    echo "[提示] 没有新的变更需要提交"
     exit 0
 fi
 
+#=== 提交 ===
 COMMIT_MSG=""
 if [ -n "$HAS_THEOS" ]; then
     COMMIT_MSG="chore: 推送 $PROJ_NAME 源码（CI 编译）"
@@ -113,26 +90,22 @@ else
     COMMIT_MSG="chore: 推送 deb - ${DEB_NAMES}"
 fi
 
-echo -e "${YELLOW}提交信息: $COMMIT_MSG${NC}"
-echo ""
-
+echo "[提交] $COMMIT_MSG"
 git add -A debs/
-git commit -m "$COMMIT_MSG
-Co-Authored-By: Claude <noreply@anthropic.com>"
+git commit -m "$COMMIT_MSG"
 
-# ── 推送 ──
+#=== 推送 ===
 echo ""
-echo -e "${YELLOW}正在推送到 GitHub...${NC}"
+echo "[推送] 正在推送到 GitHub..."
 if git push 2>&1; then
     echo ""
-    echo -e "${GREEN}============================================${NC}"
-    echo -e "${GREEN}  推送成功！GitHub Actions 将自动编译${NC}"
-    echo -e "${GREEN}============================================${NC}"
+    echo "============================================"
+    echo "  推送成功！GitHub Actions 将自动编译"
+    echo "============================================"
     echo ""
-    echo -e "  查看构建状态:"
-    echo -e "  ${CYAN}https://github.com/Huayuarc/shuangye.github.io/actions${NC}"
+    echo "  查看构建状态:"
+    echo "  https://github.com/Huayuarc/shuangye.github.io/actions"
 else
-    echo ""
-    echo -e "${RED}推送失败${NC}"
+    echo "[错误] 推送失败"
     exit 1
 fi
