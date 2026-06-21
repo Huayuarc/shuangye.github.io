@@ -46,8 +46,9 @@ static const char *kNotifNameC = "com.huayuarc.CPUthermal/settingsChanged";
     // CPU性能保护/亮度保护/热状态封锁/HID事件 默认开启
     id val = [self prefs][key];
     if (val) return val;
-    if ([key isEqualToString:S("keepCPMSAlive")]) {
-        return [NSNumber numberWithBool:NO]; // CPMS 默认关闭
+    if ([key isEqualToString:S("keepCPMSAlive")] ||
+        [key isEqualToString:S("lowPowerSimulation")]) {
+        return [NSNumber numberWithBool:NO]; // CPMS + 低电模拟 默认关闭
     }
     return [NSNumber numberWithBool:YES]; // 其余保护默认开启
 }
@@ -114,6 +115,14 @@ static const char *kNotifNameC = "com.huayuarc.CPUthermal/settingsChanged";
         [specs addObject:group];
 
         [specs addObject:[self switchSpecifier:S("保留 CPMS 紧急保护") key:S("keepCPMSAlive")]];
+
+        // ===================== 第3.5组: 低电模拟 =====================
+        group = [PSSpecifier emptyGroupSpecifier];
+        [group setProperty:S("低电模拟") forKey:S("label")];
+        [group setProperty:S("模拟低电量状态，CPU 大核降频至约 1380~2016 MHz，日常使用仍保持流畅，屏幕亮度策略不变") forKey:S("footerText")];
+        [specs addObject:group];
+
+        [specs addObject:[self switchSpecifier:S("开始低电模拟") key:S("lowPowerSimulation")]];
 
         // ===================== 第4组: 操作 =====================
         group = [PSSpecifier emptyGroupSpecifier];
