@@ -14,90 +14,41 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Theos
         run: |
           set -x
           git clone --recursive https://github.com/theos/theos.git "$HOME/theos"
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
+          # ldid: Theos 签名必需，macOS runner 默认没有
+          brew install ldid 2>/dev/null || true
+          # 下载 Theos SDK（含 IOKit for iOS）
           mkdir -p "$HOME/theos/sdks"
-          # macOS 默认没有 xz，先安装
-          brew install xz 2>/dev/null || true
-          # 从 Theos SDK 仓库直接下载 iPhoneOS16.5.sdk（含 IOKit for iOS）
           curl -fsSL -o /tmp/sdk.tar.xz \
             "https://github.com/theos/sdks/releases/download/master-146e41f/iPhoneOS16.5.sdk.tar.xz"
-          tar -xJf /tmp/sdk.tar.xz -C "$HOME/theos/sdks/"
+          tar -xf /tmp/sdk.tar.xz -C "$HOME/theos/sdks/"
           rm -f /tmp/sdk.tar.xz
-          echo "=== SDK 目录 ==="
           ls -la "$HOME/theos/sdks/"
-
-      - name: Verify IOKit SDK
-        run: |
-          set -x
-          SDK="$HOME/theos/sdks/iPhoneOS16.5.sdk"
-          ls -la "$SDK/System/Library/Frameworks/IOKit.framework/" 2>&1
-          echo "=== 测试 IOKit 编译 ==="
-          cat > /tmp/test_iokit.c << 'EOF'
-          #include <IOKit/IOKitLib.h>
-          int main() { return 0; }
-          EOF
-          cc -c /tmp/test_iokit.c -isysroot "$SDK" -target arm64-apple-ios15.0 -o /tmp/test_iokit.o 2>&1 && echo "IOKit 编译测试通过" || echo "IOKit 编译测试失败"
-          rm -f /tmp/test_iokit.c /tmp/test_iokit.o
-
-      - name: Verify Theos
-        working-directory: debs
-        run: |
-          set -x
-          echo "THEOS=$THEOS"
-          ls -la "$THEOS/sdks/"
-          echo "=== TARGET ==="
-          grep '^TARGET' Makefile
-          echo "=== make clean ==="
-          make clean 2>&1 || echo "clean: $?"
-          echo "=== 环境 ==="
-          env | grep -E "THEOS|ARCH|SCHEME" || true
 
       - name: Build rootless
         working-directory: debs
-        continue-on-error: true
         run: |
           set -x
           export THEOS_PACKAGE_SCHEME=rootless
           export ARCHS="arm64 arm64e"
-          echo "THEOS=$THEOS"
-          echo "SDK_DIR=$THEOS/sdks"
-          ls -la "$THEOS/sdks/" 2>&1
-          echo "=== make FINALPACKAGE=1 ==="
-          make FINALPACKAGE=1 2>&1 | tee /tmp/rootless_make.log; MAKE_EXIT=${PIPESTATUS[0]}
-          echo "make exit code: $MAKE_EXIT"
-          if [ $MAKE_EXIT -eq 0 ]; then
-            echo "=== make package ==="
-            make package FINALPACKAGE=1 2>&1
-            ls -la packages/*.deb 2>/dev/null || echo "rootless: 未找到 deb"
-          else
-            echo "make 失败，跳过 package"
-          fi
-          # 复制日志到 workspace
-          cp /tmp/rootless_make.log ${{ github.workspace }}/rootless_make.log 2>/dev/null || true
+          make clean
+          make FINALPACKAGE=1 2>&1
+          make package FINALPACKAGE=1 2>&1
+          ls -la packages/*.deb 2>/dev/null
 
-      - name: Upload build log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log
-          path: rootless_make.log
-
-      - name: Build roothide (optional, 需要 libroothide)
-        id: build_roothide
+      - name: Build roothide (optional)
         working-directory: debs
         continue-on-error: true
         run: |
           set -x
-          # 检查是否可用 libroothide
+          # CI 没有 libroothide，跳过
           if ! echo '#include <roothide.h>' | cc -x c - -fsyntax-only 2>/dev/null; then
-            echo "libroothide 不可用（CI 环境），跳过 roothide 构建"
+            echo "libroothide 不可用，跳过 roothide 构建"
             exit 0
           fi
           export THEOS_PACKAGE_SCHEME=roothide
@@ -105,18 +56,17 @@ jobs:
           make clean
           make FINALPACKAGE=1 SCHEME=roothide 2>&1
           make package FINALPACKAGE=1 SCHEME=roothide 2>&1
-          ls -la packages/*.deb 2>/dev/null || echo "roothide: 未找到 deb"
+          ls -la packages/*.deb 2>/dev/null
 
       - name: Collect debs
         if: always()
-        working-directory: debs
         run: |
           set -x
           mkdir -p ${{ github.workspace }}/packages
-          cp packages/*.deb ${{ github.workspace }}/packages/ 2>/dev/null || echo "无 deb 可复制"
-          ls -la ${{ github.workspace }}/packages/ || echo "packages 目录为空"
+          cp ${{ github.workspace }}/debs/packages/*.deb ${{ github.workspace }}/packages/ 2>/dev/null || echo "无 deb"
+          ls -la ${{ github.workspace }}/packages/
 
-      - name: Commit and push deb
+      - name: Commit and push debs
         if: always()
         run: |
           git config user.name "github-actions[bot]"
