@@ -12,9 +12,23 @@
 
 static const char *kPrefPathC  = "/var/mobile/Library/Preferences/com.huayuarc.CPUthermal.plist";
 static const char *kNotifNameC = "com.huayuarc.CPUthermal/settingsChanged";
+static const char *kPowerModeChangedC = "com.huayuarc.CPUthermal/powerModeChanged";
 
 // 动态创建 NSString 的辅助宏 — 避免编译期 __cfstring
 #define S(str) [NSString stringWithUTF8String:(str)]
+
+// 功率模式值 — 与 Insulation 保持一致
+static const char *kPowerModeValues[] = {
+    "off",        // 关闭
+    "lowPower",   // 低功耗
+    "fullPower",  // 满血
+};
+
+static const char *kPowerModeLabels[] = {
+    "关闭",       // 关闭
+    "低功耗",     // 低功耗
+    "满血",       // 满血
+};
 
 @interface FRootListController : PSListController
 @end
@@ -32,27 +46,40 @@ static const char *kNotifNameC = "com.huayuarc.CPUthermal/settingsChanged";
     notify_post(kNotifNameC);
 }
 
+// 保存并通知 thermalmonitord 即时生效
+- (void)savePrefsAndApply:(NSMutableDictionary *)prefs {
+    [prefs writeToFile:S(kPrefPathC) atomically:YES];
+    // 同时发 settingsChanged + powerModeChanged 确保 thermalmonitord 收到
+    notify_post(kNotifNameC);
+    notify_post(kPowerModeChangedC);
+}
+
 - (void)setPreferenceValue:(id)value specifier:(PSSpecifier *)spec {
     NSString *key = [spec propertyForKey:S("key")];
     if (!key) return;
     NSMutableDictionary *prefs = [self prefs];
     prefs[key] = value;
-    [self savePrefs:prefs];
+    [self savePrefsAndApply:prefs];
 }
 
 - (id)readPreferenceValue:(PSSpecifier *)spec {
     NSString *key = [spec propertyForKey:S("key")];
     if (!key) return nil;
-    // CPU性能保护/亮度保护/热状态封锁/HID事件 默认开启
     id val = [self prefs][key];
     if (val) return val;
+
+    // 默认值
     if ([key isEqualToString:S("keepCPMSAlive")]) {
-        return [NSNumber numberWithBool:NO]; // CPMS 默认关闭
-    }
-    // 新增功能默认关闭
-    if ([key isEqualToString:S("lowPowerSimulation")] ||
-        [key isEqualToString:S("suppressTempPopup")]) {
         return [NSNumber numberWithBool:NO];
+    }
+    if ([key isEqualToString:S("powerMode")]) {
+        return S("off");  // 功率模式默认关闭
+    }
+    if ([key isEqualToString:S("suppressThermalNotifications")]) {
+        return [NSNumber numberWithBool:NO];  // 屏蔽通知默认关闭
+    }
+    if ([key isEqualToString:S("simulateLowPower")]) {
+        return [NSNumber numberWithBool:NO];  // 模拟低电默认关闭
     }
     return [NSNumber numberWithBool:YES]; // 其余保护默认开启
 }
@@ -88,6 +115,52 @@ static const char *kNotifNameC = "com.huayuarc.CPUthermal/settingsChanged";
     return spec;
 }
 
+// ============================================================
+// ★ 功率模式选择
+// ============================================================
+- (void)showPowerModePicker {
+    UIAlertController *alert = [UIAlertController
+        alertControllerWithTitle:S("功率模式")
+        message:S("关闭 = 仅原有防护\n低功耗 = 限制功率省电\n满血 = 解除全部温控")
+        preferredStyle:UIAlertControllerStyleActionSheet];
+
+    NSString *currentMode = [self readPreferenceValue:
+        [PSSpecifier preferenceSpecifierNamed:nil target:self
+            set:NULL get:NULL detail:nil cell:PSSwitchCell edit:nil]];
+
+    // 如果无法获取，从 prefs 直接读
+    if (!currentMode) {
+        currentMode = [self prefs][S("powerMode")] ?: S("off");
+    }
+
+    for (int i = 0; i < 3; i++) {
+        NSString *modeValue = S(kPowerModeValues[i]);
+        NSString *modeLabel = S(kPowerModeLabels[i]);
+        BOOL isCurrent = [currentMode isEqualToString:modeValue];
+
+        UIAlertAction *action = [UIAlertAction
+            actionWithTitle:isCurrent
+                ? [NSString stringWithFormat:@"✓ %@", modeLabel]
+                : modeLabel
+            style:UIAlertActionStyleDefault
+            handler:^(UIAlertAction *action) {
+                NSMutableDictionary *prefs = [self prefs];
+                prefs[S("powerMode")] = modeValue;
+                [self savePrefsAndApply:prefs];
+                [self reloadSpecifiers];
+            }];
+        [alert addAction:action];
+    }
+
+    [alert addAction:[UIAlertAction actionWithTitle:S("取消")
+        style:UIAlertActionStyleCancel handler:nil]];
+
+    [self presentViewController:alert animated:YES completion:nil];
+}
+
+// ============================================================
+// Specifiers 构建
+// ============================================================
 - (NSArray *)specifiers {
     if (!_specifiers) {
         NSMutableArray *specs = [NSMutableArray array];
@@ -101,10 +174,44 @@ static const char *kNotifNameC = "com.huayuarc.CPUthermal/settingsChanged";
         PSSpecifier *master = [self switchSpecifier:S("启用 CPUthermal") key:S("enabled")];
         [specs addObject:master];
 
-        // ===================== 第2组: 核心保护（整合） =====================
+        // ===================== ★ 第2组: 功率模式（新增自 Insulation） =====================
+        group = [PSSpecifier emptyGroupSpecifier];
+        [group setProperty:S("功率模式") forKey:S("label")];
+        [group setProperty:S("满血 = 解除全部温控，低功耗 = 限制功率省电，关闭 = 仅原有被动防护")
+            forKey:S("footerText")];
+        [specs addObject:group];
+
+        // 功率模式选择按钮 — 显示当前模式
+        NSString *currentMode = [self prefs][S("powerMode")] ?: S("off");
+        NSString *modeLabel = S("关闭");
+        for (int i = 0; i < 3; i++) {
+            if ([currentMode isEqualToString:S(kPowerModeValues[i])]) {
+                modeLabel = S(kPowerModeLabels[i]);
+                break;
+            }
+        }
+        NSString *buttonTitle = [NSString stringWithFormat:@"功率模式：%@", modeLabel];
+        PSSpecifier *powerModeBtn = [PSSpecifier
+            preferenceSpecifierNamed:buttonTitle
+            target:self set:NULL get:NULL detail:nil cell:PSButtonCell edit:NULL];
+        [powerModeBtn setButtonAction:@selector(showPowerModePicker)];
+        [powerModeBtn setIdentifier:S("powerMode")];
+        [specs addObject:powerModeBtn];
+
+        // ===================== ★ 第3组: 通知（新增自 Insulation） =====================
+        group = [PSSpecifier emptyGroupSpecifier];
+        [group setProperty:S("通知") forKey:S("label")];
+        [group setProperty:S("开启后拦截所有 thermal 相关的 Darwin 通知和 ObjC 热压力通知")
+            forKey:S("footerText")];
+        [specs addObject:group];
+
+        [specs addObject:[self switchSpecifier:S("屏蔽高温通知") key:S("suppressThermalNotifications")]];
+
+        // ===================== 第4组: 核心保护 =====================
         group = [PSSpecifier emptyGroupSpecifier];
         [group setProperty:S("核心保护") forKey:S("label")];
-        [group setProperty:S("开启即生效，关闭则对应保护失效") forKey:S("footerText")];
+        [group setProperty:S("开启即生效，关闭则对应保护失效。模拟低电让系统认为设备处于低温状态，阻止降频")
+            forKey:S("footerText")];
         [specs addObject:group];
 
         [specs addObject:[self switchSpecifier:S("CPU 性能保护") key:S("cpuProtection")]];
@@ -112,31 +219,24 @@ static const char *kNotifNameC = "com.huayuarc.CPUthermal/settingsChanged";
         [specs addObject:[self switchSpecifier:S("热状态封锁") key:S("thermalStateProtection")]];
         [specs addObject:[self switchSpecifier:S("阻止 HID 温度事件") key:S("blockHidEvents")]];
 
-        // ===================== 第3组: 新增功能（Insulation 适配） =====================
-        group = [PSSpecifier emptyGroupSpecifier];
-        [group setProperty:S("新增功能") forKey:S("label")];
-        [group setProperty:S("模拟低电频率：主动压低 CPU/Package 功率模拟省电模式；禁温度计弹窗：阻断系统热警告通知") forKey:S("footerText")];
-        [specs addObject:group];
-
-        [specs addObject:[self switchSpecifier:S("模拟低电频率") key:S("lowPowerSimulation")]];
-        [specs addObject:[self switchSpecifier:S("禁温度计弹窗") key:S("suppressTempPopup")]];
-
-        // ===================== 第4组: 高级 =====================
+        // ★ 模拟低电（新增自 Insulation）
+        [specs addObject:[self switchSpecifier:S("模拟低电") key:S("simulateLowPower")]];
         group = [PSSpecifier emptyGroupSpecifier];
         [group setProperty:S("高级") forKey:S("label")];
-        [group setProperty:S("保留 CPMS 紧急保护安全阀，温度超过 75°C 时放行所有保护") forKey:S("footerText")];
+        [group setProperty:S("保留 CPMS 紧急保护安全阀，温度超过 75°C 时放行所有保护")
+            forKey:S("footerText")];
         [specs addObject:group];
 
         [specs addObject:[self switchSpecifier:S("保留 CPMS 紧急保护") key:S("keepCPMSAlive")]];
 
-        // ===================== 第5组: 操作 =====================
+        // ===================== 第6组: 操作 =====================
         group = [PSSpecifier emptyGroupSpecifier];
         [group setProperty:S("操作") forKey:S("label")];
         [specs addObject:group];
 
         PSSpecifier *rebootBtn = [PSSpecifier
             preferenceSpecifierNamed:S("重启用户空间")
-            target:self set:NULL get:NULL detail:NULL cell:PSButtonCell edit:NULL];
+            target:self set:NULL get:NULL detail:nil cell:PSButtonCell edit:NULL];
         [rebootBtn setButtonAction:@selector(usreboot)];
         [rebootBtn setIdentifier:S("usreboot")];
         [specs addObject:rebootBtn];
