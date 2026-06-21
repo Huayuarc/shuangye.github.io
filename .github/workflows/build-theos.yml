@@ -22,26 +22,10 @@ jobs:
           set -x
           git clone --recursive https://github.com/theos/theos.git "$HOME/theos"
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
-          # 优先使用 Xcode 内置 SDK，但 IOKit 需要从 macOS SDK 补全
-          XCODE_SDK="/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk"
-          if [ -d "$XCODE_SDK" ]; then
-            mkdir -p "$HOME/theos/sdks"
-            ln -sf "$XCODE_SDK" "$HOME/theos/sdks/iPhoneOS16.5.sdk"
-            # Xcode iPhoneOS SDK 缺少 IOKit 框架（macOS only），从 macOS SDK 复制
-            MACOS_SDK="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk"
-            IOS_SDK_DIR="$HOME/theos/sdks/iPhoneOS16.5.sdk"
-            IOKIT_DST="$IOS_SDK_DIR/System/Library/Frameworks/IOKit.framework"
-            if [ -d "$MACOS_SDK/System/Library/Frameworks/IOKit.framework" ] && [ -d "$IOS_SDK_DIR" ] && [ ! -f "$IOKIT_DST/Headers/IOKitLib.h" ]; then
-              mkdir -p "$IOKIT_DST"
-              cp -R "$MACOS_SDK/System/Library/Frameworks/IOKit.framework/Headers" "$IOKIT_DST/"
-              # 复制 IOKit 的 tbd 以正确链接
-              cp "$MACOS_SDK/System/Library/Frameworks/IOKit.framework/IOKit.tbd" "$IOKIT_DST/" 2>/dev/null || true
-              echo "已从 macOS SDK 复制 IOKit 头文件到 iOS SDK"
-            fi
-            ls -la "$HOME/theos/sdks/"
-          else
-            $HOME/theos/bin/install-sdk latest || echo "SDK 下载失败，使用 install-sdk"
-          fi
+          # Xcode iPhoneOS SDK 缺少 IOKit 框架（macOS only），
+          # 使用 install-sdk 下载 Theos 专用 SDK（含 IOKit for iOS）
+          $HOME/theos/bin/install-sdk iPhoneOS16.5.sdk || $HOME/theos/bin/install-sdk latest || echo "SDK 下载失败"
+          ls -la "$HOME/theos/sdks/"
 
       - name: Verify Theos
         working-directory: debs
