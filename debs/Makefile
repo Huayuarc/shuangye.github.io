@@ -4,6 +4,8 @@ export TARGET = iphone:clang:16.5:15.0
 THEOS_PACKAGE_SCHEME = rootless
 include $(THEOS)/makefiles/common.mk
 INSTALL_TARGET_PROCESSES = thermalmonitord
+# 注意: postinst 也在 configure 阶段 killall thermalmonitord。
+# INSTALL_TARGET_PROCESSES 作为 make install 时的兜底（包管理器安装靠 postinst）
 export ARCHS = arm64 arm64e
 
 TWEAK_NAME = CPUthermal
@@ -42,4 +44,4 @@ after-stage::
 	$(ECHO_NOTHING)cp Settings/Info.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/CPUthermalSettings.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/Root.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/CPUthermalSettings.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/icon.png Settings/icon@2x.png Settings/icon@3x.png "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/CPUthermalSettings.bundle/"$(ECHO_END)
-	$(ECHO_NOTHING)cp Settings/icon.png Settings/icon@2x.png Settings/icon@3x.png "$(THEOS_STAGING_DIR)/Library/PreferenceLoader/Preferences/"$(ECHO_END)
+	$(ECHO_NOTHING)cp postinst "$(THEOS_STAGING_DIR)/DEBIAN/" && chmod 0755 "$(THEOS_STAGING_DIR)/DEBIAN/postinst"$(ECHO_END)

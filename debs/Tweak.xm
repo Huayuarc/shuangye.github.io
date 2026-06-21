@@ -90,21 +90,12 @@
 // ============================================================================
 // 配置
 // ============================================================================
-static BOOL g_enabled              = NO;  // 总开关（默认关闭）
-static BOOL g_blockCPUMitigation   = NO;  // 阻止 CPU 降频
-static BOOL g_blockBrightness      = NO;  // 阻止亮度降低
-static BOOL g_forceNominal         = NO;  // 强制 Nominal 热状态
-static BOOL g_patchThermalPlist    = NO;  // 修补热配置 plist
-static BOOL g_blockObjCHooks      = NO;  // 阻止 ObjC 层热缓解动作
-static BOOL g_blockHidEvents      = NO;  // 阻止 HID 温度事件
-
-// ---- 新增: 精细控制 ----
-static BOOL g_blockDecisionTree    = NO;  // 阻止决策树评估(阻断大部分热动作)
-static BOOL g_softenControlEffort  = NO;  // 软化控制力度(减半不归零)
-static BOOL g_blockThermalPressure = NO;  // 阻止热压力升级(轻度/中度/重度)
-static BOOL g_modifyConfig         = NO;  // 修改热配置表(影响初始化时的限制)
-static BOOL g_overrideForceLevel   = NO;  // 覆盖强制热级别(返回最低级)
-static BOOL g_keepCPSMAlive        = NO; // 保留 CPMS 紧急保护(安全阀) 默认关闭
+static BOOL g_enabled               = YES; // 总开关（默认开启）
+static BOOL g_cpuProtection         = YES; // CPU 性能保护(降频/决策树/控制力度/配置表)
+static BOOL g_brightnessProtection  = YES; // 屏幕亮度保护(降亮度/背光配置)
+static BOOL g_thermalStateProtection= YES; // 热状态封锁(Nominal/热压力/强制级别)
+static BOOL g_blockHidEvents        = YES; // 阻止 HID 温度事件
+static BOOL g_keepCPSMAlive         = NO;  // 保留 CPMS 紧急保护(安全阀) 默认关闭
 
 // 温度安全阀 — 超过此值不拦截任何保护
 static const int64_t kSafetyTempThreshold = 75000;  // 75°C (毫摄氏度)
@@ -119,21 +110,12 @@ static void loadPrefs(void) {
         NSString *path = [NSString stringWithUTF8String:jbroot(kPrefPathC)];
         NSDictionary *d = [NSDictionary dictionaryWithContentsOfFile:path];
         if (!d) return;
-        g_enabled              = [d[S("enabled")] ?: [NSNumber numberWithBool:NO] boolValue];
-        g_blockCPUMitigation   = [d[S("blockCPUMitigation")] ?: [NSNumber numberWithBool:NO] boolValue];
-        g_blockBrightness      = [d[S("blockBrightness")] ?: [NSNumber numberWithBool:NO] boolValue];
-        g_forceNominal         = [d[S("forceNominalState")] ?: [NSNumber numberWithBool:NO] boolValue];
-        g_patchThermalPlist    = [d[S("patchThermalPlist")] ?: [NSNumber numberWithBool:NO] boolValue];
-        g_blockObjCHooks       = [d[S("blockObjCHooks")] ?: [NSNumber numberWithBool:NO] boolValue];
-        g_blockHidEvents       = [d[S("blockHidEvents")] ?: [NSNumber numberWithBool:NO] boolValue];
-
-        // 新增精细控制
-        g_blockDecisionTree    = [d[S("blockDecisionTree")] ?: [NSNumber numberWithBool:NO] boolValue];
-        g_softenControlEffort  = [d[S("softenControlEffort")] ?: [NSNumber numberWithBool:NO] boolValue];
-        g_blockThermalPressure = [d[S("blockThermalPressure")] ?: [NSNumber numberWithBool:NO] boolValue];
-        g_modifyConfig         = [d[S("modifyConfig")] ?: [NSNumber numberWithBool:NO] boolValue];
-        g_overrideForceLevel   = [d[S("overrideForceLevel")] ?: [NSNumber numberWithBool:NO] boolValue];
-        g_keepCPSMAlive        = [d[S("keepCPMSAlive")] ?: [NSNumber numberWithBool:NO] boolValue];
+        g_enabled               = [d[S("enabled")] ?: [NSNumber numberWithBool:YES] boolValue];
+        g_cpuProtection         = [d[S("cpuProtection")] ?: [NSNumber numberWithBool:YES] boolValue];
+        g_brightnessProtection  = [d[S("brightnessProtection")] ?: [NSNumber numberWithBool:YES] boolValue];
+        g_thermalStateProtection= [d[S("thermalStateProtection")] ?: [NSNumber numberWithBool:YES] boolValue];
+        g_blockHidEvents        = [d[S("blockHidEvents")] ?: [NSNumber numberWithBool:YES] boolValue];
+        g_keepCPSMAlive         = [d[S("keepCPMSAlive")] ?: [NSNumber numberWithBool:NO] boolValue];
     }
 }
 
@@ -249,7 +231,7 @@ static BOOL isTemperatureAboveSafetyCeiling(void) {
         return %orig;
     }
 
-    if (g_forceNominal && SELECTOR_IS_TEMP(selector)) {
+    if (g_thermalStateProtection && SELECTOR_IS_TEMP(selector)) {
         if (output && outputCnt && *outputCnt > 0) {
             for (uint32_t i = 0; i < MIN(*outputCnt, 4); i++) {
                 output[i] = 36000;  // 36°C — 永远显示正常温度
@@ -257,7 +239,7 @@ static BOOL isTemperatureAboveSafetyCeiling(void) {
         }
         return KERN_SUCCESS;
     }
-    if (g_blockCPUMitigation && SELECTOR_IS_MITIGATION(selector)) {
+    if (g_cpuProtection && SELECTOR_IS_MITIGATION(selector)) {
         // 注意: 不拦截 0x60-0x6F 紧急保护
         return KERN_SUCCESS;
     }
@@ -278,7 +260,7 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
     }
 
     NSString *ks = (__bridge NSString *)key;
-    if (g_blockCPUMitigation) {
+    if (g_cpuProtection) {
         static NSArray *cpuKeys;
         static dispatch_once_t once;
         dispatch_once(&once, ^{
@@ -289,7 +271,7 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
             if ([ks containsString:k]) return KERN_SUCCESS;
         }
     }
-    if (g_blockBrightness) {
+    if (g_brightnessProtection) {
         static NSArray *brightKeys;
         static dispatch_once_t once2;
         dispatch_once(&once2, ^{
@@ -304,7 +286,7 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
 
 // --- IORegistryEntryCreateCFProperty — 返回正常值 ---
 %hookf(CFTypeRef, IORegistryEntryCreateCFProperty, io_registry_entry_t entry, CFStringRef key, CFAllocatorRef allocator, IOOptionBits options) {
-    if (!g_enabled || !g_forceNominal) return %orig;
+    if (!g_enabled || !g_thermalStateProtection) return %orig;
 
     // 安全阀
     if (isTemperatureAboveSafetyCeiling()) return %orig;
@@ -332,7 +314,7 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
 
 // --- notify_post — 拦截高温广播 ---
 %hookf(uint32_t, notify_post, const char *name) {
-    if (g_enabled && g_forceNominal && name) {
+    if (g_enabled && g_thermalStateProtection && name) {
         // 安全阀: 只有在温度正常时才拦截
         if (!isTemperatureAboveSafetyCeiling()) {
             // 动态创建 NSString 避免 roothide __cfstring 损坏
@@ -363,7 +345,7 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
 }
 
 - (void)tryTakeAction {
-    if (g_enabled && g_blockObjCHooks) {
+    if (g_enabled && g_cpuProtection) {
         // 阻止所有热缓解动作
         return;
     }
@@ -371,14 +353,14 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
 }
 
 - (void)simulateLightThermalPressure {
-    if (g_enabled && g_blockObjCHooks) {
+    if (g_enabled && g_cpuProtection) {
         return;
     }
     %orig;
 }
 
 - (void)updatePowerzoneTelemetry {
-    if (g_enabled && g_blockObjCHooks) {
+    if (g_enabled && g_cpuProtection) {
         return;
     }
     %orig;
@@ -414,7 +396,7 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
 
 // 决策树评估 — 这是 thermalmonitord 判断"要不要降频"的核心
 - (void)evaluateDecisionTree {
-    if (g_enabled && g_blockDecisionTree) {
+    if (g_enabled && g_cpuProtection) {
         // 安全阀: 超过 75°C 不阻断
         if (!isTemperatureAboveSafetyCeiling()) {
             NSLog(@"[CPUthermal] 阻止决策树评估 (evaluateDecisionTree)");
@@ -426,7 +408,7 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
 
 // 热压力升级通知 — 阻止 thermalmonitord 升级热压力级别
 - (void)updateThermalPressureLevelNotification:(id)notification shouldForceThermalPressure:(BOOL)force {
-    if (g_enabled && g_blockThermalPressure) {
+    if (g_enabled && g_thermalStateProtection) {
         // 安全阀
         if (!isTemperatureAboveSafetyCeiling()) {
             NSLog(@"[CPUthermal] 阻止热压力升级: %@ force:%d", notification, force);
@@ -440,7 +422,7 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
 
 // 热通知 — 可选择性阻断
 - (void)updateThermalNotification:(id)notification {
-    if (g_enabled && g_blockThermalPressure) {
+    if (g_enabled && g_thermalStateProtection) {
         if (!isTemperatureAboveSafetyCeiling()) {
             NSLog(@"[CPUthermal] 阻止热通知: %@", notification);
             return;
@@ -451,7 +433,7 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
 
 // 是否应执行轻度热压力 — 可阻止
 - (BOOL)shouldEnforceLightThermalPressure {
-    if (g_enabled && g_blockThermalPressure) {
+    if (g_enabled && g_thermalStateProtection) {
         if (!isTemperatureAboveSafetyCeiling()) {
             NSLog(@"[CPUthermal] 阻止 enforceLightThermalPressure");
             return NO;
@@ -462,7 +444,7 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
 
 // 获取组件释放速率 — 可以降低不放 0
 - (float)getReleaseRateForComponent:(id)component {
-    if (g_enabled && g_softenControlEffort) {
+    if (g_enabled && g_cpuProtection) {
         if (!isTemperatureAboveSafetyCeiling()) {
             float rate = %orig(component);
             // 软化: 降低 50% 但保留基础释放能力
@@ -478,7 +460,7 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
 
 // 获取强制热级别 — 返回最低级
 - (int)getPotentialForcedThermalLevel:(id)component {
-    if (g_enabled && g_overrideForceLevel) {
+    if (g_enabled && g_thermalStateProtection) {
         if (!isTemperatureAboveSafetyCeiling()) {
             NSLog(@"[CPUthermal] 覆盖强制热级别: %@ -> 0 (nominal)", component);
             return 0; // kThermalLevelNominal
@@ -489,7 +471,7 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
 
 // 获取强制热压力级别 — 返回最低
 - (int)getPotentialForcedThermalPressureLevel {
-    if (g_enabled && g_overrideForceLevel) {
+    if (g_enabled && g_thermalStateProtection) {
         if (!isTemperatureAboveSafetyCeiling()) {
             NSLog(@"[CPUthermal] 覆盖强制热压力级别 -> 0");
             return 0;
@@ -502,7 +484,7 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
 // (适配自 fuckThermal 逆向还原分析)
 - (id)getBatteryServiceSuggestion:(id)suggestion {
     id result = %orig(suggestion);
-    if (g_enabled && g_blockThermalPressure) {
+    if (g_enabled && g_thermalStateProtection) {
         if (!isTemperatureAboveSafetyCeiling()) {
             NSLog(@"[CPUthermal] 拦截 ThermalManager 散热建议");
             return nil;
@@ -519,7 +501,7 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
 // 计算控制力度 — 这是 throttle 量的核心
 // soften 模式下减半但不归零，保留基础调节能力
 - (float)calculateControlEffort:(id)trigger trigger:(id)arg2 {
-    if (g_enabled && g_softenControlEffort) {
+    if (g_enabled && g_cpuProtection) {
         if (!isTemperatureAboveSafetyCeiling()) {
             float effort = %orig(trigger, arg2);
             float newEffort = effort * 0.5;  // 减半，不归零
@@ -533,7 +515,7 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
 
 // actionComponentControl — 组件控制动作
 - (void)actionComponentControl {
-    if (g_enabled && g_softenControlEffort) {
+    if (g_enabled && g_cpuProtection) {
         if (!isTemperatureAboveSafetyCeiling()) {
             NSLog(@"[CPUthermal] 阻止 actionComponentControl");
             return;
@@ -544,7 +526,7 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
 
 // readReleaseRateForAllComponents — 全组件释放速率
 - (void)readReleaseRateForAllComponents {
-    if (g_enabled && g_softenControlEffort) {
+    if (g_enabled && g_cpuProtection) {
         if (!isTemperatureAboveSafetyCeiling()) {
             NSLog(@"[CPUthermal] 阻止 readReleaseRateForAllComponents");
             return;
@@ -567,7 +549,7 @@ static NSDictionary* (*orig_getConfigurationFor)(NSString *key) = NULL;
 
 static NSDictionary* new_getConfigurationFor(NSString *key) {
     NSDictionary *config = orig_getConfigurationFor(key);
-    if (!g_enabled || !g_modifyConfig || !config) return config;
+    if (!g_enabled || !g_cpuProtection || !config) return config;
 
     // 安全阀
     if (isTemperatureAboveSafetyCeiling()) return config;
@@ -624,7 +606,7 @@ static NSDictionary* new_getConfigurationFor(NSString *key) {
 // 热配置 plist 修补（适配自 insulation 的 IDictHepler）
 // ============================================================================
 static void patchThermalPlistDict(NSMutableDictionary *dict) {
-    if (!g_enabled || !g_patchThermalPlist) return;
+    if (!g_enabled || !g_brightnessProtection) return;
 
     // 用 C 字符串 key 动态创建，避免 __cfstring
     NSMutableDictionary *backlight = [[dict objectForKey:S("backlightComponentControl")] mutableCopy];
@@ -660,12 +642,12 @@ static void patchThermalPlistDict(NSMutableDictionary *dict) {
 }
 
 // --- NSDictionary: 拦截 thermal plist 加载并修补 ---
-// 注意: hook 系统类有风险，仅在 g_patchThermalPlist 开启时实际执行
+// 注意: hook 系统类有风险，仅在亮度保护开启时实际执行
 %hook NSDictionary
 
 + (id)dictionaryWithContentsOfFile:(id)path {
     id res = %orig;
-    if (g_enabled && g_patchThermalPlist && [path isKindOfClass:[NSString class]]) {
+    if (g_enabled && g_brightnessProtection && [path isKindOfClass:[NSString class]]) {
         NSString *pathStr = (NSString *)path;
         if ([pathStr containsString:S("/System/Library/ThermalMonitor/")]) {
             // 安全阀
@@ -739,11 +721,10 @@ static void onPuppetEvent(CFNotificationCenterRef center, void *observer, CFNoti
             NSLog(@"[CPUthermal] 未找到 DeviceMonitor.framework (非致命)");
         }
 
-        NSLog(@"[CPUthermal] 温控防护已激活 — 安全阀:%d°C 降频:%d 降亮度:%d Nominal:%d | 决策树:%d 软化:%d 热压力:%d 配置修改:%d 强制级别:%d",
+        NSLog(@"[CPUthermal] 温控防护已激活 — 安全阀:%d°C CPU性能:%d 亮度:%d 热状态:%d HID:%d CPMS:%d",
               (int)(kSafetyTempThreshold / 1000),
-              g_blockCPUMitigation, g_blockBrightness, g_forceNominal,
-              g_blockDecisionTree, g_softenControlEffort, g_blockThermalPressure,
-              g_modifyConfig, g_overrideForceLevel);
+              g_cpuProtection, g_brightnessProtection, g_thermalStateProtection,
+              g_blockHidEvents, g_keepCPSMAlive);
 
         // 注意: 配置仅在进程启动时加载一次
         // 修改设置后需重启 thermalmonitord 才生效
