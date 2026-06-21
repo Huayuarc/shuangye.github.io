@@ -25,10 +25,10 @@ echo "  当前可用的 deb 包:"
 echo "============================================"
 
 if ls packages/*.deb 2>/dev/null; then
-    echo ""
-    echo "✅ 已同步到: $REPO_DIR/packages/"
+echo ""
+echo "✅ 已同步到: $REPO_DIR/packages/"
 else
-    echo "  (暂无 deb 包)"
+echo "  (暂无 deb 包)"
 fi
 
 echo ""
