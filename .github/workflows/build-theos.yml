@@ -24,42 +24,88 @@ jobs:
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
           # Xcode iPhoneOS SDK 缺少 IOKit 框架（macOS only），
           # 使用 install-sdk 下载 Theos 专用 SDK（含 IOKit for iOS）
-          $HOME/theos/bin/install-sdk iPhoneOS16.5.sdk || $HOME/theos/bin/install-sdk latest || echo "SDK 下载失败"
-          ls -la "$HOME/theos/sdks/"
+          # 先清理旧 SDK 确保使用新下载的
+          rm -rf "$HOME/theos/sdks"
+          mkdir -p "$HOME/theos/sdks"
+          $HOME/theos/bin/install-sdk iPhoneOS16.5.sdk || { echo "16.5 SDK 不存在，尝试 latest" && $HOME/theos/bin/install-sdk latest; } || echo "SDK 下载失败"
+          {
+            echo "## SDK 目录内容"
+            ls -la "$HOME/theos/sdks/"
+            echo ""
+            echo "### IOKit 头文件检查"
+            for sdk in "$HOME/theos/sdks/"iPhoneOS*.sdk; do
+              echo "SDK: $(basename $sdk)"
+              ls "$sdk/System/Library/Frameworks/IOKit.framework/Headers/" 2>/dev/null || echo "  -> IOKit 未找到"
+            done
+          } >> $GITHUB_STEP_SUMMARY
 
       - name: Verify Theos
         working-directory: debs
         run: |
           set -x
           echo "THEOS=$THEOS"
-          ls -la "$THEOS/makefiles/" | head -5
-          ls -la "$THEOS/sdks/" | head -5
-          echo "=== 尝试 make clean ==="
-          make clean || echo "clean 结果: $?"
-          echo "=== 环境变量 ==="
+          ls -la "$THEOS/sdks/"
+          echo "=== TARGET ==="
+          grep '^TARGET' Makefile
+          echo "=== make clean ==="
+          make clean 2>&1 || echo "clean: $?"
+          echo "=== 环境 ==="
           env | grep -E "THEOS|ARCH|SCHEME" || true
 
       - name: Build rootless
+        id: build_rootless
         working-directory: debs
+        continue-on-error: true
         run: |
           set -x
           export THEOS_PACKAGE_SCHEME=rootless
           export ARCHS="arm64 arm64e"
-          make clean
-          make FINALPACKAGE=1 2>&1
-          make package FINALPACKAGE=1 2>&1
-          ls -la packages/*.deb 2>/dev/null || echo "rootless: 未找到 deb"
+          {
+            echo "## Build rootless"
+            make clean
+            make FINALPACKAGE=1 2>&1
+            echo "make exit: $?"
+            make package FINALPACKAGE=1 2>&1
+            echo "package exit: $?"
+            echo "### Packages:"
+            ls -la packages/*.deb 2>/dev/null || echo "未找到 deb"
+          } 2>&1 | tee /tmp/build-rootless.log
+          # 截取最后 80 行到 summary
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -80 /tmp/build-rootless.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          # 标记失败
+          if [ ! -f packages/*.deb ] 2>/dev/null; then
+            echo "❌ rootless 构建失败" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          echo "✅ rootless 构建成功" >> $GITHUB_STEP_SUMMARY
 
       - name: Build roothide
         working-directory: debs
+        if: success() || steps.build_rootless.outcome == 'failure'
         run: |
           set -x
           export THEOS_PACKAGE_SCHEME=roothide
           export ARCHS="arm64 arm64e"
-          make clean
-          make FINALPACKAGE=1 SCHEME=roothide 2>&1
-          make package FINALPACKAGE=1 SCHEME=roothide 2>&1
-          ls -la packages/*.deb 2>/dev/null || echo "roothide: 未找到 deb"
+          {
+            echo "## Build roothide"
+            make clean
+            make FINALPACKAGE=1 SCHEME=roothide 2>&1
+            echo "make exit: $?"
+            make package FINALPACKAGE=1 SCHEME=roothide 2>&1
+            echo "package exit: $?"
+            echo "### Packages:"
+            ls -la packages/*.deb 2>/dev/null || echo "未找到 deb"
+          } 2>&1 | tee /tmp/build-roothide.log
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -80 /tmp/build-roothide.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          if [ ! -f packages/*.deb ] 2>/dev/null; then
+            echo "❌ roothide 构建失败" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          echo "✅ roothide 构建成功" >> $GITHUB_STEP_SUMMARY
 
       - name: Collect debs
         working-directory: debs
