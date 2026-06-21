@@ -20,8 +20,17 @@ jobs:
       - name: Setup Theos
         run: |
           set -x
-          git clone --recursive https://github.com/theos/theos.git "$HOME/theos"
+          # 清除可能的缓存
+          rm -rf "$HOME/theos"
+          # 带重试的 git clone
+          for i in 1 2 3; do
+            git clone --recursive --depth=1 https://github.com/theos/theos.git "$HOME/theos" && break
+            echo "clone 失败，第 $i 次重试..."
+            sleep 5
+          done
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
+          # 确认 clone 成功
+          test -d "$HOME/theos/makefiles" || { echo "Theos clone 失败"; exit 1; }
           # ldid: Theos 签名必需，macOS runner 默认没有
           brew install ldid 2>/dev/null || true
           # 下载 Theos SDK（含 IOKit for iOS）
