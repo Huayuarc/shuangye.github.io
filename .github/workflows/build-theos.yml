@@ -22,21 +22,18 @@ jobs:
           set -x
           git clone --recursive https://github.com/theos/theos.git "$HOME/theos"
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
-          # Xcode iPhoneOS SDK 缺少 IOKit 框架（macOS only），
-          # 使用 install-sdk 下载 Theos 专用 SDK（含 IOKit for iOS）
-          # 先清理旧 SDK 确保使用新下载的
-          rm -rf "$HOME/theos/sdks"
           mkdir -p "$HOME/theos/sdks"
-          $HOME/theos/bin/install-sdk iPhoneOS16.5.sdk || { echo "16.5 SDK 不存在，尝试 latest" && $HOME/theos/bin/install-sdk latest; } || echo "SDK 下载失败"
+          # 从 Theos SDK 仓库直接下载 iPhoneOS16.5.sdk（含 IOKit for iOS）
+          curl -fsSL -o /tmp/sdk.tar.xz \
+            "https://github.com/theos/sdks/releases/download/master-146e41f/iPhoneOS16.5.sdk.tar.xz"
+          tar -xJf /tmp/sdk.tar.xz -C "$HOME/theos/sdks/"
+          rm -f /tmp/sdk.tar.xz
           {
             echo "## SDK 目录内容"
             ls -la "$HOME/theos/sdks/"
             echo ""
-            echo "### IOKit 头文件检查"
-            for sdk in "$HOME/theos/sdks/"iPhoneOS*.sdk; do
-              echo "SDK: $(basename $sdk)"
-              ls "$sdk/System/Library/Frameworks/IOKit.framework/Headers/" 2>/dev/null || echo "  -> IOKit 未找到"
-            done
+            echo "### IOKit 头文件"
+            ls "$HOME/theos/sdks/iPhoneOS16.5.sdk/System/Library/Frameworks/IOKit.framework/Headers/" 2>/dev/null || echo "IOKit 未找到"
           } >> $GITHUB_STEP_SUMMARY
 
       - name: Verify Theos
