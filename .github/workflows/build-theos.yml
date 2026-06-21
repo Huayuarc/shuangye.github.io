@@ -28,13 +28,20 @@ jobs:
             "https://github.com/theos/sdks/releases/download/master-146e41f/iPhoneOS16.5.sdk.tar.xz"
           tar -xJf /tmp/sdk.tar.xz -C "$HOME/theos/sdks/"
           rm -f /tmp/sdk.tar.xz
-          {
-            echo "## SDK 目录内容"
-            ls -la "$HOME/theos/sdks/"
-            echo ""
-            echo "### IOKit 头文件"
-            ls "$HOME/theos/sdks/iPhoneOS16.5.sdk/System/Library/Frameworks/IOKit.framework/Headers/" 2>/dev/null || echo "IOKit 未找到"
-          } >> $GITHUB_STEP_SUMMARY
+          ls -la "$HOME/theos/sdks/"
+
+      - name: Verify IOKit SDK
+        run: |
+          set -x
+          SDK="$HOME/theos/sdks/iPhoneOS16.5.sdk"
+          ls -la "$SDK/System/Library/Frameworks/IOKit.framework/" 2>&1
+          echo "=== 测试 IOKit 编译 ==="
+          cat > /tmp/test_iokit.c << 'EOF'
+          #include <IOKit/IOKitLib.h>
+          int main() { return 0; }
+          EOF
+          cc -c /tmp/test_iokit.c -isysroot "$SDK" -target arm64-apple-ios15.0 -o /tmp/test_iokit.o 2>&1 && echo "IOKit 编译测试通过" || echo "IOKit 编译测试失败"
+          rm -f /tmp/test_iokit.c /tmp/test_iokit.o
 
       - name: Verify Theos
         working-directory: debs
@@ -50,7 +57,6 @@ jobs:
           env | grep -E "THEOS|ARCH|SCHEME" || true
 
       - name: Build rootless
-        id: build_rootless
         working-directory: debs
         run: |
           set -x
