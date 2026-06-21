@@ -37,27 +37,10 @@ jobs:
         run: |
           set -x
           export THEOS_PACKAGE_SCHEME=rootless
-          export ARCHS="arm64 arm64e"
+          export ARCHS="arm64"
           make clean
           make FINALPACKAGE=1 2>&1
           make package FINALPACKAGE=1 2>&1
-          ls -la packages/*.deb 2>/dev/null
-
-      - name: Build roothide (optional)
-        working-directory: debs
-        continue-on-error: true
-        run: |
-          set -x
-          # CI 没有 libroothide，跳过
-          if ! echo '#include <roothide.h>' | cc -x c - -fsyntax-only 2>/dev/null; then
-            echo "libroothide 不可用，跳过 roothide 构建"
-            exit 0
-          fi
-          export THEOS_PACKAGE_SCHEME=roothide
-          export ARCHS="arm64 arm64e"
-          make clean
-          make FINALPACKAGE=1 SCHEME=roothide 2>&1
-          make package FINALPACKAGE=1 SCHEME=roothide 2>&1
           ls -la packages/*.deb 2>/dev/null
 
       - name: Collect debs
