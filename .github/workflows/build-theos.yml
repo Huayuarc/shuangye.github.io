@@ -23,11 +23,14 @@ jobs:
           git clone --recursive https://github.com/theos/theos.git "$HOME/theos"
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
           mkdir -p "$HOME/theos/sdks"
+          # macOS 默认没有 xz，先安装
+          brew install xz 2>/dev/null || true
           # 从 Theos SDK 仓库直接下载 iPhoneOS16.5.sdk（含 IOKit for iOS）
           curl -fsSL -o /tmp/sdk.tar.xz \
             "https://github.com/theos/sdks/releases/download/master-146e41f/iPhoneOS16.5.sdk.tar.xz"
           tar -xJf /tmp/sdk.tar.xz -C "$HOME/theos/sdks/"
           rm -f /tmp/sdk.tar.xz
+          echo "=== SDK 目录 ==="
           ls -la "$HOME/theos/sdks/"
 
       - name: Verify IOKit SDK
