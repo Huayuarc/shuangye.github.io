@@ -1,4 +1,4 @@
-export THEOS = /Users/colorblack/theos
+export THEOS ?= /var/mobile/theos
 export PATH := $(THEOS)/bin:$(PATH)
 export TARGET = iphone:clang:16.5:15.0
 THEOS_PACKAGE_SCHEME = rootless
