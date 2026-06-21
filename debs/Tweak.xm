@@ -4,6 +4,7 @@
 #include <roothide.h>
 #import <IOKit/IOKitLib.h>
 #import <SystemConfiguration/SCPreferences.h>
+#import <sys/sysctl.h>
 
 // ============================================================================
 // CPUthermal — 温控插件（完全版）
@@ -27,6 +28,8 @@
 
 // 前向声明 — 供 %hook ThermalManager initProduct 提前调用
 static void applyLowPowerSimulation(void);
+static void startLowPowerTimer(void);
+static void stopLowPowerTimer(void);
 static void applySuppressTempPopup(BOOL enable);
 static void reloadSettings(void);
 
@@ -136,6 +139,7 @@ static const char *kPrefPathC = "/var/mobile/Library/Preferences/com.huayuarc.CP
 
 static CommonProduct *g_commonProduct = nil;
 static ThermalManager *g_thermalManager = nil;
+static dispatch_source_t g_lowPowerTimer = NULL;
 
 static void loadPrefs(void) {
     @autoreleasepool {
@@ -334,9 +338,17 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
         return CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &zero);
     }
     if ([ks localizedCaseInsensitiveContainsString:S("freq")] ||
-        [ks localizedCaseInsensitiveContainsString:S("speed")]) {
-        int max = INT_MAX;
-        return CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &max);
+        [ks localizedCaseInsensitiveContainsString:S("speed")] ||
+        [ks localizedCaseInsensitiveContainsString:S("performance-state")] ||
+        [ks localizedCaseInsensitiveContainsString:S("cpu-frequency")]) {
+        if (g_lowPowerSimulation) {
+            // 低电模拟: 返回低频 (1.2 GHz)
+            long long lowFreq = 1200000000LL;
+            return CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &lowFreq);
+        } else {
+            int max = INT_MAX;
+            return CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &max);
+        }
     }
     if ([ks localizedCaseInsensitiveContainsString:S("brightness")] ||
         [ks localizedCaseInsensitiveContainsString:S("backlight")]) {
@@ -364,6 +376,53 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
         }
     }
     return %orig;
+}
+
+// ============================================================================
+// sysctlbyname hook — 第三方 CPU 监控 App 读取 CPU 频率的主要路径
+//
+// 常见查询:
+//   hw.cpufrequency       — 当前 CPU 频率
+//   hw.cpufrequency_max   — 最大 CPU 频率
+//   machdep.cpu.brand_string — CPU 品牌字符串 (部分 App 解析它显示频率)
+//
+// 开启低电模拟时, 统一返回 1.2GHz
+// ============================================================================
+%hookf(int, sysctlbyname, const char *name, void *oldp, size_t *oldlenp, void *newp, size_t newlen) {
+    if (g_enabled && g_lowPowerSimulation && name && !newp) {
+        // hw.cpufrequency: 返回 1.2GHz
+        if (strcmp(name, "hw.cpufrequency") == 0 || strcmp(name, "hw.cpufrequency_max") == 0) {
+            long long fakeFreq = 1200000000LL;  // 1.2 GHz
+            if (oldp) {
+                if (*oldlenp >= sizeof(long long)) {
+                    memcpy(oldp, &fakeFreq, sizeof(long long));
+                    *oldlenp = sizeof(long long);
+                } else {
+                    *oldlenp = sizeof(long long);
+                }
+            } else {
+                *oldlenp = sizeof(long long);
+            }
+            return 0;
+        }
+        // machdep.cpu.brand_string: 如 "Apple A15 Bionic @ 1.20 GHz"
+        if (strcmp(name, "machdep.cpu.brand_string") == 0) {
+            const char *fakeBrand = "Apple A15 Bionic @ 1.20 GHz";
+            size_t brandLen = strlen(fakeBrand) + 1;
+            if (oldp) {
+                if (*oldlenp >= brandLen) {
+                    strcpy((char *)oldp, fakeBrand);
+                    *oldlenp = brandLen;
+                } else {
+                    *oldlenp = brandLen;
+                }
+            } else {
+                *oldlenp = brandLen;
+            }
+            return 0;
+        }
+    }
+    return %orig(name, oldp, oldlenp, newp, newlen);
 }
 
 // ============================================================================
@@ -515,6 +574,7 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
         NSLog(@"[CPUthermal] ThermalManager 已初始化");
         if (g_lowPowerSimulation) {
             applyLowPowerSimulation();
+            startLowPowerTimer();
         }
     }
     return res;
@@ -718,6 +778,12 @@ static void patchThermalPlistDict(NSMutableDictionary *dict) {
 
 // ============================================================================
 // 模拟低电频率 — 主动压低 CPU/Package 功率 (适配自 Insulation 逆向)
+//
+// 注意: setCPULowPowerTarget:0 在 Apple 实现中可能表示"不限制"而非"最低"
+// 改用正数 1 确保触发限频逻辑
+//
+// 第三方 CPU 监控 App 通过 sysctlbyname("hw.cpufrequency") 或 IOKit 属性
+// 读取频率，详见下方的 %hookf(sysctlbyname) 和 IORegistryEntryCreateCFProperty 修改
 // ============================================================================
 static void applyLowPowerSimulation(void) {
     if (!g_thermalManager || !g_enabled) return;
@@ -727,26 +793,34 @@ static void applyLowPowerSimulation(void) {
         // 开启省电模式
         [g_thermalManager setPowerSaveActive:YES];
 
-        // 压低 CPU 功率目标
-        [g_thermalManager setCPULowPowerTarget:0];
+        // CPU Low Power Target — 使用正数 1，避免 0 被解释为"不限制"
+        [g_thermalManager setCPULowPowerTarget:1];
 
-        // 设置 CPU 功率上限为低值
-        [g_thermalManager setCPUPowerCeiling:500 fromDecisionSource:S("CPUthermal")];
+        // CPU 功率上限 — 压到极低 (单位: mW)
+        [g_thermalManager setCPUPowerCeiling:300 fromDecisionSource:S("CPUthermal")];
 
-        // 设置 Package 低功耗目标
+        // CPU 功率下限 — 也压低，防止 thermalmonitord 自动回升
+        [g_thermalManager setCPUPowerFloor:100 fromDecisionSource:S("CPUthermal")];
+
+        // Package 低功耗目标
         [g_thermalManager setPackageLowPowerTarget];
 
-        // 设置 Package 功率上限
+        // Package 功率上限/下限
         [g_thermalManager setPackagePowerCeiling:500 fromDecisionSource:S("CPUthermal")];
+        [g_thermalManager setPackagePowerFloor:200 fromDecisionSource:S("CPUthermal")];
+
+        // CPU Power Zone 目标
+        [g_thermalManager setCPUPowerZoneTarget:1];
+        [g_thermalManager setPackagePowerZoneTarget];
 
         // GPU 也压低
-        [g_thermalManager setGPUPowerCeiling:500 fromDecisionSource:S("CPUthermal")];
+        [g_thermalManager setGPUPowerCeiling:300 fromDecisionSource:S("CPUthermal")];
 
         // 强制 CPU 最低级别
         [g_thermalManager setCPULevel:0];
 
         // 限制最大 Package 功率
-        [g_thermalManager setMaxPackagePower:1000];
+        [g_thermalManager setMaxPackagePower:500];
 
         // 触发更新
         [g_thermalManager updateCPU];
@@ -754,6 +828,37 @@ static void applyLowPowerSimulation(void) {
         [g_thermalManager updatePackage];
 
         NSLog(@"[CPUthermal] 模拟低电频率已应用");
+    }
+}
+
+// ============================================================================
+// 低电模拟定时器 — thermalmonitord 会周期性重算功率值
+// 每隔 3 秒重新应用一次，确保功率值不被重置
+// ============================================================================
+static void startLowPowerTimer(void) {
+    if (g_lowPowerTimer) return;
+    g_lowPowerTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0));
+    if (!g_lowPowerTimer) return;
+    dispatch_source_set_timer(g_lowPowerTimer,
+        dispatch_time(DISPATCH_TIME_NOW, 3 * NSEC_PER_SEC),
+        3 * NSEC_PER_SEC,
+        NSEC_PER_SEC);
+    dispatch_source_set_event_handler(g_lowPowerTimer, ^{
+        @autoreleasepool {
+            if (g_enabled && g_lowPowerSimulation && g_thermalManager) {
+                applyLowPowerSimulation();
+            }
+        }
+    });
+    dispatch_resume(g_lowPowerTimer);
+    NSLog(@"[CPUthermal] 低电模拟定时器已启动 (间隔 3s)");
+}
+
+static void stopLowPowerTimer(void) {
+    if (g_lowPowerTimer) {
+        dispatch_source_cancel(g_lowPowerTimer);
+        g_lowPowerTimer = NULL;
+        NSLog(@"[CPUthermal] 低电模拟定时器已停止");
     }
 }
 
@@ -843,9 +948,12 @@ static void reloadSettings(void) {
         loadPrefs();
         if (!g_enabled) return;
 
-        // 重新应用低电模拟
+        // 管理低电模拟 + 定时器
         if (g_lowPowerSimulation && g_thermalManager) {
             applyLowPowerSimulation();
+            startLowPowerTimer();
+        } else {
+            stopLowPowerTimer();
         }
 
         // 重新应用弹窗抑制
