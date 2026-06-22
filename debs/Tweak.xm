@@ -43,6 +43,7 @@ typedef NS_ENUM(NSInteger, PowerMode) {
 @interface CommonProduct : NSObject
 - (id)initProduct:(id)arg1;
 - (void)putDeviceInThermalSimulationMode:(id)arg1;
+- (void)putDeviceInLowTempSimulationMode:(id)arg1;
 - (void)tryTakeAction;
 - (void)simulateLightThermalPressure;
 - (void)updatePowerzoneTelemetry;
@@ -95,8 +96,8 @@ typedef NS_ENUM(NSInteger, PowerMode) {
 - (double)getPackagePowerZoneMetric;
 - (void)handleMCSThermalPressure;
 - (void)initProduct:(id)product;
-- (void)putDeviceInLowTempSimulationMode:(BOOL)mode;
-- (void)putDeviceInThermalSimulationMode:(BOOL)mode;
+- (void)putDeviceInLowTempSimulationMode:(id)mode;
+- (void)putDeviceInThermalSimulationMode:(id)mode;
 - (void)setCPMSMitigationsEnabled:(BOOL)enabled;
 - (void)simulateLightThermalPressure;
 - (void)thermalMitigation:(id)mitigation;
@@ -122,6 +123,33 @@ typedef NS_ENUM(NSInteger, PowerMode) {
 - (id)initForFastLoop:(BOOL)fastLoop noDisplay:(BOOL)noDisplay powerSaveParams:(id)saveParams powerZoneParams:(id)zoneParams;
 - (id)initWithParams:(id)params;
 - (void)updatePowerParameters:(id)params;
+@end
+
+@interface MitigationController : NSObject
+- (id)initForFastLoop:(BOOL)fastLoop noDisplay:(BOOL)noDisplay powerSaveParams:(id)saveParams powerZoneParams:(id)zoneParams;
+- (void)setCPMSMitigationsEnabled:(BOOL)enabled;
+- (void)setCPULevel:(int)level;
+- (void)setCPULowPowerTarget:(int)target;
+- (void)setCPUPowerCeiling:(int)ceiling fromDecisionSource:(int)source;
+- (void)setCPUPowerFloor:(int)floor fromDecisionSource:(int)source;
+- (void)setCPUPowerZoneTarget:(int)target;
+- (void)setDVD1Level:(int)level;
+- (void)setGPUPowerCeiling:(int)ceiling fromDecisionSource:(int)source;
+- (void)setGPUPowerFloor:(int)floor fromDecisionSource:(int)source;
+- (void)setGPUPowerZoneTarget:(int)target;
+- (void)setMaxCPUPowerTarget:(int)target useLegacyPath:(BOOL)legacy setProperty:(CFStringRef)property;
+- (void)setMaxGraphicsDrivePowerTarget:(int)target;
+- (void)setMaxPackagePower:(int)power;
+- (void)setPackageLowPowerTarget;
+- (void)setPackagePowerCeiling:(int)ceiling fromDecisionSource:(int)source;
+- (void)setPackagePowerFloor:(int)floor fromDecisionSource:(int)source;
+- (void)setPackagePowerZoneTarget;
+- (void)setPowerSaveActive:(BOOL)active;
+- (void)setPowerSaveToken:(int)token;
+- (void)setSGXLevel:(int)level;
+- (void)updateCPU;
+- (void)updateGPU;
+- (void)updatePackage;
 @end
 
 @interface ThermalDecisionTable : NSObject
@@ -162,8 +190,8 @@ static const int kLowPowerCPUFreqMaxKHz = 2016000;
 static const int64_t kLowPowerCPUFreqMinHz = 1428000000LL;
 static const int64_t kLowPowerCPUFreqMaxHz = 2016000000LL;
 
-static const double kLowPowerCPUPowerMax = 5000.0;
-static const double kLowPowerPackagePowerMax = 8000.0;
+static const double kLowPowerCPUPowerMax = 2016.0;
+static const double kLowPowerPackagePowerMax = 2000.0;
 
 // 低功耗主动下发限频时，临时放行本插件自己的降频写入
 static volatile int g_applyingLowPowerMode = 0;
@@ -176,6 +204,7 @@ static const char *kPrefPathC = "/var/mobile/Library/Preferences/com.huayuarc.CP
 
 static CommonProduct *g_commonProduct = nil;
 static ThermalManager *g_thermalManager = nil;
+static MitigationController *g_mitigationController = nil;
 static kern_return_t (*orig_IOServiceSetProperty)(io_service_t, CFStringRef, CFTypeRef) = NULL;
 
 static BOOL isTemperatureAboveSafetyCeiling(void);
@@ -670,85 +699,136 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
 // ★ 新增自 Insulation: 直接功率参数控制
 // ============================================================================
 
-static void applyFullPowerMode(ThermalManager *manager) {
-    // === 满血模式：解除全部温控，设最大功率 ===
-    NSLog(@"[CPUthermal] ★ 应用满血模式 — 解除全部温控");
-
-    // CPU: 无级别限制, 功率拉到最高
-    [manager setCPULevel:0];
-    [manager setCPUPowerCeiling:100000.0 fromDecisionSource:S("CPUthermal")];
-    [manager setCPUPowerFloor:0 fromDecisionSource:S("CPUthermal")];
-    [manager setCPUPowerZoneTarget:15000.0];
-    [manager setCPULowPowerTarget:15000.0];
-
-    // DVD1: 无限制
-    [manager setDVD1Level:0];
-
-    // GPU: 无限制
-    [manager setGPUPowerCeiling:100000.0 fromDecisionSource:S("CPUthermal")];
-    [manager setGPUPowerFloor:0 fromDecisionSource:S("CPUthermal")];
-    [manager setGPUPowerZoneTarget:25000.0];
-    [manager setMaxGraphicsDrivePowerTarget:25000.0];
-
-    // Package: 无限制
-    [manager setMaxPackagePower:100000.0];
-    [manager setPackagePowerCeiling:100000.0 fromDecisionSource:S("CPUthermal")];
-    [manager setPackagePowerFloor:0 fromDecisionSource:S("CPUthermal")];
-    [manager setPackagePowerZoneTarget];
-
-    // SGX: 无限制
-    [manager setSGXLevel:0];
-
-    // 禁用省电/缓解
-    [manager setPowerSaveActive:NO];
-    [manager setCPMSMitigationsEnabled:NO];
-    [manager setThermalState:0];
-
-    // 提交更新
-    [manager updateCPU];
-    [manager updateGPU];
-    [manager updatePackage];
+static MitigationController *activeMitigationController(void) {
+    return g_mitigationController;
 }
 
-static void applyLowPowerMode(ThermalManager *manager) {
-    // === 低功耗模式：限制功率，但不降亮度 ===
-    NSLog(@"[CPUthermal] ★ 应用低功耗模式 — CPU 限频 %d~%dMHz，限制功率，保持亮度",
-          kLowPowerCPUFreqMinMHz, kLowPowerCPUFreqMaxMHz);
+static void applyFullPowerToMitigationController(MitigationController *controller) {
+    if (!controller) return;
+
+    @try {
+        [controller setCPULevel:0];
+        [controller setCPUPowerCeiling:100000 fromDecisionSource:0];
+        [controller setCPUPowerFloor:0 fromDecisionSource:0];
+        [controller setCPUPowerZoneTarget:100000];
+        [controller setCPULowPowerTarget:100000];
+        [controller setMaxCPUPowerTarget:100000 useLegacyPath:YES setProperty:(__bridge CFStringRef)S("CPUthermal")];
+        [controller setDVD1Level:0];
+
+        [controller setGPUPowerCeiling:100000 fromDecisionSource:0];
+        [controller setGPUPowerFloor:0 fromDecisionSource:0];
+        [controller setGPUPowerZoneTarget:100000];
+        [controller setMaxGraphicsDrivePowerTarget:100000];
+
+        [controller setMaxPackagePower:100000];
+        [controller setPackagePowerCeiling:100000 fromDecisionSource:0];
+        [controller setPackagePowerFloor:0 fromDecisionSource:0];
+        [controller setPackagePowerZoneTarget];
+
+        [controller setSGXLevel:0];
+        [controller setPowerSaveToken:0];
+        [controller setPowerSaveActive:NO];
+        [controller setCPMSMitigationsEnabled:NO];
+
+        [controller updateCPU];
+        [controller updateGPU];
+        [controller updatePackage];
+    } @catch (NSException *exception) {
+        NSLog(@"[CPUthermal] MitigationController 满血下发异常: %@", exception);
+    }
+}
+
+static void applyLowPowerToMitigationController(MitigationController *controller) {
+    if (!controller) return;
 
     g_applyingLowPowerMode++;
     @try {
-        // CPU: 主动进入低功耗档，目标限制在 1428MHz ~ 2016MHz
-        [manager setCPULevel:80];
-        [manager setCPUPowerCeiling:kLowPowerCPUPowerMax fromDecisionSource:S("CPUthermal")];
-        [manager setCPUPowerFloor:0 fromDecisionSource:S("CPUthermal")];
-        [manager setCPUPowerZoneTarget:kLowPowerCPUPowerMax];
-        [manager setMaxCPUPowerTarget:kLowPowerCPUPowerMax useLegacyPath:YES setProperty:YES];
-        [manager setCPULowPowerTarget:(double)kLowPowerCPUFreqMaxMHz];
-        [manager setDVD1Level:1];
+        int cpuTarget = kLowPowerCPUFreqMaxMHz;
+        int packageTarget = (int)kLowPowerPackagePowerMax;
 
-        // GPU/Package: 同步压低功率，达到省电效果
-        [manager setGPUPowerCeiling:5000.0 fromDecisionSource:S("CPUthermal")];
-        [manager setGPUPowerFloor:0 fromDecisionSource:S("CPUthermal")];
-        [manager setMaxPackagePower:kLowPowerPackagePowerMax];
-        [manager setPackagePowerCeiling:kLowPowerPackagePowerMax fromDecisionSource:S("CPUthermal")];
-        [manager setPackagePowerFloor:0 fromDecisionSource:S("CPUthermal")];
-        [manager setPackageLowPowerTarget];
+        [controller setPowerSaveToken:1];
+        [controller setPowerSaveActive:YES];
+        [controller setCPMSMitigationsEnabled:YES];
 
-        // 开启系统低功耗/模拟低电通路，让 thermalmonitord 立即走限频策略
-        [manager setPowerSaveActive:YES];
-        [manager setCPMSMitigationsEnabled:YES];
+        [controller setCPULevel:80];
+        [controller setCPUPowerCeiling:cpuTarget fromDecisionSource:0];
+        [controller setCPUPowerFloor:0 fromDecisionSource:0];
+        [controller setCPUPowerZoneTarget:cpuTarget];
+        [controller setMaxCPUPowerTarget:cpuTarget useLegacyPath:YES setProperty:(__bridge CFStringRef)S("CPUthermal")];
+        [controller setCPULowPowerTarget:cpuTarget];
+        [controller setDVD1Level:1];
+
+        [controller setGPUPowerCeiling:cpuTarget fromDecisionSource:0];
+        [controller setGPUPowerFloor:0 fromDecisionSource:0];
+        [controller setMaxPackagePower:packageTarget];
+        [controller setPackagePowerCeiling:packageTarget fromDecisionSource:0];
+        [controller setPackagePowerFloor:0 fromDecisionSource:0];
+        [controller setPackageLowPowerTarget];
+
         if (g_brightnessProtection) {
-            [manager setMaxGraphicsDrivePowerTarget:25000.0];
+            [controller setMaxGraphicsDrivePowerTarget:100000];
         }
 
         applyLowPowerFrequencyProperties();
 
-        [manager updateCPU];
-        [manager updateGPU];
-        [manager updatePackage];
+        [controller updateCPU];
+        [controller updateGPU];
+        [controller updatePackage];
+    } @catch (NSException *exception) {
+        NSLog(@"[CPUthermal] MitigationController 低功耗下发异常: %@", exception);
     } @finally {
         g_applyingLowPowerMode--;
     }
+}
+
+static void applyFullPowerToThermalManager(ThermalManager *manager) {
+    if (!manager) return;
+
+    @try {
+        [manager setThermalState:0];
+        [manager putDeviceInThermalSimulationMode:S("nominal")];
+        [manager putDeviceInLowTempSimulationMode:S("nominal")];
+        [manager updatePowerzoneTelemetry];
+    } @catch (NSException *exception) {
+        NSLog(@"[CPUthermal] ThermalManager 满血辅助下发异常: %@", exception);
+    }
+}
+
+static void applyLowPowerToThermalManager(ThermalManager *manager) {
+    if (!manager) return;
+
+    @try {
+        [manager putDeviceInLowTempSimulationMode:S("heavy")];
+        [manager setThermalState:0];
+        [manager updatePowerzoneTelemetry];
+    } @catch (NSException *exception) {
+        NSLog(@"[CPUthermal] ThermalManager 低功耗辅助下发异常: %@", exception);
+    }
+}
+
+static void applyFullPowerMode(void) {
+    NSLog(@"[CPUthermal] ★ 应用满血模式 — 解除全部温控");
+    applyFullPowerToMitigationController(activeMitigationController());
+    applyFullPowerToThermalManager(g_thermalManager);
+}
+
+static void applyLowPowerMode(void) {
+    NSLog(@"[CPUthermal] ★ 应用低功耗模式 — CPU 限频 %d~%dMHz，模拟低电并立即限制功率",
+          kLowPowerCPUFreqMinMHz, kLowPowerCPUFreqMaxMHz);
+
+    applyLowPowerFrequencyProperties();
+    applyLowPowerToMitigationController(activeMitigationController());
+    applyLowPowerToThermalManager(g_thermalManager);
+}
+
+static void scheduleLowPowerReapply(NSTimeInterval delay) {
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW,
+        (int64_t)(delay * NSEC_PER_SEC)),
+        dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        if (g_enabled && g_powerMode == PowerModeLowPower && !isTemperatureAboveSafetyCeiling()) {
+            applyLowPowerMode();
+        }
+    });
 }
 
 // ============================================================================
@@ -763,39 +843,16 @@ static void applyPowerMode(void) {
         return;
     }
 
-    ThermalManager *manager = g_thermalManager;
-    if (!manager) {
-        Class cls = objc_getClass("ThermalManager");
-        if (cls && [cls respondsToSelector:NSSelectorFromString(S("sharedInstance"))]) {
-            manager = [cls valueForKey:S("sharedInstance")];
-        }
-    }
-    if (!manager) {
-        NSLog(@"[CPUthermal] 警告: 无法获取 ThermalManager 实例");
-        return;
-    }
-
     switch (g_powerMode) {
         case PowerModeFullPower:
-            applyFullPowerMode(manager);
+            applyFullPowerMode();
             break;
         case PowerModeLowPower:
         default:
-            applyLowPowerMode(manager);
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW,
-                (int64_t)(0.25 * NSEC_PER_SEC)),
-                dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-                if (g_enabled && g_powerMode == PowerModeLowPower) {
-                    applyLowPowerMode(manager);
-                }
-            });
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW,
-                (int64_t)(1.0 * NSEC_PER_SEC)),
-                dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-                if (g_enabled && g_powerMode == PowerModeLowPower) {
-                    applyLowPowerMode(manager);
-                }
-            });
+            applyLowPowerMode();
+            scheduleLowPowerReapply(0.05);
+            scheduleLowPowerReapply(0.25);
+            scheduleLowPowerReapply(1.0);
             break;
     }
 }
@@ -812,6 +869,9 @@ static void applyPowerMode(void) {
     if (g_enabled) {
         g_commonProduct = self;
         [self putDeviceInThermalSimulationMode:S("nominal")];
+        if (g_powerMode == PowerModeLowPower) {
+            [self putDeviceInLowTempSimulationMode:S("heavy")];
+        }
         NSLog(@"[CPUthermal] CommonProduct init, 已重置热状态为 nominal");
     }
     return res;
@@ -836,6 +896,14 @@ static void applyPowerMode(void) {
         return;
     }
     %orig;
+}
+
+- (void)putDeviceInLowTempSimulationMode:(id)mode {
+    if (shouldClampLowPowerCPU()) {
+        %orig(S("heavy"));
+        return;
+    }
+    %orig(mode);
 }
 
 %end
@@ -1054,6 +1122,106 @@ static void applyPowerMode(void) {
         }
     }
     return result;
+}
+
+%end
+
+// --- MitigationController: 真实 CPU/GPU/Package 功率控制器 ---
+%hook MitigationController
+
+- (id)initForFastLoop:(BOOL)fastLoop noDisplay:(BOOL)noDisplay powerSaveParams:(id)saveParams powerZoneParams:(id)zoneParams {
+    id res = %orig(fastLoop, noDisplay, saveParams, zoneParams);
+    if (res) {
+        g_mitigationController = res;
+        if (g_enabled) {
+            applyPowerMode();
+        }
+    }
+    return res;
+}
+
+- (void)setCPULevel:(int)level {
+    if (shouldClampLowPowerCPU()) {
+        %orig(80);
+        return;
+    }
+    %orig(level);
+}
+
+- (void)setCPUPowerCeiling:(int)ceiling fromDecisionSource:(int)source {
+    if (shouldClampLowPowerCPU() && ceiling > kLowPowerCPUFreqMaxMHz) {
+        %orig(kLowPowerCPUFreqMaxMHz, source);
+        return;
+    }
+    %orig(ceiling, source);
+}
+
+- (void)setCPUPowerFloor:(int)floor fromDecisionSource:(int)source {
+    if (shouldClampLowPowerCPU()) {
+        int clampedFloor = floor;
+        if (clampedFloor < 0 || clampedFloor > kLowPowerCPUFreqMaxMHz) {
+            clampedFloor = 0;
+        }
+        %orig(clampedFloor, source);
+        return;
+    }
+    %orig(floor, source);
+}
+
+- (void)setCPUPowerZoneTarget:(int)target {
+    if (shouldClampLowPowerCPU() && target > kLowPowerCPUFreqMaxMHz) {
+        %orig(kLowPowerCPUFreqMaxMHz);
+        return;
+    }
+    %orig(target);
+}
+
+- (void)setMaxCPUPowerTarget:(int)target useLegacyPath:(BOOL)legacy setProperty:(CFStringRef)property {
+    if (shouldClampLowPowerCPU() && target > kLowPowerCPUFreqMaxMHz) {
+        %orig(kLowPowerCPUFreqMaxMHz, YES, property);
+        applyLowPowerFrequencyProperties();
+        return;
+    }
+    %orig(target, legacy, property);
+}
+
+- (void)setCPULowPowerTarget:(int)target {
+    if (shouldClampLowPowerCPU() && target > kLowPowerCPUFreqMaxMHz) {
+        %orig(kLowPowerCPUFreqMaxMHz);
+        return;
+    }
+    %orig(target);
+}
+
+- (void)setPowerSaveActive:(BOOL)active {
+    if (shouldClampLowPowerCPU()) {
+        %orig(YES);
+        return;
+    }
+    %orig(active);
+}
+
+- (void)setPowerSaveToken:(int)token {
+    if (shouldClampLowPowerCPU()) {
+        %orig(1);
+        return;
+    }
+    %orig(token);
+}
+
+- (void)setCPMSMitigationsEnabled:(BOOL)enabled {
+    if (shouldClampLowPowerCPU()) {
+        %orig(YES);
+        return;
+    }
+    %orig(enabled);
+}
+
+- (void)updateCPU {
+    %orig;
+    if (shouldClampLowPowerCPU()) {
+        applyLowPowerFrequencyProperties();
+    }
 }
 
 %end
