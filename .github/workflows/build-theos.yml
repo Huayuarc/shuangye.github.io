@@ -80,6 +80,8 @@ jobs:
           if git diff --quiet --cached; then
             echo "无新 deb 需要提交"
           else
-            git commit -m "chore: 自动构建 CPUthermal [ci skip]"
+            deb_name=$(ls packages/*.deb 2>/dev/null | head -1 | xargs -I{} basename {} .deb | sed 's/_[0-9].*//')
+            [ -z "$deb_name" ] && deb_name="tweak"
+            git commit -m "chore: 自动构建 ${deb_name} [ci skip]"
             git push
           fi
