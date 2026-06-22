@@ -1,22 +1,47 @@
-THEOS ?= /var/jb/var/mobile/theos
-export LC_ALL = C
-export ARCHS = arm64 arm64e
-export TARGET = iphone:clang:latest:15.0
+export THEOS ?= /var/mobile/theos
+export PATH := $(THEOS)/bin:$(PATH)
+export TARGET = iphone:clang:16.5:15.0
 THEOS_PACKAGE_SCHEME = rootless
 include $(THEOS)/makefiles/common.mk
+INSTALL_TARGET_PROCESSES = thermalmonitord
+# 注意: postinst 也在 configure 阶段 killall thermalmonitord。
+# INSTALL_TARGET_PROCESSES 作为 make install 时的兜底（包管理器安装靠 postinst）
+export ARCHS = arm64 arm64e
 
-TWEAK_NAME = DynamicIslandTweak
-DynamicIslandTweak_FILES = Tweak.x DIContentView.m DIWindow.m DIDisplayManager.m DILocalization.m
-DynamicIslandTweak_CFLAGS = -fobjc-arc
-DynamicIslandTweak_FRAMEWORKS = UIKit CoreGraphics QuartzCore
-# 使用 ObjC runtime hook（method_setImplementation），不链接 CydiaSubstrate
-# 避免 arm64e 上 dyld 解析 CydiaSubstrate 时卡死导致看门狗
-LOGOS_DEFAULT_GENERATOR = internal
-
+TWEAK_NAME = CPUthermal
+CPUthermal_FILES = Tweak.xm
+CPUthermal_CFLAGS = -fobjc-arc -Iinclude -Wno-deprecated-declarations -DTHEOS_INSIDE
+CPUthermal_FRAMEWORKS = Foundation UIKit CoreFoundation IOKit
 include $(THEOS_MAKE_PATH)/tweak.mk
 
+# ThermalManager hook (Preferences 中的散热建议拦截)
+TWEAK_NAME = CPUthermalPrefHook
+CPUthermalPrefHook_FILES = Tweak_PrefHook.xm
+CPUthermalPrefHook_CFLAGS = -fobjc-arc -Iinclude -Wno-deprecated-declarations
+CPUthermalPrefHook_FRAMEWORKS = Foundation CoreFoundation
+CPUthermalPrefHook_LDFLAGS = -lsubstrate -lc++
+include $(THEOS_MAKE_PATH)/tweak.mk
 
-ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
-before-package::
-	$(ECHO_NOTHING)python3 -c "from pathlib import Path; p=Path('$(THEOS_STAGING_DIR)/DEBIAN/control'); s=p.read_text(); s=s.replace(', oldabi', '').replace('oldabi, ', '').replace('Depends: oldabi\n', ''); p.write_text(s)"$(ECHO_END)
-endif
+BUNDLE_NAME = CPUthermalSettings
+CPUthermalSettings_FILES = Settings/FRootListController.m
+CPUthermalSettings_INSTALL_PATH = /Library/PreferenceBundles
+CPUthermalSettings_CFLAGS = -fobjc-arc
+CPUthermalSettings_FRAMEWORKS = UIKit Foundation
+CPUthermalSettings_PRIVATE_FRAMEWORKS = Preferences
+include $(THEOS_MAKE_PATH)/bundle.mk
+
+# 用户空间重启工具
+TOOL_NAME = CPUthermalTool
+CPUthermalTool_FILES = Tools/CPUthermalTool.m
+CPUthermalTool_CFLAGS = -fobjc-arc
+CPUthermalTool_CODESIGN_FLAGS = -STools/CPUthermalTool.entitlements
+CPUthermalTool_INSTALL_PATH = /usr/local/bin
+include $(THEOS_MAKE_PATH)/tool.mk
+
+after-stage::
+	$(ECHO_NOTHING)mkdir -p "$(THEOS_STAGING_DIR)/Library/PreferenceLoader/Preferences" "$(THEOS_STAGING_DIR)/DEBIAN"$(ECHO_END)
+	$(ECHO_NOTHING)cp Settings/entry.plist "$(THEOS_STAGING_DIR)/Library/PreferenceLoader/Preferences/CPUthermalSettings.plist"$(ECHO_END)
+	$(ECHO_NOTHING)cp Settings/Info.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/CPUthermalSettings.bundle/"$(ECHO_END)
+	$(ECHO_NOTHING)cp Settings/Root.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/CPUthermalSettings.bundle/"$(ECHO_END)
+	$(ECHO_NOTHING)cp Settings/icon.png Settings/icon@2x.png Settings/icon@3x.png "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/CPUthermalSettings.bundle/"$(ECHO_END)
+	$(ECHO_NOTHING)cp postinst "$(THEOS_STAGING_DIR)/DEBIAN/" && chmod 0755 "$(THEOS_STAGING_DIR)/DEBIAN/postinst"$(ECHO_END)
