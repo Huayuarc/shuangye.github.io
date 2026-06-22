@@ -76,6 +76,7 @@ typedef NS_ENUM(NSInteger, PowerMode) {
 - (void)setCPUPowerCeiling:(double)ceiling fromDecisionSource:(id)source;
 - (void)setCPUPowerFloor:(double)floor fromDecisionSource:(id)source;
 - (void)setCPUPowerZoneTarget:(double)target;
+- (void)setMaxCPUPowerTarget:(double)target useLegacyPath:(BOOL)legacy setProperty:(BOOL)setProperty;
 - (void)setDVD1Level:(int)level;
 - (void)setGPUPowerCeiling:(double)ceiling fromDecisionSource:(id)source;
 - (void)setGPUPowerFloor:(double)floor fromDecisionSource:(id)source;
@@ -161,6 +162,9 @@ static const int kLowPowerCPUFreqMaxKHz = 2016000;
 static const int64_t kLowPowerCPUFreqMinHz = 1428000000LL;
 static const int64_t kLowPowerCPUFreqMaxHz = 2016000000LL;
 
+static const double kLowPowerCPUPowerMax = 5000.0;
+static const double kLowPowerPackagePowerMax = 8000.0;
+
 // 低功耗主动下发限频时，临时放行本插件自己的降频写入
 static volatile int g_applyingLowPowerMode = 0;
 
@@ -172,13 +176,25 @@ static const char *kPrefPathC = "/var/mobile/Library/Preferences/com.huayuarc.CP
 
 static CommonProduct *g_commonProduct = nil;
 static ThermalManager *g_thermalManager = nil;
+static kern_return_t (*orig_IOServiceSetProperty)(io_service_t, CFStringRef, CFTypeRef) = NULL;
 
 static BOOL isTemperatureAboveSafetyCeiling(void);
 
+static NSDictionary *loadPrefsDictionary(void) {
+    NSString *rootfsPath = S(kPrefPathC);
+    NSDictionary *prefs = [NSDictionary dictionaryWithContentsOfFile:rootfsPath];
+    if (prefs) return prefs;
+
+    NSString *jbPath = [NSString stringWithUTF8String:jbroot(kPrefPathC)];
+    if (![jbPath isEqualToString:rootfsPath]) {
+        prefs = [NSDictionary dictionaryWithContentsOfFile:jbPath];
+    }
+    return prefs;
+}
+
 static void loadPrefs(void) {
     @autoreleasepool {
-        NSString *path = [NSString stringWithUTF8String:jbroot(kPrefPathC)];
-        NSDictionary *d = [NSDictionary dictionaryWithContentsOfFile:path];
+        NSDictionary *d = loadPrefsDictionary();
         if (!d) return;
         g_enabled               = [d[S("enabled")] ?: [NSNumber numberWithBool:YES] boolValue];
         g_cpuProtection         = [d[S("cpuProtection")] ?: [NSNumber numberWithBool:YES] boolValue];
@@ -277,6 +293,23 @@ static BOOL keyLooksLikeCPUControl(NSString *key) {
            [key localizedCaseInsensitiveContainsString:S("limit")];
 }
 
+static BOOL keyLooksLikeLowPowerBoolean(NSString *key) {
+    if (!key) return NO;
+    return [key localizedCaseInsensitiveContainsString:S("powersave")] ||
+           [key localizedCaseInsensitiveContainsString:S("power-save")] ||
+           [key localizedCaseInsensitiveContainsString:S("lowpowermode")];
+}
+
+static BOOL keyLooksLikeCPUPowerLimit(NSString *key) {
+    if (!key) return NO;
+    BOOL cpuOrPackage = [key localizedCaseInsensitiveContainsString:S("cpu")] ||
+                        [key localizedCaseInsensitiveContainsString:S("package")];
+    if (!cpuOrPackage) return NO;
+    return [key localizedCaseInsensitiveContainsString:S("power")] ||
+           [key localizedCaseInsensitiveContainsString:S("target")] ||
+           [key localizedCaseInsensitiveContainsString:S("ceiling")];
+}
+
 static CFTypeRef createLowPowerFrequencyValueForKey(NSString *key) {
     if ([key localizedCaseInsensitiveContainsString:S("min")]) {
         int minMHz = kLowPowerCPUFreqMinMHz;
@@ -317,6 +350,125 @@ static CFTypeRef createClampedLowPowerFrequencyValue(CFTypeRef value, NSString *
     }
 
     return CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &clamped);
+}
+
+static CFTypeRef createLowPowerPowerValueForKey(NSString *key) {
+    double target = kLowPowerCPUPowerMax;
+    if ([key localizedCaseInsensitiveContainsString:S("package")]) {
+        target = kLowPowerPackagePowerMax;
+    } else if ([key localizedCaseInsensitiveContainsString:S("target")]) {
+        target = (double)kLowPowerCPUFreqMaxMHz;
+    }
+    return CFNumberCreate(kCFAllocatorDefault, kCFNumberDoubleType, &target);
+}
+
+static void setNumberProperty(io_service_t service, const char *key, int64_t value, CFNumberType type) {
+    if (!service || !key || !orig_IOServiceSetProperty) return;
+    CFStringRef cfKey = CFStringCreateWithCString(kCFAllocatorDefault, key, kCFStringEncodingUTF8);
+    if (!cfKey) return;
+
+    CFNumberRef number = NULL;
+    if (type == kCFNumberIntType) {
+        int intValue = (int)value;
+        number = CFNumberCreate(kCFAllocatorDefault, type, &intValue);
+    } else {
+        number = CFNumberCreate(kCFAllocatorDefault, type, &value);
+    }
+    if (number) {
+        orig_IOServiceSetProperty(service, cfKey, number);
+        CFRelease(number);
+    }
+    CFRelease(cfKey);
+}
+
+static void setDoubleProperty(io_service_t service, const char *key, double value) {
+    if (!service || !key || !orig_IOServiceSetProperty) return;
+    CFStringRef cfKey = CFStringCreateWithCString(kCFAllocatorDefault, key, kCFStringEncodingUTF8);
+    if (!cfKey) return;
+    CFNumberRef number = CFNumberCreate(kCFAllocatorDefault, kCFNumberDoubleType, &value);
+    if (number) {
+        orig_IOServiceSetProperty(service, cfKey, number);
+        CFRelease(number);
+    }
+    CFRelease(cfKey);
+}
+
+static void setBoolProperty(io_service_t service, const char *key, BOOL value) {
+    if (!service || !key || !orig_IOServiceSetProperty) return;
+    CFStringRef cfKey = CFStringCreateWithCString(kCFAllocatorDefault, key, kCFStringEncodingUTF8);
+    if (!cfKey) return;
+    orig_IOServiceSetProperty(service, cfKey, value ? kCFBooleanTrue : kCFBooleanFalse);
+    CFRelease(cfKey);
+}
+
+static void setLowPowerPPMPropertiesOnService(io_service_t service) {
+    if (!service || !orig_IOServiceSetProperty) return;
+
+    setBoolProperty(service, "PowerSave", YES);
+    setBoolProperty(service, "powerSaveActive", YES);
+    setDoubleProperty(service, "CPUMaxPower", kLowPowerCPUPowerMax);
+    setDoubleProperty(service, "CPUPowerTarget", (double)kLowPowerCPUFreqMaxMHz);
+    setDoubleProperty(service, "CPULowPowerTarget", (double)kLowPowerCPUFreqMaxMHz);
+    setDoubleProperty(service, "PackageLowPowerTarget", kLowPowerPackagePowerMax);
+}
+
+static void setLowPowerFrequencyPropertiesOnService(io_service_t service) {
+    if (!service || !orig_IOServiceSetProperty) return;
+
+    const char *minKeys[] = {
+        "cpu-min-frequency", "cpu-min-freq", "cpu-frequency-min", "cpu-freq-min",
+        "CPUFrequencyMin", "CPUFreqMin", "min-frequency", "min-freq", NULL
+    };
+    const char *maxKeys[] = {
+        "cpu-max-frequency", "cpu-max-freq", "cpu-frequency-max", "cpu-freq-max",
+        "CPUFrequencyMax", "CPUFreqMax", "max-frequency", "max-freq",
+        "cpu-frequency-limit", "cpu-freq-limit", "CPUFrequencyLimit", "CPUFreqLimit",
+        NULL
+    };
+    CFNumberType types[] = {
+        kCFNumberIntType,
+        kCFNumberSInt64Type,
+        kCFNumberSInt64Type
+    };
+    int64_t minValues[] = {
+        kLowPowerCPUFreqMinMHz,
+        kLowPowerCPUFreqMinKHz,
+        kLowPowerCPUFreqMinHz
+    };
+    int64_t maxValues[] = {
+        kLowPowerCPUFreqMaxMHz,
+        kLowPowerCPUFreqMaxKHz,
+        kLowPowerCPUFreqMaxHz
+    };
+
+    for (int keyIndex = 0; minKeys[keyIndex]; keyIndex++) {
+        for (int typeIndex = 0; typeIndex < 3; typeIndex++) {
+            setNumberProperty(service, minKeys[keyIndex], minValues[typeIndex], types[typeIndex]);
+        }
+    }
+    for (int keyIndex = 0; maxKeys[keyIndex]; keyIndex++) {
+        for (int typeIndex = 0; typeIndex < 3; typeIndex++) {
+            setNumberProperty(service, maxKeys[keyIndex], maxValues[typeIndex], types[typeIndex]);
+        }
+    }
+}
+
+static void applyLowPowerFrequencyProperties(void) {
+    if (!orig_IOServiceSetProperty || !g_enabled || !g_cpuProtection || g_powerMode != PowerModeLowPower) return;
+    if (isTemperatureAboveSafetyCeiling()) return;
+
+    const char *serviceNames[] = {
+        "ApplePMGR", "AppleARMPlatform", "ApplePPM", "ApplePPMCPU", NULL
+    };
+    for (int i = 0; serviceNames[i]; i++) {
+        CFMutableDictionaryRef matching = IOServiceMatching(serviceNames[i]);
+        if (!matching) continue;
+        io_service_t service = IOServiceGetMatchingService(kIOMasterPortDefault, matching);
+        if (!service) continue;
+        setLowPowerPPMPropertiesOnService(service);
+        setLowPowerFrequencyPropertiesOnService(service);
+        IOObjectRelease(service);
+    }
 }
 
 static BOOL serviceIsThermal(io_service_t service) {
@@ -399,8 +551,6 @@ static BOOL isTemperatureAboveSafetyCeiling(void) {
 }
 
 // --- IOServiceSetProperty — 阻止写降频/降亮度属性 ---
-static kern_return_t (*orig_IOServiceSetProperty)(io_service_t, CFStringRef, CFTypeRef) = NULL;
-
 static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringRef key, CFTypeRef value) {
     if (!g_enabled) {
         return orig_IOServiceSetProperty(service, key, value);
@@ -412,10 +562,19 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
     }
 
     NSString *ks = (__bridge NSString *)key;
+    if (g_powerMode == PowerModeLowPower && keyLooksLikeLowPowerBoolean(ks)) {
+        return orig_IOServiceSetProperty(service, key, kCFBooleanTrue);
+    }
     if (g_cpuProtection && keyLooksLikeCPUControl(ks)) {
         if (g_powerMode == PowerModeLowPower) {
             if (keyLooksLikeCPUFrequency(ks)) {
                 CFTypeRef clampedValue = createClampedLowPowerFrequencyValue(value, ks);
+                kern_return_t ret = orig_IOServiceSetProperty(service, key, clampedValue);
+                CFRelease(clampedValue);
+                return ret;
+            }
+            if (keyLooksLikeCPUPowerLimit(ks)) {
+                CFTypeRef clampedValue = createLowPowerPowerValueForKey(ks);
                 kern_return_t ret = orig_IOServiceSetProperty(service, key, clampedValue);
                 CFRelease(clampedValue);
                 return ret;
@@ -558,26 +717,31 @@ static void applyLowPowerMode(ThermalManager *manager) {
 
     g_applyingLowPowerMode++;
     @try {
-        // CPU: 主动进入限频档，目标限制在 1428MHz ~ 2016MHz
+        // CPU: 主动进入低功耗档，目标限制在 1428MHz ~ 2016MHz
         [manager setCPULevel:80];
-        [manager setCPUPowerCeiling:(double)kLowPowerCPUFreqMaxMHz fromDecisionSource:S("CPUthermal")];
-        [manager setCPUPowerFloor:(double)kLowPowerCPUFreqMinMHz fromDecisionSource:S("CPUthermal")];
-        [manager setCPUPowerZoneTarget:(double)kLowPowerCPUFreqMaxMHz];
+        [manager setCPUPowerCeiling:kLowPowerCPUPowerMax fromDecisionSource:S("CPUthermal")];
+        [manager setCPUPowerFloor:0 fromDecisionSource:S("CPUthermal")];
+        [manager setCPUPowerZoneTarget:kLowPowerCPUPowerMax];
+        [manager setMaxCPUPowerTarget:kLowPowerCPUPowerMax useLegacyPath:YES setProperty:YES];
         [manager setCPULowPowerTarget:(double)kLowPowerCPUFreqMaxMHz];
         [manager setDVD1Level:1];
 
         // GPU/Package: 同步压低功率，达到省电效果
         [manager setGPUPowerCeiling:5000.0 fromDecisionSource:S("CPUthermal")];
         [manager setGPUPowerFloor:0 fromDecisionSource:S("CPUthermal")];
-        [manager setMaxPackagePower:8000.0];
-        [manager setPackagePowerCeiling:8000.0 fromDecisionSource:S("CPUthermal")];
+        [manager setMaxPackagePower:kLowPowerPackagePowerMax];
+        [manager setPackagePowerCeiling:kLowPowerPackagePowerMax fromDecisionSource:S("CPUthermal")];
         [manager setPackagePowerFloor:0 fromDecisionSource:S("CPUthermal")];
+        [manager setPackageLowPowerTarget];
 
-        // 不调用 setPowerSaveActive:YES，避免系统顺带降亮度
-        [manager setPowerSaveActive:NO];
+        // 开启系统低功耗/模拟低电通路，让 thermalmonitord 立即走限频策略
+        [manager setPowerSaveActive:YES];
+        [manager setCPMSMitigationsEnabled:YES];
         if (g_brightnessProtection) {
             [manager setMaxGraphicsDrivePowerTarget:25000.0];
         }
+
+        applyLowPowerFrequencyProperties();
 
         [manager updateCPU];
         [manager updateGPU];
@@ -618,6 +782,20 @@ static void applyPowerMode(void) {
         case PowerModeLowPower:
         default:
             applyLowPowerMode(manager);
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW,
+                (int64_t)(0.25 * NSEC_PER_SEC)),
+                dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+                if (g_enabled && g_powerMode == PowerModeLowPower) {
+                    applyLowPowerMode(manager);
+                }
+            });
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW,
+                (int64_t)(1.0 * NSEC_PER_SEC)),
+                dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+                if (g_enabled && g_powerMode == PowerModeLowPower) {
+                    applyLowPowerMode(manager);
+                }
+            });
             break;
     }
 }
@@ -708,8 +886,8 @@ static void applyPowerMode(void) {
 }
 
 - (void)setCPUPowerCeiling:(double)ceiling fromDecisionSource:(id)source {
-    if (shouldClampLowPowerCPU() && ceiling > (double)kLowPowerCPUFreqMaxMHz) {
-        %orig((double)kLowPowerCPUFreqMaxMHz, S("CPUthermal"));
+    if (shouldClampLowPowerCPU() && ceiling > kLowPowerCPUPowerMax) {
+        %orig(kLowPowerCPUPowerMax, S("CPUthermal"));
         return;
     }
     %orig(ceiling, source);
@@ -718,8 +896,8 @@ static void applyPowerMode(void) {
 - (void)setCPUPowerFloor:(double)floor fromDecisionSource:(id)source {
     if (shouldClampLowPowerCPU()) {
         double clampedFloor = floor;
-        if (clampedFloor < (double)kLowPowerCPUFreqMinMHz || clampedFloor > (double)kLowPowerCPUFreqMaxMHz) {
-            clampedFloor = (double)kLowPowerCPUFreqMinMHz;
+        if (clampedFloor < 0 || clampedFloor > kLowPowerCPUPowerMax) {
+            clampedFloor = 0;
         }
         %orig(clampedFloor, S("CPUthermal"));
         return;
@@ -728,11 +906,20 @@ static void applyPowerMode(void) {
 }
 
 - (void)setCPUPowerZoneTarget:(double)target {
-    if (shouldClampLowPowerCPU() && target > (double)kLowPowerCPUFreqMaxMHz) {
-        %orig((double)kLowPowerCPUFreqMaxMHz);
+    if (shouldClampLowPowerCPU() && target > kLowPowerCPUPowerMax) {
+        %orig(kLowPowerCPUPowerMax);
         return;
     }
     %orig(target);
+}
+
+- (void)setMaxCPUPowerTarget:(double)target useLegacyPath:(BOOL)legacy setProperty:(BOOL)setProperty {
+    if (shouldClampLowPowerCPU() && target > kLowPowerCPUPowerMax) {
+        %orig(kLowPowerCPUPowerMax, YES, YES);
+        applyLowPowerFrequencyProperties();
+        return;
+    }
+    %orig(target, legacy, setProperty);
 }
 
 - (void)setCPULowPowerTarget:(double)target {
@@ -741,6 +928,29 @@ static void applyPowerMode(void) {
         return;
     }
     %orig(target);
+}
+
+- (void)setPowerSaveActive:(BOOL)active {
+    if (shouldClampLowPowerCPU()) {
+        %orig(YES);
+        return;
+    }
+    %orig(active);
+}
+
+- (void)setCPMSMitigationsEnabled:(BOOL)enabled {
+    if (shouldClampLowPowerCPU()) {
+        %orig(YES);
+        return;
+    }
+    %orig(enabled);
+}
+
+- (void)updateCPU {
+    %orig;
+    if (shouldClampLowPowerCPU()) {
+        applyLowPowerFrequencyProperties();
+    }
 }
 
 // 决策树评估
@@ -1007,8 +1217,7 @@ static void executePuppetEvent(void) {
         applyPowerMode();
 
         // 3) 执行原有的 thermal simulation
-        NSString *path = [NSString stringWithUTF8String:jbroot(kPrefPathC)];
-        NSDictionary *prefs = [NSDictionary dictionaryWithContentsOfFile:path];
+        NSDictionary *prefs = loadPrefsDictionary();
         NSString *level = prefs[S("thermalPuppetValue")] ?: S("nominal");
         [g_commonProduct putDeviceInThermalSimulationMode:level];
         NSLog(@"[CPUthermal] Puppet 事件: 热模式=%@ 功率模式=%ld 屏蔽通知=%d",
