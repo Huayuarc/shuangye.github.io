@@ -17,15 +17,13 @@ static const char *kPowerModeChangedC = "com.huayuarc.CPUthermal/powerModeChange
 // 动态创建 NSString 的辅助宏 — 避免编译期 __cfstring
 #define S(str) [NSString stringWithUTF8String:(str)]
 
-// 功率模式值 — 与 Insulation 保持一致
+// 功率模式值
 static const char *kPowerModeValues[] = {
-    "off",        // 关闭
     "lowPower",   // 低功耗
     "fullPower",  // 满血
 };
 
 static const char *kPowerModeLabels[] = {
-    "关闭",       // 关闭
     "低功耗",     // 低功耗
     "满血",       // 满血
 };
@@ -73,13 +71,10 @@ static const char *kPowerModeLabels[] = {
         return [NSNumber numberWithBool:NO];
     }
     if ([key isEqualToString:S("powerMode")]) {
-        return S("off");  // 功率模式默认关闭
+        return S("lowPower");  // 功率模式默认低功耗
     }
     if ([key isEqualToString:S("suppressThermalNotifications")]) {
         return [NSNumber numberWithBool:NO];  // 屏蔽通知默认关闭
-    }
-    if ([key isEqualToString:S("simulateLowPower")]) {
-        return [NSNumber numberWithBool:NO];  // 模拟低电默认关闭
     }
     return [NSNumber numberWithBool:YES]; // 其余保护默认开启
 }
@@ -121,19 +116,12 @@ static const char *kPowerModeLabels[] = {
 - (void)showPowerModePicker {
     UIAlertController *alert = [UIAlertController
         alertControllerWithTitle:S("功率模式")
-        message:S("关闭 = 仅原有防护\n低功耗 = 限制功率省电\n满血 = 解除全部温控")
+        message:S("低功耗 = 省电并限制 CPU 频率 1428~2016MHz\n满血 = 解除全部温控")
         preferredStyle:UIAlertControllerStyleActionSheet];
 
-    NSString *currentMode = [self readPreferenceValue:
-        [PSSpecifier preferenceSpecifierNamed:nil target:self
-            set:NULL get:NULL detail:nil cell:PSSwitchCell edit:nil]];
+    NSString *currentMode = [self prefs][S("powerMode")] ?: S("lowPower");
 
-    // 如果无法获取，从 prefs 直接读
-    if (!currentMode) {
-        currentMode = [self prefs][S("powerMode")] ?: S("off");
-    }
-
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 2; i++) {
         NSString *modeValue = S(kPowerModeValues[i]);
         NSString *modeLabel = S(kPowerModeLabels[i]);
         BOOL isCurrent = [currentMode isEqualToString:modeValue];
@@ -147,6 +135,7 @@ static const char *kPowerModeLabels[] = {
                 NSMutableDictionary *prefs = [self prefs];
                 prefs[S("powerMode")] = modeValue;
                 [self savePrefsAndApply:prefs];
+                _specifiers = nil;
                 [self reloadSpecifiers];
             }];
         [alert addAction:action];
@@ -177,14 +166,14 @@ static const char *kPowerModeLabels[] = {
         // ===================== ★ 第2组: 功率模式（新增自 Insulation） =====================
         group = [PSSpecifier emptyGroupSpecifier];
         [group setProperty:S("功率模式") forKey:S("label")];
-        [group setProperty:S("满血 = 解除全部温控，低功耗 = 限制功率省电，关闭 = 仅原有被动防护")
+        [group setProperty:S("低功耗 = 省电并限制 CPU 频率 1428~2016MHz，满血 = 解除全部温控")
             forKey:S("footerText")];
         [specs addObject:group];
 
         // 功率模式选择按钮 — 显示当前模式
-        NSString *currentMode = [self prefs][S("powerMode")] ?: S("off");
-        NSString *modeLabel = S("关闭");
-        for (int i = 0; i < 3; i++) {
+        NSString *currentMode = [self prefs][S("powerMode")] ?: S("lowPower");
+        NSString *modeLabel = S("低功耗");
+        for (int i = 0; i < 2; i++) {
             if ([currentMode isEqualToString:S(kPowerModeValues[i])]) {
                 modeLabel = S(kPowerModeLabels[i]);
                 break;
@@ -210,7 +199,7 @@ static const char *kPowerModeLabels[] = {
         // ===================== 第4组: 核心保护 =====================
         group = [PSSpecifier emptyGroupSpecifier];
         [group setProperty:S("核心保护") forKey:S("label")];
-        [group setProperty:S("开启即生效，关闭则对应保护失效。模拟低电让系统认为设备处于低温状态，阻止降频")
+        [group setProperty:S("开启即生效，关闭则对应保护失效")
             forKey:S("footerText")];
         [specs addObject:group];
 
@@ -219,8 +208,6 @@ static const char *kPowerModeLabels[] = {
         [specs addObject:[self switchSpecifier:S("热状态封锁") key:S("thermalStateProtection")]];
         [specs addObject:[self switchSpecifier:S("阻止 HID 温度事件") key:S("blockHidEvents")]];
 
-        // ★ 模拟低电（新增自 Insulation）
-        [specs addObject:[self switchSpecifier:S("模拟低电") key:S("simulateLowPower")]];
         group = [PSSpecifier emptyGroupSpecifier];
         [group setProperty:S("高级") forKey:S("label")];
         [group setProperty:S("保留 CPMS 紧急保护安全阀，温度超过 75°C 时放行所有保护")
