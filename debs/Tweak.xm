@@ -185,7 +185,6 @@ static BOOL      g_suppressThermalNotifications = NO;             // 屏蔽高�
 // 低功耗 CPU 频率目标：1428MHz / 2016MHz（二选一锁定）
 static const int kLowPowerCPUFreqMinMHz = 1428;
 static const int kLowPowerCPUFreqMaxMHz = 2016;
-static const double kLowPowerPackagePowerMax = 2000.0;
 static int g_lowPowerCPUFreqTargetMHz = kLowPowerCPUFreqMaxMHz;
 
 static void setLowPowerCPUFreqTargetMHz(int targetMHz) {
@@ -212,8 +211,13 @@ static double lowPowerCPUPowerMax(void) {
     return (double)g_lowPowerCPUFreqTargetMHz;
 }
 
+static double lowPowerPackagePowerMax(void) {
+    return (double)g_lowPowerCPUFreqTargetMHz;
+}
+
 // 低功耗主动下发限频时，临时放行本插件自己的降频写入
 static volatile int g_applyingLowPowerMode = 0;
+static dispatch_source_t g_lowPowerReapplyTimer = NULL;
 
 // 温度安全阀 — 超过此值不拦截任何保护
 static const int64_t kSafetyTempThreshold = 75000;  // 75°C (毫摄氏度)
@@ -363,9 +367,17 @@ static BOOL keyLooksLikeCPUPowerLimit(NSString *key) {
 }
 
 static CFTypeRef createLowPowerFrequencyValueForKey(NSString *key) {
-    (void)key;
-    int targetMHz = lowPowerCPUFreqTargetMHz();
-    return CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &targetMHz);
+    int64_t targetValue = lowPowerCPUFreqTargetMHz();
+    if (key) {
+        if ([key localizedCaseInsensitiveContainsString:S("khz")]) {
+            targetValue = lowPowerCPUFreqTargetKHz();
+        } else if ([key localizedCaseInsensitiveContainsString:S("mhz")]) {
+            targetValue = lowPowerCPUFreqTargetMHz();
+        } else if ([key localizedCaseInsensitiveContainsString:S("hz")]) {
+            targetValue = lowPowerCPUFreqTargetHz();
+        }
+    }
+    return CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &targetValue);
 }
 
 static CFTypeRef createClampedLowPowerFrequencyValue(CFTypeRef value, NSString *key) {
@@ -394,7 +406,7 @@ static CFTypeRef createClampedLowPowerFrequencyValue(CFTypeRef value, NSString *
 static CFTypeRef createLowPowerPowerValueForKey(NSString *key) {
     double target = lowPowerCPUPowerMax();
     if ([key localizedCaseInsensitiveContainsString:S("package")]) {
-        target = kLowPowerPackagePowerMax;
+        target = lowPowerPackagePowerMax();
     } else if ([key localizedCaseInsensitiveContainsString:S("target")]) {
         target = (double)lowPowerCPUFreqTargetMHz();
     }
@@ -448,7 +460,7 @@ static void setLowPowerPPMPropertiesOnService(io_service_t service) {
     setDoubleProperty(service, "CPUMaxPower", lowPowerCPUPowerMax());
     setDoubleProperty(service, "CPUPowerTarget", (double)lowPowerCPUFreqTargetMHz());
     setDoubleProperty(service, "CPULowPowerTarget", (double)lowPowerCPUFreqTargetMHz());
-    setDoubleProperty(service, "PackageLowPowerTarget", kLowPowerPackagePowerMax);
+    setDoubleProperty(service, "PackageLowPowerTarget", lowPowerPackagePowerMax());
 }
 
 static void setLowPowerFrequencyPropertiesOnService(io_service_t service) {
@@ -754,7 +766,7 @@ static void applyLowPowerToMitigationController(MitigationController *controller
     g_applyingLowPowerMode++;
     @try {
         int cpuTarget = lowPowerCPUFreqTargetMHz();
-        int packageTarget = (int)kLowPowerPackagePowerMax;
+        int packageTarget = (int)lowPowerPackagePowerMax();
 
         [controller setPowerSaveToken:1];
         [controller setPowerSaveActive:YES];
@@ -841,6 +853,33 @@ static void scheduleLowPowerReapply(NSTimeInterval delay) {
     });
 }
 
+static void stopLowPowerReapplyTimer(void) {
+    if (!g_lowPowerReapplyTimer) return;
+
+    dispatch_source_cancel(g_lowPowerReapplyTimer);
+    g_lowPowerReapplyTimer = NULL;
+}
+
+static void startLowPowerReapplyTimer(void) {
+    if (g_lowPowerReapplyTimer) return;
+
+    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+    g_lowPowerReapplyTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, queue);
+    if (!g_lowPowerReapplyTimer) return;
+
+    dispatch_source_set_timer(g_lowPowerReapplyTimer,
+        dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)),
+        (uint64_t)(2.0 * NSEC_PER_SEC),
+        (uint64_t)(0.2 * NSEC_PER_SEC));
+    dispatch_source_set_event_handler(g_lowPowerReapplyTimer, ^{
+        if (g_enabled && g_cpuProtection && g_powerMode == PowerModeLowPower && !isTemperatureAboveSafetyCeiling()) {
+            applyLowPowerFrequencyProperties();
+            applyLowPowerToMitigationController(activeMitigationController());
+        }
+    });
+    dispatch_resume(g_lowPowerReapplyTimer);
+}
+
 // ============================================================================
 // ★ 新增自 Insulation: 执行功率模式
 // ============================================================================
@@ -855,10 +894,12 @@ static void applyPowerMode(void) {
 
     switch (g_powerMode) {
         case PowerModeFullPower:
+            stopLowPowerReapplyTimer();
             applyFullPowerMode();
             break;
         case PowerModeLowPower:
         default:
+            startLowPowerReapplyTimer();
             applyLowPowerMode();
             scheduleLowPowerReapply(0.05);
             scheduleLowPowerReapply(0.25);
@@ -964,7 +1005,7 @@ static void applyPowerMode(void) {
 }
 
 - (void)setCPUPowerCeiling:(double)ceiling fromDecisionSource:(id)source {
-    if (shouldClampLowPowerCPU() && ceiling > lowPowerCPUPowerMax()) {
+    if (shouldClampLowPowerCPU()) {
         %orig(lowPowerCPUPowerMax(), S("CPUthermal"));
         return;
     }
@@ -984,7 +1025,7 @@ static void applyPowerMode(void) {
 }
 
 - (void)setCPUPowerZoneTarget:(double)target {
-    if (shouldClampLowPowerCPU() && target > lowPowerCPUPowerMax()) {
+    if (shouldClampLowPowerCPU()) {
         %orig(lowPowerCPUPowerMax());
         return;
     }
@@ -992,7 +1033,7 @@ static void applyPowerMode(void) {
 }
 
 - (void)setMaxCPUPowerTarget:(double)target useLegacyPath:(BOOL)legacy setProperty:(BOOL)setProperty {
-    if (shouldClampLowPowerCPU() && target > lowPowerCPUPowerMax()) {
+    if (shouldClampLowPowerCPU()) {
         %orig(lowPowerCPUPowerMax(), YES, YES);
         applyLowPowerFrequencyProperties();
         return;
@@ -1001,11 +1042,53 @@ static void applyPowerMode(void) {
 }
 
 - (void)setCPULowPowerTarget:(double)target {
-    if (shouldClampLowPowerCPU() && target > (double)lowPowerCPUFreqTargetMHz()) {
+    if (shouldClampLowPowerCPU()) {
         %orig((double)lowPowerCPUFreqTargetMHz());
         return;
     }
     %orig(target);
+}
+
+- (void)setMaxPackagePower:(double)power {
+    if (shouldClampLowPowerCPU()) {
+        %orig(lowPowerPackagePowerMax());
+        return;
+    }
+    %orig(power);
+}
+
+- (void)setPackagePowerCeiling:(double)ceiling fromDecisionSource:(id)source {
+    if (shouldClampLowPowerCPU()) {
+        %orig(lowPowerPackagePowerMax(), S("CPUthermal"));
+        return;
+    }
+    %orig(ceiling, source);
+}
+
+- (void)setPackagePowerFloor:(double)floor fromDecisionSource:(id)source {
+    if (shouldClampLowPowerCPU()) {
+        double clampedFloor = floor;
+        if (clampedFloor < 0 || clampedFloor > lowPowerPackagePowerMax()) {
+            clampedFloor = 0;
+        }
+        %orig(clampedFloor, S("CPUthermal"));
+        return;
+    }
+    %orig(floor, source);
+}
+
+- (void)setPackageLowPowerTarget {
+    %orig;
+    if (shouldClampLowPowerCPU()) {
+        applyLowPowerFrequencyProperties();
+    }
+}
+
+- (void)setPackagePowerZoneTarget {
+    %orig;
+    if (shouldClampLowPowerCPU()) {
+        applyLowPowerFrequencyProperties();
+    }
 }
 
 - (void)setPowerSaveActive:(BOOL)active {
@@ -1025,6 +1108,13 @@ static void applyPowerMode(void) {
 }
 
 - (void)updateCPU {
+    %orig;
+    if (shouldClampLowPowerCPU()) {
+        applyLowPowerFrequencyProperties();
+    }
+}
+
+- (void)updatePackage {
     %orig;
     if (shouldClampLowPowerCPU()) {
         applyLowPowerFrequencyProperties();
@@ -1159,7 +1249,7 @@ static void applyPowerMode(void) {
 }
 
 - (void)setCPUPowerCeiling:(int)ceiling fromDecisionSource:(int)source {
-    if (shouldClampLowPowerCPU() && ceiling > lowPowerCPUFreqTargetMHz()) {
+    if (shouldClampLowPowerCPU()) {
         %orig(lowPowerCPUFreqTargetMHz(), source);
         return;
     }
@@ -1179,7 +1269,7 @@ static void applyPowerMode(void) {
 }
 
 - (void)setCPUPowerZoneTarget:(int)target {
-    if (shouldClampLowPowerCPU() && target > lowPowerCPUFreqTargetMHz()) {
+    if (shouldClampLowPowerCPU()) {
         %orig(lowPowerCPUFreqTargetMHz());
         return;
     }
@@ -1187,7 +1277,7 @@ static void applyPowerMode(void) {
 }
 
 - (void)setMaxCPUPowerTarget:(int)target useLegacyPath:(BOOL)legacy setProperty:(CFStringRef)property {
-    if (shouldClampLowPowerCPU() && target > lowPowerCPUFreqTargetMHz()) {
+    if (shouldClampLowPowerCPU()) {
         %orig(lowPowerCPUFreqTargetMHz(), YES, property);
         applyLowPowerFrequencyProperties();
         return;
@@ -1196,11 +1286,53 @@ static void applyPowerMode(void) {
 }
 
 - (void)setCPULowPowerTarget:(int)target {
-    if (shouldClampLowPowerCPU() && target > lowPowerCPUFreqTargetMHz()) {
+    if (shouldClampLowPowerCPU()) {
         %orig(lowPowerCPUFreqTargetMHz());
         return;
     }
     %orig(target);
+}
+
+- (void)setMaxPackagePower:(int)power {
+    if (shouldClampLowPowerCPU()) {
+        %orig((int)lowPowerPackagePowerMax());
+        return;
+    }
+    %orig(power);
+}
+
+- (void)setPackagePowerCeiling:(int)ceiling fromDecisionSource:(int)source {
+    if (shouldClampLowPowerCPU()) {
+        %orig((int)lowPowerPackagePowerMax(), source);
+        return;
+    }
+    %orig(ceiling, source);
+}
+
+- (void)setPackagePowerFloor:(int)floor fromDecisionSource:(int)source {
+    if (shouldClampLowPowerCPU()) {
+        int clampedFloor = floor;
+        if (clampedFloor < 0 || clampedFloor > (int)lowPowerPackagePowerMax()) {
+            clampedFloor = 0;
+        }
+        %orig(clampedFloor, source);
+        return;
+    }
+    %orig(floor, source);
+}
+
+- (void)setPackageLowPowerTarget {
+    %orig;
+    if (shouldClampLowPowerCPU()) {
+        applyLowPowerFrequencyProperties();
+    }
+}
+
+- (void)setPackagePowerZoneTarget {
+    %orig;
+    if (shouldClampLowPowerCPU()) {
+        applyLowPowerFrequencyProperties();
+    }
 }
 
 - (void)setPowerSaveActive:(BOOL)active {
@@ -1228,6 +1360,13 @@ static void applyPowerMode(void) {
 }
 
 - (void)updateCPU {
+    %orig;
+    if (shouldClampLowPowerCPU()) {
+        applyLowPowerFrequencyProperties();
+    }
+}
+
+- (void)updatePackage {
     %orig;
     if (shouldClampLowPowerCPU()) {
         applyLowPowerFrequencyProperties();
@@ -1330,7 +1469,21 @@ static NSDictionary* new_getConfigurationFor(NSString *key) {
 // 热配置 plist 修补
 // ============================================================================
 static void patchThermalPlistDict(NSMutableDictionary *dict) {
-    if (!g_enabled || !g_brightnessProtection) return;
+    if (!g_enabled) return;
+
+    if (g_cpuProtection && g_powerMode == PowerModeLowPower) {
+        NSMutableDictionary *powerSaveParams = [[dict objectForKey:S("powerSaveParams")] mutableCopy];
+        if (!powerSaveParams) {
+            powerSaveParams = [NSMutableDictionary dictionary];
+        }
+        powerSaveParams[S("CPUMaxPower")] = @(lowPowerCPUPowerMax());
+        powerSaveParams[S("CPUPowerTarget")] = @(lowPowerCPUPowerMax());
+        powerSaveParams[S("CPULowPowerTarget")] = @(lowPowerCPUPowerMax());
+        powerSaveParams[S("PackageLowPowerTarget")] = @(lowPowerPackagePowerMax());
+        dict[S("powerSaveParams")] = powerSaveParams;
+    }
+
+    if (!g_brightnessProtection) return;
 
     NSMutableDictionary *backlight = [[dict objectForKey:S("backlightComponentControl")] mutableCopy];
     if (!backlight) return;
@@ -1365,7 +1518,7 @@ static void patchThermalPlistDict(NSMutableDictionary *dict) {
 
 + (id)dictionaryWithContentsOfFile:(id)path {
     id res = %orig;
-    if (g_enabled && g_brightnessProtection && [path isKindOfClass:[NSString class]]) {
+    if (g_enabled && (g_cpuProtection || g_brightnessProtection) && [path isKindOfClass:[NSString class]]) {
         NSString *pathStr = (NSString *)path;
         if ([pathStr containsString:S("/System/Library/ThermalMonitor/")]) {
             if (!isTemperatureAboveSafetyCeiling()) {
