@@ -14,6 +14,19 @@ static BOOL enabled;
 static BOOL enableTopButtons;
 static BOOL colorSliderGlyphs;
 
+// media player position override preferences (-1 = use default)
+static CGFloat mediaArtworkX = -1;
+static CGFloat mediaArtworkY = -1;
+static CGFloat mediaArtworkSize = -1;
+static CGFloat mediaRoutingBtnX = -1;
+static CGFloat mediaRoutingBtnY = -1;
+static CGFloat mediaRoutingBtnSize = -1;
+static CGFloat mediaLabelX = -1;
+static CGFloat mediaLabelY = -1;
+static CGFloat mediaLabelW = -1;
+static CGFloat mediaLabelH = -1;
+static CGFloat mediaLabelLineSpacing = 1.0;
+
 @interface NSUserDefaults (CC26)
 - (id)objectForKey:(NSString *)key inDomain:(NSString *)domain;
 - (void)setObject:(id)value forKey:(NSString *)key inDomain:(NSString *)domain;
@@ -30,6 +43,12 @@ static BOOL colorSliderGlyphs;
 @interface MRUTransportButton : UIButton @end
 @interface MRUControlCenterViewController : UIViewController @end
 @interface MRUNowPlayingView : UIView @end
+@interface MRUNowPlayingControlsView : UIView @end
+@interface MRUNowPlayingLabelView : UIView @end
+@interface MPUMarqueeView : UIView @end
+@interface MRUNowPlayingHeaderView : UIControl @end
+@interface MRUNowPlayingRoutingButton : UIButton @end
+@interface MRUNowPlayingTransportControlsView : UIView @end
 @interface CCUIModularControlCenterViewController : UIViewController @end
 @interface CCUIContentModuleContentContainerView : UIView @end
 @interface CCUIOverlayViewController : UIViewController @end
