@@ -7,34 +7,27 @@ static BOOL cc26_isSpringBoardProcess(void) {
     return [[[NSBundle mainBundle] bundleIdentifier] isEqualToString:@"com.apple.springboard"];
 }
 
-static BOOL cc26_classExists(const char *className) {
-    return objc_getClass(className) != Nil;
+static BOOL cc26_hooksInitialized = NO;
+
+static NSString *cc26_preferencesPath(BOOL rootlessPath) {
+    NSString *relativePath = @"/var/mobile/Library/Preferences/com.cureux.cc26.plist";
+    return rootlessPath ? ROOT_PATH_NS_VAR(relativePath) : relativePath;
 }
 
-static BOOL cc26_canEnableHooks(void) {
-    if (!cc26_isSpringBoardProcess()) return NO;
-
-    const char *requiredClasses[] = {
-        "MRUNowPlayingHeaderView",
-        "MPUMarqueeView",
-        "MRUNowPlayingLabelView",
-        "CCUICAPackageDescription",
-        "CCUIContinuousSliderView",
-        "MRUNowPlayingControlsView",
-        "MRUNowPlayingTransportControlsView",
-        "CCUIContentModuleContentContainerView",
-        "CCUIModularControlCenterOverlayViewController",
-        "MRUNowPlayingView"
-    };
-
-    for (NSUInteger index = 0; index < sizeof(requiredClasses) / sizeof(requiredClasses[0]); index++) {
-        if (!cc26_classExists(requiredClasses[index])) {
-            NSLog(@"[CC26] Not enabling hooks; missing class: %s", requiredClasses[index]);
-            return NO;
-        }
+static NSDictionary *cc26_preferencesDictionary(void) {
+    NSDictionary *preferences = [NSDictionary dictionaryWithContentsOfFile:cc26_preferencesPath(YES)];
+    if (!preferences) {
+        preferences = [NSDictionary dictionaryWithContentsOfFile:cc26_preferencesPath(NO)];
     }
+    return preferences ?: @{};
+}
 
-    return YES;
+static id cc26_preferenceObject(NSString *key) {
+    id value = [[[NSUserDefaults standardUserDefaults] persistentDomainForName:domain] objectForKey:key];
+    if (!value) {
+        value = cc26_preferencesDictionary()[key];
+    }
+    return value;
 }
 
 static id cc26_getIvarObject(id object, const char *ivarName) {
@@ -183,6 +176,8 @@ static void cc26_forceSubviewAlphas(UIView *view) {
 - (void)layoutSubviews {
     %orig;
 
+    if (!enabled) return;
+
     if (!cc26_isInsideControlCenterContainer(self)) return;
 
     if (cc26_isExpandedNowPlayingLayout(self)) {
@@ -268,7 +263,7 @@ static void cc26_forceSubviewAlphas(UIView *view) {
 
 %hook MPUMarqueeView
 - (void)setAlpha:(CGFloat)alpha {
-    if ([self.superview isKindOfClass:%c(MRUNowPlayingLabelView)] && cc26_isInsideCCCompact(self)) {
+    if (enabled && [self.superview isKindOfClass:%c(MRUNowPlayingLabelView)] && cc26_isInsideCCCompact(self)) {
         %orig(1.0);
         self.layer.opacity = 1.0;
         cc26_forceSubviewAlphas(self);
@@ -280,7 +275,7 @@ static void cc26_forceSubviewAlphas(UIView *view) {
 
 %hook MRUNowPlayingLabelView
 - (void)setAlpha:(CGFloat)alpha {
-    if (cc26_isInsideCCCompact(self)) {
+    if (enabled && cc26_isInsideCCCompact(self)) {
         %orig(1.0);
         self.layer.opacity = 1.0;
         cc26_forceSubviewAlphas(self);
@@ -290,6 +285,8 @@ static void cc26_forceSubviewAlphas(UIView *view) {
 }
 - (void)layoutSubviews {
     %orig;
+
+    if (!enabled) return;
 
     if (!cc26_isInsideControlCenterContainer(self)) return;
     if (cc26_isExpandedNowPlayingLayout(self)) return;
@@ -365,7 +362,7 @@ static void cc26_forceSubviewAlphas(UIView *view) {
 %hook CCUICAPackageDescription
 - (NSURL *)packageURL {
     NSURL *packageURL = %orig;
-    if (!colorSliderGlyphs) return packageURL;
+    if (!enabled || !colorSliderGlyphs) return packageURL;
     if ([packageURL.absoluteString isEqualToString:@"file:///System/Library/ControlCenter/Bundles/DisplayModule.bundle/Brightness.ca/"]) {
         return [NSURL fileURLWithPath:ROOT_PATH_NS(@"/Library/PreferenceBundles/CC26Preferences.bundle/Brightness.ca")];
     }
@@ -378,7 +375,7 @@ static void cc26_forceSubviewAlphas(UIView *view) {
 
 %hook CALayer
 - (void)setOpacity:(float)opacity {
-    if ([self.delegate isKindOfClass:%c(CCUICAPackageView)] || [self.delegate isKindOfClass:%c(UIImageView)]) {
+    if (enabled && colorSliderGlyphs && ([self.delegate isKindOfClass:%c(CCUICAPackageView)] || [self.delegate isKindOfClass:%c(UIImageView)])) {
         id controller = [(UIView *)self.delegate _viewControllerForAncestor];
         if ([controller isKindOfClass:%c(CCUIDisplayModuleViewController)] || [controller isKindOfClass:%c(MRUVolumeViewController)]) {
             opacity = opacity > 0 ? 1.0 : opacity;
@@ -391,7 +388,7 @@ static void cc26_forceSubviewAlphas(UIView *view) {
 %hook CCUIContinuousSliderView
 %new
 - (void)cc26_applyGlyphColor {
-    if (!colorSliderGlyphs) return;
+    if (!enabled || !colorSliderGlyphs) return;
     if (!self.window) return;
 
     static BOOL cc26_isApplyingGlyph = NO;
@@ -403,10 +400,10 @@ static void cc26_forceSubviewAlphas(UIView *view) {
     if (!controller) { cc26_isApplyingGlyph = NO; return; }
 
     if ([controller isKindOfClass:%c(CCUIDisplayModuleViewController)]) {
-        NSDictionary *brightnessColorDict = [[NSUserDefaults standardUserDefaults] objectForKey:@"brightnessColorDict" inDomain:domain];
+        NSDictionary *brightnessColorDict = cc26_preferenceObject(@"brightnessColorDict");
         glyphColor = (brightnessColorDict != nil) ? [UIColor colorWithRed:[brightnessColorDict[@"red"] floatValue] green:[brightnessColorDict[@"green"] floatValue] blue:[brightnessColorDict[@"blue"] floatValue] alpha:1.0] : [UIColor colorWithRed:0.96 green:0.81 blue:0.27 alpha:1.00];
     } else if ([controller isKindOfClass:%c(MRUVolumeViewController)] || [controller isKindOfClass:%c(SBElasticVolumeViewController)]) {
-        NSDictionary *volumeColorDict = [[NSUserDefaults standardUserDefaults] objectForKey:@"volumeColorDict" inDomain:domain];
+        NSDictionary *volumeColorDict = cc26_preferenceObject(@"volumeColorDict");
         glyphColor = (volumeColorDict != nil) ? [UIColor colorWithRed:[volumeColorDict[@"red"] floatValue] green:[volumeColorDict[@"green"] floatValue] blue:[volumeColorDict[@"blue"] floatValue] alpha:1.0] : [UIColor colorWithRed:0.35 green:0.67 blue:0.88 alpha:1.00];
     }
     if (!glyphColor) { cc26_isApplyingGlyph = NO; return; }
@@ -435,12 +432,15 @@ static void cc26_forceSubviewAlphas(UIView *view) {
     [self cc26_applyGlyphColor];
 }
 - (BOOL)isGroupRenderingRequired {
+    if (!enabled || !colorSliderGlyphs) return %orig;
     return NO;
 }
 - (NSArray *)punchOutRootLayers {
+    if (!enabled || !colorSliderGlyphs) return %orig;
     return nil;
 }
 - (NSArray *)punchOutRenderingViews {
+    if (!enabled || !colorSliderGlyphs) return %orig;
     return nil;
 }
 %end
@@ -449,6 +449,8 @@ static void cc26_forceSubviewAlphas(UIView *view) {
 static BOOL cc26ControlsLayoutInProgress = NO;
 - (void)layoutSubviews {
     %orig;
+
+    if (!enabled) return;
 
     if (cc26ControlsLayoutInProgress) return;
     cc26ControlsLayoutInProgress = YES;
@@ -497,6 +499,8 @@ static BOOL cc26ControlsLayoutInProgress = NO;
 - (void)layoutSubviews {
     %orig;
 
+    if (!enabled) return;
+
     if (!cc26_isInsideControlCenterContainer(self)) return;
 
     @try {
@@ -527,6 +531,8 @@ static BOOL cc26ControlsLayoutInProgress = NO;
 %hook CCUIContentModuleContentContainerView
 - (void)layoutSubviews {
     %orig;
+
+    if (!enabled) return;
 
     BOOL opened = NO;
     @try {
@@ -642,6 +648,12 @@ static BOOL cc26ControlsLayoutInProgress = NO;
     UIView *view = self.view;
     if (!view) return;
 
+    if (!enabled) {
+        [[view viewWithTag:999] removeFromSuperview];
+        [[view viewWithTag:998] removeFromSuperview];
+        return;
+    }
+
     CGFloat iconSize = 14; // Kleinere Icons
     CGFloat buttonPadding = 6; // Button etwas größer für Touchfläche
     CGFloat buttonSize = iconSize + buttonPadding;
@@ -659,7 +671,7 @@ static BOOL cc26ControlsLayoutInProgress = NO;
         // Plus-Button
         UIButton *plus = [view viewWithTag:999];
         if (!plus) {
-            NSDictionary *addColorDict = [[NSUserDefaults standardUserDefaults] objectForKey:@"addButtonColorDict" inDomain:domain];
+            NSDictionary *addColorDict = cc26_preferenceObject(@"addButtonColorDict");
             UIColor *addColor = (addColorDict != nil) ? [UIColor colorWithRed:[addColorDict[@"red"] floatValue] green:[addColorDict[@"green"] floatValue] blue:[addColorDict[@"blue"] floatValue] alpha:1.0] : [UIColor whiteColor];
 
             plus = [UIButton buttonWithType:UIButtonTypeSystem];
@@ -692,7 +704,7 @@ static BOOL cc26ControlsLayoutInProgress = NO;
         // Power-Button
         UIButton *power = [view viewWithTag:998];
         if (!power) {
-            NSDictionary *powerColorDict = [[NSUserDefaults standardUserDefaults] objectForKey:@"powerButtonColorDict" inDomain:domain];
+            NSDictionary *powerColorDict = cc26_preferenceObject(@"powerButtonColorDict");
             UIColor *powerColor = (powerColorDict != nil) ? [UIColor colorWithRed:[powerColorDict[@"red"] floatValue] green:[powerColorDict[@"green"] floatValue] blue:[powerColorDict[@"blue"] floatValue] alpha:1.0] : [UIColor systemRedColor];
 
             power = [UIButton buttonWithType:UIButtonTypeSystem];
@@ -790,45 +802,50 @@ static BOOL cc26ControlsLayoutInProgress = NO;
 %end // CC26 group
 
 static void loadPreferences(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
-    NSNumber *enabledValue = (NSNumber *)[[NSUserDefaults standardUserDefaults] objectForKey:@"enabled" inDomain:domain];
+    NSNumber *enabledValue = (NSNumber *)cc26_preferenceObject(@"enabled");
     enabled = (enabledValue) ? [enabledValue boolValue] : NO;
-    NSNumber *enableTopButtonsValue = (NSNumber *)[[NSUserDefaults standardUserDefaults] objectForKey:@"enableTopButtons" inDomain:domain];
+    NSNumber *enableTopButtonsValue = (NSNumber *)cc26_preferenceObject(@"enableTopButtons");
     enableTopButtons = (enableTopButtonsValue) ? [enableTopButtonsValue boolValue] : YES;
-    NSNumber *colorSliderGlyphsValue = (NSNumber *)[[NSUserDefaults standardUserDefaults] objectForKey:@"colorSliderGlyphs" inDomain:domain];
+    NSNumber *colorSliderGlyphsValue = (NSNumber *)cc26_preferenceObject(@"colorSliderGlyphs");
     colorSliderGlyphs = (colorSliderGlyphsValue) ? [colorSliderGlyphsValue boolValue] : NO;
 
     // Media player position overrides (-1 = default)
     NSNumber *val;
-    val = [[NSUserDefaults standardUserDefaults] objectForKey:@"mediaArtworkX" inDomain:domain];
+    val = cc26_preferenceObject(@"mediaArtworkX");
     mediaArtworkX = val ? [val floatValue] : -1;
-    val = [[NSUserDefaults standardUserDefaults] objectForKey:@"mediaArtworkY" inDomain:domain];
+    val = cc26_preferenceObject(@"mediaArtworkY");
     mediaArtworkY = val ? [val floatValue] : -1;
-    val = [[NSUserDefaults standardUserDefaults] objectForKey:@"mediaArtworkSize" inDomain:domain];
+    val = cc26_preferenceObject(@"mediaArtworkSize");
     mediaArtworkSize = val ? [val floatValue] : -1;
-    val = [[NSUserDefaults standardUserDefaults] objectForKey:@"mediaRoutingBtnX" inDomain:domain];
+    val = cc26_preferenceObject(@"mediaRoutingBtnX");
     mediaRoutingBtnX = val ? [val floatValue] : -1;
-    val = [[NSUserDefaults standardUserDefaults] objectForKey:@"mediaRoutingBtnY" inDomain:domain];
+    val = cc26_preferenceObject(@"mediaRoutingBtnY");
     mediaRoutingBtnY = val ? [val floatValue] : -1;
-    val = [[NSUserDefaults standardUserDefaults] objectForKey:@"mediaRoutingBtnSize" inDomain:domain];
+    val = cc26_preferenceObject(@"mediaRoutingBtnSize");
     mediaRoutingBtnSize = val ? [val floatValue] : -1;
-    val = [[NSUserDefaults standardUserDefaults] objectForKey:@"mediaLabelX" inDomain:domain];
+    val = cc26_preferenceObject(@"mediaLabelX");
     mediaLabelX = val ? [val floatValue] : -1;
-    val = [[NSUserDefaults standardUserDefaults] objectForKey:@"mediaLabelY" inDomain:domain];
+    val = cc26_preferenceObject(@"mediaLabelY");
     mediaLabelY = val ? [val floatValue] : -1;
-    val = [[NSUserDefaults standardUserDefaults] objectForKey:@"mediaLabelW" inDomain:domain];
+    val = cc26_preferenceObject(@"mediaLabelW");
     mediaLabelW = val ? [val floatValue] : -1;
-    val = [[NSUserDefaults standardUserDefaults] objectForKey:@"mediaLabelH" inDomain:domain];
+    val = cc26_preferenceObject(@"mediaLabelH");
     mediaLabelH = val ? [val floatValue] : -1;
-    val = [[NSUserDefaults standardUserDefaults] objectForKey:@"mediaLabelLineSpacing" inDomain:domain];
+    val = cc26_preferenceObject(@"mediaLabelLineSpacing");
     mediaLabelLineSpacing = val ? [val floatValue] : 1.0;
 }
 
 %ctor {
-    if (!cc26_canEnableHooks()) return;
+    if (!cc26_isSpringBoardProcess()) return;
+
+    dlopen("/System/Library/PrivateFrameworks/ControlCenterUIKit.framework/ControlCenterUIKit", RTLD_NOW);
+    dlopen("/System/Library/PrivateFrameworks/MediaControls.framework/MediaControls", RTLD_NOW);
 
     loadPreferences(NULL, NULL, NULL, NULL, NULL); // Load prefs
     CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, loadPreferences, (CFStringRef)preferencesNotification, NULL, CFNotificationSuspensionBehaviorCoalesce);
-    if (enabled) {
+
+    if (!cc26_hooksInitialized) {
+        cc26_hooksInitialized = YES;
         %init(CC26)
     }
 }

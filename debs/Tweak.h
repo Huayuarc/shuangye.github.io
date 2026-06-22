@@ -4,6 +4,7 @@
 #import <objc/message.h>
 #include <spawn.h>
 #include <rootless.h>
+#include <dlfcn.h>
 
 static NSString *domain = @"com.cureux.cc26";
 static NSString *preferencesNotification = @"com.cureux.cc26/preferences.changed";
