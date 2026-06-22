@@ -19,16 +19,21 @@ static const char *kPowerModeChangedC = "com.huayuarc.CPUthermal/powerModeChange
 
 // 功率模式值
 static const char *kPowerModeValues[] = {
-"lowPower1428", // 低功耗 1428MHz
 "lowPower2016", // 低功耗 2016MHz
 "fullPower",    // 满血
 };
 
 static const char *kPowerModeLabels[] = {
-"低功耗 1428MHz",
 "低功耗 2016MHz",
 "满血",
 };
+
+static const int kPowerModeCount = 2;
+
+static NSString *normalizedPowerMode(id mode) {
+if ([mode isKindOfClass:[NSString class]] && [mode isEqualToString:S("fullPower")]) return S("fullPower");
+return S("lowPower2016");
+}
 
 @interface FRootListController : PSListController
 @end
@@ -38,6 +43,12 @@ static const char *kPowerModeLabels[] = {
 - (NSMutableDictionary *)prefs {
 NSMutableDictionary *d = [NSMutableDictionary dictionaryWithContentsOfFile:S(kPrefPathC)];
 if (!d) d = [NSMutableDictionary dictionary];
+id mode = d[S("powerMode")];
+NSString *normalizedMode = normalizedPowerMode(mode);
+if (mode && (![mode isKindOfClass:[NSString class]] || ![mode isEqualToString:normalizedMode])) {
+d[S("powerMode")] = normalizedMode;
+[d writeToFile:S(kPrefPathC) atomically:YES];
+}
 return d;
 }
 
@@ -73,7 +84,7 @@ if ([key isEqualToString:S("keepCPMSAlive")]) {
 return [NSNumber numberWithBool:NO];
 }
 if ([key isEqualToString:S("powerMode")]) {
-return S("lowPower2016");  // 功率模式默认低功耗 2016MHz
+return normalizedPowerMode(val ?: S("lowPower2016"));  // 功率模式默认低功耗 2016MHz
 }
 if ([key isEqualToString:S("suppressThermalNotifications")]) {
 return [NSNumber numberWithBool:NO];  // 屏蔽通知默认关闭
@@ -136,20 +147,19 @@ return spec;
 - (void)showPowerModePicker {
 UIAlertController *alert = [UIAlertController
 alertControllerWithTitle:S("功率模式")
-message:S("低功耗 1428MHz = 更省电\n低功耗 2016MHz = 兼顾省电与性能\n满血 = 解除全部温控")
+message:S("低功耗 2016MHz = 稳定下发低功耗频率\n满血 = 解除全部温控")
 preferredStyle:UIAlertControllerStyleActionSheet];
 
-NSString *currentMode = [self prefs][S("powerMode")] ?: S("lowPower2016");
-if ([currentMode isEqualToString:S("lowPower")]) currentMode = S("lowPower2016");
+NSString *currentMode = normalizedPowerMode([self prefs][S("powerMode")]);
 
-for (int i = 0; i < 3; i++) {
+for (int i = 0; i < kPowerModeCount; i++) {
 NSString *modeValue = S(kPowerModeValues[i]);
 NSString *modeLabel = S(kPowerModeLabels[i]);
 BOOL isCurrent = [currentMode isEqualToString:modeValue];
 
 UIAlertAction *action = [UIAlertAction
 actionWithTitle:isCurrent
-? [NSString stringWithFormat:@"✓ %@", modeLabel]
+? [NSString stringWithFormat:S("✓ %@"), modeLabel]
 : modeLabel
 style:UIAlertActionStyleDefault
 handler:^(UIAlertAction *action) {
@@ -187,21 +197,20 @@ PSSpecifier *master = [self switchSpecifier:S("启用 CPUthermal") key:S("enable
 // ===================== ★ 第2组: 功率模式（新增自 Insulation） =====================
 group = [PSSpecifier emptyGroupSpecifier];
 [group setProperty:S("功率模式") forKey:S("label")];
-[group setProperty:S("低功耗可选 1428MHz / 2016MHz，满血 = 解除全部温控")
+[group setProperty:S("仅保留低功耗 2016MHz 与满血；旧低频配置会自动迁移到 2016MHz")
 forKey:S("footerText")];
 [specs addObject:group];
 
 // 功率模式选择按钮 — 显示当前模式
-NSString *currentMode = [self prefs][S("powerMode")] ?: S("lowPower2016");
-if ([currentMode isEqualToString:S("lowPower")]) currentMode = S("lowPower2016");
+NSString *currentMode = normalizedPowerMode([self prefs][S("powerMode")]);
 NSString *modeLabel = S("低功耗 2016MHz");
-for (int i = 0; i < 3; i++) {
+for (int i = 0; i < kPowerModeCount; i++) {
 if ([currentMode isEqualToString:S(kPowerModeValues[i])]) {
 modeLabel = S(kPowerModeLabels[i]);
 break;
 }
 }
-NSString *buttonTitle = [NSString stringWithFormat:@"功率模式：%@", modeLabel];
+NSString *buttonTitle = [NSString stringWithFormat:S("功率模式：%@"), modeLabel];
 PSSpecifier *powerModeBtn = [PSSpecifier
 preferenceSpecifierNamed:buttonTitle
 target:self set:NULL get:NULL detail:nil cell:PSButtonCell edit:NULL];

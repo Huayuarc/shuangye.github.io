@@ -182,37 +182,30 @@ static BOOL g_keepCPSMAlive         = NO;  // 保留 CPMS 紧急保护(安全阀
 static PowerMode g_powerMode               = PowerModeLowPower;  // 功率模式，默认低功耗
 static BOOL      g_suppressThermalNotifications = NO;             // 屏蔽高温通知，默认关闭
 
-// 低功耗 CPU 频率目标：1428MHz / 2016MHz（二选一锁定）
-static const int kLowPowerCPUFreqMinMHz = 1428;
-static const int kLowPowerCPUFreqMaxMHz = 2016;
-static int g_lowPowerCPUFreqTargetMHz = kLowPowerCPUFreqMaxMHz;
-
-static void setLowPowerCPUFreqTargetMHz(int targetMHz) {
-    if (targetMHz == kLowPowerCPUFreqMinMHz) {
-        g_lowPowerCPUFreqTargetMHz = kLowPowerCPUFreqMinMHz;
-    } else {
-        g_lowPowerCPUFreqTargetMHz = kLowPowerCPUFreqMaxMHz;
-    }
-}
+// 低功耗 CPU 频率目标：固定 2016MHz
+static const int kLowPowerCPUFreqMHz = 2016;
+static const int64_t kLowPowerCPUFreqKHz = 2016000LL;
+static const int64_t kLowPowerCPUFreqHz = 2016000000LL;
+static const int kLowPowerCPULevel = 0;
 
 static int lowPowerCPUFreqTargetMHz(void) {
-    return g_lowPowerCPUFreqTargetMHz;
+    return kLowPowerCPUFreqMHz;
 }
 
 static int lowPowerCPUFreqTargetKHz(void) {
-    return g_lowPowerCPUFreqTargetMHz * 1000;
+    return (int)kLowPowerCPUFreqKHz;
 }
 
 static int64_t lowPowerCPUFreqTargetHz(void) {
-    return (int64_t)g_lowPowerCPUFreqTargetMHz * 1000000LL;
+    return kLowPowerCPUFreqHz;
 }
 
 static double lowPowerCPUPowerMax(void) {
-    return (double)g_lowPowerCPUFreqTargetMHz;
+    return (double)kLowPowerCPUFreqMHz;
 }
 
 static double lowPowerPackagePowerMax(void) {
-    return (double)g_lowPowerCPUFreqTargetMHz;
+    return (double)kLowPowerCPUFreqMHz;
 }
 
 // 低功耗主动下发限频时，临时放行本插件自己的降频写入
@@ -255,16 +248,13 @@ static void loadPrefs(void) {
         g_blockHidEvents        = [d[S("blockHidEvents")] ?: [NSNumber numberWithBool:YES] boolValue];
         g_keepCPSMAlive         = [d[S("keepCPMSAlive")] ?: [NSNumber numberWithBool:NO] boolValue];
 
-        // ★ 读取功率模式 (默认 lowPower2016；兼容旧 lowPower)
-        NSString *modeStr = d[S("powerMode")] ?: S("lowPower2016");
+        // ★ 读取功率模式 (默认 lowPower2016；旧 lowPower/低频档统一迁移为 2016)
+        id modeValue = d[S("powerMode")];
+        NSString *modeStr = [modeValue isKindOfClass:[NSString class]] ? modeValue : S("lowPower2016");
         if ([modeStr isEqualToString:S("fullPower")]) {
             g_powerMode = PowerModeFullPower;
-        } else if ([modeStr isEqualToString:S("lowPower1428")]) {
-            g_powerMode = PowerModeLowPower;
-            setLowPowerCPUFreqTargetMHz(kLowPowerCPUFreqMinMHz);
         } else {
             g_powerMode = PowerModeLowPower;
-            setLowPowerCPUFreqTargetMHz(kLowPowerCPUFreqMaxMHz);
         }
 
         // ★ 读取屏蔽通知开关 (默认 NO)
@@ -457,10 +447,13 @@ static void setLowPowerPPMPropertiesOnService(io_service_t service) {
 
     setBoolProperty(service, "PowerSave", YES);
     setBoolProperty(service, "powerSaveActive", YES);
+    setBoolProperty(service, "PowerSaveActive", YES);
     setDoubleProperty(service, "CPUMaxPower", lowPowerCPUPowerMax());
     setDoubleProperty(service, "CPUPowerTarget", (double)lowPowerCPUFreqTargetMHz());
     setDoubleProperty(service, "CPULowPowerTarget", (double)lowPowerCPUFreqTargetMHz());
     setDoubleProperty(service, "PackageLowPowerTarget", lowPowerPackagePowerMax());
+    setDoubleProperty(service, "MaxCPUPowerTarget", lowPowerCPUPowerMax());
+    setDoubleProperty(service, "PackagePowerTarget", lowPowerPackagePowerMax());
 }
 
 static void setLowPowerFrequencyPropertiesOnService(io_service_t service) {
@@ -468,12 +461,14 @@ static void setLowPowerFrequencyPropertiesOnService(io_service_t service) {
 
     const char *minKeys[] = {
         "cpu-min-frequency", "cpu-min-freq", "cpu-frequency-min", "cpu-freq-min",
-        "CPUFrequencyMin", "CPUFreqMin", "min-frequency", "min-freq", NULL
+        "CPUFrequencyMin", "CPUFreqMin", "min-frequency", "min-freq",
+        "cpu-frequency", "cpu-freq", "CPUFrequency", "CPUFreq", NULL
     };
     const char *maxKeys[] = {
         "cpu-max-frequency", "cpu-max-freq", "cpu-frequency-max", "cpu-freq-max",
         "CPUFrequencyMax", "CPUFreqMax", "max-frequency", "max-freq",
         "cpu-frequency-limit", "cpu-freq-limit", "CPUFrequencyLimit", "CPUFreqLimit",
+        "cpu-cluster-frequency", "cpu-cluster-freq", "CPUClusterFrequency", "CPUClusterFreq",
         NULL
     };
     CFNumberType types[] = {
@@ -509,16 +504,23 @@ static void applyLowPowerFrequencyProperties(void) {
     if (isTemperatureAboveSafetyCeiling()) return;
 
     const char *serviceNames[] = {
-        "ApplePMGR", "AppleARMPlatform", "ApplePPM", "ApplePPMCPU", NULL
+        "ApplePMGR", "AppleARMPlatform", "ApplePPM", "ApplePPMCPU",
+        "AppleARMPMU", "AppleCPU", NULL
     };
     for (int i = 0; serviceNames[i]; i++) {
         CFMutableDictionaryRef matching = IOServiceMatching(serviceNames[i]);
         if (!matching) continue;
-        io_service_t service = IOServiceGetMatchingService(kIOMasterPortDefault, matching);
-        if (!service) continue;
-        setLowPowerPPMPropertiesOnService(service);
-        setLowPowerFrequencyPropertiesOnService(service);
-        IOObjectRelease(service);
+        io_iterator_t iterator = IO_OBJECT_NULL;
+        if (IOServiceGetMatchingServices(kIOMasterPortDefault, matching, &iterator) != KERN_SUCCESS) {
+            continue;
+        }
+        io_service_t service;
+        while ((service = IOIteratorNext(iterator))) {
+            setLowPowerPPMPropertiesOnService(service);
+            setLowPowerFrequencyPropertiesOnService(service);
+            IOObjectRelease(service);
+        }
+        IOObjectRelease(iterator);
     }
 }
 
@@ -756,7 +758,7 @@ static void applyFullPowerToMitigationController(MitigationController *controlle
         [controller updateGPU];
         [controller updatePackage];
     } @catch (NSException *exception) {
-        NSLog(@"[CPUthermal] MitigationController 满血下发异常: %@", exception);
+        NSLog(S("[CPUthermal] MitigationController 满血下发异常: %@"), exception);
     }
 }
 
@@ -772,13 +774,13 @@ static void applyLowPowerToMitigationController(MitigationController *controller
         [controller setPowerSaveActive:YES];
         [controller setCPMSMitigationsEnabled:YES];
 
-        [controller setCPULevel:80];
+        [controller setCPULevel:kLowPowerCPULevel];
         [controller setCPUPowerCeiling:cpuTarget fromDecisionSource:0];
         [controller setCPUPowerFloor:0 fromDecisionSource:0];
         [controller setCPUPowerZoneTarget:cpuTarget];
         [controller setMaxCPUPowerTarget:cpuTarget useLegacyPath:YES setProperty:(__bridge CFStringRef)S("CPUthermal")];
         [controller setCPULowPowerTarget:cpuTarget];
-        [controller setDVD1Level:1];
+        [controller setDVD1Level:0];
 
         [controller setGPUPowerCeiling:cpuTarget fromDecisionSource:0];
         [controller setGPUPowerFloor:0 fromDecisionSource:0];
@@ -797,7 +799,7 @@ static void applyLowPowerToMitigationController(MitigationController *controller
         [controller updateGPU];
         [controller updatePackage];
     } @catch (NSException *exception) {
-        NSLog(@"[CPUthermal] MitigationController 低功耗下发异常: %@", exception);
+        NSLog(S("[CPUthermal] MitigationController 低功耗下发异常: %@"), exception);
     } @finally {
         g_applyingLowPowerMode--;
     }
@@ -812,7 +814,7 @@ static void applyFullPowerToThermalManager(ThermalManager *manager) {
         [manager putDeviceInLowTempSimulationMode:S("nominal")];
         [manager updatePowerzoneTelemetry];
     } @catch (NSException *exception) {
-        NSLog(@"[CPUthermal] ThermalManager 满血辅助下发异常: %@", exception);
+        NSLog(S("[CPUthermal] ThermalManager 满血辅助下发异常: %@"), exception);
     }
 }
 
@@ -820,22 +822,22 @@ static void applyLowPowerToThermalManager(ThermalManager *manager) {
     if (!manager) return;
 
     @try {
-        [manager putDeviceInLowTempSimulationMode:S("heavy")];
+        [manager putDeviceInLowTempSimulationMode:S("nominal")];
         [manager setThermalState:0];
         [manager updatePowerzoneTelemetry];
     } @catch (NSException *exception) {
-        NSLog(@"[CPUthermal] ThermalManager 低功耗辅助下发异常: %@", exception);
+        NSLog(S("[CPUthermal] ThermalManager 低功耗辅助下发异常: %@"), exception);
     }
 }
 
 static void applyFullPowerMode(void) {
-    NSLog(@"[CPUthermal] ★ 应用满血模式 — 解除全部温控");
+    NSLog(S("[CPUthermal] ★ 应用满血模式 — 解除全部温控"));
     applyFullPowerToMitigationController(activeMitigationController());
     applyFullPowerToThermalManager(g_thermalManager);
 }
 
 static void applyLowPowerMode(void) {
-    NSLog(@"[CPUthermal] ★ 应用低功耗模式 — CPU 限频 %dMHz，模拟低电并立即限制功率",
+    NSLog(S("[CPUthermal] ★ 应用低功耗模式 — 固定 %dMHz 限频并立即限制功率"),
           lowPowerCPUFreqTargetMHz());
 
     applyLowPowerFrequencyProperties();
@@ -868,9 +870,9 @@ static void startLowPowerReapplyTimer(void) {
     if (!g_lowPowerReapplyTimer) return;
 
     dispatch_source_set_timer(g_lowPowerReapplyTimer,
-        dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)),
-        (uint64_t)(2.0 * NSEC_PER_SEC),
-        (uint64_t)(0.2 * NSEC_PER_SEC));
+        dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)),
+        (uint64_t)(1.0 * NSEC_PER_SEC),
+        (uint64_t)(0.1 * NSEC_PER_SEC));
     dispatch_source_set_event_handler(g_lowPowerReapplyTimer, ^{
         if (g_enabled && g_cpuProtection && g_powerMode == PowerModeLowPower && !isTemperatureAboveSafetyCeiling()) {
             applyLowPowerFrequencyProperties();
@@ -888,7 +890,7 @@ static void applyPowerMode(void) {
 
     // 安全阀检查
     if (isTemperatureAboveSafetyCeiling()) {
-        NSLog(@"[CPUthermal] 温度超过安全阀 (75°C)，跳过功率模式应用");
+        NSLog(S("[CPUthermal] 温度超过安全阀 (75°C)，跳过功率模式应用"));
         return;
     }
 
@@ -921,9 +923,9 @@ static void applyPowerMode(void) {
         g_commonProduct = self;
         [self putDeviceInThermalSimulationMode:S("nominal")];
         if (g_powerMode == PowerModeLowPower) {
-            [self putDeviceInLowTempSimulationMode:S("heavy")];
+            [self putDeviceInLowTempSimulationMode:S("nominal")];
         }
-        NSLog(@"[CPUthermal] CommonProduct init, 已重置热状态为 nominal");
+        NSLog(S("[CPUthermal] CommonProduct init, 已重置热状态为 nominal"));
     }
     return res;
 }
@@ -951,7 +953,7 @@ static void applyPowerMode(void) {
 
 - (void)putDeviceInLowTempSimulationMode:(id)mode {
     if (shouldClampLowPowerCPU()) {
-        %orig(S("heavy"));
+        %orig(S("nominal"));
         return;
     }
     %orig(mode);
@@ -998,7 +1000,7 @@ static void applyPowerMode(void) {
 
 - (void)setCPULevel:(int)level {
     if (shouldClampLowPowerCPU()) {
-        %orig(80);
+        %orig(kLowPowerCPULevel);
         return;
     }
     %orig(level);
@@ -1125,7 +1127,7 @@ static void applyPowerMode(void) {
 - (void)evaluateDecisionTree {
     if (shouldBlockCPUMitigation()) {
         if (!isTemperatureAboveSafetyCeiling()) {
-            NSLog(@"[CPUthermal] 阻止决策树评估 (evaluateDecisionTree)");
+            NSLog(S("[CPUthermal] 阻止决策树评估 (evaluateDecisionTree)"));
             return;
         }
     }
@@ -1551,7 +1553,7 @@ static void executePuppetEvent(void) {
         NSDictionary *prefs = loadPrefsDictionary();
         NSString *level = prefs[S("thermalPuppetValue")] ?: S("nominal");
         [g_commonProduct putDeviceInThermalSimulationMode:level];
-        NSLog(@"[CPUthermal] Puppet 事件: 热模式=%@ 功率模式=%ld 屏蔽通知=%d",
+        NSLog(S("[CPUthermal] Puppet 事件: 热模式=%@ 功率模式=%ld 屏蔽通知=%d"),
               level, (long)g_powerMode, g_suppressThermalNotifications);
     }
 }
@@ -1568,7 +1570,7 @@ static void onPowerModeChanged(CFNotificationCenterRef center, void *observer,
     @autoreleasepool {
         loadPrefs();
         applyPowerMode();
-        NSLog(@"[CPUthermal] 功率模式已变更: %ld 屏蔽通知=%d",
+        NSLog(S("[CPUthermal] 功率模式已变更: %ld 屏蔽通知=%d"),
               (long)g_powerMode, g_suppressThermalNotifications);
     }
 }
@@ -1580,7 +1582,7 @@ static void onPowerModeChanged(CFNotificationCenterRef center, void *observer,
     @autoreleasepool {
         loadPrefs();
         if (!g_enabled) {
-            NSLog(@"[CPUthermal] 配置关闭，跳过加载");
+            NSLog(S("[CPUthermal] 配置关闭，跳过加载"));
             return;
         }
 
@@ -1593,7 +1595,7 @@ static void onPowerModeChanged(CFNotificationCenterRef center, void *observer,
             if (ptr) {
                 MSHookFunction((void *)ptr, (void *)hooked_IOServiceSetProperty,
                     (void **)&orig_IOServiceSetProperty);
-                NSLog(@"[CPUthermal] IOServiceSetProperty hook 已安装");
+                NSLog(S("[CPUthermal] IOServiceSetProperty hook 已安装"));
             }
         }
 
@@ -1605,7 +1607,7 @@ static void onPowerModeChanged(CFNotificationCenterRef center, void *observer,
             if (getConfig) {
                 MSHookFunction(getConfig, (void *)new_getConfigurationFor,
                     (void **)&orig_getConfigurationFor);
-                NSLog(@"[CPUthermal] _getConfigurationFor hook 已安装");
+                NSLog(S("[CPUthermal] _getConfigurationFor hook 已安装"));
             }
         }
 
@@ -1630,7 +1632,7 @@ static void onPowerModeChanged(CFNotificationCenterRef center, void *observer,
             applyPowerMode();
         });
 
-        NSLog(@"[CPUthermal] 温控防护已激活 — 安全阀:%d°C CPU:%d 亮度:%d 热状态:%d HID:%d CPMS:%d 功率模式:%ld 屏蔽通知:%d",
+        NSLog(S("[CPUthermal] 温控防护已激活 — 安全阀:%d°C CPU:%d 亮度:%d 热状态:%d HID:%d CPMS:%d 功率模式:%ld 屏蔽通知:%d"),
               (int)(kSafetyTempThreshold / 1000),
               g_cpuProtection, g_brightnessProtection, g_thermalStateProtection,
               g_blockHidEvents, g_keepCPSMAlive,
