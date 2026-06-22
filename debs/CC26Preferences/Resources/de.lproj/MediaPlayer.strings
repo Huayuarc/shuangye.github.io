@@ -1,14 +1,5 @@
-"Artwork — X Position" = "Cover — X-Position";
-"Set to -1 to use default values." = "Auf -1 setzen für Standardwerte.";
-"Artwork — Y Position" = "Cover — Y-Position";
-"Artwork — Size" = "Cover — Größe";
-
-"Routing Button — X Position" = "Routing-Taste — X-Position";
-"Routing Button — Y Position" = "Routing-Taste — Y-Position";
-"Routing Button — Size" = "Routing-Taste — Größe";
-
-"Label — X Position" = "Beschriftung — X-Position";
-"Label — Y Position" = "Beschriftung — Y-Position";
-"Label — Width" = "Beschriftung — Breite";
-"Label — Height" = "Beschriftung — Höhe";
-"Label — Line Spacing" = "Beschriftung — Zeilenabstand";
+"Media Player Layout" = "Medienplayer-Layout";
+"Automatically keeps the compact media module aligned. Disable only if you prefer the stock layout." = "Richtet das kompakte Medienmodul automatisch aus. Nur deaktivieren, wenn das originale Layout bevorzugt wird.";
+"Unified Compact Layout" = "Einheitliches kompaktes Layout";
+"Centers artwork, labels, and playback controls for a consistent compact media tile." = "Zentriert Cover, Texte und Wiedergabesteuerung für eine einheitliche kompakte Medienkachel.";
+"Text Spacing" = "Textabstand";

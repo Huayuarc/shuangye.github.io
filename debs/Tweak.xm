@@ -130,7 +130,7 @@ void adjustLabelFontsInView(UIView *view, BOOL isTitle) {
             label.font = [UIFont systemFontOfSize:13.0 weight:isTitle ? UIFontWeightSemibold : UIFontWeightRegular];
             label.adjustsFontSizeToFitWidth = YES;
             label.minimumScaleFactor = 0.7;
-            label.textAlignment = NSTextAlignmentLeft;
+            label.textAlignment = NSTextAlignmentCenter;
         } else {
             adjustLabelFontsInView(subview, isTitle);
         }
@@ -172,6 +172,59 @@ static void cc26_forceSubviewAlphas(UIView *view) {
     }
 }
 
+static const NSInteger CC26OverlayBackdropTag = 26026;
+
+static void cc26_updateOverlayBackdrop(UIView *view, BOOL visible) {
+    if (!view) return;
+
+    UIView *existingView = [view viewWithTag:CC26OverlayBackdropTag];
+    UIVisualEffectView *backdrop = [existingView isKindOfClass:[UIVisualEffectView class]] ? (UIVisualEffectView *)existingView : nil;
+
+    if (!enabled || !visible) {
+        backdrop.alpha = 0.0;
+        backdrop.hidden = YES;
+        return;
+    }
+
+    if (!backdrop) {
+        UIBlurEffect *effect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemUltraThinMaterialLight];
+        backdrop = [[UIVisualEffectView alloc] initWithEffect:effect];
+        backdrop.tag = CC26OverlayBackdropTag;
+        backdrop.userInteractionEnabled = NO;
+        backdrop.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+
+        UIView *tintView = [[UIView alloc] initWithFrame:backdrop.contentView.bounds];
+        tintView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+        tintView.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.12];
+        [backdrop.contentView addSubview:tintView];
+
+        NSUInteger index = MIN((NSUInteger)1, view.subviews.count);
+        [view insertSubview:backdrop atIndex:index];
+    } else if (backdrop.superview == view) {
+        NSUInteger index = MIN((NSUInteger)1, view.subviews.count - 1);
+        [view insertSubview:backdrop atIndex:index];
+    }
+
+    backdrop.frame = view.bounds;
+    backdrop.alpha = 0.62;
+    backdrop.hidden = NO;
+}
+
+static void cc26_applyModuleMaterialStyle(UIView *containerView, CGFloat radius) {
+    containerView.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.08];
+
+    NSArray *materials = findAllSubviewsOfClass(containerView, %c(MTMaterialView));
+    for (UIView *materialView in materials) {
+        CGFloat materialMin = fminf(materialView.bounds.size.width, materialView.bounds.size.height);
+        CGFloat materialRadius = materialMin > 0 ? materialMin / 2.0 : radius;
+        materialView.alpha = 0.86;
+        materialView.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.10];
+        materialView.layer.cornerRadius = materialRadius;
+        materialView.layer.continuousCorners = YES;
+        materialView.clipsToBounds = YES;
+    }
+}
+
 %hook MRUNowPlayingHeaderView
 - (void)layoutSubviews {
     %orig;
@@ -190,66 +243,55 @@ static void cc26_forceSubviewAlphas(UIView *view) {
         return;
     }
 
+    if (!useCompactMediaLayout) return;
+
     CGFloat W = self.bounds.size.width;
     CGFloat H = self.bounds.size.height;
-
-    // --- Read preference overrides (negative = use default) ---
-    CGFloat prefArtX   = mediaArtworkX;
-    CGFloat prefArtY   = mediaArtworkY;
-    CGFloat prefArtSz  = mediaArtworkSize;
-    CGFloat prefBtnX   = mediaRoutingBtnX;
-    CGFloat prefBtnY   = mediaRoutingBtnY;
-    CGFloat prefBtnSz  = mediaRoutingBtnSize;
-    CGFloat prefLblX   = mediaLabelX;
-    CGFloat prefLblY   = mediaLabelY;
-    CGFloat prefLblW   = mediaLabelW;
-    CGFloat prefLblH   = mediaLabelH;
-
-    // === ROW 1: Artwork LEFT + Routing button RIGHT, same vertical center ===
+    if (W <= 0 || H <= 0) return;
 
     // Artwork
     UIView *artworkView = cc26_getIvarObject(self, "_artworkView");
 
-    CGFloat artSize = (prefArtSz >= 0) ? prefArtSz : 50.0;
-    CGFloat btnSize = (prefBtnSz >= 0) ? prefBtnSz : 42.0;
-
-    CGFloat artX = (prefArtX >= 0) ? prefArtX : 11.0;
-    CGFloat artY = (prefArtY >= 0) ? prefArtY : 8.0;
+    CGFloat artSize = MIN(MAX(W * 0.28, 30.0), 42.0);
+    CGFloat artX = (W - artSize) / 2.0;
+    CGFloat artY = MAX(8.0, H * 0.10);
 
     if (artworkView) {
         artworkView.translatesAutoresizingMaskIntoConstraints = YES;
         artworkView.frame = CGRectMake(artX, artY, artSize, artSize);
-        artworkView.alpha = 1.0;
+        artworkView.alpha = 0.92;
         artworkView.layer.cornerRadius = artSize * 0.22;
         artworkView.layer.masksToBounds = YES;
         artworkView.clipsToBounds = YES;
     }
 
-    // Routing button (AirPlay) — same row, right-aligned, vertically centered with artwork
+    // Routing button (AirPlay) — compact top-right placement
     UIView *routingButton = cc26_getIvarObject(self, "_routingButton");
 
-    CGFloat btnX = (prefBtnX >= 0) ? prefBtnX : 85.0;
-    CGFloat btnY = (prefBtnY >= 0) ? prefBtnY : artY + (artSize - btnSize) / 2.0;
+    CGFloat btnSize = 24.0;
+    CGFloat btnX = W - btnSize - 6.0;
+    CGFloat btnY = 8.0;
 
     if (routingButton) {
         routingButton.alpha = 1.0;
         routingButton.translatesAutoresizingMaskIntoConstraints = YES;
         routingButton.frame = CGRectMake(btnX, btnY, btnSize, btnSize);
-        routingButton.backgroundColor = [UIColor colorWithWhite:0.8 alpha:0.25];
-        routingButton.layer.cornerRadius = btnSize / 2.0;
-        routingButton.layer.masksToBounds = YES;
+        routingButton.backgroundColor = [UIColor clearColor];
+        routingButton.layer.cornerRadius = 0;
+        routingButton.layer.masksToBounds = NO;
     }
 
-    // === ROW 2: Label view BELOW artwork+routing row, full width ===
+    // Centered label, kept above transport controls
     UIView *labelView = cc26_getIvarObject(self, "_labelView");
 
     if (labelView) {
-        CGFloat labelX = (prefLblX >= 0) ? prefLblX : 0.0;
-        CGFloat labelY = (prefLblY >= 0) ? prefLblY : 63.0;
-        CGFloat labelW = (prefLblW >= 0) ? prefLblW : W;
-        CGFloat labelH = (prefLblH >= 0) ? prefLblH : MAX(H - labelY, 35.0);
+        CGFloat labelH = MIN(38.0, MAX(30.0, H * 0.28));
+        CGFloat labelY = MAX(artY + artSize + 4.0, H * 0.42);
+        CGFloat maxLabelY = H - 38.0 - labelH;
+        if (maxLabelY > 0) labelY = MIN(labelY, maxLabelY);
+        labelY = MAX(0.0, labelY);
         labelView.translatesAutoresizingMaskIntoConstraints = YES;
-        labelView.frame = CGRectMake(labelX, labelY, labelW, labelH);
+        labelView.frame = CGRectMake(8.0, labelY, W - 16.0, labelH);
         labelView.alpha = 1.0;
         labelView.layer.opacity = 1.0;
         labelView.clipsToBounds = YES;
@@ -263,7 +305,7 @@ static void cc26_forceSubviewAlphas(UIView *view) {
 
 %hook MPUMarqueeView
 - (void)setAlpha:(CGFloat)alpha {
-    if (enabled && [self.superview isKindOfClass:%c(MRUNowPlayingLabelView)] && cc26_isInsideCCCompact(self)) {
+    if (enabled && useCompactMediaLayout && [self.superview isKindOfClass:%c(MRUNowPlayingLabelView)] && cc26_isInsideCCCompact(self)) {
         %orig(1.0);
         self.layer.opacity = 1.0;
         cc26_forceSubviewAlphas(self);
@@ -275,7 +317,7 @@ static void cc26_forceSubviewAlphas(UIView *view) {
 
 %hook MRUNowPlayingLabelView
 - (void)setAlpha:(CGFloat)alpha {
-    if (enabled && cc26_isInsideCCCompact(self)) {
+    if (enabled && useCompactMediaLayout && cc26_isInsideCCCompact(self)) {
         %orig(1.0);
         self.layer.opacity = 1.0;
         cc26_forceSubviewAlphas(self);
@@ -290,6 +332,7 @@ static void cc26_forceSubviewAlphas(UIView *view) {
 
     if (!cc26_isInsideControlCenterContainer(self)) return;
     if (cc26_isExpandedNowPlayingLayout(self)) return;
+    if (!useCompactMediaLayout) return;
 
     // Get marquee views and standalone label views
     UIView *titleMarquee = nil;
@@ -455,7 +498,7 @@ static BOOL cc26ControlsLayoutInProgress = NO;
     if (cc26ControlsLayoutInProgress) return;
     cc26ControlsLayoutInProgress = YES;
 
-    if (!cc26_isInsideControlCenterContainer(self) || cc26_isExpandedNowPlayingLayout(self)) {
+    if (!cc26_isInsideControlCenterContainer(self) || cc26_isExpandedNowPlayingLayout(self) || !useCompactMediaLayout) {
         cc26ControlsLayoutInProgress = NO;
         return;
     }
@@ -468,7 +511,7 @@ static BOOL cc26ControlsLayoutInProgress = NO;
     UIView *headerView = cc26_getIvarObject(self, "_headerView");
 
     if (headerView) {
-        CGFloat headerHeight = H * 0.65;
+        CGFloat headerHeight = H - 2 * pad;
         headerView.translatesAutoresizingMaskIntoConstraints = YES;
         headerView.frame = CGRectMake(pad, pad, W - 2 * pad, headerHeight);
         headerView.clipsToBounds = NO;
@@ -482,9 +525,8 @@ static BOOL cc26ControlsLayoutInProgress = NO;
     UIView *transportView = cc26_getIvarObject(self, "_transportControlsView");
 
     if (transportView) {
-        CGFloat controlsHeight = transportView.frame.size.height;
-        if (controlsHeight < 20) controlsHeight = 44.0;
-        CGFloat controlsWidth = W * 0.75;
+        CGFloat controlsHeight = MIN(MAX(H * 0.22, 28.0), 34.0);
+        CGFloat controlsWidth = MIN(W - 44.0, 92.0);
         CGFloat x = (W - controlsWidth) / 2.0;
         CGFloat y = H - controlsHeight - pad;
         transportView.translatesAutoresizingMaskIntoConstraints = YES;
@@ -502,6 +544,7 @@ static BOOL cc26ControlsLayoutInProgress = NO;
     if (!enabled) return;
 
     if (!cc26_isInsideControlCenterContainer(self)) return;
+    if (!useCompactMediaLayout) return;
 
     @try {
         NSInteger layout = cc26_nowPlayingLayout(self, -1);
@@ -514,7 +557,7 @@ static BOOL cc26ControlsLayoutInProgress = NO;
         if (leftButton && rightButton && middleButton) {
             CGFloat viewWidth = self.bounds.size.width;
             CGFloat centerY = self.bounds.size.height / 2.0;
-            CGFloat spacing = viewWidth * 0.28;
+            CGFloat spacing = MIN(MAX(viewWidth * 0.30, 22.0), 30.0);
 
             middleButton.center = CGPointMake(viewWidth / 2.0, centerY);
             leftButton.center = CGPointMake(viewWidth / 2.0 - spacing, centerY);
@@ -574,6 +617,7 @@ static BOOL cc26ControlsLayoutInProgress = NO;
     self.layer.borderWidth = containerBorderWidth;
     self.layer.borderColor = [UIColor colorWithWhite:0.5 alpha:0.3].CGColor;
     self.layer.masksToBounds = YES;
+    cc26_applyModuleMaterialStyle(self, radius);
 
     // --- Slider inner views: fully rounded based on their own bounds ---
     if (containsSlider) {
@@ -649,10 +693,13 @@ static BOOL cc26ControlsLayoutInProgress = NO;
     if (!view) return;
 
     if (!enabled) {
+        cc26_updateOverlayBackdrop(view, NO);
         [[view viewWithTag:999] removeFromSuperview];
         [[view viewWithTag:998] removeFromSuperview];
         return;
     }
+
+    cc26_updateOverlayBackdrop(view, state == 1);
 
     CGFloat iconSize = 14; // Kleinere Icons
     CGFloat buttonPadding = 6; // Button etwas größer für Touchfläche
@@ -808,29 +855,10 @@ static void loadPreferences(CFNotificationCenterRef center, void *observer, CFSt
     enableTopButtons = (enableTopButtonsValue) ? [enableTopButtonsValue boolValue] : YES;
     NSNumber *colorSliderGlyphsValue = (NSNumber *)cc26_preferenceObject(@"colorSliderGlyphs");
     colorSliderGlyphs = (colorSliderGlyphsValue) ? [colorSliderGlyphsValue boolValue] : NO;
+    NSNumber *useCompactMediaLayoutValue = (NSNumber *)cc26_preferenceObject(@"useCompactMediaLayout");
+    useCompactMediaLayout = (useCompactMediaLayoutValue) ? [useCompactMediaLayoutValue boolValue] : YES;
 
-    // Media player position overrides (-1 = default)
     NSNumber *val;
-    val = cc26_preferenceObject(@"mediaArtworkX");
-    mediaArtworkX = val ? [val floatValue] : -1;
-    val = cc26_preferenceObject(@"mediaArtworkY");
-    mediaArtworkY = val ? [val floatValue] : -1;
-    val = cc26_preferenceObject(@"mediaArtworkSize");
-    mediaArtworkSize = val ? [val floatValue] : -1;
-    val = cc26_preferenceObject(@"mediaRoutingBtnX");
-    mediaRoutingBtnX = val ? [val floatValue] : -1;
-    val = cc26_preferenceObject(@"mediaRoutingBtnY");
-    mediaRoutingBtnY = val ? [val floatValue] : -1;
-    val = cc26_preferenceObject(@"mediaRoutingBtnSize");
-    mediaRoutingBtnSize = val ? [val floatValue] : -1;
-    val = cc26_preferenceObject(@"mediaLabelX");
-    mediaLabelX = val ? [val floatValue] : -1;
-    val = cc26_preferenceObject(@"mediaLabelY");
-    mediaLabelY = val ? [val floatValue] : -1;
-    val = cc26_preferenceObject(@"mediaLabelW");
-    mediaLabelW = val ? [val floatValue] : -1;
-    val = cc26_preferenceObject(@"mediaLabelH");
-    mediaLabelH = val ? [val floatValue] : -1;
     val = cc26_preferenceObject(@"mediaLabelLineSpacing");
     mediaLabelLineSpacing = val ? [val floatValue] : 1.0;
 }

@@ -13,18 +13,9 @@ static NSString *preferencesNotification = @"com.cureux.cc26/preferences.changed
 static BOOL enabled;
 static BOOL enableTopButtons;
 static BOOL colorSliderGlyphs;
+static BOOL useCompactMediaLayout;
 
 // media player position override preferences (-1 = use default)
-static CGFloat mediaArtworkX = -1;
-static CGFloat mediaArtworkY = -1;
-static CGFloat mediaArtworkSize = -1;
-static CGFloat mediaRoutingBtnX = -1;
-static CGFloat mediaRoutingBtnY = -1;
-static CGFloat mediaRoutingBtnSize = -1;
-static CGFloat mediaLabelX = -1;
-static CGFloat mediaLabelY = -1;
-static CGFloat mediaLabelW = -1;
-static CGFloat mediaLabelH = -1;
 static CGFloat mediaLabelLineSpacing = 1.0;
 
 @interface NSUserDefaults (CC26)
