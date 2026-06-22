@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>items</key>
+	<array>
+        <dict>
+			<key>cell</key>
+        	<string>PSSwitchCell</string>
+            <key>cellClass</key>
+            <string>CC26SwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.cureux.cc26</string>
+			<key>key</key>
+			<string>colorSliderGlyphs</string>
+			<key>label</key>
+			<string>Enable Tinted Slider Glyphs</string>
+			<key>PostNotification</key>
+            <string>com.cureux.cc26/preferences.changed</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Brightness Slider</string>
+		</dict>
+		<dict>
+            <key>PostNotification</key>
+            <string>com.cureux.cc26/preferences.changed</string>
+            <key>cellClass</key>
+            <string>CC26ColorCell</string>
+            <key>defaults</key>
+            <string>com.cureux.cc26</string>
+            <key>height</key>
+            <string>60</string>
+            <key>id</key>
+            <string>brightnessColor</string>
+            <key>key</key>
+            <string>brightnessColor</string>
+            <key>label</key>
+            <string>Brightness Icon Color</string>
+            <key>fallbackColor</key>
+            <string>#F5CF28</string>
+        </dict>
+        <dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Volume Slider</string>
+		</dict>
+		<dict>
+            <key>PostNotification</key>
+            <string>com.cureux.cc26/preferences.changed</string>
+            <key>cellClass</key>
+            <string>CC26ColorCell</string>
+            <key>defaults</key>
+            <string>com.cureux.cc26</string>
+            <key>height</key>
+            <string>60</string>
+            <key>id</key>
+            <string>volumeColor</string>
+            <key>key</key>
+            <string>volumeColor</string>
+            <key>label</key>
+            <string>Volume Icon Color</string>
+            <key>fallbackColor</key>
+            <string>#59ABE0</string>
+        </dict>
+	</array>
+	<key>title</key>
+	<string>Sliders</string>
+</dict>
+</plist>
