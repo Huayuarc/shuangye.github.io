@@ -50,6 +50,36 @@ static id cc26_getIvarObject(id object, const char *ivarName) {
     return value;
 }
 
+static const char *cc26_existingExecutablePath(NSArray<NSString *> *paths) {
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    for (NSString *path in paths) {
+        if (path.length > 0 && [fileManager isExecutableFileAtPath:path]) {
+            return [path fileSystemRepresentation];
+        }
+    }
+    return NULL;
+}
+
+static BOOL cc26_spawnExecutable(NSArray<NSString *> *paths, NSArray<NSString *> *arguments) {
+    const char *launchPath = cc26_existingExecutablePath(paths);
+    if (!launchPath) return NO;
+
+    NSUInteger argumentCount = arguments.count;
+    char **argv = (char **)calloc(argumentCount + 2, sizeof(char *));
+    if (!argv) return NO;
+
+    argv[0] = (char *)launchPath;
+    for (NSUInteger index = 0; index < argumentCount; index++) {
+        argv[index + 1] = (char *)[arguments[index] fileSystemRepresentation];
+    }
+    argv[argumentCount + 1] = NULL;
+
+    pid_t pid = 0;
+    int status = posix_spawn(&pid, launchPath, NULL, NULL, argv, NULL);
+    free(argv);
+    return status == 0;
+}
+
 #pragma mark - Border radius helpers
 
 CGFloat getModuleRadius(UIView *moduleView) {
@@ -133,16 +163,21 @@ static BOOL cc26_isCompactNowPlaying(UIView *view) {
     return YES;
 }
 
-static void cc26_forceSubviewOpacity(UIView *view) {
-    if (!view) return;
+static BOOL cc26_forceOpacityInProgress = NO;
 
-    view.alpha = 1.0;
-    view.layer.opacity = 1.0;
-    for (UIView *subview in view.subviews) {
-        if (!subview.hidden) {
-            subview.alpha = 1.0;
-            subview.layer.opacity = 1.0;
+static void cc26_forceSubviewOpacity(UIView *view) {
+    if (!view || cc26_forceOpacityInProgress) return;
+
+    cc26_forceOpacityInProgress = YES;
+    @try {
+        view.layer.opacity = 1.0;
+        for (UIView *subview in view.subviews) {
+            if (!subview.hidden) {
+                subview.layer.opacity = 1.0;
+            }
         }
+    } @finally {
+        cc26_forceOpacityInProgress = NO;
     }
 }
 
@@ -750,27 +785,21 @@ static BOOL cc26ControlsLayoutInProgress = NO;
                                                             image:[UIImage systemImageNamed:@"arrow.clockwise.circle"]
                                                         identifier:nil
                                                             handler:^(__kindof UIAction *action) {
-                    pid_t pid;
-                    const char *args[] = {"sbreload", NULL};
-                    posix_spawn(&pid, ROOT_PATH("/usr/bin/sbreload"), NULL, NULL, (char *const *)args, NULL);
+                    cc26_spawnExecutable(@[ROOT_PATH_NS(@"/usr/bin/sbreload"), @"/var/jb/usr/bin/sbreload", @"/usr/bin/sbreload"], @[]);
                 }];
 
                 UIAction *uicacheAction = [UIAction actionWithTitle:CC26_LOCALIZABLE(@"UICache")
                                                             image:[UIImage systemImageNamed:@"paintbrush.fill"]
                                                         identifier:nil
                                                             handler:^(__kindof UIAction *action) {
-                    pid_t pid;
-                    const char *args[] = {"uicache", "-a", NULL};
-                    posix_spawn(&pid, ROOT_PATH("/usr/bin/uicache"), NULL, NULL, (char *const *)args, NULL);
+                    cc26_spawnExecutable(@[ROOT_PATH_NS(@"/usr/bin/uicache"), @"/var/jb/usr/bin/uicache", @"/usr/bin/uicache"], @[@"-a"]);
                 }];
 
                 UIAction *userspaceAction = [UIAction actionWithTitle:CC26_LOCALIZABLE(@"Userspace Reboot")
                                                                 image:[UIImage systemImageNamed:@"bolt.fill"]
                                                         identifier:nil
                                                             handler:^(__kindof UIAction *action) {
-                    pid_t pid;
-                    const char *args[] = {"launchctl", "reboot", "userspace", NULL};
-                    posix_spawn(&pid, ROOT_PATH("/bin/launchctl"), NULL, NULL, (char *const *)args, NULL);
+                    cc26_spawnExecutable(@[@"/bin/launchctl"], @[@"reboot", @"userspace"]);
                 }];
 
                 UIMenu *menu = [UIMenu menuWithTitle:CC26_LOCALIZABLE(@"Choose Action")
