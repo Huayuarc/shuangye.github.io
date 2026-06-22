@@ -1,21 +1,22 @@
-# Set default values (can be overridden by environment)
-DEBUG = 0
-FINALPACKAGE = 1
-ARCHS = arm64 arm64e
-TARGET := iphone:clang:16.5:15.0
-INSTALL_TARGET_PROCESSES = SpringBoard Preferences
-THEOS_PACKAGE_SCHEME ?= rootless
-
-# Include common settings
+THEOS ?= /var/jb/var/mobile/theos
+export LC_ALL = C
+export ARCHS = arm64 arm64e
+export TARGET = iphone:clang:latest:15.0
+THEOS_PACKAGE_SCHEME = rootless
 include $(THEOS)/makefiles/common.mk
 
-# Tweak configuration
-TWEAK_NAME = CC26
-$(TWEAK_NAME)_FILES = Tweak.xm CC26Preferences/CC26LocalizableManager.m
-$(TWEAK_NAME)_CFLAGS = -fobjc-arc -Wno-error -fno-modules
-$(TWEAK_NAME)_PRIVATE_FRAMEWORKS = ControlCenterUIKit MediaControls
+TWEAK_NAME = DynamicIslandTweak
+DynamicIslandTweak_FILES = Tweak.x DIContentView.m DIWindow.m DIDisplayManager.m DILocalization.m
+DynamicIslandTweak_CFLAGS = -fobjc-arc
+DynamicIslandTweak_FRAMEWORKS = UIKit CoreGraphics QuartzCore
+# 使用 ObjC runtime hook（method_setImplementation），不链接 CydiaSubstrate
+# 避免 arm64e 上 dyld 解析 CydiaSubstrate 时卡死导致看门狗
+LOGOS_DEFAULT_GENERATOR = internal
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 
-SUBPROJECTS += CC26Preferences
-include $(THEOS_MAKE_PATH)/aggregate.mk
+
+ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
+before-package::
+	$(ECHO_NOTHING)python3 -c "from pathlib import Path; p=Path('$(THEOS_STAGING_DIR)/DEBIAN/control'); s=p.read_text(); s=s.replace(', oldabi', '').replace('oldabi, ', '').replace('Depends: oldabi\n', ''); p.write_text(s)"$(ECHO_END)
+endif
