@@ -13,10 +13,6 @@ static NSString *preferencesNotification = @"com.cureux.cc26/preferences.changed
 static BOOL enabled;
 static BOOL enableTopButtons;
 static BOOL colorSliderGlyphs;
-static BOOL useCompactMediaLayout;
-
-// media player position override preferences (-1 = use default)
-static CGFloat mediaLabelLineSpacing = 1.0;
 
 @interface NSUserDefaults (CC26)
 - (id)objectForKey:(NSString *)key inDomain:(NSString *)domain;
@@ -34,12 +30,6 @@ static CGFloat mediaLabelLineSpacing = 1.0;
 @interface MRUTransportButton : UIButton @end
 @interface MRUControlCenterViewController : UIViewController @end
 @interface MRUNowPlayingView : UIView @end
-@interface MRUNowPlayingControlsView : UIView @end
-@interface MRUNowPlayingLabelView : UIView @end
-@interface MPUMarqueeView : UIView @end
-@interface MRUNowPlayingHeaderView : UIControl @end
-@interface MRUNowPlayingRoutingButton : UIButton @end
-@interface MRUNowPlayingTransportControlsView : UIView @end
 @interface CCUIModularControlCenterViewController : UIViewController @end
 @interface CCUIContentModuleContentContainerView : UIView @end
 @interface CCUIOverlayViewController : UIViewController @end
