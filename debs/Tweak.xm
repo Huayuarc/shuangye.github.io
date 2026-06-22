@@ -182,11 +182,12 @@ static BOOL g_keepCPSMAlive         = NO;  // 保留 CPMS 紧急保护(安全阀
 static PowerMode g_powerMode               = PowerModeLowPower;  // 功率模式，默认低功耗
 static BOOL      g_suppressThermalNotifications = NO;             // 屏蔽高温通知，默认关闭
 
-// 低功耗 CPU 频率目标：固定 2016MHz
+// 低功耗 CPU 频率目标：大小核都尽量锁定在 2016MHz 左右。
+// 注意：不能再使用真正的系统低功耗等级/PowerSaveToken，实测会把 PCPU 大核压到 1380MHz。
 static const int kLowPowerCPUFreqMHz = 2016;
 static const int64_t kLowPowerCPUFreqKHz = 2016000LL;
 static const int64_t kLowPowerCPUFreqHz = 2016000000LL;
-static const int kLowPowerCPULevel = 0;
+static const int kLowPowerCPULevel = 80;
 
 static int lowPowerCPUFreqTargetMHz(void) {
     return kLowPowerCPUFreqMHz;
@@ -206,6 +207,18 @@ static double lowPowerCPUPowerMax(void) {
 
 static double lowPowerPackagePowerMax(void) {
     return (double)kLowPowerCPUFreqMHz;
+}
+
+static int lowPowerCPUPowerFloor(void) {
+    return kLowPowerCPUFreqMHz;
+}
+
+static int lowPowerPowerSaveToken(void) {
+    return 0;
+}
+
+static BOOL lowPowerPowerSaveActive(void) {
+    return NO;
 }
 
 // 低功耗主动下发限频时，临时放行本插件自己的降频写入
@@ -346,6 +359,13 @@ static BOOL keyLooksLikeLowPowerBoolean(NSString *key) {
            [key localizedCaseInsensitiveContainsString:S("lowpowermode")];
 }
 
+static BOOL keyLooksLikePowerSaveToken(NSString *key) {
+    if (!key) return NO;
+    return [key localizedCaseInsensitiveContainsString:S("powersavetoken")] ||
+           ([key localizedCaseInsensitiveContainsString:S("powersave")] &&
+            [key localizedCaseInsensitiveContainsString:S("token")]);
+}
+
 static BOOL keyLooksLikeCPUPowerLimit(NSString *key) {
     if (!key) return NO;
     BOOL cpuOrPackage = [key localizedCaseInsensitiveContainsString:S("cpu")] ||
@@ -445,9 +465,13 @@ static void setBoolProperty(io_service_t service, const char *key, BOOL value) {
 static void setLowPowerPPMPropertiesOnService(io_service_t service) {
     if (!service || !orig_IOServiceSetProperty) return;
 
-    setBoolProperty(service, "PowerSave", YES);
-    setBoolProperty(service, "powerSaveActive", YES);
-    setBoolProperty(service, "PowerSaveActive", YES);
+    setBoolProperty(service, "PowerSave", NO);
+    setBoolProperty(service, "powerSaveActive", NO);
+    setBoolProperty(service, "PowerSaveActive", NO);
+    setNumberProperty(service, "powerSaveToken", lowPowerPowerSaveToken(), kCFNumberIntType);
+    setNumberProperty(service, "PowerSaveToken", lowPowerPowerSaveToken(), kCFNumberIntType);
+    setNumberProperty(service, "CPULevel", kLowPowerCPULevel, kCFNumberIntType);
+    setNumberProperty(service, "CPUPerformanceLevel", kLowPowerCPULevel, kCFNumberIntType);
     setDoubleProperty(service, "CPUMaxPower", lowPowerCPUPowerMax());
     setDoubleProperty(service, "CPUPowerTarget", (double)lowPowerCPUFreqTargetMHz());
     setDoubleProperty(service, "CPULowPowerTarget", (double)lowPowerCPUFreqTargetMHz());
@@ -462,13 +486,28 @@ static void setLowPowerFrequencyPropertiesOnService(io_service_t service) {
     const char *minKeys[] = {
         "cpu-min-frequency", "cpu-min-freq", "cpu-frequency-min", "cpu-freq-min",
         "CPUFrequencyMin", "CPUFreqMin", "min-frequency", "min-freq",
-        "cpu-frequency", "cpu-freq", "CPUFrequency", "CPUFreq", NULL
+        "cpu-frequency", "cpu-freq", "CPUFrequency", "CPUFreq",
+        "pcpu-min-frequency", "pcpu-min-freq", "pcpu-frequency-min", "pcpu-freq-min",
+        "PCPUFrequencyMin", "PCPUFreqMin", "PCPUMinFrequency", "PCPUMinFreq",
+        "ecpu-min-frequency", "ecpu-min-freq", "ecpu-frequency-min", "ecpu-freq-min",
+        "ECPUFrequencyMin", "ECPUFreqMin", "ECPUMinFrequency", "ECPUMinFreq",
+        NULL
     };
     const char *maxKeys[] = {
         "cpu-max-frequency", "cpu-max-freq", "cpu-frequency-max", "cpu-freq-max",
         "CPUFrequencyMax", "CPUFreqMax", "max-frequency", "max-freq",
         "cpu-frequency-limit", "cpu-freq-limit", "CPUFrequencyLimit", "CPUFreqLimit",
         "cpu-cluster-frequency", "cpu-cluster-freq", "CPUClusterFrequency", "CPUClusterFreq",
+        "pcpu-max-frequency", "pcpu-max-freq", "pcpu-frequency-max", "pcpu-freq-max",
+        "PCPUFrequencyMax", "PCPUFreqMax", "PCPUMaxFrequency", "PCPUMaxFreq",
+        "pcpu-frequency", "pcpu-freq", "PCPUFrequency", "PCPUFreq",
+        "pcpu-frequency-limit", "pcpu-freq-limit", "PCPUFrequencyLimit", "PCPUFreqLimit",
+        "pcpu-cluster-frequency", "pcpu-cluster-freq", "PCPUClusterFrequency", "PCPUClusterFreq",
+        "ecpu-max-frequency", "ecpu-max-freq", "ecpu-frequency-max", "ecpu-freq-max",
+        "ECPUFrequencyMax", "ECPUFreqMax", "ECPUMaxFrequency", "ECPUMaxFreq",
+        "ecpu-frequency", "ecpu-freq", "ECPUFrequency", "ECPUFreq",
+        "ecpu-frequency-limit", "ecpu-freq-limit", "ECPUFrequencyLimit", "ECPUFreqLimit",
+        "ecpu-cluster-frequency", "ecpu-cluster-freq", "ECPUClusterFrequency", "ECPUClusterFreq",
         NULL
     };
     CFNumberType types[] = {
@@ -505,7 +544,8 @@ static void applyLowPowerFrequencyProperties(void) {
 
     const char *serviceNames[] = {
         "ApplePMGR", "AppleARMPlatform", "ApplePPM", "ApplePPMCPU",
-        "AppleARMPMU", "AppleCPU", NULL
+        "ApplePPMCPMS", "ApplePMGRNub", "AppleCLPC", "AppleT8110PMGR",
+        "ApplePPMEntityCLPC", "AppleARMPMU", "AppleARMCPU", "AppleCPU", NULL
     };
     for (int i = 0; serviceNames[i]; i++) {
         CFMutableDictionaryRef matching = IOServiceMatching(serviceNames[i]);
@@ -615,8 +655,16 @@ static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringR
     }
 
     NSString *ks = (__bridge NSString *)key;
+    if (g_powerMode == PowerModeLowPower && keyLooksLikePowerSaveToken(ks)) {
+        int token = lowPowerPowerSaveToken();
+        CFNumberRef number = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &token);
+        if (!number) return orig_IOServiceSetProperty(service, key, value);
+        kern_return_t ret = orig_IOServiceSetProperty(service, key, number);
+        CFRelease(number);
+        return ret;
+    }
     if (g_powerMode == PowerModeLowPower && keyLooksLikeLowPowerBoolean(ks)) {
-        return orig_IOServiceSetProperty(service, key, kCFBooleanTrue);
+        return orig_IOServiceSetProperty(service, key, kCFBooleanFalse);
     }
     if (g_cpuProtection && keyLooksLikeCPUControl(ks)) {
         if (g_powerMode == PowerModeLowPower) {
@@ -770,13 +818,13 @@ static void applyLowPowerToMitigationController(MitigationController *controller
         int cpuTarget = lowPowerCPUFreqTargetMHz();
         int packageTarget = (int)lowPowerPackagePowerMax();
 
-        [controller setPowerSaveToken:1];
-        [controller setPowerSaveActive:YES];
+        [controller setPowerSaveToken:lowPowerPowerSaveToken()];
+        [controller setPowerSaveActive:lowPowerPowerSaveActive()];
         [controller setCPMSMitigationsEnabled:YES];
 
         [controller setCPULevel:kLowPowerCPULevel];
         [controller setCPUPowerCeiling:cpuTarget fromDecisionSource:0];
-        [controller setCPUPowerFloor:0 fromDecisionSource:0];
+        [controller setCPUPowerFloor:lowPowerCPUPowerFloor() fromDecisionSource:0];
         [controller setCPUPowerZoneTarget:cpuTarget];
         [controller setMaxCPUPowerTarget:cpuTarget useLegacyPath:YES setProperty:(__bridge CFStringRef)S("CPUthermal")];
         [controller setCPULowPowerTarget:cpuTarget];
@@ -786,7 +834,7 @@ static void applyLowPowerToMitigationController(MitigationController *controller
         [controller setGPUPowerFloor:0 fromDecisionSource:0];
         [controller setMaxPackagePower:packageTarget];
         [controller setPackagePowerCeiling:packageTarget fromDecisionSource:0];
-        [controller setPackagePowerFloor:0 fromDecisionSource:0];
+        [controller setPackagePowerFloor:lowPowerCPUPowerFloor() fromDecisionSource:0];
         [controller setPackageLowPowerTarget];
 
         if (g_brightnessProtection) {
@@ -1016,11 +1064,7 @@ static void applyPowerMode(void) {
 
 - (void)setCPUPowerFloor:(double)floor fromDecisionSource:(id)source {
     if (shouldClampLowPowerCPU()) {
-        double clampedFloor = floor;
-        if (clampedFloor < 0 || clampedFloor > lowPowerCPUPowerMax()) {
-            clampedFloor = 0;
-        }
-        %orig(clampedFloor, S("CPUthermal"));
+        %orig((double)lowPowerCPUPowerFloor(), S("CPUthermal"));
         return;
     }
     %orig(floor, source);
@@ -1069,11 +1113,7 @@ static void applyPowerMode(void) {
 
 - (void)setPackagePowerFloor:(double)floor fromDecisionSource:(id)source {
     if (shouldClampLowPowerCPU()) {
-        double clampedFloor = floor;
-        if (clampedFloor < 0 || clampedFloor > lowPowerPackagePowerMax()) {
-            clampedFloor = 0;
-        }
-        %orig(clampedFloor, S("CPUthermal"));
+        %orig((double)lowPowerCPUPowerFloor(), S("CPUthermal"));
         return;
     }
     %orig(floor, source);
@@ -1095,7 +1135,7 @@ static void applyPowerMode(void) {
 
 - (void)setPowerSaveActive:(BOOL)active {
     if (shouldClampLowPowerCPU()) {
-        %orig(YES);
+        %orig(lowPowerPowerSaveActive());
         return;
     }
     %orig(active);
@@ -1260,11 +1300,7 @@ static void applyPowerMode(void) {
 
 - (void)setCPUPowerFloor:(int)floor fromDecisionSource:(int)source {
     if (shouldClampLowPowerCPU()) {
-        int clampedFloor = floor;
-        if (clampedFloor < 0 || clampedFloor > lowPowerCPUFreqTargetMHz()) {
-            clampedFloor = 0;
-        }
-        %orig(clampedFloor, source);
+        %orig(lowPowerCPUPowerFloor(), source);
         return;
     }
     %orig(floor, source);
@@ -1313,11 +1349,7 @@ static void applyPowerMode(void) {
 
 - (void)setPackagePowerFloor:(int)floor fromDecisionSource:(int)source {
     if (shouldClampLowPowerCPU()) {
-        int clampedFloor = floor;
-        if (clampedFloor < 0 || clampedFloor > (int)lowPowerPackagePowerMax()) {
-            clampedFloor = 0;
-        }
-        %orig(clampedFloor, source);
+        %orig(lowPowerCPUPowerFloor(), source);
         return;
     }
     %orig(floor, source);
@@ -1339,7 +1371,7 @@ static void applyPowerMode(void) {
 
 - (void)setPowerSaveActive:(BOOL)active {
     if (shouldClampLowPowerCPU()) {
-        %orig(YES);
+        %orig(lowPowerPowerSaveActive());
         return;
     }
     %orig(active);
@@ -1347,7 +1379,7 @@ static void applyPowerMode(void) {
 
 - (void)setPowerSaveToken:(int)token {
     if (shouldClampLowPowerCPU()) {
-        %orig(1);
+        %orig(lowPowerPowerSaveToken());
         return;
     }
     %orig(token);
