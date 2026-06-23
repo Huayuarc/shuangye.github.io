@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>entryClass</key>
+	<string>PSListController</string>
+	<key>items</key>
+	<array>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Battery Indicator Colors</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>cellClass</key>
+			<string>GcColorPicker</string>
+			<key>default</key>
+			<string>FFFFFF26</string>
+			<key>defaults</key>
+			<string>com.huayuarc.jadeprefs</string>
+			<key>key</key>
+			<string>batteryIndicatorBackgroundColor</string>
+			<key>label</key>
+			<string>Battery Indicator Background Color</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>cellClass</key>
+			<string>GcColorPicker</string>
+			<key>default</key>
+			<string>FFFFFF</string>
+			<key>defaults</key>
+			<string>com.huayuarc.jadeprefs</string>
+			<key>key</key>
+			<string>batteryIndicatorTextColor</string>
+			<key>label</key>
+			<string>Battery Indicator Text Color</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Time Indicator Colors</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>cellClass</key>
+			<string>GcColorPicker</string>
+			<key>default</key>
+			<string>FFFFFF26</string>
+			<key>defaults</key>
+			<string>com.huayuarc.jadeprefs</string>
+			<key>key</key>
+			<string>timeIndicatorBackgroundColor</string>
+			<key>label</key>
+			<string>Time Indicator Background Color</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>cellClass</key>
+			<string>GcColorPicker</string>
+			<key>default</key>
+			<string>FFFFFF</string>
+			<key>defaults</key>
+			<string>com.huayuarc.jadeprefs</string>
+			<key>key</key>
+			<string>timeIndicatorTextColor</string>
+			<key>label</key>
+			<string>Time Indicator Text Color</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Bluetooth Indicator Colors</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>cellClass</key>
+			<string>GcColorPicker</string>
+			<key>default</key>
+			<string>007AFF</string>
+			<key>defaults</key>
+			<string>com.huayuarc.jadeprefs</string>
+			<key>key</key>
+			<string>bluetoothIconTintColor</string>
+			<key>label</key>
+			<string>Bluetooth Icon Tint Color</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>cellClass</key>
+			<string>GcColorPicker</string>
+			<key>default</key>
+			<string>34C759</string>
+			<key>defaults</key>
+			<string>com.huayuarc.jadeprefs</string>
+			<key>key</key>
+			<string>bluetoothChargingColor</string>
+			<key>label</key>
+			<string>Bluetooth Charging Color</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>cellClass</key>
+			<string>GcColorPicker</string>
+			<key>default</key>
+			<string>FFFFFF</string>
+			<key>defaults</key>
+			<string>com.huayuarc.jadeprefs</string>
+			<key>key</key>
+			<string>bluetoothDeviceColor</string>
+			<key>label</key>
+			<string>Bluetooth Device Color</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>cellClass</key>
+			<string>GcColorPicker</string>
+			<key>default</key>
+			<string>FFFFFF</string>
+			<key>defaults</key>
+			<string>com.huayuarc.jadeprefs</string>
+			<key>key</key>
+			<string>bluetoothPercentColor</string>
+			<key>label</key>
+			<string>Bluetooth Percent Color</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>cellClass</key>
+			<string>GcColorPicker</string>
+			<key>default</key>
+			<string>FFFFFF40</string>
+			<key>defaults</key>
+			<string>com.huayuarc.jadeprefs</string>
+			<key>key</key>
+			<string>noBluetoothDevicesColor</string>
+			<key>label</key>
+			<string>No Bluetooth Devices Color</string>
+		</dict>
+	</array>
+	<key>title</key>
+	<string>Indicators</string>
+	<key>PostNotification</key>
+	<string>com.huayuarc.jadeprefs/ReloadPrefs</string>
+</dict>
+</plist>

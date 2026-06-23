@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>entryClass</key>
+	<string>PSListController</string>
+	<key>items</key>
+	<array>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Weather Colors</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>cellClass</key>
+			<string>GcColorPicker</string>
+			<key>default</key>
+			<string>FFFFFF</string>
+			<key>defaults</key>
+			<string>com.huayuarc.jadeprefs</string>
+			<key>key</key>
+			<string>weatherConditionColor</string>
+			<key>label</key>
+			<string>Weather Condition Color</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>cellClass</key>
+			<string>GcColorPicker</string>
+			<key>default</key>
+			<string>FFFFFF80</string>
+			<key>defaults</key>
+			<string>com.huayuarc.jadeprefs</string>
+			<key>key</key>
+			<string>weatherLocationColor</string>
+			<key>label</key>
+			<string>Weather Location Color</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>cellClass</key>
+			<string>GcColorPicker</string>
+			<key>default</key>
+			<string>FFFFFF</string>
+			<key>defaults</key>
+			<string>com.huayuarc.jadeprefs</string>
+			<key>key</key>
+			<string>weatherTemperatureColor</string>
+			<key>label</key>
+			<string>Weather Temperature Color</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>cellClass</key>
+			<string>GcColorPicker</string>
+			<key>default</key>
+			<string>FFFFFF80</string>
+			<key>defaults</key>
+			<string>com.huayuarc.jadeprefs</string>
+			<key>key</key>
+			<string>weatherHighLowColor</string>
+			<key>label</key>
+			<string>Weather High/Low Color</string>
+		</dict>
+	</array>
+	<key>title</key>
+	<string>Weather</string>
+	<key>PostNotification</key>
+	<string>com.huayuarc.jadeprefs/ReloadPrefs</string>
+</dict>
+</plist>

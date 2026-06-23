@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>entryClass</key>
+	<string>PSListController</string>
+	<key>items</key>
+	<array>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Custom Module Colors</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>default</key>
+			<string>00000000</string>
+			<key>defaults</key>
+			<string>com.huayuarc.jadeprefs</string>
+			<key>isColorPicker</key>
+			<true/>
+			<key>key</key>
+			<string>customModulesBackgroundColor</string>
+			<key>label</key>
+			<string>Custom Modules Background Color</string>
+		</dict>
+	</array>
+	<key>title</key>
+	<string>Custom Modules</string>
+	<key>PostNotification</key>
+	<string>com.huayuarc.jadeprefs/ReloadPrefs</string>
+</dict>
+</plist>

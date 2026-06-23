@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>entryClass</key>
+	<string>PSListController</string>
+	<key>items</key>
+	<array>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Favorite Toggles</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>cellClass</key>
+			<string>PSListItemsController</string>
+			<key>defaults</key>
+			<string>com.huayuarc.jadeprefs</string>
+			<key>key</key>
+			<string>favoriteToggles</string>
+			<key>label</key>
+			<string>Select Favorite Toggles</string>
+			<key>validValues</key>
+			<array>
+				<string>wifi</string>
+				<string>bluetooth</string>
+				<string>airplane_mode</string>
+				<string>cellular</string>
+				<string>airdrop</string>
+				<string>hotspot</string>
+				<string>flashlight</string>
+				<string>low_power_mode</string>
+				<string>dark_mode</string>
+				<string>rotation_lock</string>
+				<string>do_not_disturb</string>
+				<string>personal_hotspot</string>
+				<string>screen_record</string>
+				<string>camera</string>
+				<string>torch</string>
+				<string>alarm</string>
+				<string>calculator</string>
+				<string>timer</string>
+			</array>
+			<key>validTitles</key>
+			<array>
+				<string>WiFi</string>
+				<string>Bluetooth</string>
+				<string>Airplane Mode</string>
+				<string>Cellular</string>
+				<string>AirDrop</string>
+				<string>Hotspot</string>
+				<string>Flashlight</string>
+				<string>Low Power Mode</string>
+				<string>Dark Mode</string>
+				<string>Rotation Lock</string>
+				<string>Do Not Disturb</string>
+				<string>Personal Hotspot</string>
+				<string>Screen Record</string>
+				<string>Camera</string>
+				<string>Torch</string>
+				<string>Alarm</string>
+				<string>Calculator</string>
+				<string>Timer</string>
+			</array>
+			<key>isMultiple</key>
+			<true/>
+		</dict>
+	</array>
+	<key>title</key>
+	<string>Favorite Toggles</string>
+	<key>PostNotification</key>
+	<string>com.huayuarc.jadeprefs/ReloadPrefs</string>
+</dict>
+</plist>
