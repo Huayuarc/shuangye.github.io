@@ -14,23 +14,24 @@ static NSBundle *AKRSystemConnectivityBundle(void) {
     return bundle;
 }
 
-static NSDictionary *AKRPreferences(void) {
+static NSDictionary *AKRLocalPreferences(void) {
+    NSMutableDictionary *preferences = [NSMutableDictionary dictionary];
     NSArray<NSString *> *paths = @[
         @"/var/jb/var/mobile/Library/Preferences/com.huayuarc.akaraprefs.plist",
         @"/var/mobile/Library/Preferences/com.huayuarc.akaraprefs.plist"
     ];
 
     for (NSString *path in paths) {
-        NSDictionary *preferences = [NSDictionary dictionaryWithContentsOfFile:path];
-        if ([preferences isKindOfClass:NSDictionary.class]) {
-            return preferences;
+        NSDictionary *filePreferences = [NSDictionary dictionaryWithContentsOfFile:path];
+        if ([filePreferences isKindOfClass:NSDictionary.class]) {
+            [preferences addEntriesFromDictionary:filePreferences];
         }
     }
-    return @{};
+    return preferences;
 }
 
-static id AKRPreferenceValue(NSArray<NSString *> *keys) {
-    NSDictionary *preferences = AKRPreferences();
+static id AKRLocalPreferenceValue(NSArray<NSString *> *keys) {
+    NSDictionary *preferences = AKRLocalPreferences();
     for (NSString *key in keys) {
         id value = preferences[key];
         if (value) {
@@ -40,8 +41,8 @@ static id AKRPreferenceValue(NSArray<NSString *> *keys) {
     return nil;
 }
 
-static BOOL AKRPreferenceBool(NSArray<NSString *> *keys, BOOL defaultValue) {
-    id value = AKRPreferenceValue(keys);
+static BOOL AKRLocalPreferenceBool(NSArray<NSString *> *keys, BOOL defaultValue) {
+    id value = AKRLocalPreferenceValue(keys);
     if ([value respondsToSelector:@selector(boolValue)]) {
         return [value boolValue];
     }
@@ -125,18 +126,6 @@ static NSArray<NSString *> *AKRToggleNamesFromPreference(id value, NSArray<NSStr
     }
 
     return result.count > 0 ? result.copy : defaultNames;
-}
-
-static NSString *AKRControllerClassNameForToggle(NSString *toggleName) {
-    NSDictionary<NSString *, NSString *> *classNames = @{
-        @"Airplane": @"CCUIConnectivityAirplaneViewController",
-        @"Wi-Fi": @"CCUIConnectivityWifiViewController",
-        @"Bluetooth": @"CCUIConnectivityBluetoothViewController",
-        @"Cellular": @"CCUIConnectivityCellularDataViewController",
-        @"Hotspot": @"CCUIConnectivityHotspotViewController",
-        @"AirDrop": @"CCUIConnectivityAirDropViewController"
-    };
-    return classNames[toggleName];
 }
 
 static NSString *AKRLocalizationKeyForToggle(NSString *toggleName) {
@@ -314,7 +303,7 @@ static NSArray<NSString *> *AKRAllToggleNames(AkaraConnectivityModuleContentView
 }
 
 - (BOOL)useNativeConnectivityLabels {
-    return AKRPreferenceBool(@[@"akaraUseNativeConnectivityLabels", @"useNativeConnectivityLabels", @"useNativeConnectivityLabelNames", @"nativeConnectivityLabels"], YES);
+    return AKRLocalPreferenceBool(@[@"akaraUseNativeConnectivityLabels", @"useNativeConnectivityLabels", @"useNativeConnectivityLabelNames", @"nativeConnectivityLabels"], YES);
 }
 
 - (void)updateNotExpandedConnectivityButtons {
@@ -359,8 +348,8 @@ static NSArray<NSString *> *AKRAllToggleNames(AkaraConnectivityModuleContentView
 
         NSArray<NSString *> *defaultFirst = @[@"Airplane", @"Wi-Fi", @"Bluetooth"];
         NSArray<NSString *> *defaultSecond = @[@"Cellular", @"Hotspot", @"AirDrop"];
-        _firstToggleNames = AKRToggleNamesFromPreference(AKRPreferenceValue(@[@"akaraConnectivityFirstRowOrder", @"connectivityFirstRowOrder", @"connectivityFirstPageOrder", @"firstPageOrder"]), defaultFirst);
-        _secondToggleNames = AKRToggleNamesFromPreference(AKRPreferenceValue(@[@"akaraConnectivitySecondRowOrder", @"connectivitySecondRowOrder", @"connectivitySecondPageOrder", @"secondPageOrder"]), defaultSecond);
+        _firstToggleNames = AKRToggleNamesFromPreference(AKRLocalPreferenceValue(@[@"akaraConnectivityFirstRowOrder", @"connectivityFirstRowOrder", @"connectivityFirstPageOrder", @"firstPageOrder"]), defaultFirst);
+        _secondToggleNames = AKRToggleNamesFromPreference(AKRLocalPreferenceValue(@[@"akaraConnectivitySecondRowOrder", @"connectivitySecondRowOrder", @"connectivitySecondPageOrder", @"secondPageOrder"]), defaultSecond);
         _connectivityToggles = [NSMutableDictionary dictionary];
     }
     return self;
@@ -380,7 +369,7 @@ static NSArray<NSString *> *AKRAllToggleNames(AkaraConnectivityModuleContentView
     [super viewWillAppear:animated];
     [self updateNotExpandedConnectivityButtons];
 
-    if (AKRPreferenceBool(@[@"akaraScrollBackToFirstConnectivityPage", @"scrollBackToFirstConnectivityPage", @"resetConnectivityPageWhenOpened"], NO)) {
+    if (AKRLocalPreferenceBool(@[@"akaraScrollBackToFirstConnectivityPage", @"scrollBackToFirstConnectivityPage", @"resetConnectivityPageWhenOpened"], NO)) {
         [self scrollBackToFirstPage];
     }
 }
@@ -434,34 +423,7 @@ static NSArray<NSString *> *AKRAllToggleNames(AkaraConnectivityModuleContentView
 }
 
 - (void)setupExpandedStateVC {
-    AKRSystemConnectivityBundle();
-    Class expandedClass = NSClassFromString(@"CCUIConnectivityModuleViewController");
-    if (!expandedClass) {
-        return;
-    }
-
-    @try {
-        UIViewController *expandedViewController = [[expandedClass alloc] init];
-        if (![expandedViewController isKindOfClass:UIViewController.class]) {
-            return;
-        }
-
-        self.connectivityExpandedViewController = (CCUIConnectivityModuleViewController *)expandedViewController;
-        UIView *expandedView = expandedViewController.view;
-        expandedView.translatesAutoresizingMaskIntoConstraints = NO;
-        expandedView.hidden = YES;
-        [self addChildViewController:expandedViewController];
-        [self.view addSubview:expandedView];
-        [NSLayoutConstraint activateConstraints:@[
-            [expandedView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
-            [expandedView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
-            [expandedView.topAnchor constraintEqualToAnchor:self.view.topAnchor],
-            [expandedView.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor]
-        ]];
-        [expandedViewController didMoveToParentViewController:self];
-    } @catch (NSException *exception) {
-        self.connectivityExpandedViewController = nil;
-    }
+    self.connectivityExpandedViewController = nil;
 }
 
 - (BOOL)shouldBeginTransitionToExpandedContentModule {
@@ -491,7 +453,7 @@ static NSArray<NSString *> *AKRAllToggleNames(AkaraConnectivityModuleContentView
 }
 
 - (void)controlCenterWillPresent {
-    if (AKRPreferenceBool(@[@"akaraScrollBackToFirstConnectivityPage", @"scrollBackToFirstConnectivityPage", @"resetConnectivityPageWhenOpened"], NO)) {
+    if (AKRLocalPreferenceBool(@[@"akaraScrollBackToFirstConnectivityPage", @"scrollBackToFirstConnectivityPage", @"resetConnectivityPageWhenOpened"], NO)) {
         [self scrollBackToFirstPage];
     }
     [self updateNotExpandedConnectivityButtons];
@@ -583,32 +545,6 @@ static NSArray<NSString *> *AKRAllToggleNames(AkaraConnectivityModuleContentView
 }
 
 - (void)setupButton:(NSString *)buttonName {
-    AKRSystemConnectivityBundle();
-    NSString *className = AKRControllerClassNameForToggle(buttonName);
-    Class buttonClass = NSClassFromString(className);
-    if (buttonClass) {
-        @try {
-            UIViewController *buttonViewController = [[buttonClass alloc] init];
-            if ([buttonViewController isKindOfClass:UIViewController.class]) {
-                self.ccButtonVC = (CCUIConnectivityButtonViewController *)buttonViewController;
-                UIView *nativeView = buttonViewController.view;
-                nativeView.translatesAutoresizingMaskIntoConstraints = NO;
-                [self addChildViewController:buttonViewController];
-                [self.view addSubview:nativeView];
-                [NSLayoutConstraint activateConstraints:@[
-                    [nativeView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
-                    [nativeView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
-                    [nativeView.topAnchor constraintEqualToAnchor:self.view.topAnchor],
-                    [nativeView.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor]
-                ]];
-                [buttonViewController didMoveToParentViewController:self];
-                return;
-            }
-        } @catch (NSException *exception) {
-            self.ccButtonVC = nil;
-        }
-    }
-
     [self setupRoundButtonView];
 }
 
@@ -663,7 +599,7 @@ static NSArray<NSString *> *AKRAllToggleNames(AkaraConnectivityModuleContentView
 }
 
 - (BOOL)useNativeConnectivityLabels {
-    return AKRPreferenceBool(@[@"akaraUseNativeConnectivityLabels", @"useNativeConnectivityLabels", @"useNativeConnectivityLabelNames", @"nativeConnectivityLabels"], YES);
+    return AKRLocalPreferenceBool(@[@"akaraUseNativeConnectivityLabels", @"useNativeConnectivityLabels", @"useNativeConnectivityLabelNames", @"nativeConnectivityLabels"], YES);
 }
 
 @end
@@ -829,7 +765,7 @@ static NSArray<NSString *> *AKRAllToggleNames(AkaraConnectivityModuleContentView
 }
 
 - (BOOL)useNativeConnectivityLabels {
-    return AKRPreferenceBool(@[@"akaraUseNativeConnectivityLabels", @"useNativeConnectivityLabels", @"useNativeConnectivityLabelNames", @"nativeConnectivityLabels"], YES);
+    return AKRLocalPreferenceBool(@[@"akaraUseNativeConnectivityLabels", @"useNativeConnectivityLabels", @"useNativeConnectivityLabelNames", @"nativeConnectivityLabels"], YES);
 }
 
 @end

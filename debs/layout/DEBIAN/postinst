@@ -1,25 +1,37 @@
 #!/bin/sh
 
+set -e
+
 echo 'Moving Akara files...'
 
 if [ -d /var/jb ]; then
-    echo 'Rootless mode detected, moving files from /var/jb...'
-
-    chown -R 501:501 /var/jb/Library/Application\ Support/Akara
-    chmod -R 00755 /var/jb/Library/Application\ Support/Akara
-    mkdir -p /var/jb/var/mobile/Library/ControlCenter /var/jb/var/mobile/Library/Preferences
-    [ -f /var/jb/var/mobile/Library/ControlCenter/ModuleConfiguration_Akara.plist ] || cp /var/jb/Library/Application\ Support/Akara/ModuleConfiguration_Akara.plist /var/jb/var/mobile/Library/ControlCenter/
-    [ -f /var/jb/var/mobile/Library/Preferences/com.huayuarc.akara.providedakaramodule.0.plist ] || cp /var/jb/Library/Application\ Support/Akara/com.huayuarc.akara.providedakaramodule.0.plist /var/jb/var/mobile/Library/Preferences/
-    [ -f /var/jb/var/mobile/Library/Preferences/com.huayuarc.akara.providedakaramodule.1.plist ] || cp /var/jb/Library/Application\ Support/Akara/com.huayuarc.akara.providedakaramodule.1.plist /var/jb/var/mobile/Library/Preferences/
-    [ -f /var/jb/var/mobile/Library/Preferences/com.huayuarc.akara.providedakaraverticalmodule.0.plist ] || cp /var/jb/Library/Application\ Support/Akara/com.huayuarc.akara.providedakaraverticalmodule.0.plist /var/jb/var/mobile/Library/Preferences/
+    PREFIX=/var/jb
+    MOBILE_ROOT=/var/jb/var/mobile
 else
-    echo 'Rootful mode detected, moving files from /Library/...'
+    PREFIX=
+    MOBILE_ROOT=/var/mobile
+fi
 
-    chown -R 501:501 /Library/Application\ Support/Akara
-    chmod -R 00755 /Library/Application\ Support/Akara
-    mkdir -p /var/mobile/Library/ControlCenter /var/mobile/Library/Preferences
-    [ -f /var/mobile/Library/ControlCenter/ModuleConfiguration_Akara.plist ] || cp /Library/Application\ Support/Akara/ModuleConfiguration_Akara.plist /var/mobile/Library/ControlCenter/
-    [ -f /var/mobile/Library/Preferences/com.huayuarc.akara.providedakaramodule.0.plist ] || cp /Library/Application\ Support/Akara/com.huayuarc.akara.providedakaramodule.0.plist /var/mobile/Library/Preferences/
-    [ -f /var/mobile/Library/Preferences/com.huayuarc.akara.providedakaramodule.1.plist ] || cp /Library/Application\ Support/Akara/com.huayuarc.akara.providedakaramodule.1.plist /var/mobile/Library/Preferences/
-    [ -f /var/mobile/Library/Preferences/com.huayuarc.akara.providedakaraverticalmodule.0.plist ] || cp /Library/Application\ Support/Akara/com.huayuarc.akara.providedakaraverticalmodule.0.plist /var/mobile/Library/Preferences/
+SUPPORT_DIR="$PREFIX/Library/Application Support/Akara"
+CC_DIR="$MOBILE_ROOT/Library/ControlCenter"
+PREF_DIR="$MOBILE_ROOT/Library/Preferences"
+
+chown -R 501:501 "$SUPPORT_DIR" 2>/dev/null || true
+chmod -R 0755 "$SUPPORT_DIR" 2>/dev/null || true
+mkdir -p "$CC_DIR" "$PREF_DIR"
+
+if [ ! -f "$CC_DIR/ModuleConfiguration_Akara.plist" ] || ! grep -q 'com.huayuarc.akara.connectivitymodule' "$CC_DIR/ModuleConfiguration_Akara.plist" 2>/dev/null; then
+    cp "$SUPPORT_DIR/ModuleConfiguration_Akara.plist" "$CC_DIR/"
+fi
+
+for name in \
+    com.huayuarc.akara.providedakaramodule.0 \
+    com.huayuarc.akara.providedakaramodule.1 \
+    com.huayuarc.akara.providedakaraverticalmodule.0
+ do
+    [ -f "$PREF_DIR/$name.plist" ] || cp "$SUPPORT_DIR/$name.plist" "$PREF_DIR/" 2>/dev/null || true
+ done
+
+if command -v sbreload >/dev/null 2>&1; then
+    sbreload >/dev/null 2>&1 || true
 fi
