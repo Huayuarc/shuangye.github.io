@@ -327,6 +327,12 @@
 			<string>Theming.plist</string>
 			<key>isController</key>
 			<true/>
+			<key>cellClass</key>
+			<string>GcColorPicker</string>
+			<key>default</key>
+			<string>262626CC</string>
+			<key>key</key>
+			<string>mainBackgroundColor</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -347,10 +353,14 @@
 			<string>com.huayuarc.jadeprefs</string>
 			<key>label</key>
 			<string>Grabber Background Color</string>
-			<key>detail</key>
-			<string>IndicatorsTheming.plist</string>
 			<key>isController</key>
 			<true/>
+			<key>cellClass</key>
+			<string>GcColorPicker</string>
+			<key>default</key>
+			<string>B3B3B3CC</string>
+			<key>key</key>
+			<string>grabberBackgroundColor</string>
 		</dict>
 		<dict>
 			<key>cell</key>

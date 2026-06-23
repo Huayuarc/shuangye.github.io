@@ -20,7 +20,6 @@
 
 // Preferences
 static NSString *const kJadePrefsSuite = @"com.huayuarc.jadeprefs";
-static NSString *const kJadeModulesPrefsSuite = @"com.huayuarc.jade.modules";
 static NSString *const kJadeSmallModulesKey = @"smallModules";
 static NSString *const kJadeMainModulesKey = @"mainModules";
 
@@ -162,7 +161,7 @@ static id JadeModuleForIdentifier(id repository, SEL selector, NSString *identif
         }
 
         // Initialize module identifiers from preferences
-        NSUserDefaults *modulesPrefs = [[NSUserDefaults alloc] initWithSuiteName:kJadeModulesPrefsSuite];
+        NSUserDefaults *modulesPrefs = [[NSUserDefaults alloc] initWithSuiteName:kJadePrefsSuite];
         NSArray *smallIDs = [modulesPrefs arrayForKey:kJadeSmallModulesKey];
         NSArray *mainIDs = [modulesPrefs arrayForKey:kJadeMainModulesKey];
         if (smallIDs) _smallModulesID = [smallIDs copy];
@@ -339,39 +338,53 @@ static id JadeModuleForIdentifier(id repository, SEL selector, NSString *identif
         [arrangedView removeFromSuperview];
     }
 
-    // Add modules in order
-    // 1. Time Pill
-    [stackView addArrangedSubview:_timePill];
+    NSUserDefaults *prefs = [[NSUserDefaults alloc] initWithSuiteName:kJadePrefsSuite];
+    BOOL showTimeWidget = [prefs objectForKey:@"showTimeWidget"] ? [prefs boolForKey:@"showTimeWidget"] : YES;
+    BOOL showBatteryWidget = [prefs objectForKey:@"showBatteryWidget"] ? [prefs boolForKey:@"showBatteryWidget"] : YES;
 
-    // 2. Battery Pill
-    [stackView addArrangedSubview:_batteryPill];
+    if (showTimeWidget) {
+        [stackView addArrangedSubview:_timePill];
+    }
 
-    // 3. Connectivity Module
-    [stackView addArrangedSubview:_connectivityModule];
+    if (showBatteryWidget) {
+        [stackView addArrangedSubview:_batteryPill];
+    }
 
-    // 4. Sliders (Brightness & Sound) Module
-    [stackView addArrangedSubview:_brightnessAndSoundModule];
+    NSArray<NSString *> *defaultModules = @[
+        @"connectivity",
+        @"brightness_slider",
+        @"volume_slider",
+        @"favorite_toggles",
+        @"weather",
+        @"battery",
+        @"uptime",
+        @"power",
+        @"media",
+    ];
+    NSArray<NSString *> *includedModuleIDs = [prefs arrayForKey:@"includedModules"] ?: defaultModules;
 
-    // 5. Small Caddy (Favorite Modules)
-    [stackView addArrangedSubview:_smallCaddy];
+    NSDictionary<NSString *, UIView *> *moduleMap = @{
+        @"connectivity": _connectivityModule,
+        @"sliders": _brightnessAndSoundModule,
+        @"brightness_slider": _brightnessAndSoundModule,
+        @"volume_slider": _brightnessAndSoundModule,
+        @"favorite_toggles": _smallCaddy,
+        @"main_modules": _mainCaddy,
+        @"weather": _weatherModule,
+        @"battery": _batteryModule,
+        @"uptime": _currentUptimeModule,
+        @"power": _powerModule,
+        @"media": mediaModule,
+    };
 
-    // 6. Main Caddy (Main Modules)
-    [stackView addArrangedSubview:_mainCaddy];
-
-    // 7. Weather Module
-    [stackView addArrangedSubview:_weatherModule];
-
-    // 8. Battery Module
-    [stackView addArrangedSubview:_batteryModule];
-
-    // 9. Current Uptime Module
-    [stackView addArrangedSubview:_currentUptimeModule];
-
-    // 10. Power Module
-    [stackView addArrangedSubview:_powerModule];
-
-    // 11. Media Module
-    [stackView addArrangedSubview:mediaModule];
+    NSMutableSet<UIView *> *addedModules = [NSMutableSet set];
+    for (NSString *identifier in includedModuleIDs) {
+        UIView *module = moduleMap[identifier];
+        if (module && ![addedModules containsObject:module]) {
+            [stackView addArrangedSubview:module];
+            [addedModules addObject:module];
+        }
+    }
 }
 
 #pragma mark - Layout & Constraints
@@ -445,6 +458,29 @@ static id JadeModuleForIdentifier(id repository, SEL selector, NSString *identif
 #pragma mark - Appearance
 
 - (void)updateCardAppearance {
+    NSUserDefaults *prefs = [[NSUserDefaults alloc] initWithSuiteName:kJadePrefsSuite];
+    NSString *mainBackgroundColor = [prefs stringForKey:@"mainBackgroundColor"];
+    UIColor *configuredBackgroundColor = [self _colorFromHexString:mainBackgroundColor];
+    if (configuredBackgroundColor) {
+        _cardBackgroundColor = configuredBackgroundColor;
+    }
+
+    CGFloat backgroundOpacity = [prefs objectForKey:@"backgroundOpacity"] ? [prefs floatForKey:@"backgroundOpacity"] : 0.8;
+    _cardBackgroundColor = [_cardBackgroundColor colorWithAlphaComponent:MAX(0.0, MIN(1.0, backgroundOpacity))];
+
+    CGFloat cornerRadius = [prefs objectForKey:@"cornerRadius"] ? [prefs floatForKey:@"cornerRadius"] : _cardCornerRadius;
+    if (cornerRadius >= 0.0) {
+        _cardCornerRadius = cornerRadius;
+    }
+
+    NSString *moduleTintColor = [prefs stringForKey:@"moduleTintColor"];
+    UIColor *configuredTintColor = [self _colorFromHexString:moduleTintColor];
+    if (configuredTintColor) {
+        _tintColor = configuredTintColor;
+    }
+
+    _grabber.hidden = [prefs boolForKey:@"hideGrabber"];
+
     // Update module tint colors
     UIColor *tint = _tintColor ?: [UIColor whiteColor];
 
@@ -644,7 +680,7 @@ static id JadeModuleForIdentifier(id repository, SEL selector, NSString *identif
 #pragma mark - Module Loading & Configuration
 
 - (void)reloadModules {
-    NSUserDefaults *modulesPrefs = [[NSUserDefaults alloc] initWithSuiteName:kJadeModulesPrefsSuite];
+    NSUserDefaults *modulesPrefs = [[NSUserDefaults alloc] initWithSuiteName:kJadePrefsSuite];
     NSArray *smallIDs = [modulesPrefs arrayForKey:kJadeSmallModulesKey];
     NSArray *mainIDs = [modulesPrefs arrayForKey:kJadeMainModulesKey];
 
@@ -788,10 +824,12 @@ static id JadeModuleForIdentifier(id repository, SEL selector, NSString *identif
     }
 
     // Slider settings
-    BOOL showSliderLabels = [prefs boolForKey:@"showSliderLabels"];
-    _brightnessAndSoundModule.showsLabels = showSliderLabels;
-    _brightnessAndSoundModule.brightnessSliderEnabled = [prefs boolForKey:@"brightnessSliderEnabled"];
-    _brightnessAndSoundModule.volumeSliderEnabled = [prefs boolForKey:@"volumeSliderEnabled"];
+    id showSliderLabels = [prefs objectForKey:@"showSliderLabels"];
+    _brightnessAndSoundModule.showsLabels = showSliderLabels ? [showSliderLabels boolValue] : YES;
+    id brightnessSliderEnabled = [prefs objectForKey:@"BRIGHTNESS"];
+    id volumeSliderEnabled = [prefs objectForKey:@"VOLUME"];
+    _brightnessAndSoundModule.brightnessSliderEnabled = brightnessSliderEnabled ? [brightnessSliderEnabled boolValue] : YES;
+    _brightnessAndSoundModule.volumeSliderEnabled = volumeSliderEnabled ? [volumeSliderEnabled boolValue] : YES;
 
     // Connectivity labels
     _connectivityModule.showsLabels = [prefs boolForKey:@"showConnectivityLabels"];
@@ -800,15 +838,46 @@ static id JadeModuleForIdentifier(id repository, SEL selector, NSString *identif
     _powerModule.showsConfirmationDialogs = [prefs boolForKey:@"showPowerConfirmation"];
 
     // Card settings
-    CGFloat cornerRadius = [prefs floatForKey:@"cardCornerRadius"];
-    if (cornerRadius > 0) {
+    CGFloat cornerRadius = [prefs objectForKey:@"cornerRadius"] ? [prefs floatForKey:@"cornerRadius"] : [prefs floatForKey:@"cardCornerRadius"];
+    if (cornerRadius >= 0) {
         _cardCornerRadius = cornerRadius;
     }
 
     // Time pill settings
-    _timePill.showsDate = [prefs boolForKey:@"timePillShowsDate"];
-    _timePill.showsSeconds = [prefs boolForKey:@"timePillShowsSeconds"];
-    _timePill.is24HourFormat = [prefs boolForKey:@"timePill24HourFormat"];
+    _timePill.showsDate = [prefs objectForKey:@"showsDate"] ? [prefs boolForKey:@"showsDate"] : [prefs boolForKey:@"timePillShowsDate"];
+    _timePill.showsSeconds = [prefs objectForKey:@"showsSeconds"] ? [prefs boolForKey:@"showsSeconds"] : [prefs boolForKey:@"timePillShowsSeconds"];
+    _timePill.is24HourFormat = [prefs objectForKey:@"is24HourFormat"] ? [prefs boolForKey:@"is24HourFormat"] : [prefs boolForKey:@"timePill24HourFormat"];
+}
+
+- (UIColor *)_colorFromHexString:(NSString *)hexString {
+    if (!hexString || hexString.length == 0) return nil;
+    NSString *cleanString = [hexString stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    if ([cleanString hasPrefix:@"#"]) cleanString = [cleanString substringFromIndex:1];
+    if ([cleanString hasPrefix:@"0x"]) cleanString = [cleanString substringFromIndex:2];
+
+    NSUInteger length = cleanString.length;
+    if (length != 6 && length != 8) return nil;
+
+    unsigned long long hexValue = 0;
+    NSScanner *scanner = [NSScanner scannerWithString:cleanString];
+    if (![scanner scanHexLongLong:&hexValue]) return nil;
+
+    CGFloat red = 0.0;
+    CGFloat green = 0.0;
+    CGFloat blue = 0.0;
+    CGFloat alpha = 1.0;
+    if (length == 8) {
+        red = ((hexValue & 0xFF000000) >> 24) / 255.0;
+        green = ((hexValue & 0x00FF0000) >> 16) / 255.0;
+        blue = ((hexValue & 0x0000FF00) >> 8) / 255.0;
+        alpha = (hexValue & 0x000000FF) / 255.0;
+    } else {
+        red = ((hexValue & 0xFF0000) >> 16) / 255.0;
+        green = ((hexValue & 0x00FF00) >> 8) / 255.0;
+        blue = (hexValue & 0x0000FF) / 255.0;
+    }
+
+    return [UIColor colorWithRed:red green:green blue:blue alpha:alpha];
 }
 
 #pragma mark - UIScrollViewDelegate

@@ -2,6 +2,7 @@
 // Individual power action button for Shutdown, Restart, Respring, Safe Mode, and Lock
 
 #import "JadePowerModuleButton.h"
+#import "JadeLocalization.h"
 
 @interface JadePowerModuleButton ()
 @property (nonatomic, strong) UIView *backgroundView;
@@ -172,17 +173,17 @@
 - (NSString *)actionTitle {
     switch (self.actionType) {
         case JadePowerActionTypeShutdown:
-            return NSLocalizedString(@"SHUTDOWN", nil);
+            return JadeLocalizedString(@"SHUTDOWN");
         case JadePowerActionTypeRestart:
-            return NSLocalizedString(@"REBOOT", nil);
+            return JadeLocalizedString(@"REBOOT");
         case JadePowerActionTypeRespring:
-            return NSLocalizedString(@"RESPRING", nil);
+            return JadeLocalizedString(@"RESPRING");
         case JadePowerActionTypeSafeMode:
-            return NSLocalizedString(@"SAFE_MODE", nil);
+            return JadeLocalizedString(@"SAFE_MODE");
         case JadePowerActionTypeLockDevice:
-            return NSLocalizedString(@"LOCK", nil);
+            return JadeLocalizedString(@"LOCK");
         case JadePowerActionTypeExit:
-            return NSLocalizedString(@"EXIT", nil);
+            return JadeLocalizedString(@"EXIT");
     }
 }
 

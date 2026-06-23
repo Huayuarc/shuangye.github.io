@@ -12,6 +12,7 @@ JadePrefs_RESOURCE_FILES = Root.plist Interface.plist Theming.plist ModuleConfig
                            SlidersTheming.plist MediaTheming.plist PowerTheming.plist \
                            StockModulesTheming.plist CustomModulesTheming.plist \
                            IndicatorsTheming.plist WeatherTheming.plist UptimeTheming.plist \
+                           zh-Hans.lproj zh_Hans.lproj \
                            ../icon@3.png ../bigicon.png
 JadePrefs_FRAMEWORKS = UIKit Foundation
 

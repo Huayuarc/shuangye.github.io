@@ -50,9 +50,11 @@
 #pragma mark - Preferences
 
 - (void)updateSliderEnabledStates {
-    NSUserDefaults *slidersPrefs = [[NSUserDefaults alloc] initWithSuiteName:@"com.huayuarc.jade.sliders"];
-    _brightnessSliderEnabled = [slidersPrefs boolForKey:@"BRIGHTNESS"];
-    _volumeSliderEnabled = [slidersPrefs boolForKey:@"VOLUME"];
+    NSUserDefaults *slidersPrefs = [[NSUserDefaults alloc] initWithSuiteName:@"com.huayuarc.jadeprefs"];
+    id brightnessValue = [slidersPrefs objectForKey:@"BRIGHTNESS"];
+    id volumeValue = [slidersPrefs objectForKey:@"VOLUME"];
+    _brightnessSliderEnabled = brightnessValue ? [brightnessValue boolValue] : YES;
+    _volumeSliderEnabled = volumeValue ? [volumeValue boolValue] : YES;
 
     _brightnessSlider.hidden = !_brightnessSliderEnabled;
     _brightnessLabel.hidden = !_brightnessSliderEnabled || !_showsLabels;

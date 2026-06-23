@@ -2,6 +2,7 @@
 // Tweak.x - Main hooking entry point
 
 #import <UIKit/UIKit.h>
+#import <dlfcn.h>
 #import "JadeMainViewController.h"
 #import "JadeCardViewController.h"
 #import "JadeWeatherHandler.h"
@@ -26,16 +27,138 @@
 
 // Preferences
 static NSUserDefaults *prefs;
-static NSUserDefaults *connectivityPrefs;
-static NSUserDefaults *slidersPrefs;
-static NSUserDefaults *powerPrefs;
-static NSUserDefaults *homeGesturePrefs;
-static NSUserDefaults *modulesPrefs;
+static UIWindow *jadeWindow;
 
 static JadeCardViewController *jadeCardViewController;
 static JadeMainViewController *jadeMainViewController;
 static BOOL isHomeGestureDismissalAllowed = YES;
 static BOOL isHomeGestureEnabled = NO;
+static BOOL tweakEnabled = YES;
+
+static BOOL JadePreferenceBool(NSString *key, BOOL defaultValue) {
+    id value = [prefs objectForKey:key];
+    return value ? [value boolValue] : defaultValue;
+}
+
+static UIWindow *JadeActiveWindow(void) {
+    if (@available(iOS 13.0, *)) {
+        UIWindow *fallbackWindow = nil;
+        for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+            if (![scene isKindOfClass:[UIWindowScene class]]) continue;
+            if (scene.activationState != UISceneActivationStateForegroundActive &&
+                scene.activationState != UISceneActivationStateForegroundInactive) continue;
+
+            UIWindowScene *windowScene = (UIWindowScene *)scene;
+            for (UIWindow *window in windowScene.windows) {
+                if (!fallbackWindow) fallbackWindow = window;
+                if (window.isKeyWindow) return window;
+            }
+        }
+        return fallbackWindow;
+    }
+
+    NSArray *windows = nil;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+    if ([UIApplication.sharedApplication respondsToSelector:@selector(windows)]) {
+        windows = [UIApplication.sharedApplication performSelector:@selector(windows)];
+    }
+#pragma clang diagnostic pop
+    for (UIWindow *window in windows) {
+        if (window.isKeyWindow) return window;
+    }
+    return windows.firstObject;
+}
+
+static void JadeLoadPrefs(void) {
+    [prefs synchronize];
+    tweakEnabled = JadePreferenceBool(@"tweakEnabled", YES);
+    isHomeGestureEnabled = JadePreferenceBool(@"homeGestureEnabled", NO);
+    isHomeGestureDismissalAllowed = JadePreferenceBool(@"isHomeGestureDismissalAllowed", YES);
+}
+
+static void JadeDismissOverlay(BOOL animated) {
+    if (!jadeMainViewController || !jadeWindow) return;
+
+    [jadeMainViewController dismissAnimated:animated completion:^{
+        jadeWindow.hidden = YES;
+        jadeWindow.rootViewController = nil;
+        jadeWindow = nil;
+    }];
+}
+
+static void JadePrefsChanged(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
+    JadeLoadPrefs();
+    if (!tweakEnabled) {
+        JadeDismissOverlay(NO);
+    }
+}
+
+static void JadePresentOverlay(BOOL animated) {
+    JadeLoadPrefs();
+    if (!tweakEnabled) return;
+
+    if (!jadeCardViewController) {
+        jadeCardViewController = [[JadeCardViewController alloc] init];
+    }
+
+    if (!jadeMainViewController) {
+        jadeMainViewController = [[JadeMainViewController alloc] initWithCardViewController:jadeCardViewController];
+    }
+
+    UIWindow *activeWindow = JadeActiveWindow();
+    if (!activeWindow) return;
+
+    if (!jadeWindow) {
+        if (@available(iOS 13.0, *)) {
+            if (activeWindow.windowScene) {
+                jadeWindow = [[UIWindow alloc] initWithWindowScene:activeWindow.windowScene];
+            }
+        }
+
+        if (!jadeWindow) {
+            jadeWindow = [[UIWindow alloc] initWithFrame:UIScreen.mainScreen.bounds];
+        }
+
+        jadeWindow.windowLevel = UIWindowLevelStatusBar + 1000.0;
+        jadeWindow.backgroundColor = UIColor.clearColor;
+        jadeWindow.hidden = NO;
+        jadeWindow.rootViewController = jadeMainViewController;
+    }
+
+    jadeWindow.frame = UIScreen.mainScreen.bounds;
+    jadeMainViewController.view.frame = jadeWindow.bounds;
+    jadeMainViewController.view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+
+    jadeCardViewController.isPresented = YES;
+    [jadeCardViewController reloadModules];
+    [jadeCardViewController reloadButtons];
+    [jadeMainViewController presentAnimated:animated completion:nil];
+}
+
+static void JadeLoadPrivateFrameworks(void) {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        const char *frameworkPaths[] = {
+            "/System/Library/PrivateFrameworks/MediaRemote.framework/MediaRemote",
+            "/System/Library/PrivateFrameworks/MediaControls.framework/MediaControls",
+            "/System/Library/PrivateFrameworks/BatteryCenter.framework/BatteryCenter",
+            "/System/Library/PrivateFrameworks/Weather.framework/Weather",
+            "/System/Library/PrivateFrameworks/BluetoothManager.framework/BluetoothManager",
+            "/System/Library/PrivateFrameworks/FrontBoard.framework/FrontBoard",
+            "/System/Library/PrivateFrameworks/ManagedConfiguration.framework/ManagedConfiguration",
+            "/System/Library/PrivateFrameworks/SharingUI.framework/SharingUI",
+            "/System/Library/PrivateFrameworks/ControlCenterUIKit.framework/ControlCenterUIKit",
+            "/System/Library/PrivateFrameworks/MaterialKit.framework/MaterialKit",
+            "/System/Library/PrivateFrameworks/ControlCenterServices.framework/ControlCenterServices",
+        };
+
+        size_t frameworkCount = sizeof(frameworkPaths) / sizeof(frameworkPaths[0]);
+        for (size_t index = 0; index < frameworkCount; index++) {
+            dlopen(frameworkPaths[index], RTLD_LAZY);
+        }
+    });
+}
 
 // Forward declarations
 @interface JadeCardViewController (Private)
@@ -53,21 +176,14 @@ static BOOL isHomeGestureEnabled = NO;
 
 - (void)presentAnimated:(BOOL)animated withCompletionHandler:(id)completion {
     %orig;
-    // Our custom UI is layered on top
-    if (!jadeCardViewController) {
-        jadeCardViewController = [[JadeCardViewController alloc] init];
-    }
-    jadeCardViewController.isPresented = YES;
-    if (jadeCardViewController) {
-        [jadeCardViewController reloadModules];
-        [jadeCardViewController reloadButtons];
-    }
+    JadePresentOverlay(animated);
 }
 
 - (void)dismissAnimated:(BOOL)animated withCompletionHandler:(id)completion {
     %orig;
     jadeCardViewController.isPresented = NO;
     [jadeCardViewController closeModules];
+    JadeDismissOverlay(animated);
 }
 
 %end
@@ -113,7 +229,8 @@ static BOOL isHomeGestureEnabled = NO;
 %hook SBFluidSwitcherGestureManager
 
 - (BOOL)allowHorizontalSwipesOutsideTrapezoid {
-    return YES;
+    if (isHomeGestureEnabled) return YES;
+    return %orig;
 }
 
 %end
@@ -131,15 +248,17 @@ static BOOL isHomeGestureEnabled = NO;
 // Initialize preferences
 %ctor {
     @autoreleasepool {
-        prefs = [[NSUserDefaults alloc] initWithSuiteName:@"com.huayuarc.jadeprefs"];
-        connectivityPrefs = [[NSUserDefaults alloc] initWithSuiteName:@"com.huayuarc.jade.connectivity"];
-        slidersPrefs = [[NSUserDefaults alloc] initWithSuiteName:@"com.huayuarc.jade.sliders"];
-        powerPrefs = [[NSUserDefaults alloc] initWithSuiteName:@"com.huayuarc.jade.power"];
-        homeGesturePrefs = [[NSUserDefaults alloc] initWithSuiteName:@"com.huayuarc.jade.homegesture"];
-        modulesPrefs = [[NSUserDefaults alloc] initWithSuiteName:@"com.huayuarc.jade.modules"];
+        JadeLoadPrivateFrameworks();
 
-        isHomeGestureEnabled = [prefs boolForKey:@"homeGestureEnabled"];
-        isHomeGestureDismissalAllowed = [prefs boolForKey:@"isHomeGestureDismissalAllowed"];
+        prefs = [[NSUserDefaults alloc] initWithSuiteName:@"com.huayuarc.jadeprefs"];
+        JadeLoadPrefs();
+
+        CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
+                                        NULL,
+                                        JadePrefsChanged,
+                                        CFSTR("com.huayuarc.jadeprefs/ReloadPrefs"),
+                                        NULL,
+                                        CFNotificationSuspensionBehaviorDeliverImmediately);
 
         NSLog(@"[Nightwind] -> Jade loaded successfully");
     }

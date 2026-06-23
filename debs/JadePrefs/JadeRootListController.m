@@ -13,6 +13,7 @@ extern char **environ;
 - (void)killAll;
 - (void)openTwitter;
 - (void)openGithub;
+- (void)setPreferenceValue:(id)value specifier:(PSSpecifier *)specifier;
 @end
 
 @implementation JadeRootListController
@@ -26,19 +27,33 @@ extern char **environ;
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Respring"
+    NSString *respringTitle = [[NSBundle bundleForClass:self.class] localizedStringForKey:@"Respring" value:@"注销" table:nil];
+    self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:respringTitle
                                                                               style:UIBarButtonItemStylePlain
                                                                              target:self
                                                                              action:@selector(respring)];
 }
 
+- (NSString *)localizedString:(NSString *)key fallback:(NSString *)fallback {
+    return [[NSBundle bundleForClass:self.class] localizedStringForKey:key value:fallback table:nil];
+}
+
+- (void)setPreferenceValue:(id)value specifier:(PSSpecifier *)specifier {
+    [super setPreferenceValue:value specifier:specifier];
+    CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(),
+                                         CFSTR("com.huayuarc.jadeprefs/ReloadPrefs"),
+                                         NULL,
+                                         NULL,
+                                         YES);
+}
+
 - (void)respring {
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Respring"
-                                                                   message:@"Are you sure you want to respring?"
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:[self localizedString:@"Respring" fallback:@"注销"]
+                                                                   message:[self localizedString:@"Are you sure you want to respring?" fallback:@"确定要注销吗？"]
                                                             preferredStyle:UIAlertControllerStyleAlert];
 
-    [alert addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
-    [alert addAction:[UIAlertAction actionWithTitle:@"Respring" style:UIAlertActionStyleDestructive handler:^(UIAlertAction *action) {
+    [alert addAction:[UIAlertAction actionWithTitle:[self localizedString:@"Cancel" fallback:@"取消"] style:UIAlertActionStyleCancel handler:nil]];
+    [alert addAction:[UIAlertAction actionWithTitle:[self localizedString:@"Respring" fallback:@"注销"] style:UIAlertActionStyleDestructive handler:^(UIAlertAction *action) {
         pid_t pid = 0;
         const char *killallPath = "/var/jb/usr/bin/killall";
         char *killallArgs[] = {"killall", "SpringBoard", NULL};

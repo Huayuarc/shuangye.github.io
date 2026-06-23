@@ -27,7 +27,7 @@ static UIInterfaceOrientation JadeCurrentInterfaceOrientation(void) {
     return UIInterfaceOrientationPortrait;
 }
 
-@interface JadeMainViewController () <UIScrollViewDelegate>
+@interface JadeMainViewController () <UIScrollViewDelegate, UIGestureRecognizerDelegate>
 
 @property (nonatomic, strong) UIPanGestureRecognizer *panGestureRecognizer;
 @property (nonatomic, strong) UIButton *dismissButton;
@@ -79,6 +79,7 @@ static UIInterfaceOrientation JadeCurrentInterfaceOrientation(void) {
     // Add tap-to-dismiss gesture
     UITapGestureRecognizer *tapGesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(singleTap)];
     tapGesture.numberOfTapsRequired = 1;
+    tapGesture.delegate = self;
     [view addGestureRecognizer:tapGesture];
 
     // Add blur effect
@@ -104,8 +105,6 @@ static UIInterfaceOrientation JadeCurrentInterfaceOrientation(void) {
 
     if (_cardViewController) {
         [self addChildViewController:_cardViewController];
-        _cardViewController.view.frame = self.contentContainer.bounds;
-        _cardViewController.view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
         [self.contentContainer addSubview:_cardViewController.view];
         [_cardViewController didMoveToParentViewController:self];
     }
@@ -153,10 +152,36 @@ static UIInterfaceOrientation JadeCurrentInterfaceOrientation(void) {
         offset = _portraitPresentationOffset;
     }
 
-    // Adjust card position based on offset
-    CGRect cardFrame = _cardViewController.view.frame;
-    cardFrame.origin.y = offset;
-    _cardViewController.view.frame = cardFrame;
+    CGRect bounds = self.contentContainer.bounds;
+    if (CGRectIsEmpty(bounds)) {
+        bounds = UIScreen.mainScreen.bounds;
+    }
+
+    CGFloat width = floor(CGRectGetWidth(bounds) * 0.85);
+    CGFloat height = floor(CGRectGetHeight(bounds) * 0.65);
+    if (UIInterfaceOrientationIsLandscape(orientation)) {
+        width = floor(CGRectGetWidth(bounds) * 0.75);
+        height = floor(CGRectGetHeight(bounds) * 0.90);
+    }
+
+    CGRect cardFrame = CGRectMake((CGRectGetWidth(bounds) - width) / 2.0,
+                                  ((CGRectGetHeight(bounds) - height) / 2.0) + offset,
+                                  width,
+                                  height);
+    _cardViewController.view.frame = CGRectIntegral(cardFrame);
+}
+
+- (void)viewDidLayoutSubviews {
+    [super viewDidLayoutSubviews];
+    [self _updateOffsets];
+}
+
+
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldReceiveTouch:(UITouch *)touch {
+    if (touch.view && [touch.view isDescendantOfView:_cardViewController.view]) {
+        return NO;
+    }
+    return YES;
 }
 
 #pragma mark - Gesture Actions

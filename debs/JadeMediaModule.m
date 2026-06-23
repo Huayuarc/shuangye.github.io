@@ -3,6 +3,7 @@
 // Uses MRMediaRemote C API for now-playing info and transport controls
 
 #import "JadeMediaModule.h"
+#import "JadeLocalization.h"
 #import <MediaPlayer/MediaPlayer.h>
 #import <UIKit/UIKit.h>
 #import <dlfcn.h>
@@ -478,7 +479,7 @@ static NSString *JadeMediaRemoteStringConstant(const char *symbolName, NSString 
         self.hidden = YES;
     } else {
         self.hidden = NO;
-        self.trackTitleLabel.text = NSLocalizedString(@"No Media Playing", nil);
+        self.trackTitleLabel.text = JadeLocalizedString(@"No Media Playing");
         self.artistLabel.text = nil;
         self.artistLabel.hidden = YES;
         self.albumLabel.text = nil;

@@ -223,26 +223,14 @@
 
     // Re-add enabled buttons
     NSUserDefaults *prefs = [[NSUserDefaults alloc] initWithSuiteName:@"com.huayuarc.jadeprefs"];
-    NSDictionary *connectivityPrefs = [prefs dictionaryForKey:@"connectivity"];
-    if (!connectivityPrefs) {
-        // Default: all enabled
-        [_stackView addArrangedSubview:_wifiButton];
-        [_stackView addArrangedSubview:_bluetoothButton];
-        [_stackView addArrangedSubview:_airplaneModeButton];
-        [_stackView addArrangedSubview:_cellularButton];
-        [_stackView addArrangedSubview:_airDropButton];
-        [_stackView addArrangedSubview:_personalHotspotButton];
-        self.connectivityButtons = [NSMutableArray arrayWithArray:_allModules.allValues];
-    } else {
-        NSArray *orderedKeys = @[@"WIFI", @"BLUETOOTH", @"AIRPLANE_MODE", @"CELLULAR", @"AIRDROP", @"HOTSPOT"];
-        for (NSString *key in orderedKeys) {
-            BOOL enabled = [connectivityPrefs[key] boolValue];
-            if (enabled || !connectivityPrefs[key]) {
-                JadeConnectivityButton *button = _allModules[key];
-                if (button) {
-                    [_stackView addArrangedSubview:button];
-                    [self.connectivityButtons addObject:button];
-                }
+    NSArray *orderedKeys = @[@"WIFI", @"BLUETOOTH", @"AIRPLANE_MODE", @"CELLULAR", @"AIRDROP", @"HOTSPOT"];
+    for (NSString *key in orderedKeys) {
+        id enabledValue = [prefs objectForKey:key];
+        if (!enabledValue || [enabledValue boolValue]) {
+            JadeConnectivityButton *button = _allModules[key];
+            if (button) {
+                [_stackView addArrangedSubview:button];
+                [self.connectivityButtons addObject:button];
             }
         }
     }
@@ -521,7 +509,8 @@
     }
 
     BOOL colorGlyphsInsteadOfBackgrounds = [prefs boolForKey:@"colorConnectivityGlyphsInsteadOfBackgrounds"];
-    NSString *changeableModuleType = [prefs stringForKey:@"connectivityChangeableModuleType"];
+    NSInteger changeableModuleValue = [prefs integerForKey:@"CHANGEABLE_MODULE"];
+    NSString *changeableModuleType = @[@"WIFI", @"CELLULAR", @"AIRDROP"][(NSUInteger)MAX(0, MIN(2, changeableModuleValue))];
 
     // Apply inactive color to all buttons
     for (JadeConnectivityButton *button in self.connectivityButtons) {
@@ -658,14 +647,7 @@
 
 - (void)applyConnectivityPreferences {
     NSUserDefaults *prefs = [[NSUserDefaults alloc] initWithSuiteName:@"com.huayuarc.jadeprefs"];
-    NSDictionary *connectivityPrefs = [prefs dictionaryForKey:@"connectivity"];
 
-    if (!connectivityPrefs) {
-        // All buttons enabled by default; nothing to remove
-        return;
-    }
-
-    // Check which buttons should be hidden
     NSArray *allKeys = @[@"WIFI", @"BLUETOOTH", @"AIRPLANE_MODE", @"CELLULAR", @"AIRDROP", @"HOTSPOT"];
     NSDictionary *buttonMap = @{
         @"WIFI" : _wifiButton,
@@ -677,16 +659,11 @@
     };
 
     for (NSString *key in allKeys) {
-        NSNumber *enabledValue = connectivityPrefs[key];
-        if (enabledValue && ![enabledValue boolValue]) {
-            JadeConnectivityButton *button = buttonMap[key];
-            [button setEnabled:NO animated:NO];
-            button.hidden = YES;
-        } else {
-            JadeConnectivityButton *button = buttonMap[key];
-            [button setEnabled:YES animated:NO];
-            button.hidden = NO;
-        }
+        id enabledValue = [prefs objectForKey:key];
+        JadeConnectivityButton *button = buttonMap[key];
+        BOOL enabled = !enabledValue || [enabledValue boolValue];
+        [button setEnabled:enabled animated:NO];
+        button.hidden = !enabled;
     }
 }
 

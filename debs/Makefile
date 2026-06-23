@@ -8,6 +8,7 @@ include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = Jade
 Jade_FILES = Tweak.x \
+             JadeLocalization.m \
              JadeWeatherHandler.m \
              JadeMainViewController.m \
              JadeCardViewController.m \

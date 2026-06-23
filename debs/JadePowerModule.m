@@ -4,6 +4,7 @@
 #import "JadePowerModule.h"
 #import <spawn.h>
 #import <UIKit/UIKit.h>
+#import "JadeLocalization.h"
 
 @interface JadePowerModule ()
 @property (nonatomic, strong) NSUserDefaults *powerPrefs;
@@ -16,7 +17,7 @@
 - (instancetype)initWithFrame:(CGRect)frame {
     self = [super initWithFrame:frame];
     if (self) {
-        _powerPrefs = [[NSUserDefaults alloc] initWithSuiteName:@"com.huayuarc.jade.power"];
+        _powerPrefs = [[NSUserDefaults alloc] initWithSuiteName:@"com.huayuarc.jadeprefs"];
         _showsConfirmationDialogs = YES;
         _buttonsPerRow = 5;
         _isExpanded = NO;
@@ -85,12 +86,29 @@
     }
     [self.actionButtons removeAllObjects];
 
-    // Re-add default buttons
-    [self addButtonWithActionType:JadePowerActionTypeRestart];
-    [self addButtonWithActionType:JadePowerActionTypeShutdown];
-    [self addButtonWithActionType:JadePowerActionTypeRespring];
-    [self addButtonWithActionType:JadePowerActionTypeSafeMode];
-    [self addButtonWithActionType:JadePowerActionTypeLockDevice];
+    NSDictionary<NSNumber *, NSString *> *preferenceKeys = @{
+        @(JadePowerActionTypeRestart): @"REBOOT",
+        @(JadePowerActionTypeShutdown): @"SHUTDOWN",
+        @(JadePowerActionTypeRespring): @"RESPRING",
+        @(JadePowerActionTypeSafeMode): @"SAFE_MODE",
+        @(JadePowerActionTypeLockDevice): @"LOCK",
+    };
+
+    NSArray<NSNumber *> *actionOrder = @[
+        @(JadePowerActionTypeRestart),
+        @(JadePowerActionTypeShutdown),
+        @(JadePowerActionTypeRespring),
+        @(JadePowerActionTypeSafeMode),
+        @(JadePowerActionTypeLockDevice),
+    ];
+
+    for (NSNumber *actionNumber in actionOrder) {
+        NSString *preferenceKey = preferenceKeys[actionNumber];
+        id enabledValue = [self.powerPrefs objectForKey:preferenceKey];
+        if (!enabledValue || [enabledValue boolValue]) {
+            [self addButtonWithActionType:(JadePowerActionType)[actionNumber integerValue]];
+        }
+    }
 
     [self applyButtonColors];
 }
@@ -159,14 +177,14 @@
     NSString *titleKey = useUserspace ? @"USERSPACE_REBOOT_DEVICE" : @"REBOOT_DEVICE";
     NSString *messageKey = useUserspace ? @"USERSPACE_REBOOT_DEVICE_DISCLAIMER" : @"REBOOT_DEVICE_DISCLAIMER";
 
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:NSLocalizedString(titleKey, nil)
-                                                                   message:NSLocalizedString(messageKey, nil)
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:JadeLocalizedString(titleKey)
+                                                                   message:JadeLocalizedString(messageKey)
                                                             preferredStyle:UIAlertControllerStyleAlert];
 
-    UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:NSLocalizedString(@"CANCEL", nil)
+    UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:JadeLocalizedString(@"CANCEL")
                                                           style:UIAlertActionStyleCancel
                                                         handler:nil];
-    UIAlertAction *continueAction = [UIAlertAction actionWithTitle:NSLocalizedString(@"CONTINUE", nil)
+    UIAlertAction *continueAction = [UIAlertAction actionWithTitle:JadeLocalizedString(@"CONTINUE")
                                                             style:UIAlertActionStyleDestructive
                                                           handler:^(UIAlertAction *action) {
                                                               [self _executeReboot];
@@ -196,14 +214,14 @@
         return;
     }
 
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"SHUTDOWN_DEVICE", nil)
-                                                                   message:NSLocalizedString(@"SHUTDOWN_DEVICE_DISCLAIMER", nil)
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:JadeLocalizedString(@"SHUTDOWN_DEVICE")
+                                                                   message:JadeLocalizedString(@"SHUTDOWN_DEVICE_DISCLAIMER")
                                                             preferredStyle:UIAlertControllerStyleAlert];
 
-    UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:NSLocalizedString(@"CANCEL", nil)
+    UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:JadeLocalizedString(@"CANCEL")
                                                           style:UIAlertActionStyleCancel
                                                         handler:nil];
-    UIAlertAction *continueAction = [UIAlertAction actionWithTitle:NSLocalizedString(@"CONTINUE", nil)
+    UIAlertAction *continueAction = [UIAlertAction actionWithTitle:JadeLocalizedString(@"CONTINUE")
                                                             style:UIAlertActionStyleDestructive
                                                           handler:^(UIAlertAction *action) {
                                                               [self _executeShutdown];

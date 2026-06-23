@@ -2,6 +2,7 @@
 // Weather display module for the Jade control center
 
 #import "JadeWeatherModule.h"
+#import "JadeLocalization.h"
 #import "JadeWeatherHandler.h"
 
 @interface JadeWeatherModule () <JadeWeatherHandlerDelegate>
@@ -232,7 +233,7 @@
     self.weatherContentView.hidden = NO;
 
     self.temperatureLabel.text = @"--\u00B0";
-    self.conditionLabel.text = NSLocalizedString(@"Unable to load weather", nil);
+    self.conditionLabel.text = JadeLocalizedString(@"Unable to load weather");
     self.locationLabel.text = @"";
     self.highLowLabel.text = @"";
     self.conditionLabel.hidden = NO;

@@ -2,6 +2,7 @@
 // Battery module displaying battery levels of all connected devices
 
 #import "JadeBatteryModule.h"
+#import "JadeLocalization.h"
 #import "JadeBatteryDevice.h"
 #import <UIKit/UIKit.h>
 #import <dlfcn.h>
@@ -117,7 +118,7 @@ static float JadeFloatValue(id object, SEL selector, float defaultValue) {
     _noDevicesLabel.font = [UIFont systemFontOfSize:13 weight:UIFontWeightRegular];
     _noDevicesLabel.textColor = [UIColor colorWithWhite:1.0 alpha:0.4];
     _noDevicesLabel.textAlignment = NSTextAlignmentCenter;
-    _noDevicesLabel.text = NSLocalizedString(@"NO_BLUETOOTH_DEVICES_CONNECTED", @"No Bluetooth devices connected");
+    _noDevicesLabel.text = JadeLocalizedString(@"NO_BLUETOOTH_DEVICES_CONNECTED");
     _noDevicesLabel.numberOfLines = 0;
     _noDevicesLabel.hidden = YES;
     [self addSubview:_noDevicesLabel];
