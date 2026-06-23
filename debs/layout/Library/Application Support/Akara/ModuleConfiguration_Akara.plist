@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>module-identifiers</key>
+	<array>
+		<string>com.huayuarc.akara.connectivitymodule</string>
+		<string>com.huayuarc.akara.providedakaramodule.0</string>
+		<string>com.huayuarc.akara.providedakaramodule.1</string>
+		<string>com.apple.mediaremote.controlcenter.audio</string>
+		<string>com.apple.control-center.DisplayModule</string>
+		<string>com.apple.mediaremote.controlcenter.nowplaying</string>
+		<string>com.huayuarc.akara.providedakaraverticalmodule.0</string>
+	</array>
+	<key>userenabled-fixed-module-identifiers</key>
+	<array/>
+	<key>version</key>
+	<integer>1</integer>
+</dict>
+</plist>

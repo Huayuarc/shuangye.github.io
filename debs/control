@@ -1,9 +1,11 @@
-Package: com.huayuarc.cputhermal
-Name: CPUthermal
-Author: Huayuarc
-Description: 温控插件 — 注入 thermalmonitord 阻止高温降频/降亮度。双防护层：IOKit 层拦截传感器读写 + Darwin 通知广播；ObjC 层钩住 ThermalManager/ThermalControl 决策树、控制力度计算、热压力升级。所有钩子有独立开关，75°C 安全阀自动放行紧急保护。支持软化模式（减半不归零）和热配置表修改（+5°C 阈值）。
-Depends: mobilesubstrate, preferenceloader
-Maintainer: Huayuarc
+Package: com.huayuarc.akara.recon
+Name: Akara Recon
+Version: 0.2.0
+Architecture: iphoneos-arm64
+Description: Personal maintained Akara-style Control Center module with preferences.
+Maintainer: mobile
+Author: mobile
 Section: Tweaks
-Version: 1.4.0
-Architecture: iphoneos-arm
+Depends: mobilesubstrate, preferenceloader, com.opa334.ccsupport, firmware (>= 15.0)
+Conflicts: xyz.cypwn.akara, com.tr1fecta.akara, com.tr1roo.akara.recon, com.tr1roo.akaraconnectivity
+Replaces: xyz.cypwn.akara, com.tr1fecta.akara, com.tr1roo.akara.recon, com.tr1roo.akaraconnectivity
