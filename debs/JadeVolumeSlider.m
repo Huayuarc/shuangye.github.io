@@ -6,26 +6,16 @@
 #import <UIKit/UIKit.h>
 #import <MediaPlayer/MediaPlayer.h>
 #import <AudioToolbox/AudioToolbox.h>
-
-// Forward declarations for private frameworks
-@interface MPVolumeController : NSObject
-- (float)volume;
-- (void)setVolume:(float)volume;
-- (BOOL)isVolumeControlAvailable;
-@end
+#import <AVFoundation/AVFoundation.h>
 
 @interface MRUVolumeViewController : UIViewController
-- (MPVolumeController *)volumeController;
-@end
-
-@interface CCUIContentModuleContainerViewController : UIViewController
-- (MRUVolumeViewController *)expandedViewController;
+- (id)volumeController;
 @end
 
 @interface JadeVolumeSlider ()
 
 // Internal ivars from binary analysis
-@property (nonatomic, strong, nullable) CCUIContentModuleContainerViewController *moduleContainer;
+@property (nonatomic, strong, nullable) id moduleContainer;
 @property (nonatomic, strong, nullable) MRUVolumeViewController *expandedViewController;
 @property (nonatomic, strong, nullable) UIImage *icon;
 @property (nonatomic, assign, getter=isUpdatedVolume) BOOL updatedVolume;
@@ -37,7 +27,7 @@
 @property (nonatomic, strong, nullable) UIImage *volumeImage3;
 @property (nonatomic, strong, nullable) UIImage *volumeImageOff;
 
-@property (nonatomic, strong) MPVolumeController *volumeController;
+@property (nonatomic, strong) id volumeController;
 @property (nonatomic, strong) UIImpactFeedbackGenerator *hapticGenerator;
 @property (nonatomic, assign) BOOL isDragging;
 @property (nonatomic, assign) float pendingValue;
@@ -65,9 +55,15 @@
         _outputDeviceName = nil;
         _deltaTime = 0.0;
 
-        // Setup volume controller
-        _volumeController = [[MPVolumeController alloc] init];
-        _value = [_volumeController volume];
+        // Setup volume controller without requiring MediaControls private SDK headers.
+        Class volumeControllerClass = NSClassFromString(@"MPVolumeController");
+        if (volumeControllerClass) {
+            _volumeController = [[volumeControllerClass alloc] init];
+        }
+        if ([_volumeController respondsToSelector:@selector(volume)]) {
+            float (*getVolume)(id, SEL) = (float (*)(id, SEL))[_volumeController methodForSelector:@selector(volume)];
+            _value = getVolume(_volumeController, @selector(volume));
+        }
 
         // Create SF Symbol volume images
         _volumeImageOff = [UIImage systemImageNamed:@"speaker.slash.fill"];
@@ -296,9 +292,15 @@
     _value = newValue;
 
     // Check if volume control is available
-    if ([_volumeController respondsToSelector:@selector(isVolumeControlAvailable)] &&
-        [_volumeController isVolumeControlAvailable]) {
-        [_volumeController setVolume:newValue];
+    BOOL isVolumeControlAvailable = NO;
+    if ([_volumeController respondsToSelector:@selector(isVolumeControlAvailable)]) {
+        BOOL (*availability)(id, SEL) = (BOOL (*)(id, SEL))[_volumeController methodForSelector:@selector(isVolumeControlAvailable)];
+        isVolumeControlAvailable = availability(_volumeController, @selector(isVolumeControlAvailable));
+    }
+
+    if (isVolumeControlAvailable && [_volumeController respondsToSelector:@selector(setVolume:)]) {
+        void (*setVolume)(id, SEL, float) = (void (*)(id, SEL, float))[_volumeController methodForSelector:@selector(setVolume:)];
+        setVolume(_volumeController, @selector(setVolume:), newValue);
     } else {
         // Fallback: use MPVolumeView
         MPVolumeView *volumeView = [[MPVolumeView alloc] init];
@@ -364,7 +366,8 @@
     float currentVolume = 0.5f;
 
     if ([_volumeController respondsToSelector:@selector(volume)]) {
-        currentVolume = [_volumeController volume];
+        float (*getVolume)(id, SEL) = (float (*)(id, SEL))[_volumeController methodForSelector:@selector(volume)];
+        currentVolume = getVolume(_volumeController, @selector(volume));
     }
 
     _value = currentVolume;
@@ -379,7 +382,7 @@
 
 #pragma mark - Volume Controller Callbacks
 
-- (void)volumeController:(MPVolumeController *)controller volumeValueDidChange:(float)newValue silenceVolumeHUD:(BOOL)silence {
+- (void)volumeController:(id)controller volumeValueDidChange:(float)newValue silenceVolumeHUD:(BOOL)silence {
     _value = newValue;
     _slider.value = newValue;
 
@@ -394,7 +397,11 @@
 }
 
 - (void)_updateVolumeAnimated:(BOOL)animated silenceVolumeHUD:(BOOL)silence {
-    float currentVolume = [_volumeController volume];
+    float currentVolume = _value;
+    if ([_volumeController respondsToSelector:@selector(volume)]) {
+        float (*getVolume)(id, SEL) = (float (*)(id, SEL))[_volumeController methodForSelector:@selector(volume)];
+        currentVolume = getVolume(_volumeController, @selector(volume));
+    }
     _value = currentVolume;
     _slider.value = currentVolume;
 

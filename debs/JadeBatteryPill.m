@@ -4,24 +4,31 @@
 #import "JadeBatteryPill.h"
 #import <UIKit/UIKit.h>
 
-// Private class declarations
-@interface _UIBackdropView : UIView
-- (instancetype)initWithFrame:(CGRect)frame autosizesToFitSuperview:(BOOL)autosizes;
-- (instancetype)initWithFrame:(CGRect)frame privateStyle:(long long)style;
-- (instancetype)initWithPrivateStyle:(long long)style;
-- (void)setAutoScale:(BOOL)autoScale;
-- (void)setBlurRadius:(double)radius;
-- (void)transitionToStyle:(long long)style;
-@end
-
 @interface _PMLowPowerMode : NSObject
 + (id)sharedInstance;
 - (void)setPowerMode:(BOOL)powerMode fromSource:(id)source;
 @end
 
+static UIView *JadeCreateBackdropView(CGRect frame, UIColor *fallbackColor) {
+    Class backdropClass = NSClassFromString(@"_UIBackdropView");
+    SEL privateStyleSelector = NSSelectorFromString(@"initWithFrame:privateStyle:");
+    if (backdropClass && [backdropClass instancesRespondToSelector:privateStyleSelector]) {
+        id backdrop = [backdropClass alloc];
+        UIView *(*initializer)(id, SEL, CGRect, long long) = (UIView *(*)(id, SEL, CGRect, long long))[backdrop methodForSelector:privateStyleSelector];
+        UIView *backdropView = initializer(backdrop, privateStyleSelector, frame, 2020);
+        if (backdropView) return backdropView;
+    }
+
+    UIVisualEffect *effect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemMaterialDark];
+    UIVisualEffectView *blurView = [[UIVisualEffectView alloc] initWithEffect:effect];
+    blurView.frame = frame;
+    blurView.backgroundColor = fallbackColor;
+    return blurView;
+}
+
 @interface JadeBatteryPill ()
 
-@property (nonatomic, strong) _UIBackdropView *blurView;
+@property (nonatomic, strong) UIView *blurView;
 
 @end
 
@@ -73,7 +80,7 @@
     self.clipsToBounds = YES;
 
     // Blur view background
-    _blurView = [[_UIBackdropView alloc] initWithFrame:self.bounds privateStyle:2020];
+    _blurView = JadeCreateBackdropView(self.bounds, _pillBackgroundColor);
     if (_blurView) {
         _blurView.translatesAutoresizingMaskIntoConstraints = NO;
         [self addSubview:_blurView];
@@ -239,7 +246,12 @@
 
     Class lowPowerModeClass = NSClassFromString(@"_PMLowPowerMode");
     if (lowPowerModeClass) {
-        id instance = [lowPowerModeClass sharedInstance];
+        id instance = nil;
+        SEL sharedInstanceSelector = @selector(sharedInstance);
+        if ([lowPowerModeClass respondsToSelector:sharedInstanceSelector]) {
+            id (*sharedInstance)(id, SEL) = (id (*)(id, SEL))[lowPowerModeClass methodForSelector:sharedInstanceSelector];
+            instance = sharedInstance(lowPowerModeClass, sharedInstanceSelector);
+        }
         SEL selector = NSSelectorFromString(@"setPowerMode:fromSource:");
         if ([instance respondsToSelector:selector]) {
             ((void (*)(id, SEL, BOOL, id))[instance methodForSelector:selector])(instance, selector, _isLowPowerMode, @"Jade");

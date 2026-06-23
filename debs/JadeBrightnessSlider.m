@@ -5,16 +5,10 @@
 #import "JadeBrightnessSlider.h"
 #import <UIKit/UIKit.h>
 
-// Forward declarations for private frameworks
-@interface SBDisplayBrightnessController : NSObject
-- (void)setBrightnessLevel:(float)level animated:(BOOL)animated;
-- (float)brightnessLevel;
-@end
-
 @interface JadeBrightnessSlider ()
 
 // Internal ivars from binary analysis
-@property (nonatomic, strong, nullable) SBDisplayBrightnessController *brightnessController;
+@property (nonatomic, strong, nullable) id brightnessController;
 @property (nonatomic, strong, nullable) UIImage *icon;
 @property (nonatomic, strong, nullable) UIView *customBackground;
 @property (nonatomic, strong, nullable) UILabel *progressLabel;
@@ -25,6 +19,8 @@
 @property (nonatomic, strong) UIImpactFeedbackGenerator *hapticGenerator;
 @property (nonatomic, assign) BOOL isDragging;
 @property (nonatomic, assign) float pendingValue;
+
+- (void)setSystemBrightnessLevel:(float)level animated:(BOOL)animated;
 
 @end
 
@@ -47,8 +43,11 @@
         _pendingValue = _value;
         _deltaTime = 0.0;
 
-        // Create brightness controller
-        _brightnessController = [[SBDisplayBrightnessController alloc] init];
+        // Create brightness controller without requiring SpringBoard private SDK headers.
+        Class brightnessControllerClass = NSClassFromString(@"SBDisplayBrightnessController");
+        if (brightnessControllerClass) {
+            _brightnessController = [[brightnessControllerClass alloc] init];
+        }
 
         // Create SF Symbol images
         _brightnessMinImage = [UIImage systemImageNamed:@"sun.min.fill"];
@@ -289,12 +288,23 @@
 
 #pragma mark - Value Changes
 
+- (void)setSystemBrightnessLevel:(float)level animated:(BOOL)animated {
+    float clampedLevel = MAX(_minimumValue, MIN(_maximumValue, level));
+    SEL setBrightnessSelector = @selector(setBrightnessLevel:animated:);
+    if ([_brightnessController respondsToSelector:setBrightnessSelector]) {
+        void (*setBrightness)(id, SEL, float, BOOL) = (void (*)(id, SEL, float, BOOL))[_brightnessController methodForSelector:setBrightnessSelector];
+        setBrightness(_brightnessController, setBrightnessSelector, clampedLevel, animated);
+    } else {
+        [UIScreen mainScreen].brightness = clampedLevel;
+    }
+}
+
 - (void)sliderValueDidChange:(UISlider *)sender {
     float newValue = sender.value;
     _value = newValue;
 
     // Update brightness controller
-    [_brightnessController setBrightnessLevel:newValue animated:YES];
+    [self setSystemBrightnessLevel:newValue animated:YES];
 
     // Update progress label
     int percentage = (int)roundf(newValue * 100.0f);
@@ -373,7 +383,7 @@
         _pendingValue = MAX(_minimumValue, MIN(_maximumValue, _pendingValue + delta));
         _value = _pendingValue;
         _slider.value = _pendingValue;
-        [_brightnessController setBrightnessLevel:_pendingValue animated:NO];
+        [self setSystemBrightnessLevel:_pendingValue animated:NO];
         [self setNeedsLayout];
 
         int percentage = (int)roundf(_pendingValue * 100.0f);
@@ -400,7 +410,7 @@
         float midValue = (_maximumValue - _minimumValue) / 2.0f;
         _value = midValue;
         _slider.value = midValue;
-        [_brightnessController setBrightnessLevel:midValue animated:YES];
+        [self setSystemBrightnessLevel:midValue animated:YES];
         [self setNeedsLayout];
 
         int percentage = (int)roundf(midValue * 100.0f);

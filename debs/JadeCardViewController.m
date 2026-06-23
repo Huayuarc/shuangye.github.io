@@ -45,17 +45,6 @@ static id JadeModuleForIdentifier(id repository, SEL selector, NSString *identif
     return moduleForIdentifier(repository, selector, identifier);
 }
 
-// Private framework class forward declarations
-@interface _UIBackdropView : UIView
-+ (instancetype)backdropViewWithStyle:(long long)style;
-- (instancetype)initWithStyle:(long long)style;
-@end
-
-@interface MTMaterialView : UIView
-+ (instancetype)materialViewWithRecipe:(long long)recipe;
-+ (instancetype)materialViewWithRecipeNamed:(NSString *)recipeName;
-@end
-
 @interface CCUIContentModuleContainerViewController : UIViewController
 - (instancetype)initWithModuleIdentifier:(NSString *)identifier contentModule:(id)module;
 @property (nonatomic, assign, getter=isExpanded) BOOL expanded;
@@ -67,7 +56,7 @@ static id JadeModuleForIdentifier(id repository, SEL selector, NSString *identif
 @property (nonatomic, strong) UIImageView *backgroundImageView;
 @property (nonatomic, strong) UIView *grabber;
 @property (nonatomic, strong) NSArray *includedModules;
-@property (nonatomic, strong) _UIBackdropView *blurView;
+@property (nonatomic, strong) UIView *blurView;
 @property (nonatomic, strong) NSDictionary *allModulesDictionary;
 @property (nonatomic, strong) NSLayoutConstraint *backgroundImageConstraint;
 @property (nonatomic, strong) NSArray *smallModulesID;
@@ -112,7 +101,7 @@ static id JadeModuleForIdentifier(id repository, SEL selector, NSString *identif
     NSArray *_mainModulesID;
     NSArray *_smallCaddyModules;
     NSArray *_mainCaddyModules;
-    _UIBackdropView *_blurView;
+    UIView *_blurView;
     NSDictionary *_allModulesDictionary;
     NSLayoutConstraint *_backgroundImageConstraint;
     id _moduleRepository;

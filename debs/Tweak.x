@@ -2,8 +2,6 @@
 // Tweak.x - Main hooking entry point
 
 #import <UIKit/UIKit.h>
-#import <SpringBoard/SpringBoard.h>
-#import <ControlCenterUIKit/ControlCenterUIKit.h>
 #import "JadeMainViewController.h"
 #import "JadeCardViewController.h"
 #import "JadeWeatherHandler.h"

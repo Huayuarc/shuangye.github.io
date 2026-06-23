@@ -33,10 +33,8 @@ Jade_FILES = Tweak.x \
 
 Jade_CFLAGS = -fobjc-arc
 Jade_BUNDLE_RESOURCE_DIRS = JadeLocalization.bundle
-Jade_FRAMEWORKS = UIKit Foundation CoreGraphics MediaPlayer MediaToolbox AudioToolbox
-Jade_PRIVATE_FRAMEWORKS = MediaRemote MediaControls BatteryCenter Weather SpringBoard \
-                          BluetoothManager FrontBoard ManagedConfiguration SharingUI \
-                          ControlCenterUIKit MaterialKit ControlCenterServices
+Jade_FRAMEWORKS = UIKit Foundation CoreGraphics MediaPlayer MediaToolbox AudioToolbox AVFoundation CoreLocation
+Jade_LDFLAGS = -Wl,-undefined,dynamic_lookup
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 

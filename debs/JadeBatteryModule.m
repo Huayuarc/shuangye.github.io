@@ -4,43 +4,44 @@
 #import "JadeBatteryModule.h"
 #import "JadeBatteryDevice.h"
 #import <UIKit/UIKit.h>
-
-// BCBatteryDeviceController interface - BatteryCenter private framework
-@class BCBatteryDevice;
-@protocol BCBatteryDeviceControllerDelegate;
-
-@interface BCBatteryDeviceController : NSObject
-@property (class, nonatomic, readonly) BCBatteryDeviceController *sharedInstance;
-@property (nonatomic, weak) id<BCBatteryDeviceControllerDelegate> delegate;
-- (NSArray<BCBatteryDevice *> *)connectedDevices;
-@end
-
-@interface BCBatteryDevice : NSObject
-@property (nonatomic, copy) NSString *name;
-@property (nonatomic, copy) NSString *identifier;
-@property (nonatomic, assign) long long batteryState;
-@property (nonatomic, assign) long long vendor;
-@property (nonatomic, assign) BOOL charging;
-@property (nonatomic, assign) BOOL internalDevice;
-@property (nonatomic, assign) BOOL lowPower;
-@property (nonatomic, assign) BOOL connected;
-@property (nonatomic, assign) BOOL hideIcon;
-@property (nonatomic, assign) float level;
-@property (nonatomic, strong) UIImage *icon;
-@property (nonatomic, copy) NSString *batteryLevelString;
-- (NSString *)name;
-- (long long)vendor;
-- (BOOL)charging;
-- (BOOL)internalDevice;
-- (BOOL)lowPower;
-- (float)level;
-@end
+#import <dlfcn.h>
 
 static NSString *const JadeBatteryDevicesDidChangeNotification = @"BCBatteryDeviceControllerConnectedDevicesDidChangeNotification";
 
+static void JadeLoadBatteryCenterFramework(void) {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        dlopen("/System/Library/PrivateFrameworks/BatteryCenter.framework/BatteryCenter", RTLD_LAZY);
+    });
+}
+
+static id JadeObjectValue(id object, SEL selector) {
+    if (!object || ![object respondsToSelector:selector]) return nil;
+    id (*messageSend)(id, SEL) = (id (*)(id, SEL))[object methodForSelector:selector];
+    return messageSend(object, selector);
+}
+
+static BOOL JadeBoolValue(id object, SEL selector, BOOL defaultValue) {
+    if (!object || ![object respondsToSelector:selector]) return defaultValue;
+    BOOL (*messageSend)(id, SEL) = (BOOL (*)(id, SEL))[object methodForSelector:selector];
+    return messageSend(object, selector);
+}
+
+static NSInteger JadeIntegerValue(id object, SEL selector, NSInteger defaultValue) {
+    if (!object || ![object respondsToSelector:selector]) return defaultValue;
+    NSInteger (*messageSend)(id, SEL) = (NSInteger (*)(id, SEL))[object methodForSelector:selector];
+    return messageSend(object, selector);
+}
+
+static float JadeFloatValue(id object, SEL selector, float defaultValue) {
+    if (!object || ![object respondsToSelector:selector]) return defaultValue;
+    float (*messageSend)(id, SEL) = (float (*)(id, SEL))[object methodForSelector:selector];
+    return messageSend(object, selector);
+}
+
 @interface JadeBatteryModule ()
 
-@property (nonatomic, strong) BCBatteryDeviceController *batteryController;
+@property (nonatomic, strong) id batteryController;
 @property (nonatomic, strong) UILabel *noDevicesLabel;
 
 @end
@@ -65,14 +66,24 @@ static NSString *const JadeBatteryDevicesDidChangeNotification = @"BCBatteryDevi
         [self setupViews];
         [self setupConstraints];
 
+        // Get battery controller
+        JadeLoadBatteryCenterFramework();
+        Class controllerClass = NSClassFromString(@"BCBatteryDeviceController");
+        if ([controllerClass respondsToSelector:@selector(sharedInstance)]) {
+            id (*sharedInstance)(id, SEL) = (id (*)(id, SEL))[controllerClass methodForSelector:@selector(sharedInstance)];
+            _batteryController = sharedInstance(controllerClass, @selector(sharedInstance));
+        }
+
         // Observe connected devices changes
+        NSString *notificationName = JadeBatteryDevicesDidChangeNotification;
+        NSString *controllerNotificationName = JadeObjectValue(_batteryController, @selector(connectedDevicesDidChangeNotificationName));
+        if ([controllerNotificationName isKindOfClass:[NSString class]] && controllerNotificationName.length > 0) {
+            notificationName = controllerNotificationName;
+        }
         [[NSNotificationCenter defaultCenter] addObserver:self
                                                  selector:@selector(refreshBatteryData)
-                                                     name:JadeBatteryDevicesDidChangeNotification
+                                                     name:notificationName
                                                    object:nil];
-
-        // Get battery controller
-        _batteryController = [BCBatteryDeviceController sharedInstance];
 
         // Initial data load
         [self refreshBatteryData];
@@ -153,25 +164,41 @@ static NSString *const JadeBatteryDevicesDidChangeNotification = @"BCBatteryDevi
 
     // Query BCBatteryDeviceController for connected devices
     if (_batteryController) {
-        NSArray<BCBatteryDevice *> *devices = [_batteryController connectedDevices];
-        for (BCBatteryDevice *device in devices) {
-            if (!device.connected) continue;
-            if (device.internalDevice) continue; // Skip internal, we add our own
+        NSArray *devices = JadeObjectValue(_batteryController, @selector(connectedDevices));
+        for (id device in devices) {
+            BOOL isConnected = JadeBoolValue(device, @selector(isConnected), JadeBoolValue(device, @selector(connected), YES));
+            BOOL isInternal = JadeBoolValue(device, @selector(isInternal), JadeBoolValue(device, @selector(internalDevice), NO));
+            if (!isConnected) continue;
+            if (isInternal) continue; // Skip internal, we add our own
+
+            NSString *name = JadeObjectValue(device, @selector(name));
+            NSString *identifier = JadeObjectValue(device, @selector(identifier));
+            NSInteger vendor = JadeIntegerValue(device, @selector(vendor), 0);
+            float batteryLevel = JadeFloatValue(device, @selector(level), -1.0f);
+            if (batteryLevel < 0.0f) {
+                NSInteger percentCharge = JadeIntegerValue(device, @selector(percentCharge), -1);
+                batteryLevel = percentCharge >= 0 ? (float)percentCharge / 100.0f : 0.0f;
+            }
+            batteryLevel = MAX(0.0f, MIN(1.0f, batteryLevel));
+
+            BOOL isCharging = JadeBoolValue(device, @selector(isCharging), JadeBoolValue(device, @selector(charging), NO));
+            BOOL isLowPower = JadeBoolValue(device, @selector(lowPower), JadeBoolValue(device, @selector(isLowBattery), NO));
 
             JadeBatteryDevice *jadeDevice = [[JadeBatteryDevice alloc] init];
-            jadeDevice.name = device.name;
-            jadeDevice.identifier = device.identifier;
-            jadeDevice.batteryLevel = device.level;
-            jadeDevice.isCharging = device.charging;
-            jadeDevice.isLowPower = device.lowPower;
-            jadeDevice.isInternal = device.internalDevice;
+            jadeDevice.name = name;
+            jadeDevice.identifier = identifier;
+            jadeDevice.batteryLevel = batteryLevel;
+            jadeDevice.isCharging = isCharging;
+            jadeDevice.isLowPower = isLowPower;
+            jadeDevice.isInternal = isInternal;
             jadeDevice.isPaired = YES;
 
             // Map vendor to device type
-            jadeDevice.deviceType = [self _deviceTypeForVendor:device.vendor name:device.name];
+            jadeDevice.deviceType = [self _deviceTypeForVendor:vendor name:name];
 
             // Map battery state
-            switch (device.batteryState) {
+            NSInteger batteryState = JadeIntegerValue(device, @selector(batteryState), 0);
+            switch (batteryState) {
                 case 1:
                     jadeDevice.batteryState = JadeBatteryDeviceStateUnplugged;
                     break;
@@ -182,12 +209,19 @@ static NSString *const JadeBatteryDevicesDidChangeNotification = @"BCBatteryDevi
                     jadeDevice.batteryState = JadeBatteryDeviceStateFull;
                     break;
                 default:
-                    jadeDevice.batteryState = JadeBatteryDeviceStateUnknown;
+                    if (isCharging) {
+                        jadeDevice.batteryState = JadeBatteryDeviceStateCharging;
+                    } else if (batteryLevel >= 0.99f) {
+                        jadeDevice.batteryState = JadeBatteryDeviceStateFull;
+                    } else {
+                        jadeDevice.batteryState = JadeBatteryDeviceStateUnplugged;
+                    }
                     break;
             }
 
             jadeDevice.deviceIcon = [self _iconForDevice:device];
-            jadeDevice.batteryLevelString = [NSString stringWithFormat:@"%.0f%%", device.level * 100];
+            NSString *batteryLevelString = JadeObjectValue(device, @selector(batteryLevelString));
+            jadeDevice.batteryLevelString = [batteryLevelString isKindOfClass:[NSString class]] ? batteryLevelString : [NSString stringWithFormat:@"%.0f%%", batteryLevel * 100];
 
             [_connectedDevices addObject:jadeDevice];
         }
@@ -381,12 +415,17 @@ static NSString *const JadeBatteryDevicesDidChangeNotification = @"BCBatteryDevi
     }
 }
 
-- (UIImage *)_iconForDevice:(BCBatteryDevice *)device {
-    if (device.icon) return device.icon;
+- (UIImage *)_iconForDevice:(id)device {
+    UIImage *icon = JadeObjectValue(device, @selector(icon));
+    if (![icon isKindOfClass:[UIImage class]]) {
+        icon = JadeObjectValue(device, @selector(glyph));
+    }
+    if ([icon isKindOfClass:[UIImage class]]) return icon;
 
     // Fall back to SF Symbol
     NSString *symbolName = @"questionmark.circle";
-    NSString *lowercaseName = [device.name lowercaseString];
+    NSString *name = JadeObjectValue(device, @selector(name));
+    NSString *lowercaseName = [name lowercaseString] ?: @"";
 
     if ([lowercaseName containsString:@"watch"]) {
         symbolName = @"applewatch";

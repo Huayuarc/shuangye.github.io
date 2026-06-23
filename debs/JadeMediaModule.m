@@ -3,9 +3,46 @@
 // Uses MRMediaRemote C API for now-playing info and transport controls
 
 #import "JadeMediaModule.h"
-#import <MediaRemote/MediaRemote.h>
 #import <MediaPlayer/MediaPlayer.h>
 #import <UIKit/UIKit.h>
+#import <dlfcn.h>
+
+typedef NS_ENUM(NSInteger, JadeMRMediaRemoteCommand) {
+    JadeMRMediaRemoteCommandTogglePlayPause = 2,
+    JadeMRMediaRemoteCommandNextTrack = 4,
+    JadeMRMediaRemoteCommandPreviousTrack = 5,
+};
+
+typedef void (^JadeMRNowPlayingInfoCompletion)(CFDictionaryRef information);
+typedef void (^JadeMRNowPlayingApplicationPIDCompletion)(int PID);
+typedef void (^JadeMRNowPlayingApplicationIsPlayingCompletion)(Boolean isPlaying);
+
+typedef void (*JadeMRGetNowPlayingInfoFunction)(dispatch_queue_t queue, JadeMRNowPlayingInfoCompletion completion);
+typedef void (*JadeMRGetNowPlayingApplicationPIDFunction)(dispatch_queue_t queue, JadeMRNowPlayingApplicationPIDCompletion completion);
+typedef void (*JadeMRGetNowPlayingApplicationIsPlayingFunction)(dispatch_queue_t queue, JadeMRNowPlayingApplicationIsPlayingCompletion completion);
+typedef Boolean (*JadeMRSendCommandFunction)(NSInteger command, NSDictionary *userInfo);
+
+static void *JadeMediaRemoteHandle(void) {
+    static void *handle = NULL;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        handle = dlopen("/System/Library/PrivateFrameworks/MediaRemote.framework/MediaRemote", RTLD_LAZY);
+    });
+    return handle;
+}
+
+static void *JadeMediaRemoteSymbol(const char *symbolName) {
+    void *handle = JadeMediaRemoteHandle();
+    return handle ? dlsym(handle, symbolName) : NULL;
+}
+
+static NSString *JadeMediaRemoteStringConstant(const char *symbolName, NSString *fallbackValue) {
+    CFStringRef *constant = (CFStringRef *)JadeMediaRemoteSymbol(symbolName);
+    if (constant && *constant) {
+        return (__bridge NSString *)*constant;
+    }
+    return fallbackValue;
+}
 
 
 @interface SBApplicationController : NSObject
@@ -36,14 +73,14 @@
         [self setupViews];
         [self setupConstraints];
 
-        // Register for MRMediaRemote notifications
+        // Register for MRMediaRemote notifications without requiring private SDK headers.
         [[NSNotificationCenter defaultCenter] addObserver:self
                                                  selector:@selector(_mediaRemoteNowPlayingInfoDidChange:)
-                                                     name:(__bridge NSString *)kMRMediaRemoteNowPlayingInfoDidChangeNotification
+                                                     name:JadeMediaRemoteStringConstant("kMRMediaRemoteNowPlayingInfoDidChangeNotification", @"kMRMediaRemoteNowPlayingInfoDidChangeNotification")
                                                    object:nil];
         [[NSNotificationCenter defaultCenter] addObserver:self
                                                  selector:@selector(_mediaRemoteNowPlayingApplicationIsPlayingDidChange:)
-                                                     name:(__bridge NSString *)kMRMediaRemoteNowPlayingApplicationIsPlayingDidChangeNotification
+                                                     name:JadeMediaRemoteStringConstant("kMRMediaRemoteNowPlayingApplicationIsPlayingDidChangeNotification", @"kMRMediaRemoteNowPlayingApplicationIsPlayingDidChangeNotification")
                                                    object:nil];
 
         // Initial fetch
@@ -217,7 +254,14 @@
 #pragma mark - Media Info Updates
 
 - (void)updateMediaInfo {
-    MRMediaRemoteGetNowPlayingInfo(dispatch_get_main_queue(), ^(CFDictionaryRef information) {
+    JadeMRGetNowPlayingInfoFunction getNowPlayingInfo = (JadeMRGetNowPlayingInfoFunction)JadeMediaRemoteSymbol("MRMediaRemoteGetNowPlayingInfo");
+    if (!getNowPlayingInfo) {
+        self.hasActiveMedia = NO;
+        [self showNoMediaState];
+        return;
+    }
+
+    getNowPlayingInfo(dispatch_get_main_queue(), ^(CFDictionaryRef information) {
         NSDictionary *info = (__bridge NSDictionary *)information;
         if (!info || info.count == 0) {
             self.hasActiveMedia = NO;
@@ -229,7 +273,7 @@
         self.hidden = NO;
 
         // Title
-        NSString *title = info[(__bridge NSString *)kMRMediaRemoteNowPlayingInfoTitle];
+        NSString *title = info[JadeMediaRemoteStringConstant("kMRMediaRemoteNowPlayingInfoTitle", @"kMRMediaRemoteNowPlayingInfoTitle")];
         if (title) {
             self.trackTitleLabel.text = title;
             self.trackTitleLabel.hidden = NO;
@@ -238,7 +282,7 @@
         }
 
         // Artist
-        NSString *artist = info[(__bridge NSString *)kMRMediaRemoteNowPlayingInfoArtist];
+        NSString *artist = info[JadeMediaRemoteStringConstant("kMRMediaRemoteNowPlayingInfoArtist", @"kMRMediaRemoteNowPlayingInfoArtist")];
         if (artist) {
             self.artistLabel.text = artist;
             self.artistLabel.hidden = NO;
@@ -247,7 +291,7 @@
         }
 
         // Album
-        NSString *album = info[(__bridge NSString *)kMRMediaRemoteNowPlayingInfoAlbum];
+        NSString *album = info[JadeMediaRemoteStringConstant("kMRMediaRemoteNowPlayingInfoAlbum", @"kMRMediaRemoteNowPlayingInfoAlbum")];
         if (album) {
             self.albumLabel.text = album;
             self.albumLabel.hidden = NO;
@@ -256,8 +300,8 @@
         }
 
         // Duration & Elapsed Time
-        NSNumber *duration = info[(__bridge NSString *)kMRMediaRemoteNowPlayingInfoDuration];
-        NSNumber *elapsedTime = info[(__bridge NSString *)kMRMediaRemoteNowPlayingInfoElapsedTime];
+        NSNumber *duration = info[JadeMediaRemoteStringConstant("kMRMediaRemoteNowPlayingInfoDuration", @"kMRMediaRemoteNowPlayingInfoDuration")];
+        NSNumber *elapsedTime = info[JadeMediaRemoteStringConstant("kMRMediaRemoteNowPlayingInfoElapsedTime", @"kMRMediaRemoteNowPlayingInfoElapsedTime")];
         if (duration && elapsedTime) {
             self.currentDuration = [duration doubleValue];
             self.currentElapsedTime = [elapsedTime doubleValue];
@@ -265,7 +309,7 @@
         }
 
         // Artwork
-        NSData *artworkData = info[(__bridge NSString *)kMRMediaRemoteNowPlayingInfoArtworkData];
+        NSData *artworkData = info[JadeMediaRemoteStringConstant("kMRMediaRemoteNowPlayingInfoArtworkData", @"kMRMediaRemoteNowPlayingInfoArtworkData")];
         if (artworkData) {
             UIImage *artwork = [UIImage imageWithData:artworkData];
             if (artwork) {
@@ -284,7 +328,14 @@
 }
 
 - (void)updatePlaybackState {
-    MRMediaRemoteGetNowPlayingApplicationIsPlaying(dispatch_get_main_queue(), ^(Boolean playing) {
+    JadeMRGetNowPlayingApplicationIsPlayingFunction getIsPlaying = (JadeMRGetNowPlayingApplicationIsPlayingFunction)JadeMediaRemoteSymbol("MRMediaRemoteGetNowPlayingApplicationIsPlaying");
+    if (!getIsPlaying) {
+        self.isPlaying = NO;
+        [self updatePlayPauseIcon];
+        return;
+    }
+
+    getIsPlaying(dispatch_get_main_queue(), ^(Boolean playing) {
         self.isPlaying = (BOOL)playing;
         [self updatePlayPauseIcon];
     });
@@ -323,19 +374,25 @@
 #pragma mark - Transport Controls
 
 - (void)playPauseAction {
-    MRMediaRemoteSendCommand(MRMediaRemoteCommandTogglePlayPause, nil);
+    JadeMRSendCommandFunction sendCommand = (JadeMRSendCommandFunction)JadeMediaRemoteSymbol("MRMediaRemoteSendCommand");
+    if (sendCommand) sendCommand(JadeMRMediaRemoteCommandTogglePlayPause, nil);
 }
 
 - (void)nextTrackAction {
-    MRMediaRemoteSendCommand(MRMediaRemoteCommandNextTrack, nil);
+    JadeMRSendCommandFunction sendCommand = (JadeMRSendCommandFunction)JadeMediaRemoteSymbol("MRMediaRemoteSendCommand");
+    if (sendCommand) sendCommand(JadeMRMediaRemoteCommandNextTrack, nil);
 }
 
 - (void)previousTrackAction {
-    MRMediaRemoteSendCommand(MRMediaRemoteCommandPreviousTrack, nil);
+    JadeMRSendCommandFunction sendCommand = (JadeMRSendCommandFunction)JadeMediaRemoteSymbol("MRMediaRemoteSendCommand");
+    if (sendCommand) sendCommand(JadeMRMediaRemoteCommandPreviousTrack, nil);
 }
 
 - (void)openNowPlayingApplication {
-    MRMediaRemoteGetNowPlayingApplicationPID(dispatch_get_main_queue(), ^(int PID) {
+    JadeMRGetNowPlayingApplicationPIDFunction getApplicationPID = (JadeMRGetNowPlayingApplicationPIDFunction)JadeMediaRemoteSymbol("MRMediaRemoteGetNowPlayingApplicationPID");
+    if (!getApplicationPID) return;
+
+    getApplicationPID(dispatch_get_main_queue(), ^(int PID) {
         if (PID <= 0) return;
 
         NSString *bundleIdentifier = nil;
