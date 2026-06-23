@@ -29,6 +29,11 @@ static NSString *AKRPrefsPath(void) {
     return AKRMobilePath([@"Library/Preferences" stringByAppendingPathComponent:[AKRPrefsDomain stringByAppendingString:@".plist"]]);
 }
 
+static NSMutableDictionary *AKRMutablePreferences(void) {
+    NSDictionary *preferences = [NSDictionary dictionaryWithContentsOfFile:AKRPrefsPath()];
+    return [preferences isKindOfClass:NSDictionary.class] ? [[preferences mutableCopy] autorelease] : [NSMutableDictionary dictionary];
+}
+
 static void AKRPostPrefsChanged(void) {
     CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), (__bridge CFStringRef)AKRPrefsChangedNotification, NULL, NULL, YES);
 }
@@ -101,6 +106,37 @@ static UIImage *AKRBundleImage(NSString *name) {
     UIBarButtonItem *applyButton = [[UIBarButtonItem alloc] initWithTitle:@"应用" style:UIBarButtonItemStyleDone target:self action:@selector(respring)];
     self.navigationItem.rightBarButtonItem = applyButton;
     [applyButton release];
+}
+
+- (id)readPreferenceValue:(PSSpecifier *)specifier {
+    NSString *key = [specifier propertyForKey:@"key"];
+    if (!key.length) {
+        return [super readPreferenceValue:specifier];
+    }
+
+    NSDictionary *preferences = [NSDictionary dictionaryWithContentsOfFile:AKRPrefsPath()];
+    id value = [preferences isKindOfClass:NSDictionary.class] ? preferences[key] : nil;
+    return value ?: [specifier propertyForKey:@"default"];
+}
+
+- (void)setPreferenceValue:(id)value specifier:(PSSpecifier *)specifier {
+    NSString *key = [specifier propertyForKey:@"key"];
+    if (!key.length) {
+        [super setPreferenceValue:value specifier:specifier];
+        return;
+    }
+
+    NSMutableDictionary *preferences = AKRMutablePreferences();
+    if (value) {
+        preferences[key] = value;
+    } else {
+        [preferences removeObjectForKey:key];
+    }
+
+    NSString *path = AKRPrefsPath();
+    [[NSFileManager defaultManager] createDirectoryAtPath:[path stringByDeletingLastPathComponent] withIntermediateDirectories:YES attributes:nil error:nil];
+    [preferences writeToFile:path atomically:YES];
+    AKRPostPrefsChanged();
 }
 
 - (void)respring {

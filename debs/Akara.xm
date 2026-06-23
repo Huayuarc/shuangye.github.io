@@ -155,11 +155,15 @@ extern "C" void loadPrefs(void) {
 }
 
 extern "C" BOOL isLocationXOnSides(double location) {
-    return location < 64.0;
+    CGFloat screenWidth = UIScreen.mainScreen.bounds.size.width;
+    return location < 64.0 || location > screenWidth - 64.0;
 }
 
 extern "C" BOOL isLocationXOnSidesLandscape(double location) {
-    return location < 64.0;
+    CGFloat screenWidth = UIScreen.mainScreen.bounds.size.width;
+    CGFloat screenHeight = UIScreen.mainScreen.bounds.size.height;
+    CGFloat landscapeWidth = MAX(screenWidth, screenHeight);
+    return location < 64.0 || location > landscapeWidth - 64.0;
 }
 
 extern "C" UIImage *scaledImageForModuleName(NSString *moduleName, double scale) {

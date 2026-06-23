@@ -17,8 +17,8 @@ static NSBundle *AKRSystemConnectivityBundle(void) {
 static NSDictionary *AKRLocalPreferences(void) {
     NSMutableDictionary *preferences = [NSMutableDictionary dictionary];
     NSArray<NSString *> *paths = @[
-        @"/var/jb/var/mobile/Library/Preferences/com.huayuarc.akaraprefs.plist",
-        @"/var/mobile/Library/Preferences/com.huayuarc.akaraprefs.plist"
+        @"/var/mobile/Library/Preferences/com.huayuarc.akaraprefs.plist",
+        @"/var/jb/var/mobile/Library/Preferences/com.huayuarc.akaraprefs.plist"
     ];
 
     for (NSString *path in paths) {
@@ -47,6 +47,18 @@ static BOOL AKRLocalPreferenceBool(NSArray<NSString *> *keys, BOOL defaultValue)
         return [value boolValue];
     }
     return defaultValue;
+}
+
+static CGFloat AKRLocalPreferenceCGFloat(NSArray<NSString *> *keys, CGFloat defaultValue) {
+    id value = AKRLocalPreferenceValue(keys);
+    if ([value respondsToSelector:@selector(doubleValue)]) {
+        return (CGFloat)[value doubleValue];
+    }
+    return defaultValue;
+}
+
+static BOOL AKRLocalTweakEnabled(void) {
+    return AKRLocalPreferenceBool(@[@"akaraTweakEnabled", @"tweakEnabled", @"enabled", @"optionEnabled"], YES);
 }
 
 static NSDictionary<NSString *, NSString *> *AKRToggleNameMap(void) {
@@ -208,18 +220,11 @@ static UIImage *AKRImageForToggle(NSString *toggleName) {
     return image;
 }
 
-static void AKRSafelySetValue(id object, NSString *key, id value) {
-    if (!object || !key || !value) {
-        return;
-    }
-
-    @try {
-        [object setValue:value forKey:key];
-    } @catch (NSException *exception) {
-    }
-}
-
 static NSArray<NSString *> *AKRAllToggleNames(AkaraConnectivityModuleContentViewController *controller) {
+    if (!AKRLocalTweakEnabled()) {
+        return @[];
+    }
+
     NSArray<NSString *> *first = controller.firstToggleNames ?: @[];
     NSArray<NSString *> *second = controller.secondToggleNames ?: @[];
     return [first arrayByAddingObjectsFromArray:second];
@@ -359,6 +364,14 @@ static NSArray<NSString *> *AKRAllToggleNames(AkaraConnectivityModuleContentView
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
+- (void)reloadPreferences {
+    NSArray<NSString *> *defaultFirst = @[@"Airplane", @"Wi-Fi", @"Bluetooth"];
+    NSArray<NSString *> *defaultSecond = @[@"Cellular", @"Hotspot", @"AirDrop"];
+    self.firstToggleNames = AKRToggleNamesFromPreference(AKRLocalPreferenceValue(@[@"akaraConnectivityFirstRowOrder", @"connectivityFirstRowOrder", @"connectivityFirstPageOrder", @"firstPageOrder"]), defaultFirst);
+    self.secondToggleNames = AKRToggleNamesFromPreference(AKRLocalPreferenceValue(@[@"akaraConnectivitySecondRowOrder", @"connectivitySecondRowOrder", @"connectivitySecondPageOrder", @"secondPageOrder"]), defaultSecond);
+    [self updateNotExpandedConnectivityButtons];
+}
+
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.view.backgroundColor = UIColor.clearColor;
@@ -392,7 +405,7 @@ static NSArray<NSString *> *AKRAllToggleNames(AkaraConnectivityModuleContentView
     [self setupExpandedStateVC];
     [self updateNotExpandedConnectivityButtons];
 
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(updateNotExpandedConnectivityButtons) name:@"akaraUpdateNotExpandedSubtitleLabelsNotification" object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(reloadPreferences) name:@"akaraUpdateNotExpandedSubtitleLabelsNotification" object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(scrollBackToFirstPage) name:@"akaraScrollBackToFirstConnectivityPageNotification" object:nil];
 }
 
@@ -465,7 +478,7 @@ static NSArray<NSString *> *AKRAllToggleNames(AkaraConnectivityModuleContentView
 - (void)updateNotExpandedConnectivityButtons {
     UIViewController *expandedViewController = (UIViewController *)self.connectivityExpandedViewController;
     expandedViewController.view.hidden = YES;
-    self.connectivityCollectionView.hidden = NO;
+    self.connectivityCollectionView.hidden = !AKRLocalTweakEnabled();
     [self.connectivityCollectionView reloadData];
 }
 
@@ -475,7 +488,7 @@ static NSArray<NSString *> *AKRAllToggleNames(AkaraConnectivityModuleContentView
         expandedViewController.view.hidden = NO;
         self.connectivityCollectionView.hidden = YES;
     } else {
-        self.connectivityCollectionView.hidden = NO;
+        self.connectivityCollectionView.hidden = !AKRLocalTweakEnabled();
         [self.connectivityCollectionView reloadData];
     }
 }
@@ -550,35 +563,19 @@ static NSArray<NSString *> *AKRAllToggleNames(AkaraConnectivityModuleContentView
 
 - (void)setupRoundButtonView {
     UIImage *image = AKRImageForToggle(self.buttonName);
-    UIColor *highlightColor = AKRColorForToggle(self.buttonName);
-    Class roundButtonClass = NSClassFromString(@"CCUIRoundButton");
-    UIControl *roundButton = nil;
-
-    if (roundButtonClass && [roundButtonClass isSubclassOfClass:UIControl.class]) {
-        @try {
-            roundButton = [(UIControl *)[roundButtonClass alloc] initWithFrame:CGRectZero];
-            AKRSafelySetValue(roundButton, @"glyphImage", image);
-            AKRSafelySetValue(roundButton, @"highlightColor", highlightColor);
-        } @catch (NSException *exception) {
-            roundButton = nil;
-        }
-    }
-
-    if (!roundButton) {
-        UIButton *button = [UIButton buttonWithType:UIButtonTypeSystem];
-        [button setImage:image forState:UIControlStateNormal];
-        button.tintColor = UIColor.whiteColor;
-        button.backgroundColor = [highlightColor colorWithAlphaComponent:0.92];
-        button.layer.cornerRadius = 26.0;
-        button.clipsToBounds = YES;
-        roundButton = button;
-    }
+    UIButton *roundButton = [UIButton buttonWithType:UIButtonTypeSystem];
+    [roundButton setImage:image forState:UIControlStateNormal];
+    roundButton.tintColor = UIColor.whiteColor;
+    roundButton.layer.cornerRadius = 26.0;
+    roundButton.clipsToBounds = YES;
 
     roundButton.translatesAutoresizingMaskIntoConstraints = NO;
     roundButton.accessibilityLabel = AKRDisplayNameForToggle(self.buttonName, self.useNativeConnectivityLabels);
     [roundButton addTarget:self action:@selector(fallbackButtonPressed:) forControlEvents:UIControlEventTouchUpInside];
     self.ccRoundButton = roundButton;
     [self.view addSubview:roundButton];
+
+    [self applyCurrentPreferences];
 
     [NSLayoutConstraint activateConstraints:@[
         [roundButton.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
@@ -596,6 +593,24 @@ static NSArray<NSString *> *AKRAllToggleNames(AkaraConnectivityModuleContentView
             sender.transform = CGAffineTransformIdentity;
         }];
     }];
+}
+
+- (void)applyCurrentPreferences {
+    UIColor *highlightColor = AKRColorForToggle(self.buttonName);
+    CGFloat alpha = 0.92;
+    if (AKRLocalPreferenceBool(@[@"akaraUseCustomMaterialViewAlpha", @"useCustomMaterialViewAlpha"], NO)) {
+        CGFloat configuredAlpha = AKRLocalPreferenceCGFloat(@[@"akaraCustomMaterialViewAlpha", @"customMaterialViewAlpha"], 100.0);
+        alpha = configuredAlpha > 1.0 ? configuredAlpha / 100.0 : configuredAlpha;
+        alpha = MIN(MAX(alpha, 0.08), 1.0);
+    }
+
+    self.ccRoundButton.backgroundColor = [highlightColor colorWithAlphaComponent:alpha];
+    CGFloat radius = 26.0;
+    if (AKRLocalPreferenceBool(@[@"akaraUseCustomCornerRadius", @"useCustomCornerRadius"], NO)) {
+        radius = AKRLocalPreferenceCGFloat(@[@"akaraCustomCornerRadius", @"customCornerRadius"], 26.0);
+        radius = MIN(MAX(radius, 0.0), 50.0);
+    }
+    self.ccRoundButton.layer.cornerRadius = radius;
 }
 
 - (BOOL)useNativeConnectivityLabels {

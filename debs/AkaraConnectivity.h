@@ -211,6 +211,7 @@
 - (void)setupExpandedStateVC;
 
 // UI Updates
+- (void)reloadPreferences;
 - (void)updateExpandedConnectivityButtons;
 - (void)updateNotExpandedConnectivityButtons;
 - (BOOL)shouldBeginTransitionToExpandedContentModule;
@@ -248,6 +249,7 @@
 - (void)setup;
 - (void)setupButton:(NSString *)buttonName;
 - (void)setupRoundButtonView;
+- (void)applyCurrentPreferences;
 - (BOOL)useNativeConnectivityLabels;
 
 @end

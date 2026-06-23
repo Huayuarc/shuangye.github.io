@@ -1,11 +1,11 @@
 Package: com.huayuarc.akara.recon
 Name: Akara Recon
-Version: 0.2.1
-Architecture: iphoneos-arm64
+Version: 0.2.3
+Architecture: iphoneos-arm
 Description: Personal maintained Akara-style Control Center module with preferences.
 Maintainer: mobile
 Author: mobile
 Section: Tweaks
-Depends: mobilesubstrate, preferenceloader, com.opa334.ccsupport, firmware (>= 15.0)
+Depends: mobilesubstrate, preferenceloader, com.opa334.ccsupport, com.muirey03.libimagepicker, firmware (>=15.0)
 Conflicts: xyz.cypwn.akara, com.tr1fecta.akara, com.huayuarc.akaraconnectivity
 Replaces: xyz.cypwn.akara, com.tr1fecta.akara, com.huayuarc.akaraconnectivity

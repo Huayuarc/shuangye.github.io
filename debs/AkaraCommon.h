@@ -23,9 +23,25 @@ static inline NSString *AKRPrefsPathForDomain(NSString *domain) {
     return AKRMobilePath([NSString stringWithFormat:@"Library/Preferences/%@.plist", domain]);
 }
 
+static inline NSArray<NSString *> *AKRPrefsPathsForDomain(NSString *domain) {
+    NSString *relativePath = [NSString stringWithFormat:@"Library/Preferences/%@.plist", domain];
+    NSMutableArray<NSString *> *paths = [NSMutableArray arrayWithObject:[@"/var/mobile" stringByAppendingPathComponent:relativePath]];
+    NSString *activePath = AKRPrefsPathForDomain(domain);
+    if (![paths containsObject:activePath]) {
+        [paths addObject:activePath];
+    }
+    return paths;
+}
+
 static inline NSDictionary *AKRPreferencesForDomain(NSString *domain) {
-    NSDictionary *preferences = [NSDictionary dictionaryWithContentsOfFile:AKRPrefsPathForDomain(domain)];
-    return [preferences isKindOfClass:NSDictionary.class] ? preferences : @{};
+    NSMutableDictionary *preferences = [NSMutableDictionary dictionary];
+    for (NSString *path in AKRPrefsPathsForDomain(domain)) {
+        NSDictionary *filePreferences = [NSDictionary dictionaryWithContentsOfFile:path];
+        if ([filePreferences isKindOfClass:NSDictionary.class]) {
+            [preferences addEntriesFromDictionary:filePreferences];
+        }
+    }
+    return preferences;
 }
 
 static inline NSDictionary *AKRPreferences(void) {

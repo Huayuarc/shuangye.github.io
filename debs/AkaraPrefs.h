@@ -32,6 +32,9 @@
 // Method type: v16@0:8
 - (void)viewDidLoad;
 
+- (id)readPreferenceValue:(PSSpecifier *)specifier;
+- (void)setPreferenceValue:(id)value specifier:(PSSpecifier *)specifier;
+
 // Method type: v16@0:8
 - (void)respring;
 
