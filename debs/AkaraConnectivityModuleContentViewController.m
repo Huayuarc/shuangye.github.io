@@ -182,17 +182,6 @@ static UIImage *AKRImageForToggle(NSString *toggleName) {
     return image;
 }
 
-static void AKRSafelySetValue(id object, NSString *key, id value) {
-    if (!object || !key || !value) {
-        return;
-    }
-
-    @try {
-        [object setValue:value forKey:key];
-    } @catch (NSException *exception) {
-    }
-}
-
 static NSArray<NSString *> *AKRAllToggleNames(AkaraConnectivityModuleContentViewController *controller) {
     NSArray<NSString *> *first = controller.firstToggleNames ?: @[];
     NSArray<NSString *> *second = controller.secondToggleNames ?: @[];
@@ -525,28 +514,12 @@ static NSArray<NSString *> *AKRAllToggleNames(AkaraConnectivityModuleContentView
 - (void)setupRoundButtonView {
     UIImage *image = AKRImageForToggle(self.buttonName);
     UIColor *highlightColor = AKRColorForToggle(self.buttonName);
-    Class roundButtonClass = NSClassFromString(@"CCUIRoundButton");
-    UIControl *roundButton = nil;
-
-    if (roundButtonClass && [roundButtonClass isSubclassOfClass:UIControl.class]) {
-        @try {
-            roundButton = [(UIControl *)[roundButtonClass alloc] initWithFrame:CGRectZero];
-            AKRSafelySetValue(roundButton, @"glyphImage", image);
-            AKRSafelySetValue(roundButton, @"highlightColor", highlightColor);
-        } @catch (NSException *exception) {
-            roundButton = nil;
-        }
-    }
-
-    if (!roundButton) {
-        UIButton *button = [UIButton buttonWithType:UIButtonTypeSystem];
-        [button setImage:image forState:UIControlStateNormal];
-        button.tintColor = UIColor.whiteColor;
-        button.backgroundColor = [highlightColor colorWithAlphaComponent:0.92];
-        button.layer.cornerRadius = 26.0;
-        button.clipsToBounds = YES;
-        roundButton = button;
-    }
+    UIButton *roundButton = [UIButton buttonWithType:UIButtonTypeSystem];
+    [roundButton setImage:image forState:UIControlStateNormal];
+    roundButton.tintColor = UIColor.whiteColor;
+    roundButton.backgroundColor = [highlightColor colorWithAlphaComponent:0.92];
+    roundButton.layer.cornerRadius = 26.0;
+    roundButton.clipsToBounds = YES;
 
     roundButton.translatesAutoresizingMaskIntoConstraints = NO;
     roundButton.accessibilityLabel = AKRDisplayNameForToggle(self.buttonName, self.useNativeConnectivityLabels);

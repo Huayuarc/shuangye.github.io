@@ -1,6 +1,6 @@
 Package: com.huayuarc.akara
 Name: Akara Recon
-Version: 0.2.5
+Version: 0.2.6
 Architecture: iphoneos-arm
 Description: Personal maintained Akara-style Control Center module with preferences.
 Maintainer: mobile

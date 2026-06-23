@@ -32,6 +32,4 @@ for name in \
     [ -f "$PREF_DIR/$name.plist" ] || cp "$SUPPORT_DIR/$name.plist" "$PREF_DIR/" 2>/dev/null || true
  done
 
-if command -v sbreload >/dev/null 2>&1; then
-    sbreload >/dev/null 2>&1 || true
-fi
+exit 0
