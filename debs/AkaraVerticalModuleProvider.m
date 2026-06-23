@@ -1,0 +1,9 @@
+#define AKR_PROVIDER_CLASS AkaraVerticalModuleProvider
+#define AKR_PROVIDED_MODULE_CLASS ProvidedAkaraVerticalModule
+#define AKR_CONTENT_CLASS AkaraVerticalProvidedModuleContentViewController
+#define AKR_ROOT_LIST_CLASS ProvidedAkaraVerticalModuleRootListController
+#define AKR_PROVIDER_IDENTIFIER_PREFIX @"com.huayuarc.akara.providedakaraverticalmodule."
+#define AKR_PROVIDER_DISPLAY_PREFIX @"AkaraVerticalModule"
+#define AKR_PROVIDER_PREFS_PLIST @"AkaraVerticalModuleProviderPrefs"
+#define AKR_VERTICAL_LAYOUT 1
+#import "AkaraModuleProviderShared.m"

@@ -1,15 +1,37 @@
-#!/bin/bash
+#!/bin/sh
 
-# Jade Post-Installation Script
+set -e
 
-# Kill preferences cache to rescan preference bundles
-if [[ -f /var/jb/usr/libexec/PlistBuddy ]]; then
-    /var/jb/usr/bin/killall -9 cfprefsd 2>/dev/null || true
+echo 'Moving Akara files...'
+
+if [ -d /var/jb ]; then
+    PREFIX=/var/jb
+    MOBILE_ROOT=/var/jb/var/mobile
+else
+    PREFIX=
+    MOBILE_ROOT=/var/mobile
 fi
 
-# Reload preferences
-if [[ -f /var/jb/usr/bin/killall ]]; then
-    /var/jb/usr/bin/killall -9 Preferences 2>/dev/null || true
+SUPPORT_DIR="$PREFIX/Library/Application Support/Akara"
+CC_DIR="$MOBILE_ROOT/Library/ControlCenter"
+PREF_DIR="$MOBILE_ROOT/Library/Preferences"
+
+chown -R 501:501 "$SUPPORT_DIR" 2>/dev/null || true
+chmod -R 0755 "$SUPPORT_DIR" 2>/dev/null || true
+mkdir -p "$CC_DIR" "$PREF_DIR"
+
+if [ ! -f "$CC_DIR/ModuleConfiguration_Akara.plist" ] || ! grep -q 'com.huayuarc.akara.connectivitymodule' "$CC_DIR/ModuleConfiguration_Akara.plist" 2>/dev/null; then
+    cp "$SUPPORT_DIR/ModuleConfiguration_Akara.plist" "$CC_DIR/"
 fi
 
-exit 0
+for name in \
+    com.huayuarc.akara.providedakaramodule.0 \
+    com.huayuarc.akara.providedakaramodule.1 \
+    com.huayuarc.akara.providedakaraverticalmodule.0
+ do
+    [ -f "$PREF_DIR/$name.plist" ] || cp "$SUPPORT_DIR/$name.plist" "$PREF_DIR/" 2>/dev/null || true
+ done
+
+if command -v sbreload >/dev/null 2>&1; then
+    sbreload >/dev/null 2>&1 || true
+fi

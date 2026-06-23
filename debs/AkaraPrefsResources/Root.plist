@@ -1,0 +1,669 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>items</key>
+	<array>
+		<dict>
+			<key>cell</key>
+			<string>PSDefaultCell</string>
+			<key>cellClass</key>
+			<string>AKRHeaderCell</string>
+			<key>height</key>
+			<real>150</real>
+			<key>iconPath</key>
+			<string>/Library/PreferenceBundles/AkaraPrefs.bundle/akara.png</string>
+			<key>subtitle</key>
+			<string>Minimal design without compromise</string>
+			<key>title</key>
+			<string>Akara</string>
+		</dict>
+		<dict>
+			<key>cellClass</key>
+			<string>AKRDuoTwitterCell</string>
+			<key>firstAccount</key>
+			<string>FectaTr1</string>
+			<key>firstLabel</key>
+			<string>Tr1Fecta</string>
+			<key>height</key>
+			<real>57</real>
+			<key>secondAccount</key>
+			<string>_Kennyroo</string>
+			<key>secondLabel</key>
+			<string>Kennyroo ☾</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Akara</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.akaraprefs/prefsChanged</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.huayuarc.akaraprefs</string>
+			<key>key</key>
+			<string>akaraTweakEnabled</string>
+			<key>label</key>
+			<string>Tweak Enabled</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>resetLayoutToDefault</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>isDestructive</key>
+			<true/>
+			<key>label</key>
+			<string>Reset Module Defaults</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>resetPreferencesToDefault</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>isDestructive</key>
+			<true/>
+			<key>label</key>
+			<string>Reset Preference Defaults</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>Press Apply after enabling SE Compatibility for SE sized devices</string>
+			<key>label</key>
+			<string>Layout Settings</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.akaraprefs/prefsChanged</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.akaraprefs</string>
+			<key>key</key>
+			<string>akaraUseLargeMode</string>
+			<key>label</key>
+			<string>Large Mode</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.akaraprefs/prefsChanged</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.akaraprefs</string>
+			<key>key</key>
+			<string>akaraUseSEMode</string>
+			<key>label</key>
+			<string>SE Compatibility</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Background Settings</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.akaraprefs/prefsChanged</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.huayuarc.akaraprefs</string>
+			<key>key</key>
+			<string>akaraUseBackgroundBlur</string>
+			<key>label</key>
+			<string>Use Background Blur</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.akaraprefs/prefsChanged</string>
+			<key>cell</key>
+			<string>PSLinkListCell</string>
+			<key>default</key>
+			<integer>2</integer>
+			<key>defaults</key>
+			<string>com.huayuarc.akaraprefs</string>
+			<key>detail</key>
+			<string>PSListItemsController</string>
+			<key>key</key>
+			<string>akaraBackgroundBlurStyle</string>
+			<key>label</key>
+			<string>Blur Style</string>
+			<key>staticTextMessage</key>
+			<string>Default Style: Dark</string>
+			<key>validTitles</key>
+			<array>
+				<string>Extra Light</string>
+				<string>Light</string>
+				<string>Dark</string>
+				<string>Prominent</string>
+				<string>Regular</string>
+				<string>System Material</string>
+				<string>System Material Light</string>
+				<string>System Material Dark</string>
+				<string>System Material Chrome</string>
+				<string>System Material Ultra Thin</string>
+				<string>System Material Thin</string>
+				<string>System Material Thick</string>
+				<string>System Material Ultra Thin Dark</string>
+				<string>System Material Thin Dark</string>
+				<string>System Material Thick Dark</string>
+				<string>System Material Chrome Dark</string>
+			</array>
+			<key>validValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+				<integer>2</integer>
+				<integer>3</integer>
+				<integer>4</integer>
+				<integer>5</integer>
+				<integer>6</integer>
+				<integer>7</integer>
+				<integer>8</integer>
+				<integer>9</integer>
+				<integer>10</integer>
+				<integer>11</integer>
+				<integer>12</integer>
+				<integer>13</integer>
+				<integer>14</integer>
+				<integer>15</integer>
+			</array>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.akaraprefs/prefsChanged</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.akaraprefs</string>
+			<key>key</key>
+			<string>akaraUseBackgroundImage</string>
+			<key>label</key>
+			<string>Use Background Image</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.akaraprefs/prefsChanged</string>
+			<key>action</key>
+			<string>chooseImage</string>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>cellClass</key>
+			<string>LIPImageChooseCell</string>
+			<key>compressionQuality</key>
+			<real>0.80000000000000004</real>
+			<key>defaults</key>
+			<string>com.huayuarc.akaraprefs</string>
+			<key>key</key>
+			<string>akaraBackgroundImage</string>
+			<key>label</key>
+			<string>Choose image</string>
+			<key>usesJPEG</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>This remains an experimental feature. When enabled, modules will go out of bounds beyond a certain value. There is no current solution for this.</string>
+			<key>label</key>
+			<string>Radius Settings</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.akaraprefs/prefsChanged</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.akaraprefs</string>
+			<key>key</key>
+			<string>akaraUseCustomCornerRadius</string>
+			<key>label</key>
+			<string>Use Custom Corner Radius</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.akaraprefs/prefsChanged</string>
+			<key>cellClass</key>
+			<string>AKRLabeledSliderCell</string>
+			<key>default</key>
+			<integer>20</integer>
+			<key>defaults</key>
+			<string>com.huayuarc.akaraprefs</string>
+			<key>height</key>
+			<real>80</real>
+			<key>isSegmented</key>
+			<true/>
+			<key>key</key>
+			<string>akaraCustomCornerRadius</string>
+			<key>label</key>
+			<string>Custom Corner Radius</string>
+			<key>max</key>
+			<integer>50</integer>
+			<key>min</key>
+			<integer>0</integer>
+			<key>segmentCount</key>
+			<integer>50</integer>
+			<key>showValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Connectivity Settings</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.akaraprefs/prefsChanged</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.akaraprefs</string>
+			<key>key</key>
+			<string>akaraUseStaticWifiIcon</string>
+			<key>label</key>
+			<string>Use Static Wi-Fi Icon</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.akaraprefs/prefsChanged</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.akaraprefs</string>
+			<key>key</key>
+			<string>akaraUseStaticBluetoothIcon</string>
+			<key>label</key>
+			<string>Use Static Bluetooth Icon</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.akaraprefs/prefsChanged</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.akaraprefs</string>
+			<key>key</key>
+			<string>akaraUseNativeConnectivityLabels</string>
+			<key>label</key>
+			<string>Use Native Language Label Names</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.akaraprefs/prefsChanged</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.akaraprefs</string>
+			<key>key</key>
+			<string>akaraScrollBackToFirstConnectivityPage</string>
+			<key>label</key>
+			<string>Reset Page When Opened</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>First Page Order - 1: Airplane - 2: Wi-Fi - 3: Bluetooth</string>
+			<key>label</key>
+			<string>Connectivity Order Settings (Separated by comma)</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.akaraprefs/prefsChanged</string>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>default</key>
+			<string>1,2,3</string>
+			<key>defaults</key>
+			<string>com.huayuarc.akaraprefs</string>
+			<key>key</key>
+			<string>akaraConnectivityFirstRowOrder</string>
+			<key>placeholder</key>
+			<string>1,2,3</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>Second Page Order - 4: Cellular - 5: Hotspot - 6: AirDrop</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.akaraprefs/prefsChanged</string>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>default</key>
+			<string>4,5,6</string>
+			<key>defaults</key>
+			<string>com.huayuarc.akaraprefs</string>
+			<key>key</key>
+			<string>akaraConnectivitySecondRowOrder</string>
+			<key>placeholder</key>
+			<string>4,5,6</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Slider Settings</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.akaraprefs/prefsChanged</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.akaraprefs</string>
+			<key>key</key>
+			<string>akaraUseStaticBrightnessSliderIcon</string>
+			<key>label</key>
+			<string>Use Static Brightness Slider Icon</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.akaraprefs/prefsChanged</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.akaraprefs</string>
+			<key>key</key>
+			<string>akaraUseStaticVolumeSliderIcon</string>
+			<key>label</key>
+			<string>Use Static Volume Slider Icon</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.akaraprefs/prefsChanged</string>
+			<key>cellClass</key>
+			<string>AKRLabeledSliderCell</string>
+			<key>default</key>
+			<integer>1</integer>
+			<key>defaults</key>
+			<string>com.huayuarc.akaraprefs</string>
+			<key>height</key>
+			<real>80</real>
+			<key>isSegmented</key>
+			<true/>
+			<key>key</key>
+			<string>akaraCustomSliderHeight</string>
+			<key>label</key>
+			<string>Slider Height</string>
+			<key>max</key>
+			<integer>4</integer>
+			<key>min</key>
+			<integer>1</integer>
+			<key>segmentCount</key>
+			<integer>3</integer>
+			<key>showValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Module Settings</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.akaraprefs/prefsChanged</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.akaraprefs</string>
+			<key>key</key>
+			<string>akaraUseCustomMaterialViewAlpha</string>
+			<key>label</key>
+			<string>Use Custom Transparency Alpha</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.akaraprefs/prefsChanged</string>
+			<key>cellClass</key>
+			<string>AKRLabeledSliderCell</string>
+			<key>default</key>
+			<integer>100</integer>
+			<key>defaults</key>
+			<string>com.huayuarc.akaraprefs</string>
+			<key>height</key>
+			<real>80</real>
+			<key>isSegmented</key>
+			<true/>
+			<key>key</key>
+			<string>akaraCustomMaterialViewAlpha</string>
+			<key>label</key>
+			<string>Transparency Alpha</string>
+			<key>max</key>
+			<integer>100</integer>
+			<key>min</key>
+			<integer>0</integer>
+			<key>segmentCount</key>
+			<integer>100</integer>
+			<key>showValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>Press Apply after changing the size for the Media Module</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.akaraprefs/prefsChanged</string>
+			<key>cellClass</key>
+			<string>AKRLabeledSliderCell</string>
+			<key>default</key>
+			<integer>3</integer>
+			<key>defaults</key>
+			<string>com.huayuarc.akaraprefs</string>
+			<key>height</key>
+			<real>80</real>
+			<key>isSegmented</key>
+			<true/>
+			<key>key</key>
+			<string>akaraCustomMediaWidth</string>
+			<key>label</key>
+			<string>Media Module Width</string>
+			<key>max</key>
+			<integer>4</integer>
+			<key>min</key>
+			<integer>1</integer>
+			<key>segmentCount</key>
+			<integer>3</integer>
+			<key>showValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.akaraprefs/prefsChanged</string>
+			<key>cellClass</key>
+			<string>AKRLabeledSliderCell</string>
+			<key>default</key>
+			<integer>2</integer>
+			<key>defaults</key>
+			<string>com.huayuarc.akaraprefs</string>
+			<key>height</key>
+			<real>80</real>
+			<key>isSegmented</key>
+			<true/>
+			<key>key</key>
+			<string>akaraCustomMediaHeight</string>
+			<key>label</key>
+			<string>Media Module Height</string>
+			<key>max</key>
+			<integer>4</integer>
+			<key>min</key>
+			<integer>1</integer>
+			<key>segmentCount</key>
+			<integer>3</integer>
+			<key>showValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.akaraprefs/prefsChanged</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.akaraprefs</string>
+			<key>key</key>
+			<string>akaraShowMediaRadioButton</string>
+			<key>label</key>
+			<string>Show Radio Button</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>Enabling this option will open Akara with a simple flick gesture on the Lock Screen. This will only work with the bottom gesture.</string>
+			<key>label</key>
+			<string>LockScreen Settings</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.akaraprefs/prefsChanged</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.akaraprefs</string>
+			<key>key</key>
+			<string>akaraEaseLockScreenGesture</string>
+			<key>label</key>
+			<string>Ease Lockscreen Gesture</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>Enable "Show Akara StatusBar" to show the StatusBar inside Akara for notched devices. Enable "Show Normal StatusBar" to show the normal status bar on all devices.</string>
+			<key>label</key>
+			<string>StatusBar Settings</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.akaraprefs/prefsChanged</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.huayuarc.akaraprefs</string>
+			<key>key</key>
+			<string>akaraShowStatusBar</string>
+			<key>label</key>
+			<string>Show Akara StatusBar</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.akaraprefs/prefsChanged</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.akaraprefs</string>
+			<key>key</key>
+			<string>akaraShowNotchStatusBar</string>
+			<key>label</key>
+			<string>Show Normal StatusBar</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>Enabling the top-right gesture, will allow you to open Akara how you would open it normally on notched devices. A simple flick gesture. Enabling this will disable the gesture for opening Akara by sliding up from the bottom of the screen.</string>
+			<key>label</key>
+			<string>Extra Settings (Respring required)</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.akaraprefs/prefsChanged</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.akaraprefs</string>
+			<key>key</key>
+			<string>akaraDisableInLandscapeMode</string>
+			<key>label</key>
+			<string>Use Standard CC in Landscape Mode</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.akaraprefs/prefsChanged</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.akaraprefs</string>
+			<key>key</key>
+			<string>akaraEnableTopRightGesture</string>
+			<key>label</key>
+			<string>Enable top-right gesture</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>Enabling both gestures will allow you to open Akara with both the bottom and top-right gesture. If you enable this option, make sure to disable the "enable top-right gesture" or the tweak might malfunction.</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.akaraprefs/prefsChanged</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.akaraprefs</string>
+			<key>key</key>
+			<string>akaraEnableTopRightAndBottomGesture</string>
+			<key>label</key>
+			<string>Enable top-right and bottom gesture</string>
+		</dict>
+	</array>
+	<key>title</key>
+	<string>Akara</string>
+</dict>
+</plist>

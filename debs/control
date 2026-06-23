@@ -1,9 +1,9 @@
-Package: com.huayuarc.jade
-Name: Jade
-Version: 1.0.7
-Section: Tweaks
-Maintainer: Nightwind & thetimeloop
-Author: Nightwind & thetimeloop
-Depends: mobilesubstrate (>= 0.9.5000), com.opa334.ccsupport, com.mrgcgamer.libgcuniversal, preferenceloader, firmware (>= 14.0)
+Package: com.huayuarc.akara
+Name: Akara Recon
+Version: 0.2.5
 Architecture: iphoneos-arm
-Description: 控制中心
+Description: Personal maintained Akara-style Control Center module with preferences.
+Maintainer: mobile
+Author: mobile
+Section: Tweaks
+Depends: mobilesubstrate, preferenceloader, com.opa334.ccsupport, com.muirey03.libimagepicker, firmware (>=15.0)
