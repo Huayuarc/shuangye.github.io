@@ -84,11 +84,26 @@ if ([mode isEqualToString:S("lowPower")]) return S("低功耗");
 return S("解除温控");
 }
 
+- (void)restartThermalmonitord {
+pid_t pid;
+char *args[] = {"killall", "-q", "thermalmonitord", NULL};
+const char *paths[] = {"/var/jb/usr/bin/killall", "/usr/bin/killall", NULL};
+for (int i = 0; paths[i]; i++) {
+if ([[NSFileManager defaultManager] fileExistsAtPath:S(paths[i])]) {
+if (posix_spawn(&pid, paths[i], NULL, NULL, args, NULL) == 0) {
+waitpid(pid, NULL, 0);
+}
+return;
+}
+}
+}
+
 - (void)savePowerMode:(NSString *)mode {
 NSMutableDictionary *prefs = [self prefs];
 prefs[S("powerMode")] = mode ?: S("fullPower");
 [self savePrefs:prefs];
 notify_post(kPowerModeNotifNameC);
+[self restartThermalmonitord];
 PSSpecifier *specifier = [self specifierForID:S("powerMode")];
 specifier.name = [self powerModeLabel];
 [self reloadSpecifierID:S("powerMode") animated:YES];
@@ -142,7 +157,7 @@ return;
 - (void)showPowerModePicker {
 UIAlertController *alert = [UIAlertController
 alertControllerWithTitle:S("功率模式")
-message:S("低功耗 = 省电并限制 CPU 频率 1428–2016MHz\n满血 = 解除全部温控限制")
+message:S("低功耗 = 省电并限制 CPU 频率 1428–2016MHz\n解除温控 = 解除全部温控限制")
 preferredStyle:UIAlertControllerStyleActionSheet];
 
 NSString *currentMode = [self powerModeValue];

@@ -2,6 +2,7 @@
 #import <dlfcn.h>
 #import <notify.h>
 #import <limits.h>
+#import <objc/message.h>
 #include <roothide.h>
 #import <IOKit/IOKitLib.h>
 
@@ -80,6 +81,7 @@
 @end
 
 @interface MitigationController : NSObject
+- (id)initForFastLoop:(BOOL)fastLoop noDisplay:(BOOL)noDisplay powerSaveParams:(id)saveParams powerZoneParams:(id)zoneParams;
 - (void)updateCPU;
 - (void)updateGPU;
 - (void)updatePackage;
@@ -89,6 +91,9 @@
 - (void)setCPUPowerCeiling:(int)ceiling fromDecisionSource:(id)source;
 - (void)setCPUPowerFloor:(int)floor fromDecisionSource:(id)source;
 - (void)setCPUPowerZoneTarget:(int)target;
+- (BOOL)powerSaveActive;
+- (void)setPowerSaveActive:(BOOL)active;
+- (void)setPowerSaveToken:(int)token;
 @end
 
 @interface ThermalDecisionTable : NSObject
@@ -137,6 +142,7 @@ static const char *kPrefRelativePathC = "Library/Preferences/com.huayuarc.CPUthe
 static const char *kLegacyPrefPathC = "/var/mobile/Library/Preferences/com.huayuarc.CPUthermal.plist";
 
 static CommonProduct *g_commonProduct = nil;
+static NSMutableArray *g_mitigationControllers = nil;
 
 static BOOL isLowPowerMode(void) {
 return g_powerMode == CPUthermalPowerModeLow;
@@ -152,6 +158,56 @@ return g_enabled && g_cpuProtection && isFullPowerMode();
 
 static BOOL shouldApplyLowPowerLimit(void) {
 return g_enabled && g_cpuProtection && isLowPowerMode();
+}
+
+static int lowPowerTargetValue(void) {
+return 2000;
+}
+
+static void applyLowPowerLimitToController(id controller) {
+if (!controller || !shouldApplyLowPowerLimit()) return;
+@try {
+if ([controller respondsToSelector:@selector(setPowerSaveActive:)]) {
+((void (*)(id, SEL, BOOL))objc_msgSend)(controller, @selector(setPowerSaveActive:), YES);
+}
+if ([controller respondsToSelector:@selector(setPowerSaveToken:)]) {
+((void (*)(id, SEL, int))objc_msgSend)(controller, @selector(setPowerSaveToken:), 1);
+}
+if ([controller respondsToSelector:@selector(setCPULowPowerTarget:)]) {
+((void (*)(id, SEL, int))objc_msgSend)(controller, @selector(setCPULowPowerTarget:), lowPowerTargetValue());
+}
+if ([controller respondsToSelector:@selector(setMaxCPUPowerTarget:useLegacyPath:setProperty:)]) {
+((void (*)(id, SEL, int, BOOL, BOOL))objc_msgSend)(controller, @selector(setMaxCPUPowerTarget:useLegacyPath:setProperty:), lowPowerTargetValue(), NO, YES);
+}
+if ([controller respondsToSelector:@selector(setCPUPowerCeiling:fromDecisionSource:)]) {
+((void (*)(id, SEL, int, id))objc_msgSend)(controller, @selector(setCPUPowerCeiling:fromDecisionSource:), lowPowerTargetValue(), S("CPUthermalLowPower"));
+}
+if ([controller respondsToSelector:@selector(setCPUPowerZoneTarget:)]) {
+((void (*)(id, SEL, int))objc_msgSend)(controller, @selector(setCPUPowerZoneTarget:), lowPowerTargetValue());
+}
+if ([controller respondsToSelector:@selector(setPackageLowPowerTarget)]) {
+((void (*)(id, SEL))objc_msgSend)(controller, @selector(setPackageLowPowerTarget));
+}
+if ([controller respondsToSelector:@selector(updateCPU)]) {
+((void (*)(id, SEL))objc_msgSend)(controller, @selector(updateCPU));
+}
+if ([controller respondsToSelector:@selector(updatePackage)]) {
+((void (*)(id, SEL))objc_msgSend)(controller, @selector(updatePackage));
+}
+NSLog(@"[CPUthermal] 已主动下发低功耗 CPU 限制: %lld-%lldMHz controller:%@", kLowPowerMinFrequencyMHz, kLowPowerMaxFrequencyMHz, controller);
+} @catch (NSException *exception) {
+NSLog(@"[CPUthermal] 下发低功耗 CPU 限制失败: %@", exception);
+}
+}
+
+static void applyLowPowerLimitsToTrackedControllers(void) {
+if (!shouldApplyLowPowerLimit()) return;
+@autoreleasepool {
+NSArray *controllers = [g_mitigationControllers copy];
+for (id controller in controllers) {
+applyLowPowerLimitToController(controller);
+}
+}
 }
 
 static BOOL keyMatchesLowPowerLimit(NSString *key) {
@@ -755,34 +811,6 @@ return;
 %orig;
 }
 
-- (BOOL)powerSaveActive {
-if (shouldApplyLowPowerLimit()) {
-return YES;
-}
-if (shouldApplyFullCPUProtection()) {
-return NO;
-}
-return %orig;
-}
-
-- (void)setPowerSaveActive:(BOOL)active {
-if (shouldApplyLowPowerLimit()) {
-%orig(YES);
-return;
-}
-if (shouldApplyFullCPUProtection()) {
-%orig(NO);
-return;
-}
-%orig;
-}
-
-- (void)setPowerSaveToken:(id)token {
-if (shouldApplyFullCPUProtection()) {
-return;
-}
-%orig;
-}
 
 %end
 
@@ -816,6 +844,52 @@ return;
 // --- MitigationController: 功率目标控制 ---
 %hook MitigationController
 
+- (id)initForFastLoop:(BOOL)fastLoop noDisplay:(BOOL)noDisplay powerSaveParams:(id)saveParams powerZoneParams:(id)zoneParams {
+id res = %orig(fastLoop, noDisplay, saveParams, zoneParams);
+if (res) {
+if (!g_mitigationControllers) g_mitigationControllers = [NSMutableArray array];
+if (![g_mitigationControllers containsObject:res]) {
+[g_mitigationControllers addObject:res];
+}
+applyLowPowerLimitToController(res);
+}
+return res;
+}
+
+- (BOOL)powerSaveActive {
+if (shouldApplyLowPowerLimit()) {
+return YES;
+}
+if (shouldApplyFullCPUProtection()) {
+return NO;
+}
+return %orig;
+}
+
+- (void)setPowerSaveActive:(BOOL)active {
+if (shouldApplyLowPowerLimit()) {
+%orig(YES);
+return;
+}
+if (shouldApplyFullCPUProtection()) {
+%orig(NO);
+return;
+}
+%orig;
+}
+
+- (void)setPowerSaveToken:(int)token {
+if (shouldApplyLowPowerLimit()) {
+%orig(1);
+return;
+}
+if (shouldApplyFullCPUProtection()) {
+%orig(0);
+return;
+}
+%orig;
+}
+
 - (void)updateCPU {
 if (shouldApplyFullCPUProtection()) {
 return;
@@ -839,7 +913,7 @@ return;
 
 - (void)setCPULowPowerTarget:(int)target {
 if (shouldApplyLowPowerLimit()) {
-%orig((int)kLowPowerMaxFrequencyMHz);
+%orig(lowPowerTargetValue());
 return;
 }
 if (shouldApplyFullCPUProtection()) {
@@ -929,8 +1003,15 @@ if (!modified) return config;
 
 if (isLowPowerMode()) {
 NSDictionary *patched = patchedLowPowerConfigObject(modified, key);
-NSLog(@"[CPUthermal] 已应用低功耗配置: %@ (%lld-%lldMHz)", key, kLowPowerMinFrequencyMHz, kLowPowerMaxFrequencyMHz);
-return [patched copy];
+NSMutableDictionary *lowPowerConfig = [patched mutableCopy];
+NSMutableDictionary *powerSaveParams = [[lowPowerConfig objectForKey:S("powerSaveParams")] mutableCopy];
+if (powerSaveParams) {
+powerSaveParams[S("PackageLowPowerTarget")] = [NSNumber numberWithInt:lowPowerTargetValue()];
+powerSaveParams[S("CPULowPowerTarget")] = [NSNumber numberWithInt:lowPowerTargetValue()];
+lowPowerConfig[S("powerSaveParams")] = powerSaveParams;
+}
+NSLog(@"[CPUthermal] 已应用低功耗配置: %@ target:%d (%lld-%lldMHz)", key, lowPowerTargetValue(), kLowPowerMinFrequencyMHz, kLowPowerMaxFrequencyMHz);
+return [lowPowerConfig copy];
 }
 
 // 修改系统热配置
@@ -1060,6 +1141,9 @@ executePuppetEvent();
 
 static void onPowerModeChanged(CFNotificationCenterRef center, void *observer, CFNotificationName name, const void *object, CFDictionaryRef userInfo) {
 loadPrefs();
+if (isLowPowerMode()) {
+applyLowPowerLimitsToTrackedControllers();
+}
 NSLog(@"[CPUthermal] 功率模式已切换: %@", isLowPowerMode() ? S("低功耗") : S("解除温控"));
 }
 

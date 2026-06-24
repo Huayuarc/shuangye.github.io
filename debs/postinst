@@ -1,32 +1,10 @@
 #!/bin/bash
-
-# CPUthermal postinst
-# 安装/升级完成后迁移旧配置并重启 thermalmonitord 使 tweak 生效
-
-case "$1" in
-    configure)
-        old_prefs="/var/mobile/Library/Preferences/com.huayuarc.CPUthermal.plist"
-        jbroot_real="$(readlink /var/jb 2>/dev/null || printf /var/jb)"
-        new_dir="$jbroot_real/Library/Preferences"
-        new_prefs="$new_dir/com.huayuarc.CPUthermal.plist"
-
-        mkdir -p "$new_dir"
-        chown mobile:mobile "$new_dir" 2>/dev/null || true
-
-        if [ -f "$old_prefs" ] && [ ! -f "$new_prefs" ]; then
-            cp -p "$old_prefs" "$new_prefs" 2>/dev/null || cp "$old_prefs" "$new_prefs" 2>/dev/null || true
-        fi
-        if [ -f "$new_prefs" ]; then
-            chown mobile:mobile "$new_prefs" 2>/dev/null || true
-        fi
-        rm -f "$old_prefs" 2>/dev/null || true
-
-        # launchd 会自动重启，加载新的 tweak
-        killall -q thermalmonitord 2>/dev/null || true
-        ;;
-    abort-upgrade|abort-remove|abort-deconfigure)
-        # 这些阶段不做任何操作
-        ;;
+# launchd 会自动重启，加载新的 tweak
+killall -q thermalmonitord 2>/dev/null || true
+;;
+abort-upgrade|abort-remove|abort-deconfigure)
+# 这些阶段不做任何操作
+;;
 esac
 
 exit 0
