@@ -133,7 +133,8 @@ static const int64_t kLowPowerMaxFrequencyMHz = 2016;
 static const int64_t kSafetyTempThreshold = 75000;  // 75°C (毫摄氏度)
 
 // 注意: 用 C 字符串而非 ObjC 常量，避免 roothide 重映射破坏 __cfstring
-static const char *kPrefPathC = "/var/mobile/Library/Preferences/com.huayuarc.CPUthermal.plist";
+static const char *kPrefRelativePathC = "Library/Preferences/com.huayuarc.CPUthermal.plist";
+static const char *kLegacyPrefPathC = "/var/mobile/Library/Preferences/com.huayuarc.CPUthermal.plist";
 
 static CommonProduct *g_commonProduct = nil;
 
@@ -272,10 +273,42 @@ return [lower containsString:S("thermalstate")] ||
 [lower containsString:S("notification")]));
 }
 
+static NSString *safePrefPath(void) {
+NSString *resolvedJBRoot = [[NSFileManager defaultManager] destinationOfSymbolicLinkAtPath:S("/var/jb") error:nil];
+if (resolvedJBRoot) {
+return [resolvedJBRoot stringByAppendingPathComponent:S(kPrefRelativePathC)];
+}
+return [S("/var/jb") stringByAppendingPathComponent:S(kPrefRelativePathC)];
+}
+
+static NSString *legacyPrefPath(void) {
+return [NSString stringWithUTF8String:jbroot(kLegacyPrefPathC)];
+}
+
+static NSDictionary *readPrefsDictionary(void) {
+NSString *path = safePrefPath();
+NSDictionary *prefs = [NSDictionary dictionaryWithContentsOfFile:path];
+if (prefs) return prefs;
+
+NSString *legacyPath = legacyPrefPath();
+prefs = [NSDictionary dictionaryWithContentsOfFile:legacyPath];
+if (!prefs) return nil;
+
+NSFileManager *fileManager = [NSFileManager defaultManager];
+NSString *directory = [path stringByDeletingLastPathComponent];
+[fileManager createDirectoryAtPath:directory
+withIntermediateDirectories:YES
+attributes:nil
+error:nil];
+if ([prefs writeToFile:path atomically:YES]) {
+[fileManager removeItemAtPath:legacyPath error:nil];
+}
+return prefs;
+}
+
 static void loadPrefs(void) {
 @autoreleasepool {
-NSString *path = [NSString stringWithUTF8String:jbroot(kPrefPathC)];
-NSDictionary *d = [NSDictionary dictionaryWithContentsOfFile:path];
+NSDictionary *d = readPrefsDictionary();
 if (!d) return;
 g_enabled               = [d[S("enabled")] ?: [NSNumber numberWithBool:YES] boolValue];
 g_cpuProtection         = [d[S("cpuProtection")] ?: [NSNumber numberWithBool:YES] boolValue];
@@ -1014,8 +1047,7 @@ return res;
 static void executePuppetEvent(void) {
 if (!g_commonProduct) return;
 @autoreleasepool {
-NSString *path = [NSString stringWithUTF8String:jbroot(kPrefPathC)];
-NSDictionary *prefs = [NSDictionary dictionaryWithContentsOfFile:path];
+NSDictionary *prefs = readPrefsDictionary();
 NSString *level = prefs[S("thermalPuppetValue")] ?: S("nominal");
 [g_commonProduct putDeviceInThermalSimulationMode:level];
 NSLog(@"[CPUthermal] Puppet 事件: 热模式设为 %@", level);

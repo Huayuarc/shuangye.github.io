@@ -11,7 +11,8 @@
 // 所有字符串通过 C 字符串 + stringWithUTF8String: 动态创建
 // ============================================================
 
-static const char *kPrefPathC  = "/var/mobile/Library/Preferences/com.huayuarc.CPUthermal.plist";
+static const char *kPrefRelativePathC = "Library/Preferences/com.huayuarc.CPUthermal.plist";
+static const char *kLegacyPrefPathC = "/var/mobile/Library/Preferences/com.huayuarc.CPUthermal.plist";
 static const char *kNotifNameC = "com.huayuarc.CPUthermal/settingsChanged";
 static const char *kPowerModeNotifNameC = "com.huayuarc.CPUthermal/powerModeChanged";
 
@@ -23,14 +24,52 @@ static const char *kPowerModeNotifNameC = "com.huayuarc.CPUthermal/powerModeChan
 
 @implementation FRootListController
 
+- (NSString *)prefPath {
+NSString *resolvedJBRoot = [[NSFileManager defaultManager] destinationOfSymbolicLinkAtPath:S("/var/jb") error:nil];
+if (resolvedJBRoot) {
+return [resolvedJBRoot stringByAppendingPathComponent:S(kPrefRelativePathC)];
+}
+return [S("/var/jb") stringByAppendingPathComponent:S(kPrefRelativePathC)];
+}
+
+- (NSString *)legacyPrefPath {
+return S(kLegacyPrefPathC);
+}
+
+- (void)ensurePrefsDirectory {
+NSString *directory = [[self prefPath] stringByDeletingLastPathComponent];
+[[NSFileManager defaultManager] createDirectoryAtPath:directory
+withIntermediateDirectories:YES
+attributes:nil
+error:nil];
+}
+
+- (void)migrateLegacyPrefsIfNeeded {
+NSFileManager *fileManager = [NSFileManager defaultManager];
+NSString *prefPath = [self prefPath];
+if ([fileManager fileExistsAtPath:prefPath]) return;
+
+NSString *legacyPath = [self legacyPrefPath];
+NSDictionary *legacyPrefs = [NSDictionary dictionaryWithContentsOfFile:legacyPath];
+if (!legacyPrefs) return;
+
+[self ensurePrefsDirectory];
+if ([legacyPrefs writeToFile:prefPath atomically:YES]) {
+[fileManager removeItemAtPath:legacyPath error:nil];
+}
+}
+
 - (NSMutableDictionary *)prefs {
-NSMutableDictionary *d = [NSMutableDictionary dictionaryWithContentsOfFile:S(kPrefPathC)];
+[self migrateLegacyPrefsIfNeeded];
+NSMutableDictionary *d = [NSMutableDictionary dictionaryWithContentsOfFile:[self prefPath]];
 if (!d) d = [NSMutableDictionary dictionary];
 return d;
 }
 
 - (void)savePrefs:(NSMutableDictionary *)prefs {
-[prefs writeToFile:S(kPrefPathC) atomically:YES];
+[self ensurePrefsDirectory];
+[prefs writeToFile:[self prefPath] atomically:YES];
+[[NSFileManager defaultManager] removeItemAtPath:[self legacyPrefPath] error:nil];
 notify_post(kNotifNameC);
 }
 
@@ -50,6 +89,8 @@ NSMutableDictionary *prefs = [self prefs];
 prefs[S("powerMode")] = mode ?: S("fullPower");
 [self savePrefs:prefs];
 notify_post(kPowerModeNotifNameC);
+PSSpecifier *specifier = [self specifierForID:S("powerMode")];
+specifier.name = [self powerModeLabel];
 [self reloadSpecifierID:S("powerMode") animated:YES];
 }
 
@@ -74,7 +115,28 @@ return [NSNumber numberWithBool:YES]; // 其余保护默认开启
 }
 
 - (id)readPowerModeValue:(PSSpecifier *)spec {
+return [self powerModeLabel];
+}
+
+- (NSString *)powerModeLabel {
 return [NSString stringWithFormat:S("功率模式：%@"), [self powerModeTitle:[self powerModeValue]]];
+}
+
+- (void)openPowerModePicker {
+[self showPowerModePicker];
+}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+NSInteger index = [self indexForIndexPath:indexPath];
+if (index >= 0 && index < (NSInteger)self.specifiers.count) {
+PSSpecifier *specifier = self.specifiers[index];
+if ([[specifier propertyForKey:S("key")] isEqualToString:S("powerMode")]) {
+[tableView deselectRowAtIndexPath:indexPath animated:YES];
+[self showPowerModePicker];
+return;
+}
+}
+[super tableView:tableView didSelectRowAtIndexPath:indexPath];
 }
 
 - (void)showPowerModePicker {
@@ -144,17 +206,16 @@ return spec;
 
 - (PSSpecifier *)powerModeSpecifier {
 PSSpecifier *spec = [PSSpecifier
-preferenceSpecifierNamed:S("功率模式")
+preferenceSpecifierNamed:[self powerModeLabel]
 target:self
 set:NULL
-get:@selector(readPowerModeValue:)
+get:NULL
 detail:nil
-cell:PSLinkListCell
+cell:PSButtonCell
 edit:nil];
 [spec setIdentifier:S("powerMode")];
 [spec setProperty:S("powerMode") forKey:S("key")];
-[spec setProperty:NSStringFromSelector(@selector(showPowerModePicker)) forKey:S("action")];
-[spec setButtonAction:@selector(showPowerModePicker)];
+[spec setButtonAction:@selector(openPowerModePicker)];
 return spec;
 }
 

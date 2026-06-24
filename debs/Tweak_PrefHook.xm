@@ -23,7 +23,9 @@
 // roothide 重映射 dylib 后会破坏 __cfstring 的内部指针
 // 导致加载时直接 SIGBUS (EXC_BAD_ACCESS)
 // ============================================================
-static const char *kPrefPath =
+static const char *kPrefRelativePath =
+    "Library/Preferences/com.huayuarc.CPUthermal.plist";
+static const char *kLegacyPrefPath =
     "/var/mobile/Library/Preferences/com.huayuarc.CPUthermal.plist";
 static const char *kNotifName =
     "com.huayuarc.CPUthermal/settingsChanged";
@@ -39,15 +41,46 @@ static BOOL gHookInstalled = NO;
 static CFStringRef gNotifCFName = NULL;
 static IMP orig_getBatteryServiceSuggestion = nil;
 
+static NSString *safePrefPath(void) {
+    NSString *resolvedJBRoot = [[NSFileManager defaultManager] destinationOfSymbolicLinkAtPath:S("/var/jb") error:nil];
+    if (resolvedJBRoot) {
+        return [resolvedJBRoot stringByAppendingPathComponent:S(kPrefRelativePath)];
+    }
+    return [S("/var/jb") stringByAppendingPathComponent:S(kPrefRelativePath)];
+}
+
+static NSDictionary *readPrefsDictionary(void) {
+    NSString *path = safePrefPath();
+    NSDictionary *prefs = [NSDictionary dictionaryWithContentsOfFile:path];
+    if (prefs) {
+        return prefs;
+    }
+
+    NSString *legacyPath = [NSString stringWithUTF8String:jbroot(kLegacyPrefPath)];
+    prefs = [NSDictionary dictionaryWithContentsOfFile:legacyPath];
+    if (!prefs) {
+        return nil;
+    }
+
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    NSString *directory = [path stringByDeletingLastPathComponent];
+    [fileManager createDirectoryAtPath:directory
+           withIntermediateDirectories:YES
+                            attributes:nil
+                                 error:nil];
+    if ([prefs writeToFile:path atomically:YES]) {
+        [fileManager removeItemAtPath:legacyPath error:nil];
+    }
+    return prefs;
+}
+
 // ============================================================
 // 读取偏好设置
 // 动态创建 NSString，避免使用编译期 ObjC 常量
 // ============================================================
 static void loadPrefs(void) {
     @autoreleasepool {
-        // jbroot() 转换 rootless 路径
-        NSString *path = [NSString stringWithUTF8String:jbroot(kPrefPath)];
-        NSDictionary *d = [NSDictionary dictionaryWithContentsOfFile:path];
+        NSDictionary *d = readPrefsDictionary();
         if (d) {
             id enabledVal = [d objectForKey:S("enabled")];
             id suppressVal = [d objectForKey:S("suppressThermalNotifications")];
