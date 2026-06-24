@@ -1,57 +1,114 @@
-export THEOS ?= /var/mobile/theos
+DEBUG := 0
+FINALPACKAGE := 1
+_THEOS_TOP_INVOCATION_DONE :=
+export _THEOS_TOP_INVOCATION_DONE
+ifeq ($(SCHEME),roothide)
+  ifneq ($(wildcard /Users/colorblack/theos_roothide/*),)
+    override THEOS := /Users/colorblack/theos_roothide
+  endif
+endif
 
-THEOS_PACKAGE_SCHEME = rootless
-TARGET = iphone:clang:16.5:15.0
-ARCHS = arm64 arm64e
-INSTALL_TARGET_PROCESSES = SpringBoard Preferences
+ifeq ($(THEOS),)
+  ifneq ($(wildcard /Users/colorblack/theos/*),)
+    THEOS := /Users/colorblack/theos
+  else
+    THEOS := /var/mobile/theos
+  endif
+endif
+export THEOS
+export ARCHS := arm64 arm64e
+TARGET := iphone:clang:16.5:14.0
 
-ADDITIONAL_OBJCFLAGS = -fobjc-arc
+# ========== 自动检测 jbroot 路径并传入代码 ==========
+JBROOT_DIR != ls -d /var/mobile/Containers/Shared/AppGroup/.jbroot-* 2>/dev/null | head -1
+ifneq ($(JBROOT_DIR),)
+Systempro_CFLAGS += -DJBROOT_PATH=\"$(JBROOT_DIR)\"
+LSILLSettings_CFLAGS += -DJBROOT_PATH=\"$(JBROOT_DIR)\"
+endif
+# 代码中可用: @(JBROOT_PATH "/Library/xxx") 或 strcpy(buf, JBROOT_PATH);
+
+# ========== 双方案构建 ==========
+# make              → 构建 rootless (默认)
+# make SCHEME=roothide → 构建 roothide
+# make build-all    → 同时构建 rootless + roothide
+
+ifeq ($(SCHEME),roothide)
+export THEOS_PACKAGE_SCHEME := roothide
+else
+export THEOS_PACKAGE_SCHEME := rootless
+endif
 
 include $(THEOS)/makefiles/common.mk
 
-TWEAK_NAME = Akara
-Akara_FILES = Akara.m
-Akara_CFLAGS = -Wno-deprecated-declarations -Wno-unguarded-availability-new -Wno-unused-variable
-Akara_FRAMEWORKS = UIKit Foundation CoreGraphics QuartzCore
+TWEAK_NAME = Systempro
+Systempro_FILES = Tweak.xm
+Systempro_CFLAGS = -fobjc-arc
+Systempro_FRAMEWORKS = UIKit Foundation CoreLocation
 
-BUNDLE_NAME = AkaraConnectivity AkaraPrefs AkaraModuleProvider AkaraVerticalModuleProvider
+BUNDLE_NAME = LSILLSettings
+LSILLSettings_FILES = Settings/LLRootListController.m
+LSILLSettings_CFLAGS = -fobjc-arc
+LSILLSettings_FRAMEWORKS = UIKit
+LSILLSettings_PRIVATE_FRAMEWORKS = Preferences
+LSILLSettings_INSTALL_PATH = /Library/PreferenceBundles
 
-AkaraConnectivity_BUNDLE_EXTENSION = bundle
-AkaraConnectivity_FILES = AkaraConnectivity.m AkaraConnectivityModuleContentViewController.m
-AkaraConnectivity_INSTALL_PATH = /Library/ControlCenter/Bundles
-AkaraConnectivity_RESOURCE_DIRS = AkaraConnectivityResources
-AkaraConnectivity_CFLAGS = -Wno-deprecated-declarations -Wno-unguarded-availability-new
-AkaraConnectivity_FRAMEWORKS = UIKit Foundation CoreGraphics QuartzCore
-
-AkaraPrefs_BUNDLE_EXTENSION = bundle
-AkaraPrefs_FILES = AkaraPrefs.m
-AkaraPrefs_INSTALL_PATH = /Library/PreferenceBundles
-AkaraPrefs_RESOURCE_DIRS = AkaraPrefsResources
-AkaraPrefs_CFLAGS = -Wno-deprecated-declarations -Wno-unguarded-availability-new
-AkaraPrefs_FRAMEWORKS = UIKit Foundation CoreGraphics QuartzCore
-AkaraPrefs_PRIVATE_FRAMEWORKS = Preferences
-
-AkaraModuleProvider_BUNDLE_EXTENSION = bundle
-AkaraModuleProvider_FILES = AkaraModuleProvider.m
-AkaraModuleProvider_INSTALL_PATH = /Library/ControlCenter/CCSupport_Providers
-AkaraModuleProvider_RESOURCE_DIRS = AkaraModuleProviderResources
-AkaraModuleProvider_CFLAGS = -Wno-deprecated-declarations -Wno-unguarded-availability-new
-AkaraModuleProvider_FRAMEWORKS = UIKit Foundation CoreGraphics QuartzCore
-AkaraModuleProvider_PRIVATE_FRAMEWORKS = ControlCenterUIKit
-
-AkaraVerticalModuleProvider_BUNDLE_EXTENSION = bundle
-AkaraVerticalModuleProvider_FILES = AkaraVerticalModuleProvider.m
-AkaraVerticalModuleProvider_INSTALL_PATH = /Library/ControlCenter/CCSupport_Providers
-AkaraVerticalModuleProvider_RESOURCE_DIRS = AkaraVerticalModuleProviderResources
-AkaraVerticalModuleProvider_CFLAGS = -Wno-deprecated-declarations -Wno-unguarded-availability-new
-AkaraVerticalModuleProvider_FRAMEWORKS = UIKit Foundation CoreGraphics QuartzCore
-AkaraVerticalModuleProvider_PRIVATE_FRAMEWORKS = ControlCenterUIKit
+# roothide 需要链接 libroothide
+ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
+Systempro_LDFLAGS += -lroothide
+LSILLSettings_LDFLAGS += -lroothide
+endif
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 include $(THEOS_MAKE_PATH)/bundle.mk
 
-before-stage::
-	mkdir -p $(THEOS_STAGING_DIR)/Library/PreferenceLoader/Preferences
-	cp PreferenceLoaderResources/AkaraPrefs.plist $(THEOS_STAGING_DIR)/Library/PreferenceLoader/Preferences/AkaraPrefs.plist
-	mkdir -p "$(THEOS_STAGING_DIR)/Library/Application Support/Akara"
-	cp -R "layout/Library/Application Support/Akara/." "$(THEOS_STAGING_DIR)/Library/Application Support/Akara/"
+INSTALL_TARGET_PROCESSES := SpringBoard
+
+after-stage::
+	$(ECHO_NOTHING)mkdir -p "$(THEOS_STAGING_DIR)tmp$(THEOS_PACKAGE_INSTALL_PREFIX)"$(ECHO_END)
+	$(ECHO_NOTHING)mkdir -p "$(THEOS_STAGING_DIR)/Library/PreferenceLoader/Preferences" "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle"$(ECHO_END)
+	$(ECHO_NOTHING)cp Settings/entry.plist "$(THEOS_STAGING_DIR)/Library/PreferenceLoader/Preferences/LSILLSettings.plist"$(ECHO_END)
+	$(ECHO_NOTHING)cp Settings/Root.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
+	$(ECHO_NOTHING)cp Settings/Notification.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
+	$(ECHO_NOTHING)cp Settings/Disable.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
+	$(ECHO_NOTHING)cp Settings/System.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
+	$(ECHO_NOTHING)cp Settings/ControlCenter.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
+	$(ECHO_NOTHING)cp Settings/LockScreen.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
+	$(ECHO_NOTHING)cp Settings/Cyanide.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
+	$(ECHO_NOTHING)cp Settings/Info.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
+	$(ECHO_NOTHING)cp Settings/Systempro@2x.png "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
+	$(ECHO_NOTHING)cp Settings/Systempro@3x.png "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
+
+after-install::
+	$(ECHO_NOTHING)echo "[Systempro] 安装完成！SpringBoard 即将自动重启使插件生效。"$(ECHO_END)
+
+# 修正 deb 包 Architecture 字段（适配双方案）
+ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
+before-package::
+	$(ECHO_NOTHING)perl -pi -e 's/^Architecture:.*/Architecture: iphoneos-arm64e/' "$(THEOS_STAGING_DIR)/DEBIAN/control"$(ECHO_END)
+endif
+
+# ========== build-all：同时输出两个 deb ==========
+PACKAGE_DIR = ./packages
+
+build-all::
+	@echo "================================================"
+	@echo "  [1/2] 开始构建 rootless 版本..."
+	@echo "================================================"
+	$(MAKE) clean
+	$(MAKE) package
+	@echo ""
+	@echo "================================================"
+	@echo "  [2/2] 开始构建 roothide 版本..."
+	@echo "================================================"
+	@if [ -d "/Users/colorblack/theos_roothide/vendor/mod/roothide" ] || [ -d "/Users/colorblack/theos_roothide/mod/roothide" ] || [ -d "$(THEOS)/vendor/mod/roothide" ] || [ -d "$(THEOS)/mod/roothide" ]; then \
+		$(MAKE) clean SCHEME=roothide; \
+		$(MAKE) package SCHEME=roothide; \
+	else \
+		echo "  [提示] 当前 Theos 环境未配置 roothide 方案 (目录 /Users/colorblack/theos_roothide/mod/roothide 不存在)，已自动跳过 roothide 版本的构建。"; \
+	fi
+	@echo ""
+	@echo "================================================"
+	@echo "  全部构建完成！"
+	@echo "================================================"
+	@echo "生成的文件:"
+	@ls -la $(PACKAGE_DIR)/*.deb 2>/dev/null || echo "  (未找到 deb 文件)"
