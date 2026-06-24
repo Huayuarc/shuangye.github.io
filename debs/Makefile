@@ -8,14 +8,13 @@ INSTALL_TARGET_PROCESSES = thermalmonitord
 # INSTALL_TARGET_PROCESSES 作为 make install 时的兜底（包管理器安装靠 postinst）
 export ARCHS = arm64 arm64e
 
-TWEAK_NAME = CPUthermal
+TWEAK_NAME = CPUthermal CPUthermalPrefHook
+
 CPUthermal_FILES = Tweak.xm
 CPUthermal_CFLAGS = -fobjc-arc -Iinclude -Wno-deprecated-declarations -DTHEOS_INSIDE
 CPUthermal_FRAMEWORKS = Foundation UIKit CoreFoundation IOKit
-include $(THEOS_MAKE_PATH)/tweak.mk
 
 # ThermalManager hook (Preferences 中的散热建议拦截)
-TWEAK_NAME = CPUthermalPrefHook
 CPUthermalPrefHook_FILES = Tweak_PrefHook.xm
 CPUthermalPrefHook_CFLAGS = -fobjc-arc -Iinclude -Wno-deprecated-declarations
 CPUthermalPrefHook_FRAMEWORKS = Foundation CoreFoundation

@@ -2,6 +2,8 @@
 #import <dlfcn.h>
 #import <notify.h>
 #import <limits.h>
+#import <stdint.h>
+#import <string.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #include <roothide.h>
@@ -88,9 +90,9 @@
 - (void)updatePackage;
 - (void)setCPULowPowerTarget:(int)target;
 - (void)setPackageLowPowerTarget;
-- (void)setMaxCPUPowerTarget:(int)target useLegacyPath:(BOOL)legacy setProperty:(BOOL)setProperty;
-- (void)setCPUPowerCeiling:(int)ceiling fromDecisionSource:(id)source;
-- (void)setCPUPowerFloor:(int)floor fromDecisionSource:(id)source;
+- (void)setMaxCPUPowerTarget:(int)target useLegacyPath:(BOOL)legacy setProperty:(uintptr_t)property;
+- (void)setCPUPowerCeiling:(int)ceiling fromDecisionSource:(uintptr_t)source;
+- (void)setCPUPowerFloor:(int)floor fromDecisionSource:(uintptr_t)source;
 - (void)setCPUPowerZoneTarget:(int)target;
 - (BOOL)powerSaveActive;
 - (void)setPowerSaveActive:(BOOL)active;
@@ -194,6 +196,47 @@ static int fullPowerFrequencyValue(void) {
 return INT_MAX;
 }
 
+static CFStringRef cpuMaxPowerPropertyName(void) {
+static CFStringRef propertyName = NULL;
+static dispatch_once_t once;
+dispatch_once(&once, ^{
+propertyName = CFStringCreateWithCString(kCFAllocatorDefault, "CPUMaxPower", kCFStringEncodingUTF8);
+});
+return propertyName;
+}
+
+static BOOL methodEncodingContains(id object, SEL selector, const char *needle) {
+if (!object || !selector || !needle) return NO;
+Method method = class_getInstanceMethod(object_getClass(object), selector);
+if (!method) return NO;
+const char *types = method_getTypeEncoding(method);
+return types && strstr(types, needle) != NULL;
+}
+
+static BOOL setMaxCPUPowerTargetUsesCFString(id controller) {
+return methodEncodingContains(controller, @selector(setMaxCPUPowerTarget:useLegacyPath:setProperty:), "^{__CFString=}");
+}
+
+static uintptr_t setMaxCPUPowerPropertyArgument(id controller) {
+return setMaxCPUPowerTargetUsesCFString(controller)
+? (uintptr_t)cpuMaxPowerPropertyName()
+: (uintptr_t)YES;
+}
+
+static uintptr_t normalizedSetMaxCPUPowerPropertyArgument(id controller, uintptr_t property) {
+if (setMaxCPUPowerTargetUsesCFString(controller) && property < 4096) {
+return (uintptr_t)cpuMaxPowerPropertyName();
+}
+return property;
+}
+
+static void sendSetMaxCPUPowerTarget(id controller, int target, BOOL legacy) {
+if (!controller || ![controller respondsToSelector:@selector(setMaxCPUPowerTarget:useLegacyPath:setProperty:)]) return;
+((void (*)(id, SEL, int, BOOL, uintptr_t))objc_msgSend)(controller,
+@selector(setMaxCPUPowerTarget:useLegacyPath:setProperty:),
+target, legacy, setMaxCPUPowerPropertyArgument(controller));
+}
+
 static int intIvarValue(id object, const char *name, int fallback) {
 if (!object || !name) return fallback;
 Class cls = object_getClass(object);
@@ -250,10 +293,10 @@ if ([controller respondsToSelector:@selector(setCPULowPowerTarget:)]) {
 ((void (*)(id, SEL, int))objc_msgSend)(controller, @selector(setCPULowPowerTarget:), lowPowerTargetValue());
 }
 if ([controller respondsToSelector:@selector(setMaxCPUPowerTarget:useLegacyPath:setProperty:)]) {
-((void (*)(id, SEL, int, BOOL, BOOL))objc_msgSend)(controller, @selector(setMaxCPUPowerTarget:useLegacyPath:setProperty:), lowPowerTargetValue(), NO, YES);
+sendSetMaxCPUPowerTarget(controller, lowPowerTargetValue(), NO);
 }
 if ([controller respondsToSelector:@selector(setCPUPowerCeiling:fromDecisionSource:)]) {
-((void (*)(id, SEL, int, id))objc_msgSend)(controller, @selector(setCPUPowerCeiling:fromDecisionSource:), lowPowerTargetValue(), S("CPUthermalLowPower"));
+((void (*)(id, SEL, int, uintptr_t))objc_msgSend)(controller, @selector(setCPUPowerCeiling:fromDecisionSource:), lowPowerTargetValue(), 0);
 }
 if ([controller respondsToSelector:@selector(setCPUPowerZoneTarget:)]) {
 ((void (*)(id, SEL, int))objc_msgSend)(controller, @selector(setCPUPowerZoneTarget:), lowPowerTargetValue());
@@ -294,13 +337,13 @@ if ([controller respondsToSelector:@selector(setPowerSaveToken:)]) {
 ((void (*)(id, SEL, int))objc_msgSend)(controller, @selector(setPowerSaveToken:), 0);
 }
 if ([controller respondsToSelector:@selector(setMaxCPUPowerTarget:useLegacyPath:setProperty:)]) {
-((void (*)(id, SEL, int, BOOL, BOOL))objc_msgSend)(controller, @selector(setMaxCPUPowerTarget:useLegacyPath:setProperty:), fullPowerTargetForController(controller), NO, YES);
+sendSetMaxCPUPowerTarget(controller, fullPowerTargetForController(controller), NO);
 }
 if ([controller respondsToSelector:@selector(setCPUPowerCeiling:fromDecisionSource:)]) {
-((void (*)(id, SEL, int, id))objc_msgSend)(controller, @selector(setCPUPowerCeiling:fromDecisionSource:), fullPowerCeilingForController(controller), S("CPUthermalFullPower"));
+((void (*)(id, SEL, int, uintptr_t))objc_msgSend)(controller, @selector(setCPUPowerCeiling:fromDecisionSource:), fullPowerCeilingForController(controller), 0);
 }
 if ([controller respondsToSelector:@selector(setCPUPowerFloor:fromDecisionSource:)]) {
-((void (*)(id, SEL, int, id))objc_msgSend)(controller, @selector(setCPUPowerFloor:fromDecisionSource:), fullPowerFloorForController(controller), S("CPUthermalFullPower"));
+((void (*)(id, SEL, int, uintptr_t))objc_msgSend)(controller, @selector(setCPUPowerFloor:fromDecisionSource:), fullPowerFloorForController(controller), 0);
 }
 if ([controller respondsToSelector:@selector(setCPUPowerZoneTarget:)]) {
 ((void (*)(id, SEL, int))objc_msgSend)(controller, @selector(setCPUPowerZoneTarget:), fullPowerZoneTargetForController(controller));
@@ -1098,25 +1141,26 @@ return;
 %orig;
 }
 
-- (void)setMaxCPUPowerTarget:(int)target useLegacyPath:(BOOL)legacy setProperty:(BOOL)setProperty {
+- (void)setMaxCPUPowerTarget:(int)target useLegacyPath:(BOOL)legacy setProperty:(uintptr_t)property {
+uintptr_t propertyArg = normalizedSetMaxCPUPowerPropertyArgument(self, property);
 if (g_restoringFullPower) {
-%orig(target, legacy, setProperty);
+%orig(target, legacy, propertyArg);
 return;
 }
 if (shouldApplyLowPowerLimit()) {
 int64_t clamped = clampLowPowerFrequencyValue(target);
 rememberOriginalIntValue(self, "MaxCPUPowerTarget", target);
-%orig((int)clamped, legacy, setProperty);
+%orig((int)clamped, legacy, propertyArg);
 return;
 }
 if (shouldApplyFullCPUProtection()) {
-%orig(fullPowerTargetForController(self), legacy, setProperty);
+%orig(fullPowerTargetForController(self), legacy, propertyArg);
 return;
 }
 %orig;
 }
 
-- (void)setCPUPowerCeiling:(int)ceiling fromDecisionSource:(id)source {
+- (void)setCPUPowerCeiling:(int)ceiling fromDecisionSource:(uintptr_t)source {
 if (g_restoringFullPower) {
 %orig(ceiling, source);
 return;
@@ -1134,7 +1178,7 @@ return;
 %orig;
 }
 
-- (void)setCPUPowerFloor:(int)floor fromDecisionSource:(id)source {
+- (void)setCPUPowerFloor:(int)floor fromDecisionSource:(uintptr_t)source {
 if (g_restoringFullPower) {
 %orig(floor, source);
 return;
