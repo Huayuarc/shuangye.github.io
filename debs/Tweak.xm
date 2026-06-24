@@ -3,14 +3,7 @@
 #import <dlfcn.h>
 #import <spawn.h>
 #import <unistd.h>
-#import <objc/runtime.h>
-#import <mach/mach.h>
-#import <net/if_dl.h>
-#import <net/if.h>
-#import <ifaddrs.h>
 #import <BluetoothManager/BluetoothManager.h>
-#import <CoreLocation/CoreLocation.h>
-#import <substrate.h>
 
 // ============================================================================
 // 常量
@@ -36,38 +29,32 @@ static NSString *const kAppOpenAnimationDirectionKey = @"appOpenAnimationDirecti
 static NSString *const kDisconnectWiFiBTKey  = @"disconnectWiFiBT";
 static NSString *const kLowPowerOnLockKey   = @"lowPowerOnLock";
 static NSString *const kLockWhenFaceDownKey = @"lockWhenFaceDown";
+
+// ===== Cyanide 移植功能键 =====
+static NSString *const kHideHomeBarKey      = @"hideHomeBar";
+static NSString *const kDoubleTapToLockKey  = @"doubleTapToLock";
+static NSString *const kDoubleTapToWakeKey  = @"doubleTapToWake";
+static NSString *const kKillAllAppsKey      = @"killAllApps";
 static NSString *const kDisableIconFlyInKey = @"disableIconFlyIn";
 static NSString *const kZeroWakeAnimationKey = @"zeroWakeAnimation";
-static NSString *const kZeroBacklightFadeKey = @"zeroBacklightFade";
-static NSString *const kDoubleTapToLockKey = @"doubleTapToLock";
-static NSString *const kAppSwitcherGridKey = @"appSwitcherGrid";
-static NSString *const kCustomAnimationSpeedKey = @"customAnimationSpeed";
-static NSString *const kAnimationSpeedKey = @"animationSpeed";
-static NSString *const kStatusMemoryOverlayKey = @"statusMemoryOverlay";
-static NSString *const kStatusNetworkSpeedKey = @"statusNetworkSpeed";
-static NSString *const kDisableOTAUpdatesKey = @"disableOTAUpdates";
-static NSString *const kHomeLayoutEnabledKey = @"homeLayoutEnabled";
-static NSString *const kHomeColumnsKey = @"homeColumns";
-static NSString *const kHomeRowsKey = @"homeRows";
-static NSString *const kDockIconCountKey = @"dockIconCount";
-static NSString *const kHideIconLabelsKey = @"hideIconLabels";
-static NSString *const kHomeIconScaleKey = @"homeIconScale";
-static NSString *const kDockIconScaleKey = @"dockIconScale";
+// ===== App Switcher Grid 增强 =====
+// 模式: 0=off(deck), 1=grid, 2=auto
+static int      g_switcherStyle        = 0;
+static int      g_switcherColumns      = 4;      // 3-6 列
+static CGFloat  g_switcherInsetTop     = 0;
+static CGFloat  g_switcherInsetBottom  = 0;
+static CGFloat  g_switcherInsetLeft    = 0;
+static CGFloat  g_switcherInsetRight   = 0;
+static NSString *const kSwitcherStyleKey    = @"switcherStyle";
+static NSString *const kSwitcherColumnsKey  = @"switcherColumns";
+static NSString *const kSwitcherInsetTopKey    = @"switcherInsetTop";
+static NSString *const kSwitcherInsetBottomKey = @"switcherInsetBottom";
+static NSString *const kSwitcherInsetLeftKey   = @"switcherInsetLeft";
+static NSString *const kSwitcherInsetRightKey  = @"switcherInsetRight";
+static NSString *const kHideAppLabelsKey    = @"hideAppLabels";
+
 static NSString *const kNotifyPrefsChanged = @"com.huayuarc.systempro.prefschanged";
 static NSString *const kNotifyRespring     = @"com.huayuarc.systempro.respring";
-
-// 通话录音提示音静音
-static NSString *const kCallRecordingSoundKey = @"callRecordingSound";
-
-// 手表配对覆盖
-static NSString *const kNanoRegistryEnabledKey = @"nanoRegistryEnabled";
-
-// 定位模拟
-static NSString *const kLocationSimEnabledKey = @"locationSimEnabled";
-static NSString *const kLocationSimLatKey     = @"locationSimLatitude";
-static NSString *const kLocationSimLonKey     = @"locationSimLongitude";
-static NSString *const kLocationSimAltKey     = @"locationSimAltitude";
-static NSString *const kLocationSimAccKey     = @"locationSimAccuracy";
 
 // blockMode 值
 typedef NS_ENUM(NSInteger, LSBlockMode) {
@@ -107,38 +94,28 @@ static AppOpenAnimationDirection g_appOpenAnimationDirection = AppOpenAnimationD
 static BOOL      g_disconnectWiFiBT           = NO;
 static BOOL      g_lowPowerOnLock             = NO;
 static BOOL      g_lockWhenFaceDown           = NO;
-static BOOL      g_disableIconFlyIn          = NO;
-static BOOL      g_zeroWakeAnimation        = NO;
-static BOOL      g_zeroBacklightFade        = NO;
-static BOOL      g_doubleTapToLock          = NO;
-static BOOL      g_appSwitcherGrid          = NO;
-static BOOL      g_customAnimationSpeed     = NO;
-static NSInteger g_animationSpeed           = 2;
-static BOOL      g_statusMemoryOverlay      = NO;
-static BOOL      g_statusNetworkSpeed       = NO;
-static BOOL      g_disableOTAUpdates        = NO;
-static UIWindow *g_systemproStatusWindow    = nil;
-static UILabel  *g_systemproStatusLabel     = nil;
-static NSTimer  *g_systemproStatusTimer     = nil;
-static uint64_t g_previousRxBytes           = 0;
-static uint64_t g_previousTxBytes           = 0;
-static BOOL      g_homeLayoutEnabled      = NO;
-static NSInteger g_homeColumns            = 4;
-static NSInteger g_homeRows               = 6;
-static NSInteger g_dockIconCount          = 4;
-static BOOL      g_hideIconLabels         = NO;
-static NSInteger g_homeIconScale          = 100;
-static NSInteger g_dockIconScale          = 100;
-static BOOL      g_callRecordingSound      = NO;
-static BOOL      g_nanoRegistryEnabled     = NO;
-static BOOL      g_locationSimEnabled      = NO;
-static double    g_locationSimLatitude     = 37.3317;
-static double    g_locationSimLongitude    = -122.0307;
-static double    g_locationSimAltitude     = 0.0;
-static double    g_locationSimAccuracy     = 100.0;
-static id        g_locationSimManager      = nil;
 // 锁屏自动低电 — 记录锁屏前低电模式状态
 static BOOL      g_isLPMOnBeforeLock          = NO;
+
+// ===== Cyanide 移植功能全局变量 =====
+static BOOL      g_hideHomeBar         = NO;
+static BOOL      g_doubleTapToLock     = NO;
+static BOOL      g_doubleTapToWake     = NO;
+static BOOL      g_killAllApps         = NO;
+static BOOL      g_disableIconFlyIn    = NO;
+static BOOL      g_zeroWakeAnimation   = NO;
+static BOOL      g_hideAppLabels       = NO;
+
+// 双击锁屏 — 跟踪已添加的手势，防止重复添加
+static UITapGestureRecognizer *g_doubleTapRecognizer = nil;
+
+// ===== 自定义动画速度 =====
+static float g_animationSpeed = 1.0f;
+static int g_animationSpeedIdx = 2; // 索引 0-4
+// 速度倍率映射表：索引 → 实际倍率
+static const float kAnimationSpeedValues[] = {0.25f, 0.5f, 1.0f, 2.0f, 4.0f};
+static NSString *const kAnimationSpeedKey = @"animationSpeed";
+
 // ============================================================================
 // 配置读写 — 内存缓存（避免热路径 I/O）
 // ============================================================================
@@ -159,7 +136,7 @@ static void reloadConfiguration(void) {
 		g_disableLockSound           = [prefs[kDisableLockSoundKey] boolValue];
 		g_removeUnlockDelay          = [prefs[kRemoveUnlockDelayKey] boolValue];
 		g_inCallUnlocked             = [prefs[kInCallUnlockedKey] boolValue];
-		
+
 		id directionVal = prefs[kAppOpenAnimationDirectionKey];
 		if (directionVal) {
 			g_appOpenAnimationDirection = (AppOpenAnimationDirection)[directionVal integerValue];
@@ -168,40 +145,44 @@ static void reloadConfiguration(void) {
 			BOOL oldVal = [prefs[kRightToLeftAppOpenKey] boolValue];
 			g_appOpenAnimationDirection = oldVal ? AppOpenAnimationDirectionRightToLeft : AppOpenAnimationDirectionDisabled;
 		}
-		
+
 		g_disconnectWiFiBT           = [prefs[kDisconnectWiFiBTKey] boolValue];
 		g_lowPowerOnLock             = [prefs[kLowPowerOnLockKey] boolValue];
 		g_lockWhenFaceDown           = [prefs[kLockWhenFaceDownKey] boolValue];
-		g_disableIconFlyIn          = [prefs[kDisableIconFlyInKey] boolValue];
-		g_zeroWakeAnimation        = [prefs[kZeroWakeAnimationKey] boolValue];
-		g_zeroBacklightFade        = [prefs[kZeroBacklightFadeKey] boolValue];
-		g_doubleTapToLock          = [prefs[kDoubleTapToLockKey] boolValue];
-		g_appSwitcherGrid          = [prefs[kAppSwitcherGridKey] boolValue];
-		g_customAnimationSpeed     = [prefs[kCustomAnimationSpeedKey] boolValue];
-		g_animationSpeed           = [prefs[kAnimationSpeedKey] integerValue];
-		if (g_animationSpeed < 0 || g_animationSpeed > 3) g_animationSpeed = 2;
-		g_statusMemoryOverlay      = [prefs[kStatusMemoryOverlayKey] boolValue];
-		g_statusNetworkSpeed       = [prefs[kStatusNetworkSpeedKey] boolValue];
-		g_disableOTAUpdates        = [prefs[kDisableOTAUpdatesKey] boolValue];
-		g_homeLayoutEnabled        = [prefs[kHomeLayoutEnabledKey] boolValue];
-		g_homeColumns              = [prefs[kHomeColumnsKey] integerValue] ?: 4;
-		g_homeRows                 = [prefs[kHomeRowsKey] integerValue] ?: 6;
-		g_dockIconCount            = [prefs[kDockIconCountKey] integerValue] ?: 4;
-		g_hideIconLabels           = [prefs[kHideIconLabelsKey] boolValue];
-		g_homeIconScale            = [prefs[kHomeIconScaleKey] integerValue] ?: 100;
-		g_dockIconScale            = [prefs[kDockIconScaleKey] integerValue] ?: 100;
-		g_callRecordingSound      = [prefs[kCallRecordingSoundKey] boolValue];
-		g_nanoRegistryEnabled     = [prefs[kNanoRegistryEnabledKey] boolValue];
-		g_locationSimEnabled      = [prefs[kLocationSimEnabledKey] boolValue];
-		g_locationSimLatitude     = [prefs[kLocationSimLatKey] doubleValue] ?: 37.3317;
-		g_locationSimLongitude    = [prefs[kLocationSimLonKey] doubleValue] ?: -122.0307;
-		g_locationSimAltitude     = [prefs[kLocationSimAltKey] doubleValue];
-		g_locationSimAccuracy     = [prefs[kLocationSimAccKey] doubleValue] ?: 100.0;
-		if (g_homeColumns < 3 || g_homeColumns > 7) g_homeColumns = 4;
-		if (g_homeRows < 4 || g_homeRows > 8) g_homeRows = 6;
-		if (g_dockIconCount < 4 || g_dockIconCount > 7) g_dockIconCount = 4;
-		if (g_homeIconScale < 80 || g_homeIconScale > 120) g_homeIconScale = 100;
-		if (g_dockIconScale < 80 || g_dockIconScale > 120) g_dockIconScale = 100;
+
+		// ===== Cyanide 移植功能 =====
+		g_hideHomeBar         = [prefs[kHideHomeBarKey] boolValue];
+		g_doubleTapToLock     = [prefs[kDoubleTapToLockKey] boolValue];
+		g_doubleTapToWake     = [prefs[kDoubleTapToWakeKey] boolValue];
+		g_killAllApps         = [prefs[kKillAllAppsKey] boolValue];
+		g_disableIconFlyIn    = [prefs[kDisableIconFlyInKey] boolValue];
+		g_zeroWakeAnimation   = [prefs[kZeroWakeAnimationKey] boolValue];
+		g_hideAppLabels       = [prefs[kHideAppLabelsKey] boolValue];
+
+		// ===== App Switcher Grid 增强 =====
+		{
+			id styleVal = prefs[kSwitcherStyleKey];
+			if (styleVal) {
+				g_switcherStyle = [styleVal intValue];
+			} else {
+				// 兼容旧的 appSwitcherGrid 布尔设置
+				g_switcherStyle = [prefs[@"appSwitcherGrid"] boolValue] ? 1 : 0;
+			}
+			if (g_switcherStyle < 0 || g_switcherStyle > 2) g_switcherStyle = 0;
+			int cols = (int)[prefs[kSwitcherColumnsKey] integerValue];
+			g_switcherColumns = (cols >= 3 && cols <= 6) ? cols : 4;
+			g_switcherInsetTop    = [prefs[kSwitcherInsetTopKey] floatValue];
+			g_switcherInsetBottom = [prefs[kSwitcherInsetBottomKey] floatValue];
+			g_switcherInsetLeft   = [prefs[kSwitcherInsetLeftKey] floatValue];
+			g_switcherInsetRight  = [prefs[kSwitcherInsetRightKey] floatValue];
+		}
+
+		// ===== 自定义动画速度 =====
+		int speedIdx = (int)[prefs[kAnimationSpeedKey] integerValue];
+		if (speedIdx < 0 || speedIdx > 4) speedIdx = 2;
+		g_animationSpeedIdx = speedIdx;
+		g_animationSpeed = kAnimationSpeedValues[speedIdx];
+
 		// 兜底：确保枚举值不越界
 		if (g_blockMode != LSBlockModeLowPower &&
 			g_blockMode != LSBlockModeSilent &&
@@ -228,369 +209,89 @@ static BOOL shouldBlock(void) {
 	return NO;
 }
 
-
-static double SPAnimationSpeedCoefficient(void) {
-	if (!g_customAnimationSpeed) return 1.0;
-	switch (g_animationSpeed) {
-		case 0: return 0.25;
-		case 1: return 0.5;
-		case 3: return 1.5;
-		default: return 1.0;
-	}
-}
-
-static double (*SPOrigUIAnimationDragCoefficient)(void) = NULL;
-
-static double SPUIAnimationDragCoefficientHook(void) {
-	if (!g_customAnimationSpeed) {
-		return SPOrigUIAnimationDragCoefficient ? SPOrigUIAnimationDragCoefficient() : 1.0;
-	}
-	return SPAnimationSpeedCoefficient();
-}
-
-static void SPInstallAnimationSpeedHook(void) {
-	void *symbol = dlsym(RTLD_DEFAULT, "_UIAnimationDragCoefficient");
-	if (!symbol) {
-		void *handle = dlopen("/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore", RTLD_LAZY);
-		if (handle) symbol = dlsym(handle, "_UIAnimationDragCoefficient");
-	}
-	if (symbol) {
-		MSHookFunction(symbol, (void *)&SPUIAnimationDragCoefficientHook, (void **)&SPOrigUIAnimationDragCoefficient);
-	}
-}
-
-static uint64_t SPNetworkInterfaceBytes(BOOL transmit) {
-	uint64_t total = 0;
-	struct ifaddrs *interfaces = NULL;
-	if (getifaddrs(&interfaces) != 0) return 0;
-	for (struct ifaddrs *cursor = interfaces; cursor; cursor = cursor->ifa_next) {
-		if (!cursor->ifa_addr || cursor->ifa_addr->sa_family != AF_LINK) continue;
-		if (!(cursor->ifa_flags & IFF_UP) || (cursor->ifa_flags & IFF_LOOPBACK)) continue;
-		struct if_data *data = (struct if_data *)cursor->ifa_data;
-		if (!data) continue;
-		total += transmit ? data->ifi_obytes : data->ifi_ibytes;
-	}
-	freeifaddrs(interfaces);
-	return total;
-}
-
-static NSString *SPFormatBytesPerSecond(uint64_t bytes) {
-	if (bytes >= 1024ULL * 1024ULL) return [NSString stringWithFormat:@"%.1fM/s", (double)bytes / 1024.0 / 1024.0];
-	if (bytes >= 1024ULL) return [NSString stringWithFormat:@"%.0fK/s", (double)bytes / 1024.0];
-	return [NSString stringWithFormat:@"%lluB/s", (unsigned long long)bytes];
-}
-
-static uint64_t SPFreeMemoryMB(void) {
-	mach_msg_type_number_t count = HOST_VM_INFO64_COUNT;
-	vm_statistics64_data_t vmstat;
-	if (host_statistics64(mach_host_self(), HOST_VM_INFO64, (host_info64_t)&vmstat, &count) != KERN_SUCCESS) return 0;
-	uint64_t freePages = vmstat.free_count + vmstat.inactive_count;
-	return (freePages * (uint64_t)vm_kernel_page_size) / 1024ULL / 1024ULL;
-}
-
-static void SPUpdateStatusOverlay(void) {
-	if (!g_systemproStatusLabel) return;
-	NSMutableArray<NSString *> *parts = [NSMutableArray array];
-	if (g_statusMemoryOverlay) {
-		[parts addObject:[NSString stringWithFormat:@"RAM %lluM", (unsigned long long)SPFreeMemoryMB()]];
-	}
-	if (g_statusNetworkSpeed) {
-		uint64_t rx = SPNetworkInterfaceBytes(NO);
-		uint64_t tx = SPNetworkInterfaceBytes(YES);
-		uint64_t deltaRx = g_previousRxBytes ? rx - g_previousRxBytes : 0;
-		uint64_t deltaTx = g_previousTxBytes ? tx - g_previousTxBytes : 0;
-		g_previousRxBytes = rx;
-		g_previousTxBytes = tx;
-		[parts addObject:[NSString stringWithFormat:@"↓%@ ↑%@", SPFormatBytesPerSecond(deltaRx), SPFormatBytesPerSecond(deltaTx)]];
-	}
-	g_systemproStatusLabel.text = [parts componentsJoinedByString:@"  "];
-	[g_systemproStatusLabel sizeToFit];
-	CGRect frame = g_systemproStatusLabel.frame;
-	frame.size.width += 16.0;
-	frame.size.height = 20.0;
-	frame.origin.x = ([UIScreen mainScreen].bounds.size.width - frame.size.width) / 2.0;
-	frame.origin.y = 2.0;
-	g_systemproStatusWindow.frame = frame;
-	g_systemproStatusLabel.frame = g_systemproStatusWindow.bounds;
-	g_systemproStatusWindow.hidden = parts.count == 0;
-}
-
-static void SPRefreshStatusOverlay(void) {
-	BOOL enabled = g_statusMemoryOverlay || g_statusNetworkSpeed;
-	if (!enabled) {
-		[g_systemproStatusTimer invalidate];
-		g_systemproStatusTimer = nil;
-		g_systemproStatusWindow.hidden = YES;
-		return;
-	}
-	if (!g_systemproStatusWindow) {
-		g_systemproStatusWindow = [[UIWindow alloc] initWithFrame:CGRectMake(0, 2, 1, 20)];
-		g_systemproStatusWindow.windowLevel = UIWindowLevelStatusBar + 100.0;
-		g_systemproStatusWindow.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.45];
-		g_systemproStatusWindow.layer.cornerRadius = 6.0;
-		g_systemproStatusWindow.clipsToBounds = YES;
-		g_systemproStatusWindow.userInteractionEnabled = NO;
-		g_systemproStatusLabel = [[UILabel alloc] initWithFrame:g_systemproStatusWindow.bounds];
-		g_systemproStatusLabel.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-		g_systemproStatusLabel.font = [UIFont systemFontOfSize:10 weight:UIFontWeightMedium];
-		g_systemproStatusLabel.textColor = UIColor.whiteColor;
-		g_systemproStatusLabel.textAlignment = NSTextAlignmentCenter;
-		[g_systemproStatusWindow addSubview:g_systemproStatusLabel];
-	}
-	g_systemproStatusWindow.hidden = NO;
-	if (!g_systemproStatusTimer) {
-		g_systemproStatusTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 repeats:YES block:^(__unused NSTimer *timer) {
-			SPUpdateStatusOverlay();
-		}];
-	}
-	SPUpdateStatusOverlay();
-}
-
-static void SPApplyOTAState(void) {
-	NSString *path = @"/var/db/com.apple.xpc.launchd/disabled.plist";
-	NSMutableDictionary *plist = [NSMutableDictionary dictionaryWithContentsOfFile:path];
-	if (!plist) plist = [NSMutableDictionary dictionary];
-	NSArray<NSString *> *labels = @[@"com.apple.mobile.softwareupdated", @"com.apple.OTATaskingAgent", @"com.apple.softwareupdateservicesd"];
-	for (NSString *label in labels) {
-		if (g_disableOTAUpdates) plist[label] = @YES;
-		else [plist removeObjectForKey:label];
-	}
-	[plist writeToFile:path atomically:YES];
-}
-
-static void SPInstallDoubleTapGesture(UIView *view) {
-	if (!view || objc_getAssociatedObject(view, @selector(SPInstallDoubleTapGesture:))) return;
-	UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:[%c(SpringBoard) sharedApplication] action:@selector(_simulateLockButtonPress)];
-	tap.numberOfTapsRequired = 2;
-	tap.cancelsTouchesInView = NO;
-	[view addGestureRecognizer:tap];
-	objc_setAssociatedObject(view, @selector(SPInstallDoubleTapGesture:), tap, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-}
-
-
-static double SPScaleForIconView(UIView *view) {
-	if (!g_homeLayoutEnabled || !view) return 1.0;
-	NSString *className = NSStringFromClass([view class]);
-	BOOL isDock = [className containsString:@"Dock"];
-	NSInteger pct = isDock ? g_dockIconScale : g_homeIconScale;
-	return (double)pct / 100.0;
-}
-
-static void SPApplyIconViewScale(UIView *view) {
-	if (!g_homeLayoutEnabled || !view) return;
-	double scale = SPScaleForIconView(view);
-	view.transform = CGAffineTransformMakeScale(scale, scale);
-}
-
-static NSUInteger SPLayoutCount(NSUInteger original, NSUInteger replacement) {
-	return g_homeLayoutEnabled ? replacement : original;
-}
-
 // ============================================================================
-// 通话录音提示音静音 — 静音音频数据 (移植 Cyanide call_recording_sound)
+// ===== Cyanide 移植辅助函数 =====
 // ============================================================================
-static const unsigned char kSilentAudioData[] = {
-	0x00, 0x00, 0x00, 0x1c, 0x66, 0x74, 0x79, 0x70, 0x4d, 0x34, 0x41, 0x20, 0x00, 0x00, 0x02, 0x00,
-	0x4d, 0x34, 0x41, 0x20, 0x69, 0x73, 0x6f, 0x6d, 0x69, 0x73, 0x6f, 0x32, 0x00, 0x00, 0x00, 0x08,
-	0x66, 0x72, 0x65, 0x65, 0x00, 0x00, 0x00, 0x25, 0x6d, 0x64, 0x61, 0x74, 0xde, 0x02, 0x00, 0x4c,
-	0x61, 0x76, 0x63, 0x36, 0x32, 0x2e, 0x32, 0x38, 0x2e, 0x31, 0x30, 0x31, 0x00, 0x02, 0x30, 0x40,
-	0x0e, 0x01, 0x18, 0x20, 0x07, 0x01, 0x18, 0x20, 0x07, 0x00, 0x00, 0x03, 0x07, 0x6d, 0x6f, 0x6f,
-	0x76, 0x00, 0x00, 0x00, 0x6c, 0x6d, 0x76, 0x68, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0xe8, 0x00, 0x00, 0x00, 0x65, 0x00, 0x01, 0x00,
-	0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x02,
-	0x31, 0x74, 0x72, 0x61, 0x6b, 0x00, 0x00, 0x00, 0x5c, 0x74, 0x6b, 0x68, 0x64, 0x00, 0x00, 0x00,
-	0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x65, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x24, 0x65, 0x64, 0x74, 0x73, 0x00, 0x00, 0x00, 0x1c, 0x65, 0x6c, 0x73,
-	0x74, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x64, 0x00, 0x00, 0x04,
-	0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0xa9, 0x6d, 0x64, 0x69, 0x61, 0x00, 0x00, 0x00,
-	0x20, 0x6d, 0x64, 0x68, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x2b, 0x11, 0x00, 0x00, 0x08, 0x4f, 0x55, 0xc4, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x2d, 0x68, 0x64, 0x6c, 0x72, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x73, 0x6f, 0x75,
-	0x6e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x53, 0x6f, 0x75,
-	0x6e, 0x64, 0x48, 0x61, 0x6e, 0x64, 0x6c, 0x65, 0x72, 0x00, 0x00, 0x00, 0x01, 0x54, 0x6d, 0x69,
-	0x6e, 0x66, 0x00, 0x00, 0x00, 0x10, 0x73, 0x6d, 0x68, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x24, 0x64, 0x69, 0x6e, 0x66, 0x00, 0x00, 0x00, 0x1c, 0x64, 0x72,
-	0x65, 0x66, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x0c, 0x75, 0x72,
-	0x6c, 0x20, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x01, 0x18, 0x73, 0x74, 0x62, 0x6c, 0x00, 0x00,
-	0x00, 0x6a, 0x73, 0x74, 0x73, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
-	0x00, 0x5a, 0x6d, 0x70, 0x34, 0x61, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x2b, 0x11,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x36, 0x65, 0x73, 0x64, 0x73, 0x00, 0x00, 0x00, 0x00, 0x03, 0x80,
-	0x80, 0x80, 0x25, 0x00, 0x01, 0x00, 0x04, 0x80, 0x80, 0x80, 0x17, 0x40, 0x15, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x1f, 0x40, 0x00, 0x00, 0x04, 0xb2, 0x05, 0x80, 0x80, 0x80, 0x05, 0x15, 0x08, 0x56,
-	0xe5, 0x00, 0x06, 0x80, 0x80, 0x80, 0x01, 0x02, 0x00, 0x00, 0x00, 0x20, 0x73, 0x74, 0x74, 0x73,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x04, 0x00,
-	0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x4f, 0x00, 0x00, 0x00, 0x1c, 0x73, 0x74, 0x73, 0x63,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x03,
-	0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x20, 0x73, 0x74, 0x73, 0x7a, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x15, 0x00, 0x00, 0x00, 0x04,
-	0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x14, 0x73, 0x74, 0x63, 0x6f, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x2c, 0x00, 0x00, 0x00, 0x1a, 0x73, 0x67, 0x70, 0x64,
-	0x01, 0x00, 0x00, 0x00, 0x72, 0x6f, 0x6c, 0x6c, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01,
-	0xff, 0xff, 0x00, 0x00, 0x00, 0x1c, 0x73, 0x62, 0x67, 0x70, 0x00, 0x00, 0x00, 0x00, 0x72, 0x6f,
-	0x6c, 0x6c, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
-	0x00, 0x62, 0x75, 0x64, 0x74, 0x61, 0x00, 0x00, 0x00, 0x5a, 0x6d, 0x65, 0x74, 0x61, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x21, 0x68, 0x64, 0x6c, 0x72, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x6d, 0x64, 0x69, 0x72, 0x61, 0x70, 0x70, 0x6c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x2d, 0x69, 0x6c, 0x73, 0x74, 0x00, 0x00, 0x00, 0x25, 0xa9,
-	0x74, 0x6f, 0x6f, 0x00, 0x00, 0x00, 0x1d, 0x64, 0x61, 0x74, 0x61, 0x00, 0x00, 0x00, 0x01, 0x00,
-	0x00, 0x00, 0x00, 0x4c, 0x61, 0x76, 0x66, 0x36, 0x32, 0x2e, 0x31, 0x32, 0x2e, 0x31, 0x30, 0x31,
-};
-static const NSUInteger kSilentAudioLength = 848;
 
-// ============================================================================
-// 通话录音提示音静音 — 替换 CallServices 录音提示音文件
-// ============================================================================
-// 移植自 Cyanide call_recording_sound.m，去除 KRW/sandbox 依赖。
-// 在 jailbreak 环境下 SpringBoard 有 /var/mobile 文件写入权限。
-static void SPApplyCallRecordingSound(BOOL disabled) {
-	NSString *targetDir = @"/var/mobile/Library/CallServices/Greetings/default";
-	NSString *backupDir = @"/var/mobile/Library/Preferences/.systempro_callrecord_backup";
-	NSFileManager *fm = [NSFileManager defaultManager];
+// Kill All Apps — 遍历所有正在运行的应用并关闭
+static void performKillAllApps(void) {
+	Class sbAppController = NSClassFromString(@"SBApplicationController");
+	if (!sbAppController) return;
+	id controller = [sbAppController performSelector:@selector(sharedInstance)];
+	if (!controller) return;
 
-	// 确保目标目录存在
-	if (![fm fileExistsAtPath:targetDir]) {
-		[fm createDirectoryAtPath:targetDir withIntermediateDirectories:YES attributes:nil error:NULL];
-	}
+	NSArray *apps = [controller performSelector:@selector(runningApplications)];
+	for (id app in apps) {
+		NSString *bundleID = [app performSelector:@selector(bundleIdentifier)];
+		if (!bundleID) continue;
 
-	// 确保备份目录存在
-	if (![fm fileExistsAtPath:backupDir]) {
-		[fm createDirectoryAtPath:backupDir withIntermediateDirectories:YES attributes:nil error:NULL];
-	}
+		// 系统应用白名单
+		static NSSet *denySet = nil;
+		static dispatch_once_t once;
+		dispatch_once(&once, ^{
+			denySet = [NSSet setWithObjects:
+				@"com.apple.springboard",
+				@"com.apple.PineBoard",
+				@"com.apple.InCallService",
+				@"com.apple.AccessibilityUIServer",
+				@"com.apple.Passcode",
+				nil];
+		});
 
-	NSArray<NSString *> *fileNames = @[@"StartDisclosureWithTone.m4a", @"StopDisclosure.caf"];
+		// 跳过 Widget、Extension 等
+		if ([denySet containsObject:bundleID]) continue;
+		if ([bundleID containsString:@"WidgetRenderer"]) continue;
+		if ([bundleID containsString:@"Extension"]) continue;
+		if ([bundleID containsString:@"ViewService"]) continue;
+		if ([bundleID containsString:@"UIHost"]) continue;
+		if ([bundleID containsString:@"UIService"]) continue;
 
-	for (NSString *fileName in fileNames) {
-		NSString *targetPath = [targetDir stringByAppendingPathComponent:fileName];
-		NSString *backupPath = [backupDir stringByAppendingPathComponent:fileName];
-
-		if (disabled) {
-			// 静音模式：备份原文件 → 写入静音文件
-			if ([fm fileExistsAtPath:targetPath] && ![fm fileExistsAtPath:backupPath]) {
-				[fm copyItemAtPath:targetPath toPath:backupPath error:NULL];
-			}
-			NSData *silentData = [NSData dataWithBytes:kSilentAudioData length:kSilentAudioLength];
-			[silentData writeToFile:targetPath atomically:YES];
-		} else {
-			// 恢复模式：从备份还原
-			if ([fm fileExistsAtPath:backupPath]) {
-				NSData *origData = [NSData dataWithContentsOfFile:backupPath];
-				if (origData.length > 0) {
-					[origData writeToFile:targetPath atomically:YES];
-				}
-				[fm removeItemAtPath:backupPath error:NULL];
-			} else if ([fm fileExistsAtPath:targetPath]) {
-				// 无备份但有目标文件 — 可能是手动创建的，保持原样
-			}
-		}
-	}
-	NSLog(@"[Systempro] CallRecordingSound %s", disabled ? "silenced" : "restored");
-}
-
-// ============================================================================
-// 手表配对覆盖 — 写入/清除 NanoRegistry plist 兼容性键值
-// ============================================================================
-// 移植自 Cyanide nano_registry.m，去除 KRW/RemoteCall/sandbox 依赖。
-// 直接编辑 /var/mobile/Library/Preferences/com.apple.NanoRegistry.plist。
-static void SPApplyWatchNanoRegistry(BOOL enabled) {
-	NSString *plistPath = @"/var/mobile/Library/Preferences/com.apple.NanoRegistry.plist";
-	NSMutableDictionary *plist = [NSMutableDictionary dictionaryWithContentsOfFile:plistPath];
-	if (!plist) plist = [NSMutableDictionary dictionary];
-
-	if (enabled) {
-		plist[@"maxPairingCompatibilityVersion"] = @99;
-		plist[@"minPairingCompatibilityVersion"] = @23;
-		plist[@"minPairingCompatibilityVersionWithChipID"] = @10;
-		plist[@"minQuickSwitchCompatibilityVersion"] = @6;
-	} else {
-		[plist removeObjectForKey:@"maxPairingCompatibilityVersion"];
-		[plist removeObjectForKey:@"minPairingCompatibilityVersion"];
-		[plist removeObjectForKey:@"minPairingCompatibilityVersionWithChipID"];
-		[plist removeObjectForKey:@"minQuickSwitchCompatibilityVersion"];
-	}
-
-	if ([plist writeToFile:plistPath atomically:YES]) {
-		notify_post("com.apple.nanoregistry.pairingcompatibilityversion");
-		NSLog(@"[Systempro] NanoRegistry %s", enabled ? "applied" : "cleared");
+		// 退出应用
+		[app performSelector:@selector(kill)];
 	}
 }
 
-// ============================================================================
-// 定位模拟 — 使用 CLSimulationManager 在本进程注入模拟位置
-// ============================================================================
-// 移植自 Cyanide location_sim.m，去除 RemoteCall 依赖。
-// SpringBoard 进程可直接调用 CoreLocation CLSimulationManager。
-// CLSimulationManager 是私有类，声明方法在 NSObject 类别上使编译器通过
-@interface NSObject (SystemproLocationSim)
-- (void)stopLocationSimulation;
-- (void)clearSimulatedLocations;
-- (void)appendSimulatedLocation:(id)location;
-- (void)startLocationSimulation;
-@end
-static void SPApplyLocationSim(BOOL enabled) {
-	Class cls = NSClassFromString(@"CLSimulationManager");
-	if (!cls) {
-		NSLog(@"[Systempro] CLSimulationManager class not available");
-		return;
-	}
+// 双击锁屏 — 向主屏幕视图添加双击手势
+static void installDoubleTapGesture(void) {
+	if (g_doubleTapRecognizer) return;
 
-	if (enabled) {
-		// 停止旧的模拟
-		if (g_locationSimManager) {
-			[(id)g_locationSimManager stopLocationSimulation];
-			[(id)g_locationSimManager clearSimulatedLocations];
-			g_locationSimManager = nil;
-		}
+	Class sbIconController = NSClassFromString(@"SBIconController");
+	if (!sbIconController) return;
+	id iconCtrl = [sbIconController performSelector:@selector(sharedInstance)];
+	if (!iconCtrl) return;
 
-		// 创建新 manager
-		id manager = [[cls alloc] init];
-		if (!manager) {
-			NSLog(@"[Systempro] CLSimulationManager init failed");
-			return;
-		}
+	// 通过 iconManager 拿到 rootFolderController 的 view
+	id iconMgr = [iconCtrl performSelector:@selector(iconManager)];
+	if (!iconMgr) return;
+	id rootFC = [iconMgr performSelector:@selector(rootFolderController)];
+	if (!rootFC) return;
+	UIView *homeView = [rootFC performSelector:@selector(view)];
+	if (!homeView) return;
 
-		// 创建 CLLocation
-		Class locCls = NSClassFromString(@"CLLocation");
-		if (!locCls) {
-			NSLog(@"[Systempro] CLLocation class not available");
-			return;
-		}
+	g_doubleTapRecognizer = [[UITapGestureRecognizer alloc]
+		initWithTarget:[UIApplication sharedApplication]
+		action:@selector(_simulateLockButtonPress)];
+	g_doubleTapRecognizer.numberOfTapsRequired = 2;
+	g_doubleTapRecognizer.cancelsTouchesInView = NO;
+	[homeView addGestureRecognizer:g_doubleTapRecognizer];
+}
 
-		id location = [[locCls alloc] initWithLatitude:g_locationSimLatitude
-		                                     longitude:g_locationSimLongitude];
-		if (!location) {
-			// 尝试带精度的 init
-			location = [[locCls alloc] initWithCoordinate:CLLocationCoordinate2DMake(g_locationSimLatitude, g_locationSimLongitude)
-			                                     altitude:g_locationSimAltitude
-			                           horizontalAccuracy:g_locationSimAccuracy
-			                             verticalAccuracy:g_locationSimAccuracy
-			                                    timestamp:[NSDate date]];
-		}
+static void removeDoubleTapGesture(void) {
+	if (!g_doubleTapRecognizer) return;
 
-		if (location) {
-			[manager appendSimulatedLocation:location];
-			[manager startLocationSimulation];
-			g_locationSimManager = manager;
-			notify_post("AutomaticTimeZoneUpdateNeeded");
-			NSLog(@"[Systempro] LocationSim started: %.4f, %.4f", g_locationSimLatitude, g_locationSimLongitude);
-		}
-	} else {
-		// 停止模拟
-		if (g_locationSimManager) {
-			[(id)g_locationSimManager stopLocationSimulation];
-			[(id)g_locationSimManager clearSimulatedLocations];
-			g_locationSimManager = nil;
-			NSLog(@"[Systempro] LocationSim stopped");
-		}
-	}
+	Class sbIconController = NSClassFromString(@"SBIconController");
+	if (!sbIconController) return;
+	id iconCtrl = [sbIconController performSelector:@selector(sharedInstance)];
+	if (!iconCtrl) return;
+	id iconMgr = [iconCtrl performSelector:@selector(iconManager)];
+	if (!iconMgr) return;
+	id rootFC = [iconMgr performSelector:@selector(rootFolderController)];
+	if (!rootFC) return;
+	UIView *homeView = [rootFC performSelector:@selector(view)];
+	if (!homeView) return;
+
+	[homeView removeGestureRecognizer:g_doubleTapRecognizer];
+	g_doubleTapRecognizer = nil;
 }
 
 // ============================================================================
@@ -853,10 +554,33 @@ static void SPApplyLocationSim(BOOL enabled) {
 -(BOOL)isUILocked;
 @end
 
-// SpringBoard 前向声明（设备朝下自动锁屏用）
+// SpringBoard 前向声明
 @interface SpringBoard : UIApplication
 +(id)sharedApplication;
 -(void)_simulateLockButtonPress;
+@end
+
+// Cyanide 移植 — SBFloatingDockController 私有方法声明
+@interface SBFloatingDockController : UIViewController
+-(void)_setHomeAffordanceHidden:(BOOL)hidden;
+-(void)setWantsHomeGestureHidden:(BOOL)hidden;
+@end
+
+// 自定义动画速度 — 私有类声明
+@interface SBIconAnimationController : NSObject
+-(double)animationDuration;
+@end
+
+@interface SBCoverSheetAnimationController : NSObject
+-(double)animationDuration;
+@end
+
+@interface SBUIAnimationController : NSObject
+-(double)animationDuration;
+@end
+
+@interface SBFolderController : UIViewController
+-(double)animationDuration;
 @end
 
 %group DisconnectWiFiBT
@@ -948,126 +672,258 @@ static void SPApplyLocationSim(BOOL enabled) {
 
 %end
 
+// ============================================================================
+// ===== Cyanide 移植功能 Group =====
+// ============================================================================
 
 // ============================================================================
-// Cyanide 可移植功能 — SpringBoard/锁屏/系统增强
+// 1. Hide Home Bar — 隐藏底部 Home Bar 指示器
+// 移植自 Cyanide: tweaks/hide_home_bar.m
+// 原实现使用内核清零 Assets.car，改为 Logos hook 方式
 // ============================================================================
-%group CyanidePortableHooks
+%group HideHomeBarHooks
 
-%hook SBCoverSheetPresentationManager
-- (id)init {
-	id ret = %orig;
-	if (g_disableIconFlyIn) {
-		@try {
-			MSHookIvar<double>(self, "_iconFlyInTension") = 1.0e6;
-			MSHookIvar<double>(self, "_iconFlyInFriction") = 1.0e6;
-			MSHookIvar<double>(self, "_iconFlyInInteractiveResponseMin") = 0.0001;
-			MSHookIvar<double>(self, "_iconFlyInInteractiveResponseMax") = 0.0001;
-			MSHookIvar<double>(self, "_iconFlyInInteractiveDampingRatioMin") = 1.0;
-			MSHookIvar<double>(self, "_iconFlyInInteractiveDampingRatioMax") = 1.0;
-		} @catch (__unused NSException *exception) {}
+%hook SBFloatingDockController
+- (void)viewDidLayoutSubviews {
+	%orig;
+	if (g_hideHomeBar) {
+		// 隐藏 Home Bar 指示器
+		[self _setHomeAffordanceHidden:YES];
 	}
-	return ret;
-}
-%end
-
-%hook SBScreenWakeAnimationController
-- (id)_animationSettingsForBacklightChangeSource:(long long)source isWake:(BOOL)isWake {
-	id settings = %orig;
-	if (settings && (g_zeroWakeAnimation || g_zeroBacklightFade)) {
-		@try { MSHookIvar<double>(settings, "_backlightFadeDuration") = 0.0; } @catch (__unused NSException *exception) {}
-	}
-	if (settings && g_zeroWakeAnimation && isWake) {
-		@try { MSHookIvar<double>(settings, "_speedMultiplierForWake") = 1000.0; } @catch (__unused NSException *exception) {}
-		@try { MSHookIvar<double>(settings, "_speedMultiplierForLiftToWake") = 1000.0; } @catch (__unused NSException *exception) {}
-		@try {
-			id content = MSHookIvar<id>(settings, "_contentWakeSettings");
-			if (content) {
-				MSHookIvar<double>(content, "_durationBeforeContentAnimating") = 0.0;
-				MSHookIvar<double>(content, "_contentFadeInDuration") = 0.0;
-				MSHookIvar<double>(content, "_blurFadeAnimationDuration") = 0.0;
-			}
-		} @catch (__unused NSException *exception) {}
-	}
-	return settings;
 }
 %end
 
 %hook SBIconController
-- (void)viewDidAppear:(BOOL)animated {
-	%orig;
-	id controller = (id)self;
-	if (g_doubleTapToLock && [controller respondsToSelector:@selector(view)]) {
-		SPInstallDoubleTapGesture((UIView *)[controller performSelector:@selector(view)]);
+- (BOOL)isHomeGestureHidden {
+	if (g_hideHomeBar) return YES;
+	return %orig;
+}
+%end
+
+%end
+
+// ============================================================================
+// 2. Disable Icon Fly-In — 禁用锁屏图标飞入动画
+// 移植自 Cyanide: tweaks/darksword_tweaks.m → darksword_tweak_disable_icon_fly_in_in_session
+// ============================================================================
+%group IconFlyInHooks
+
+%hook SBCoverSheetPresentationManager
+- (double)_iconFlyInTension {
+	if (g_disableIconFlyIn) return 1000000.0;
+	return %orig;
+}
+- (double)_iconFlyInFriction {
+	if (g_disableIconFlyIn) return 1000000.0;
+	return %orig;
+}
+- (double)_iconFlyInInteractiveResponseMin {
+	if (g_disableIconFlyIn) return 0.0001;
+	return %orig;
+}
+- (double)_iconFlyInInteractiveResponseMax {
+	if (g_disableIconFlyIn) return 0.0001;
+	return %orig;
+}
+- (double)_iconFlyInInteractiveDampingRatioMin {
+	if (g_disableIconFlyIn) return 1.0;
+	return %orig;
+}
+- (double)_iconFlyInInteractiveDampingRatioMax {
+	if (g_disableIconFlyIn) return 1.0;
+	return %orig;
+}
+%end
+
+%end
+
+// ============================================================================
+// 3. Zero Wake Animation — 零唤醒动画（瞬间解锁）
+// 移植自 Cyanide: tweaks/darksword_tweaks.m → darksword_tweak_zero_wake_animation_in_session
+// ============================================================================
+%group ZeroWakeHooks
+
+%hook SBScreenWakeAnimationController
+- (double)_backlightFadeDuration {
+	if (g_zeroWakeAnimation) return 0.0;
+	return %orig;
+}
+- (double)speedMultiplierForWake {
+	if (g_zeroWakeAnimation) return 1000.0;
+	return %orig;
+}
+- (double)_speedMultiplierForLiftToWake {
+	if (g_zeroWakeAnimation) return 1000.0;
+	return %orig;
+}
+%end
+
+// 辅助: 让解锁后的回弹动画也消失 — hook SBIconController 动画速度
+%hook SBIconController
+- (double)maxScrollDuration {
+	if (g_zeroWakeAnimation) return 0.0;
+	return %orig;
+}
+%end
+
+%end
+
+// ============================================================================
+// 7. Double Tap to Wake — 锁屏界面双击亮屏
+// 原理: 修改 SBTapToWakeController 使其需要双击才能唤醒屏幕。
+// 第一次点击被消费掉（不触发唤醒），第二次点击在 0.5 秒内才真正唤醒。
+// ============================================================================
+%group DoubleTapToWakeHooks
+
+static int      g_wakeTapCount    = 0;
+static CFTimeInterval g_lastWakeTapTime = 0;
+
+%hook SBTapToWakeController
+- (void)handleTapToWakeEvent:(id)arg1 {
+	if (!g_doubleTapToWake) {%orig; return;}
+
+	CFTimeInterval now = CACurrentMediaTime();
+	if (now - g_lastWakeTapTime > 0.5) {
+		// 第一次点击（或超时重置）— 消费掉，不唤醒
+		g_wakeTapCount    = 1;
+		g_lastWakeTapTime = now;
+		return;
 	}
-	SPRefreshStatusOverlay();
-}
-%end
 
-
-%hook SpringBoard
-- (void)applicationDidFinishLaunching:(id)application {
+	// 双击检测到 — 放行，触发真正的唤醒
+	g_wakeTapCount    = 0;
+	g_lastWakeTapTime = 0;
 	%orig;
-	SPRefreshStatusOverlay();
-	SPApplyOTAState();
 }
 %end
+
+%end
+
+// ============================================================================
+// 4. App Switcher Grid — 应用切换器网格布局（增强版）
+// 移植自 Cyanide: tweaks/appswitchergrid.m
+// 增强: 多模式选择、列数调整、卡片边距、调试日志
+// switcherStyle: 0=off(deck), 1=grid, 2=auto(optional)
+// ============================================================================
+%group AppSwitcherGridHooks
 
 %hook SBAppSwitcherSettings
 - (long long)switcherStyle {
-	if (g_appSwitcherGrid) return 2;
+	// 0=deck, 1=optional, 2=grid
+	if (g_switcherStyle == 1) return 2;  // 强制网格
+	if (g_switcherStyle == 2) return 1;  // 自动(optional)
+	return %orig;  // 停用=返回原始值(deck)
+}
+- (long long)numberOfColumns {
+	if (g_switcherStyle != 0) return g_switcherColumns;
 	return %orig;
 }
 %end
 
-%hook SBDeckSwitcherModifier
-- (long long)dockUpdateMode {
-	if (g_appSwitcherGrid) return 2;
-	return %orig;
+// 通过 SBFluidSwitcherViewController 调整卡片布局
+%hook SBFluidSwitcherViewController
+- (void)viewDidAppear:(BOOL)arg1 {
+	%orig;
+	if (g_switcherStyle != 0) {
+		// 调试日志 — 实时输出当前布局参数
+		NSLog(@"[Systempro] SwitcherGrid active: style=%d cols=%d "
+			"insets{T:%.0f,B:%.0f,L:%.0f,R:%.0f}",
+			g_switcherStyle, g_switcherColumns,
+			g_switcherInsetTop, g_switcherInsetBottom,
+			g_switcherInsetLeft, g_switcherInsetRight);
+	}
+}
+- (void)_layoutSubviews {
+	%orig;
+	if (g_switcherStyle == 0) return;
+
+	// 应用卡片边距调整 — 修改 switcherScrollView 的 contentInset
+	UIScrollView *scrollView = [(id)self valueForKey:@"_switcherScrollView"];
+	if (!scrollView) return;
+
+	UIEdgeInsets insets = scrollView.contentInset;
+	BOOL changed = NO;
+	if (insets.top != g_switcherInsetTop)    { insets.top = g_switcherInsetTop;    changed = YES; }
+	if (insets.bottom != g_switcherInsetBottom) { insets.bottom = g_switcherInsetBottom; changed = YES; }
+	if (insets.left != g_switcherInsetLeft)  { insets.left = g_switcherInsetLeft;  changed = YES; }
+	if (insets.right != g_switcherInsetRight){ insets.right = g_switcherInsetRight;changed = YES; }
+	if (changed) {
+		scrollView.contentInset = insets;
+	}
 }
 %end
 
-%hook SBIconListGridLayoutConfiguration
-- (unsigned long long)numberOfPortraitColumns {
-	return SPLayoutCount(%orig, (NSUInteger)g_homeColumns);
-}
-- (unsigned long long)numberOfPortraitRows {
-	return SPLayoutCount(%orig, (NSUInteger)g_homeRows);
-}
-- (BOOL)showsLabels {
-	if (g_homeLayoutEnabled && g_hideIconLabels) return NO;
-	return %orig;
-}
 %end
 
-%hook SBIconListFlowLayout
-- (unsigned long long)numberOfPortraitColumns {
-	return SPLayoutCount(%orig, (NSUInteger)g_homeColumns);
-}
-- (unsigned long long)numberOfPortraitRows {
-	return SPLayoutCount(%orig, (NSUInteger)g_homeRows);
-}
-%end
-
-%hook SBDockIconListView
-- (unsigned long long)iconColumnsForCurrentOrientation {
-	return g_homeLayoutEnabled ? (NSUInteger)g_dockIconCount : %orig;
-}
-%end
+// ============================================================================
+// 5. Hide App Labels — 隐藏主屏幕应用图标标签
+// 移植自 Cyanide: tweaks/sbcustomizer.m → hideLabels 参数
+// ============================================================================
+%group HideAppLabelsHooks
 
 %hook SBIconView
-- (void)layoutSubviews {
-	%orig;
-	SPApplyIconViewScale((UIView *)self);
-}
 - (void)setLabelHidden:(BOOL)hidden {
-	if (g_homeLayoutEnabled && g_hideIconLabels) hidden = YES;
-	%orig(hidden);
+	if (g_hideAppLabels) {
+		%orig(YES);
+		return;
+	}
+	%orig;
+}
+- (BOOL)isLabelHidden {
+	if (g_hideAppLabels) return YES;
+	return %orig;
 }
 %end
 
 %end
 
+// ============================================================================
+// 6. 自定义系统动画速度 — 控制 SpringBoard 全局动画速度
+// 速度倍率: 0.25x(极慢) 0.5x(慢) 1x(正常) 2x(快) 4x(极快)
+// ============================================================================
+%group AnimationSpeedHooks
+
+// UIWindow._speed 影响窗口内所有 CALayer 动画速度
+%hook UIWindow
+- (CGFloat)_speed {
+	if (g_animationSpeed != 1.0f) return g_animationSpeed;
+	return %orig;
+}
+%end
+
+// SBIconAnimationController — 主屏幕图标动画（文件夹开合、图标布局变化）
+%hook SBIconAnimationController
+- (double)animationDuration {
+	if (g_animationSpeed != 1.0f) return %orig / g_animationSpeed;
+	return %orig;
+}
+%end
+
+// SBCoverSheetAnimationController — 锁屏/通知中心动画
+%hook SBCoverSheetAnimationController
+- (double)animationDuration {
+	if (g_animationSpeed != 1.0f) return %orig / g_animationSpeed;
+	return %orig;
+}
+%end
+
+// SBUIAnimationController — 通用 SpringBoard UI 动画
+%hook SBUIAnimationController
+- (double)animationDuration {
+	if (g_animationSpeed != 1.0f) return %orig / g_animationSpeed;
+	return %orig;
+}
+%end
+
+// SBFolderController — 文件夹动画
+%hook SBFolderController
+- (double)animationDuration {
+	if (g_animationSpeed != 1.0f) return %orig / g_animationSpeed;
+	return %orig;
+}
+%end
+
+%end
 
 // ============================================================================
 // ===== CFNotification 回调 =====
@@ -1079,13 +935,18 @@ static void onPrefsChanged(CFNotificationCenterRef center,
 						   const void *object,
 						   CFDictionaryRef userInfo) {
 	reloadConfiguration();
-	dispatch_async(dispatch_get_main_queue(), ^{
-		SPRefreshStatusOverlay();
-		SPApplyOTAState();
-		SPApplyCallRecordingSound(g_callRecordingSound);
-		SPApplyWatchNanoRegistry(g_nanoRegistryEnabled);
-		SPApplyLocationSim(g_locationSimEnabled);
-	});
+
+	// 双击锁屏手势 — 动态添加/移除
+	if (g_doubleTapToLock) {
+		installDoubleTapGesture();
+	} else {
+		removeDoubleTapGesture();
+	}
+
+	// Kill All Apps — 触发时立即执行
+	if (g_killAllApps) {
+		performKillAllApps();
+	}
 }
 
 static volatile bool g_isRespringing = false;
@@ -1176,14 +1037,52 @@ static void onRespring(CFNotificationCenterRef center,
 			%init(FaceDownLock);
 		}
 
-		%init(CyanidePortableHooks);
+		// ===== Cyanide 移植功能初始化 =====
 
-		SPInstallAnimationSpeedHook();
+		// Hide Home Bar — SBFloatingDockController iOS 16 上存在
+		if (NSClassFromString(@"SBFloatingDockController")) {
+			%init(HideHomeBarHooks);
+		}
 
-		// 应用三个新移植功能（启动时执行）
-		SPApplyCallRecordingSound(g_callRecordingSound);
-		SPApplyWatchNanoRegistry(g_nanoRegistryEnabled);
-		SPApplyLocationSim(g_locationSimEnabled);
+		// 禁用图标飞入动画 — SBCoverSheetPresentationManager iOS 16 上存在
+		if (NSClassFromString(@"SBCoverSheetPresentationManager")) {
+			%init(IconFlyInHooks);
+		}
+
+		// 零唤醒动画 — SBScreenWakeAnimationController iOS 16 上存在
+		if (NSClassFromString(@"SBScreenWakeAnimationController")) {
+			%init(ZeroWakeHooks);
+		}
+
+		// 双击亮屏 — SBTapToWakeController iOS 16 上存在
+		if (NSClassFromString(@"SBTapToWakeController")) {
+			%init(DoubleTapToWakeHooks);
+		}
+
+		// App Switcher Grid — SBAppSwitcherSettings iOS 16 上存在
+		if (NSClassFromString(@"SBAppSwitcherSettings")) {
+			%init(AppSwitcherGridHooks);
+		}
+
+		// 隐藏应用标签 — SBIconView iOS 16 上存在
+		if (NSClassFromString(@"SBIconView")) {
+			%init(HideAppLabelsHooks);
+		}
+
+		// 自定义动画速度 — 通过 UIWindow 和控制器的 animationDuration 实现
+		if (NSClassFromString(@"SBIconAnimationController")) {
+			%init(AnimationSpeedHooks);
+		}
+
+		// 双击锁屏 — 如果启用，立即安装手势
+		if (g_doubleTapToLock) {
+			installDoubleTapGesture();
+		}
+
+		// Kill All Apps — 如果启用，立即执行一次
+		if (g_killAllApps) {
+			performKillAllApps();
+		}
 
 		// 监听静音开关状态变化
 		int ringerToken = 0;

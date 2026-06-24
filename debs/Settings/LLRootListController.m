@@ -69,15 +69,6 @@ static NSInteger sanitizedBlockMode(id value) {
 @interface LLSystemListController : LLRootListController
 @end
 
-@interface LLLockScreenListController : LLRootListController
-@end
-
-@interface LLControlCenterListController : LLRootListController
-@end
-
-@interface LLCyanideListController : LLRootListController
-@end
-
 @implementation LLRootListController
 
 - (NSString *)specifiersPlistName {
@@ -205,30 +196,6 @@ static NSInteger sanitizedBlockMode(id value) {
 
 - (NSString *)specifiersPlistName {
 	return @"System";
-}
-
-@end
-
-@implementation LLLockScreenListController
-
-- (NSString *)specifiersPlistName {
-	return @"LockScreen";
-}
-
-@end
-
-@implementation LLControlCenterListController
-
-- (NSString *)specifiersPlistName {
-	return @"ControlCenter";
-}
-
-@end
-
-@implementation LLCyanideListController
-
-- (NSString *)specifiersPlistName {
-	return @"Cyanide";
 }
 
 @end

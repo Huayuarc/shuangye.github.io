@@ -20,6 +20,18 @@
 			<key>defaults</key>
 			<string>com.huayuarc.systempro</string>
 			<key>key</key>
+			<string>autoDismissFaceID</string>
+			<key>label</key>
+			<string>自动解锁面容ID</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>key</key>
 			<string>disableScreenshotDetection</string>
 			<key>label</key>
 			<string>屏蔽截图录制检测</string>
@@ -35,6 +47,30 @@
 			<string>transparentDock</string>
 			<key>label</key>
 			<string>透明 Dock 背景</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>key</key>
+			<string>removeUnlockDelay</string>
+			<key>label</key>
+			<string>移除解锁动画延迟</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>key</key>
+			<string>inCallUnlocked</string>
+			<key>label</key>
+			<string>锁屏来电拒接按钮</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -74,6 +110,90 @@
 			<key>defaults</key>
 			<string>com.huayuarc.systempro</string>
 			<key>key</key>
+			<string>disconnectWiFiBT</string>
+			<key>label</key>
+			<string>彻关Wi-Fi蓝牙</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>key</key>
+			<string>lowPowerOnLock</string>
+			<key>label</key>
+			<string>锁屏自动低电量</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>key</key>
+			<string>lockWhenFaceDown</string>
+			<key>label</key>
+			<string>设备朝下自动锁屏</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>key</key>
+			<string>hideHomeBar</string>
+			<key>label</key>
+			<string>隐藏 Home Bar</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>key</key>
+			<string>doubleTapToLock</string>
+			<key>label</key>
+			<string>双击锁屏</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>key</key>
+			<string>doubleTapToWake</string>
+			<key>label</key>
+			<string>双击亮屏</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>key</key>
+			<string>killAllApps</string>
+			<key>label</key>
+			<string>一键关闭所有应用</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>key</key>
 			<string>disableIconFlyIn</string>
 			<key>label</key>
 			<string>禁用图标飞入动画</string>
@@ -86,9 +206,199 @@
 			<key>defaults</key>
 			<string>com.huayuarc.systempro</string>
 			<key>key</key>
-			<string>appSwitcherGrid</string>
+			<string>zeroWakeAnimation</string>
 			<key>label</key>
-			<string>后台多任务网格</string>
+			<string>零唤醒动画</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkListCell</string>
+			<key>default</key>
+			<integer>0</integer>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>detail</key>
+			<string>PSListItemsController</string>
+			<key>key</key>
+			<string>switcherStyle</string>
+			<key>label</key>
+			<string>应用切换器布局</string>
+			<key>validTitles</key>
+			<array>
+				<string>停用 (Deck)</string>
+				<string>网格 (Grid)</string>
+				<string>自动 (Auto)</string>
+			</array>
+			<key>validValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+				<integer>2</integer>
+			</array>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkListCell</string>
+			<key>default</key>
+			<integer>4</integer>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>detail</key>
+			<string>PSListItemsController</string>
+			<key>key</key>
+			<string>switcherColumns</string>
+			<key>label</key>
+			<string>网格列数</string>
+			<key>validTitles</key>
+			<array>
+				<string>3 列</string>
+				<string>4 列</string>
+				<string>5 列</string>
+				<string>6 列</string>
+			</array>
+			<key>validValues</key>
+			<array>
+				<integer>3</integer>
+				<integer>4</integer>
+				<integer>5</integer>
+				<integer>6</integer>
+			</array>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkListCell</string>
+			<key>default</key>
+			<integer>0</integer>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>detail</key>
+			<string>PSListItemsController</string>
+			<key>key</key>
+			<string>switcherInsetTop</string>
+			<key>label</key>
+			<string>上边距偏移</string>
+			<key>validTitles</key>
+			<array>
+				<string>-30</string>
+				<string>-20</string>
+				<string>-10</string>
+				<string>0</string>
+				<string>10</string>
+				<string>20</string>
+				<string>30</string>
+			</array>
+			<key>validValues</key>
+			<array>
+				<real>-30</real>
+				<real>-20</real>
+				<real>-10</real>
+				<real>0.0</real>
+				<real>10</real>
+				<real>20</real>
+				<real>30</real>
+			</array>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkListCell</string>
+			<key>default</key>
+			<integer>0</integer>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>detail</key>
+			<string>PSListItemsController</string>
+			<key>key</key>
+			<string>switcherInsetBottom</string>
+			<key>label</key>
+			<string>下边距偏移</string>
+			<key>validTitles</key>
+			<array>
+				<string>-30</string>
+				<string>-20</string>
+				<string>-10</string>
+				<string>0</string>
+				<string>10</string>
+				<string>20</string>
+				<string>30</string>
+			</array>
+			<key>validValues</key>
+			<array>
+				<real>-30</real>
+				<real>-20</real>
+				<real>-10</real>
+				<real>0.0</real>
+				<real>10</real>
+				<real>20</real>
+				<real>30</real>
+			</array>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkListCell</string>
+			<key>default</key>
+			<integer>0</integer>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>detail</key>
+			<string>PSListItemsController</string>
+			<key>key</key>
+			<string>switcherInsetLeft</string>
+			<key>label</key>
+			<string>左边距偏移</string>
+			<key>validTitles</key>
+			<array>
+				<string>-30</string>
+				<string>-20</string>
+				<string>-10</string>
+				<string>0</string>
+				<string>10</string>
+				<string>20</string>
+				<string>30</string>
+			</array>
+			<key>validValues</key>
+			<array>
+				<real>-30</real>
+				<real>-20</real>
+				<real>-10</real>
+				<real>0.0</real>
+				<real>10</real>
+				<real>20</real>
+				<real>30</real>
+			</array>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkListCell</string>
+			<key>default</key>
+			<integer>0</integer>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>detail</key>
+			<string>PSListItemsController</string>
+			<key>key</key>
+			<string>switcherInsetRight</string>
+			<key>label</key>
+			<string>右边距偏移</string>
+			<key>validTitles</key>
+			<array>
+				<string>-30</string>
+				<string>-20</string>
+				<string>-10</string>
+				<string>0</string>
+				<string>10</string>
+				<string>20</string>
+				<string>30</string>
+			</array>
+			<key>validValues</key>
+			<array>
+				<real>-30</real>
+				<real>-20</real>
+				<real>-10</real>
+				<real>0.0</real>
+				<real>10</real>
+				<real>20</real>
+				<real>30</real>
+			</array>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -98,27 +408,38 @@
 			<key>defaults</key>
 			<string>com.huayuarc.systempro</string>
 			<key>key</key>
-			<string>customAnimationSpeed</string>
+			<string>hideAppLabels</string>
 			<key>label</key>
-			<string>自定义系统动画速度</string>
+			<string>隐藏应用图标标签</string>
 		</dict>
 		<dict>
 			<key>cell</key>
-			<string>PSSegmentCell</string>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>控制 SpringBoard 全局动画速度。修改后可能需要解锁再锁屏才能看到效果。设置为"正常(1x)"时完全无性能开销。</string>
+			<key>label</key>
+			<string>动画速度</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkListCell</string>
 			<key>default</key>
 			<integer>2</integer>
 			<key>defaults</key>
 			<string>com.huayuarc.systempro</string>
+			<key>detail</key>
+			<string>PSListItemsController</string>
 			<key>key</key>
 			<string>animationSpeed</string>
 			<key>label</key>
-			<string>动画速度</string>
+			<string>系统动画速度</string>
 			<key>validTitles</key>
 			<array>
-				<string>极速</string>
-				<string>快速</string>
-				<string>默认</string>
-				<string>慢速</string>
+				<string>极慢 (0.25x)</string>
+				<string>慢 (0.5x)</string>
+				<string>正常 (1x)</string>
+				<string>快 (2x)</string>
+				<string>极快 (4x)</string>
 			</array>
 			<key>validValues</key>
 			<array>
@@ -126,200 +447,7 @@
 				<integer>1</integer>
 				<integer>2</integer>
 				<integer>3</integer>
-			</array>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSSwitchCell</string>
-			<key>default</key>
-			<false/>
-			<key>defaults</key>
-			<string>com.huayuarc.systempro</string>
-			<key>key</key>
-			<string>statusMemoryOverlay</string>
-			<key>label</key>
-			<string>状态栏内存悬浮窗</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSSwitchCell</string>
-			<key>default</key>
-			<false/>
-			<key>defaults</key>
-			<string>com.huayuarc.systempro</string>
-			<key>key</key>
-			<string>statusNetworkSpeed</string>
-			<key>label</key>
-			<string>状态栏网速悬浮窗</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSGroupCell</string>
-			<key>label</key>
-			<string>桌面布局</string>
-			<key>footerText</key>
-			<string>移植 Cyanide 的 SBCustomizer / Home Layout Extras 基础功能。修改后建议注销。</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSSwitchCell</string>
-			<key>default</key>
-			<false/>
-			<key>defaults</key>
-			<string>com.huayuarc.systempro</string>
-			<key>key</key>
-			<string>homeLayoutEnabled</string>
-			<key>label</key>
-			<string>启用桌面布局自定义</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSSegmentCell</string>
-			<key>default</key>
-			<integer>4</integer>
-			<key>defaults</key>
-			<string>com.huayuarc.systempro</string>
-			<key>key</key>
-			<string>homeColumns</string>
-			<key>label</key>
-			<string>桌面列数</string>
-			<key>validTitles</key>
-			<array>
-				<string>3列</string>
-				<string>4列</string>
-				<string>5列</string>
-				<string>6列</string>
-				<string>7列</string>
-			</array>
-			<key>validValues</key>
-			<array>
-				<integer>3</integer>
 				<integer>4</integer>
-				<integer>5</integer>
-				<integer>6</integer>
-				<integer>7</integer>
-			</array>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSSegmentCell</string>
-			<key>default</key>
-			<integer>6</integer>
-			<key>defaults</key>
-			<string>com.huayuarc.systempro</string>
-			<key>key</key>
-			<string>homeRows</string>
-			<key>label</key>
-			<string>桌面行数</string>
-			<key>validTitles</key>
-			<array>
-				<string>4行</string>
-				<string>5行</string>
-				<string>6行</string>
-				<string>7行</string>
-				<string>8行</string>
-			</array>
-			<key>validValues</key>
-			<array>
-				<integer>4</integer>
-				<integer>5</integer>
-				<integer>6</integer>
-				<integer>7</integer>
-				<integer>8</integer>
-			</array>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSSegmentCell</string>
-			<key>default</key>
-			<integer>4</integer>
-			<key>defaults</key>
-			<string>com.huayuarc.systempro</string>
-			<key>key</key>
-			<string>dockIconCount</string>
-			<key>label</key>
-			<string>Dock 图标数</string>
-			<key>validTitles</key>
-			<array>
-				<string>4个</string>
-				<string>5个</string>
-				<string>6个</string>
-				<string>7个</string>
-			</array>
-			<key>validValues</key>
-			<array>
-				<integer>4</integer>
-				<integer>5</integer>
-				<integer>6</integer>
-				<integer>7</integer>
-			</array>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSSwitchCell</string>
-			<key>default</key>
-			<false/>
-			<key>defaults</key>
-			<string>com.huayuarc.systempro</string>
-			<key>key</key>
-			<string>hideIconLabels</string>
-			<key>label</key>
-			<string>隐藏桌面图标文字</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSSegmentCell</string>
-			<key>default</key>
-			<integer>100</integer>
-			<key>defaults</key>
-			<string>com.huayuarc.systempro</string>
-			<key>key</key>
-			<string>homeIconScale</string>
-			<key>label</key>
-			<string>桌面图标缩放</string>
-			<key>validTitles</key>
-			<array>
-				<string>80%</string>
-				<string>90%</string>
-				<string>100%</string>
-				<string>110%</string>
-				<string>120%</string>
-			</array>
-			<key>validValues</key>
-			<array>
-				<integer>80</integer>
-				<integer>90</integer>
-				<integer>100</integer>
-				<integer>110</integer>
-				<integer>120</integer>
-			</array>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSSegmentCell</string>
-			<key>default</key>
-			<integer>100</integer>
-			<key>defaults</key>
-			<string>com.huayuarc.systempro</string>
-			<key>key</key>
-			<string>dockIconScale</string>
-			<key>label</key>
-			<string>Dock 图标缩放</string>
-			<key>validTitles</key>
-			<array>
-				<string>80%</string>
-				<string>90%</string>
-				<string>100%</string>
-				<string>110%</string>
-				<string>120%</string>
-			</array>
-			<key>validValues</key>
-			<array>
-				<integer>80</integer>
-				<integer>90</integer>
-				<integer>100</integer>
-				<integer>110</integer>
-				<integer>120</integer>
 			</array>
 		</dict>
 	</array>

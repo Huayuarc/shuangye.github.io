@@ -96,18 +96,6 @@
 			<key>label</key>
 			<string>关闭锁屏/解锁声音</string>
 		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSSwitchCell</string>
-			<key>default</key>
-			<false/>
-			<key>defaults</key>
-			<string>com.huayuarc.systempro</string>
-			<key>key</key>
-			<string>disableOTAUpdates</string>
-			<key>label</key>
-			<string>禁用 OTA 更新</string>
-		</dict>
 	</array>
 	<key>title</key>
 	<string>禁用</string>

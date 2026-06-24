@@ -1,8 +1,8 @@
 Package: com.huayuarc.systempro
 Name: Systempro
 Author: Huayuarc
-Description: 通知不亮屏 + 19项系统增强功能：禁截图检测、禁快门声、透明Dock、禁App资源库、禁锁屏相机/手电、自动面容解锁、去解锁延迟、去锁屏音、从右到左开应用、彻关WiFi/蓝牙、低电/朝下自动锁屏、禁签名验证、定位模拟、手表配对覆盖、录音提示音静音等
+Description: 通知不亮屏 + 24项系统增强功能：禁截图检测、禁快门声、透明Dock、禁App资源库、禁锁屏相机/手电、自动面容解锁、去解锁延迟、去锁屏音、从右到左开应用、彻关WiFi/蓝牙、低电/朝下自动锁屏、禁签名验证、隐藏HomeBar、双击锁屏、一键关所有App、禁图标飞入动画、零唤醒动画、网格应用切换器、隐藏应用标签、自定义系统动画速度等
 Depends: mobilesubstrate, preferenceloader
 Maintainer: Huayuarc
 Section: Tweaks
-Version: 0.3.7
+Version: 0.6.0

@@ -6,12 +6,6 @@
 	<array>
 		<dict>
 			<key>cell</key>
-			<string>PSGroupCell</string>
-			<key>label</key>
-			<string>通知</string>
-		</dict>
-		<dict>
-			<key>cell</key>
 			<string>PSLinkCell</string>
 			<key>detail</key>
 			<string>LLNotificationListController</string>
@@ -19,12 +13,6 @@
 			<true/>
 			<key>label</key>
 			<string>通知</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSGroupCell</string>
-			<key>label</key>
-			<string>禁用</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -38,12 +26,6 @@
 		</dict>
 		<dict>
 			<key>cell</key>
-			<string>PSGroupCell</string>
-			<key>label</key>
-			<string>系统</string>
-		</dict>
-		<dict>
-			<key>cell</key>
 			<string>PSLinkCell</string>
 			<key>detail</key>
 			<string>LLSystemListController</string>
@@ -51,54 +33,6 @@
 			<true/>
 			<key>label</key>
 			<string>系统</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSGroupCell</string>
-			<key>label</key>
-			<string>锁屏</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSLinkCell</string>
-			<key>detail</key>
-			<string>LLLockScreenListController</string>
-			<key>isController</key>
-			<true/>
-			<key>label</key>
-			<string>锁屏</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSGroupCell</string>
-			<key>label</key>
-			<string>控制中心</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSLinkCell</string>
-			<key>detail</key>
-			<string>LLControlCenterListController</string>
-			<key>isController</key>
-			<true/>
-			<key>label</key>
-			<string>控制中心</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSGroupCell</string>
-			<key>label</key>
-			<string>Cyanide</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSLinkCell</string>
-			<key>detail</key>
-			<string>LLCyanideListController</string>
-			<key>isController</key>
-			<true/>
-			<key>label</key>
-			<string>Cyanide</string>
 		</dict>
 	</array>
 	<key>title</key>

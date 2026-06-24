@@ -43,7 +43,7 @@ include $(THEOS)/makefiles/common.mk
 TWEAK_NAME = Systempro
 Systempro_FILES = Tweak.xm
 Systempro_CFLAGS = -fobjc-arc
-Systempro_FRAMEWORKS = UIKit Foundation CoreLocation
+Systempro_FRAMEWORKS = UIKit Foundation
 
 BUNDLE_NAME = LSILLSettings
 LSILLSettings_FILES = Settings/LLRootListController.m
@@ -71,9 +71,6 @@ after-stage::
 	$(ECHO_NOTHING)cp Settings/Notification.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/Disable.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/System.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
-	$(ECHO_NOTHING)cp Settings/ControlCenter.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
-	$(ECHO_NOTHING)cp Settings/LockScreen.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
-	$(ECHO_NOTHING)cp Settings/Cyanide.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/Info.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/Systempro@2x.png "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/Systempro@3x.png "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
