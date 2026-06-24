@@ -3,6 +3,7 @@
 #import <notify.h>
 #import <limits.h>
 #import <objc/message.h>
+#import <objc/runtime.h>
 #include <roothide.h>
 #import <IOKit/IOKitLib.h>
 
@@ -144,6 +145,26 @@ static const char *kLegacyPrefPathC = "/var/mobile/Library/Preferences/com.huayu
 static CommonProduct *g_commonProduct = nil;
 static NSMutableArray *g_mitigationControllers = nil;
 static BOOL g_restoringFullPower = NO;
+static NSMutableDictionary *g_originalControllerValues = nil;
+
+static BOOL shouldApplyLowPowerLimit(void);
+
+static NSString *controllerKey(id controller, const char *name) {
+return [NSString stringWithFormat:S("%p:%s"), controller, name];
+}
+
+static void rememberOriginalIntValue(id controller, const char *name, int value) {
+if (!controller || g_restoringFullPower || !shouldApplyLowPowerLimit()) return;
+if (!g_originalControllerValues) g_originalControllerValues = [NSMutableDictionary dictionary];
+NSString *key = controllerKey(controller, name);
+if (!key || [g_originalControllerValues objectForKey:key]) return;
+[g_originalControllerValues setObject:[NSNumber numberWithInt:value] forKey:key];
+}
+
+static int rememberedOriginalIntValue(id controller, const char *name, int fallback) {
+NSNumber *value = [g_originalControllerValues objectForKey:controllerKey(controller, name)];
+return value ? [value intValue] : fallback;
+}
 
 static BOOL isLowPowerMode(void) {
 return g_powerMode == CPUthermalPowerModeLow;
@@ -166,7 +187,54 @@ return 2000;
 }
 
 static int fullPowerTargetValue(void) {
+return 100;
+}
+
+static int fullPowerFrequencyValue(void) {
 return INT_MAX;
+}
+
+static int intIvarValue(id object, const char *name, int fallback) {
+if (!object || !name) return fallback;
+Class cls = object_getClass(object);
+while (cls) {
+Ivar ivar = class_getInstanceVariable(cls, name);
+if (ivar) {
+ptrdiff_t offset = ivar_getOffset(ivar);
+uint8_t *bytes = (uint8_t *)(__bridge void *)object;
+return *(int *)(bytes + offset);
+}
+cls = class_getSuperclass(cls);
+}
+return fallback;
+}
+
+static int fullPowerTargetForController(id controller) {
+int remembered = rememberedOriginalIntValue(controller, "MaxCPUPowerTarget", 0);
+if (remembered > lowPowerTargetValue()) return remembered;
+
+int maxPower = intIvarValue(controller, "_maxCPUPower", 0);
+if (maxPower > lowPowerTargetValue()) return maxPower;
+
+int realTarget = intIvarValue(controller, "_currentRealCPUPowerTarget", 0);
+if (realTarget > lowPowerTargetValue()) return realTarget;
+
+return fullPowerFrequencyValue();
+}
+
+static int fullPowerCeilingForController(id controller) {
+int remembered = rememberedOriginalIntValue(controller, "CPUPowerCeiling", fullPowerTargetValue());
+return remembered > 0 ? remembered : fullPowerTargetValue();
+}
+
+static int fullPowerFloorForController(id controller) {
+return rememberedOriginalIntValue(controller, "CPUPowerFloor", 0);
+}
+
+static int fullPowerZoneTargetForController(id controller) {
+int remembered = rememberedOriginalIntValue(controller, "CPUPowerZoneTarget", 0);
+if (remembered > lowPowerTargetValue()) return remembered;
+return fullPowerTargetForController(controller);
 }
 
 static void applyLowPowerLimitToController(id controller) {
@@ -226,16 +294,16 @@ if ([controller respondsToSelector:@selector(setPowerSaveToken:)]) {
 ((void (*)(id, SEL, int))objc_msgSend)(controller, @selector(setPowerSaveToken:), 0);
 }
 if ([controller respondsToSelector:@selector(setMaxCPUPowerTarget:useLegacyPath:setProperty:)]) {
-((void (*)(id, SEL, int, BOOL, BOOL))objc_msgSend)(controller, @selector(setMaxCPUPowerTarget:useLegacyPath:setProperty:), fullPowerTargetValue(), NO, YES);
+((void (*)(id, SEL, int, BOOL, BOOL))objc_msgSend)(controller, @selector(setMaxCPUPowerTarget:useLegacyPath:setProperty:), fullPowerTargetForController(controller), NO, YES);
 }
 if ([controller respondsToSelector:@selector(setCPUPowerCeiling:fromDecisionSource:)]) {
-((void (*)(id, SEL, int, id))objc_msgSend)(controller, @selector(setCPUPowerCeiling:fromDecisionSource:), fullPowerTargetValue(), S("CPUthermalFullPower"));
+((void (*)(id, SEL, int, id))objc_msgSend)(controller, @selector(setCPUPowerCeiling:fromDecisionSource:), fullPowerCeilingForController(controller), S("CPUthermalFullPower"));
 }
 if ([controller respondsToSelector:@selector(setCPUPowerFloor:fromDecisionSource:)]) {
-((void (*)(id, SEL, int, id))objc_msgSend)(controller, @selector(setCPUPowerFloor:fromDecisionSource:), 0, S("CPUthermalFullPower"));
+((void (*)(id, SEL, int, id))objc_msgSend)(controller, @selector(setCPUPowerFloor:fromDecisionSource:), fullPowerFloorForController(controller), S("CPUthermalFullPower"));
 }
 if ([controller respondsToSelector:@selector(setCPUPowerZoneTarget:)]) {
-((void (*)(id, SEL, int))objc_msgSend)(controller, @selector(setCPUPowerZoneTarget:), fullPowerTargetValue());
+((void (*)(id, SEL, int))objc_msgSend)(controller, @selector(setCPUPowerZoneTarget:), fullPowerZoneTargetForController(controller));
 }
 if ([controller respondsToSelector:@selector(updateCPU)]) {
 ((void (*)(id, SEL))objc_msgSend)(controller, @selector(updateCPU));
@@ -1037,11 +1105,12 @@ return;
 }
 if (shouldApplyLowPowerLimit()) {
 int64_t clamped = clampLowPowerFrequencyValue(target);
+rememberOriginalIntValue(self, "MaxCPUPowerTarget", target);
 %orig((int)clamped, legacy, setProperty);
 return;
 }
 if (shouldApplyFullCPUProtection()) {
-%orig(INT_MAX, legacy, setProperty);
+%orig(fullPowerTargetForController(self), legacy, setProperty);
 return;
 }
 %orig;
@@ -1054,10 +1123,12 @@ return;
 }
 if (shouldApplyLowPowerLimit()) {
 int64_t clamped = clampLowPowerFrequencyValue(ceiling);
+rememberOriginalIntValue(self, "CPUPowerCeiling", ceiling);
 %orig((int)clamped, source);
 return;
 }
 if (shouldApplyFullCPUProtection()) {
+%orig(fullPowerCeilingForController(self), source);
 return;
 }
 %orig;
@@ -1070,10 +1141,12 @@ return;
 }
 if (shouldApplyLowPowerLimit()) {
 int64_t clamped = clampLowPowerFrequencyValue(floor);
+rememberOriginalIntValue(self, "CPUPowerFloor", floor);
 %orig((int)clamped, source);
 return;
 }
 if (shouldApplyFullCPUProtection()) {
+%orig(fullPowerFloorForController(self), source);
 return;
 }
 %orig;
@@ -1086,10 +1159,12 @@ return;
 }
 if (shouldApplyLowPowerLimit()) {
 int64_t clamped = clampLowPowerFrequencyValue(target);
+rememberOriginalIntValue(self, "CPUPowerZoneTarget", target);
 %orig((int)clamped);
 return;
 }
 if (shouldApplyFullCPUProtection()) {
+%orig(fullPowerZoneTargetForController(self));
 return;
 }
 %orig;
@@ -1123,9 +1198,9 @@ NSDictionary *patched = patchedLowPowerConfigObject(modified, key);
 NSMutableDictionary *lowPowerConfig = [patched mutableCopy];
 NSMutableDictionary *powerSaveParams = [[lowPowerConfig objectForKey:S("powerSaveParams")] mutableCopy];
 if (powerSaveParams) {
-powerSaveParams[S("PackageLowPowerTarget")] = [NSNumber numberWithInt:lowPowerTargetValue()];
-powerSaveParams[S("CPULowPowerTarget")] = [NSNumber numberWithInt:lowPowerTargetValue()];
-lowPowerConfig[S("powerSaveParams")] = powerSaveParams;
+[powerSaveParams setObject:[NSNumber numberWithInt:lowPowerTargetValue()] forKey:S("PackageLowPowerTarget")];
+[powerSaveParams setObject:[NSNumber numberWithInt:lowPowerTargetValue()] forKey:S("CPULowPowerTarget")];
+[lowPowerConfig setObject:powerSaveParams forKey:S("powerSaveParams")];
 }
 NSLog(@"[CPUthermal] 已应用低功耗配置: %@ target:%d (%lld-%lldMHz)", key, lowPowerTargetValue(), kLowPowerMinFrequencyMHz, kLowPowerMaxFrequencyMHz);
 return [lowPowerConfig copy];
