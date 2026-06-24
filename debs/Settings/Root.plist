@@ -2,40 +2,16 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>items</key>
-	<array>
-		<dict>
-			<key>cell</key>
-			<string>PSLinkCell</string>
-			<key>detail</key>
-			<string>LLNotificationListController</string>
-			<key>isController</key>
-			<true/>
-			<key>label</key>
-			<string>通知</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSLinkCell</string>
-			<key>detail</key>
-			<string>LLDisableListController</string>
-			<key>isController</key>
-			<true/>
-			<key>label</key>
-			<string>禁用</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSLinkCell</string>
-			<key>detail</key>
-			<string>LLSystemListController</string>
-			<key>isController</key>
-			<true/>
-			<key>label</key>
-			<string>系统</string>
-		</dict>
-	</array>
-	<key>title</key>
-	<string>Systempro</string>
+    <key>title</key>
+    <string>CPUthermal</string>
+    <key>items</key>
+    <array>
+        <dict>
+            <key>cell</key>
+            <string>PSGroupCell</string>
+            <key>label</key>
+            <string>CPUthermal</string>
+        </dict>
+    </array>
 </dict>
 </plist>

@@ -1,8 +1,9 @@
-Package: com.huayuarc.systempro
-Name: Systempro
+Package: com.huayuarc.cputhermal
+Name: CPUthermal
 Author: Huayuarc
-Description: 通知不亮屏 + 24项系统增强功能：禁截图检测、禁快门声、透明Dock、禁App资源库、禁锁屏相机/手电、自动面容解锁、去解锁延迟、去锁屏音、从右到左开应用、彻关WiFi/蓝牙、低电/朝下自动锁屏、禁签名验证、隐藏HomeBar、双击锁屏、一键关所有App、禁图标飞入动画、零唤醒动画、网格应用切换器、隐藏应用标签、自定义系统动画速度等
+Description: 温控插件 — 注入 thermalmonitord 阻止高温降频/降亮度。支持功率模式：低功耗限制 CPU 频率 1428–2016MHz，满血解除温控限制；可独立屏蔽高温通知。双防护层：IOKit 层拦截传感器读写 + Darwin 通知广播；ObjC 层钩住 ThermalManager/ThermalControl 决策树、控制力度计算、热压力升级。75°C 安全阀自动放行紧急保护。
 Depends: mobilesubstrate, preferenceloader
 Maintainer: Huayuarc
 Section: Tweaks
-Version: 0.6.0
+Version: 1.6.0
+Architecture: iphoneos-arm
