@@ -235,7 +235,7 @@ NSURL *wechatURL = [NSURL URLWithString:@"wxp://f2f0d-eqwuxhUlYovSZcRtvm1BxiY-tQ
 if ([[UIApplication sharedApplication] canOpenURL:wechatURL]) {
 [[UIApplication sharedApplication] openURL:wechatURL options:@{} completionHandler:nil];
 } else {
-[self toast:[self localizedStringForKey:@"root.wechat_unavailable" value:@"WeChat not available" table:@"Root"]];
+[self showSimpleAlertWithTitle:S("提示") message:S("WeChat not available")];
 }
 }
 
