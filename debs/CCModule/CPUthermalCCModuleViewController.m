@@ -20,7 +20,6 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
 
 @implementation CPUthermalCCModuleViewController
 
-@dynamic menuItems;
 @synthesize modeValues = _modeValues;
 @synthesize modeTitles = _modeTitles;
 @synthesize selectedIndex = _selectedIndex;
@@ -111,11 +110,15 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
     // 设置标题
     self.title = S("CPUthermal");
 
-    // 设置控制中心图标
+    // 设置控制中心图标（用 respondsToSelector 保护，避免私有 API 变更导致崩溃）
     UIImageSymbolConfiguration *config = [UIImageSymbolConfiguration configurationWithPointSize:24 weight:UIImageSymbolWeightRegular];
     UIImage *glyphImage = [UIImage systemImageNamed:S("thermometer.sun.fill") withConfiguration:config];
-    [self setGlyphImage:glyphImage];
-    [self setSelectedGlyphColor:[UIColor systemOrangeColor]];
+    if ([self respondsToSelector:@selector(setGlyphImage:)]) {
+        [self setGlyphImage:glyphImage];
+    }
+    if ([self respondsToSelector:@selector(setSelectedGlyphColor:)]) {
+        [self setSelectedGlyphColor:[UIColor systemOrangeColor]];
+    }
 
     // 布局 UI
     [self setupView];
@@ -136,7 +139,9 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
     if (newIndex != NSNotFound && newIndex != self.selectedIndex) {
         self.selectedIndex = newIndex;
     }
-    [self setSelected:(self.selectedIndex == 0) ? NO : YES];
+    if ([self respondsToSelector:@selector(setSelected:)]) {
+        [self setSelected:(self.selectedIndex == 0) ? NO : YES];
+    }
 }
 
 //==============================================================================
@@ -170,7 +175,9 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
     [self setupModeButtons];
 
     // 应用当前选中状态
-    [self setSelected:(self.selectedIndex == 0) ? NO : YES];
+    if ([self respondsToSelector:@selector(setSelected:)]) {
+        [self setSelected:(self.selectedIndex == 0) ? NO : YES];
+    }
 }
 
 - (void)setupModeButtons {
@@ -184,20 +191,24 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
         CCUIMenuModuleItem *item = [[CCUIMenuModuleItem alloc] init];
         item.title = title;
 
-        // 根据模式设置选中状态和颜色
+        // 根据模式设置选中状态和颜色（用 respondsToSelector 保护私有 API）
         if (isSelected) {
-            if (isFullPower) {
-                [item setSelectedGlyphColor:[UIColor systemOrangeColor]];
-            } else {
-                [item setSelectedGlyphColor:[UIColor systemGreenColor]];
+            if ([item respondsToSelector:@selector(setSelectedGlyphColor:)]) {
+                if (isFullPower) {
+                    [item setSelectedGlyphColor:[UIColor systemOrangeColor]];
+                } else {
+                    [item setSelectedGlyphColor:[UIColor systemGreenColor]];
+                }
             }
         }
 
         [items addObject:item];
     }
 
-    self.menuItems = items;
-    [self setMenuItems:items];
+    // 父类 setMenuItems: 有 respondsToSelector 兜底
+    if ([self respondsToSelector:@selector(setMenuItems:)]) {
+        self.menuItems = items;
+    }
 }
 
 //==============================================================================
@@ -221,7 +232,9 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
 
         // 刷新 UI
         [self setupModeButtons];
-        [self setSelected:YES];
+        if ([self respondsToSelector:@selector(setSelected:)]) {
+            [self setSelected:YES];
+        }
 
         // 短暂延迟后折叠
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)),

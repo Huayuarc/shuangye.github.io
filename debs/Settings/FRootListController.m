@@ -228,14 +228,14 @@ preferredStyle:UIAlertControllerStyleAlert];
 fallback:S("https://qr.alipay.com/fkx16683ylwdrfdo8fiuy01")];
 }
 
-// 微信赞赏备用
-- (void)openWechatDonate {
-NSURL *wechatURL = [NSURL URLWithString:S("wxp://f2f0d-eqwuxhUlYovSZcRtvm1BxiY-tQ2kVDW63Wdz6Ta94SDGnZXzjOM4VW6UVuOepp")];
-if (wechatURL && [[UIApplication sharedApplication] canOpenURL:wechatURL]) {
-[[UIApplication sharedApplication] openURL:wechatURL options:[NSDictionary dictionary] completionHandler:nil];
-return;
+// 微信投喂我
+- (void)openWeChatDonate {
+NSURL *weChatURL = [NSURL URLWithString:S("wxp://f2f0d-eqwuxhUlYovSZcRtvm1BxiY-tQ2kVDW63Wdz6Ta94SDGnZXzjOM4VW6UVuOepp")];
+if ([[UIApplication sharedApplication] canOpenURL:weChatURL]) {
+[[UIApplication sharedApplication] openURL:weChatURL options:[NSDictionary dictionary] completionHandler:nil];
+} else {
+[self showSimpleAlertWithTitle:S("无法打开微信") message:S("请确认已安装微信后重试")];
 }
-[self showSimpleAlertWithTitle:S("微信投喂") message:S("无法直接唤起微信赞赏码，请打开微信后手动扫码。")];
 }
 
 // Sileo 添加源备用
@@ -358,7 +358,7 @@ identifier:S("qqGroup")]];
 action:@selector(openAlipayDonate)
 identifier:S("alipayDonate")]];
 [specs addObject:[self buttonSpecifier:S("微信投喂我")
-action:@selector(openWechatDonate)
+action:@selector(openWeChatDonate)
 identifier:S("wechatDonate")]];
 
 // ===================== 第6组: 操作（底部） =====================
