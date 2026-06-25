@@ -38,6 +38,12 @@
 - (void)tryTakeAction;
 - (void)simulateLightThermalPressure;
 - (void)updatePowerzoneTelemetry;
+- (void)setCPMSMitigationsEnabled:(BOOL)enabled;
+- (void)setCPULevel:(int)level;
+- (void)setCPUPowerCeiling:(int)ceiling fromDecisionSource:(id)source;
+- (void)setGPUPowerCeiling:(int)ceiling fromDecisionSource:(id)source;
+- (void)setPackagePowerCeiling:(int)ceiling fromDecisionSource:(id)source;
+- (void)setThermalState:(id)state;
 @end
 
 @interface HidSensors : NSObject
@@ -148,8 +154,13 @@ static CommonProduct *g_commonProduct = nil;
 static NSMutableArray *g_mitigationControllers = nil;
 static BOOL g_restoringFullPower = NO;
 static NSMutableDictionary *g_originalControllerValues = nil;
+static CFAbsoluteTime g_processStartTime = 0;
+static const double kFullPowerBootGuardDuration = 5.0;
+static BOOL g_deferredRuntimeApplyScheduled = NO;
 
 static BOOL shouldApplyLowPowerLimit(void);
+static void applyCurrentPowerModeToRuntime(void);
+static void scheduleDeferredRuntimeApply(double delay);
 
 static NSString *controllerKey(id controller, const char *name) {
 return [NSString stringWithFormat:S("%p:%s"), controller, name];
@@ -176,8 +187,14 @@ static BOOL isFullPowerMode(void) {
 return g_powerMode == CPUthermalPowerModeFull;
 }
 
+static BOOL fullPowerBootGuardActive(void) {
+if (!isFullPowerMode()) return NO;
+if (g_processStartTime <= 0) return NO;
+return (CFAbsoluteTimeGetCurrent() - g_processStartTime) < kFullPowerBootGuardDuration;
+}
+
 static BOOL shouldApplyFullCPUProtection(void) {
-return g_enabled && g_cpuProtection && isFullPowerMode();
+return g_enabled && g_cpuProtection && isFullPowerMode() && !fullPowerBootGuardActive();
 }
 
 static BOOL shouldApplyLowPowerLimit(void) {
@@ -370,6 +387,78 @@ for (id controller in controllers) {
 restoreFullPowerToController(controller);
 }
 }
+}
+
+static void setCommonProductCeiling(SEL selector, int ceiling) {
+if (!g_commonProduct || ![g_commonProduct respondsToSelector:selector]) return;
+((void (*)(id, SEL, int, id))objc_msgSend)(g_commonProduct, selector, ceiling, S("CPUthermal"));
+}
+
+static void applyFullPowerToCommonProduct(void) {
+if (!g_commonProduct || !g_enabled || !g_cpuProtection || !isFullPowerMode()) return;
+@try {
+if ([g_commonProduct respondsToSelector:@selector(setCPMSMitigationsEnabled:)] && !g_keepCPSMAlive) {
+((void (*)(id, SEL, BOOL))objc_msgSend)(g_commonProduct, @selector(setCPMSMitigationsEnabled:), NO);
+}
+if ([g_commonProduct respondsToSelector:@selector(setCPULevel:)]) {
+((void (*)(id, SEL, int))objc_msgSend)(g_commonProduct, @selector(setCPULevel:), 0);
+}
+setCommonProductCeiling(@selector(setCPUPowerCeiling:fromDecisionSource:), 0);
+setCommonProductCeiling(@selector(setGPUPowerCeiling:fromDecisionSource:), 0);
+setCommonProductCeiling(@selector(setPackagePowerCeiling:fromDecisionSource:), 0);
+if ([g_commonProduct respondsToSelector:@selector(setThermalState:)]) {
+((void (*)(id, SEL, id))objc_msgSend)(g_commonProduct, @selector(setThermalState:), [NSNumber numberWithInt:0]);
+}
+NSLog(@"[CPUthermal] 已主动套用解除温控 CommonProduct 状态");
+} @catch (NSException *exception) {
+NSLog(@"[CPUthermal] 套用解除温控 CommonProduct 状态失败: %@", exception);
+}
+}
+
+static void applyLowPowerToCommonProduct(void) {
+if (!g_commonProduct || !shouldApplyLowPowerLimit()) return;
+@try {
+if ([g_commonProduct respondsToSelector:@selector(setCPMSMitigationsEnabled:)]) {
+((void (*)(id, SEL, BOOL))objc_msgSend)(g_commonProduct, @selector(setCPMSMitigationsEnabled:), YES);
+}
+if ([g_commonProduct respondsToSelector:@selector(setCPULevel:)]) {
+((void (*)(id, SEL, int))objc_msgSend)(g_commonProduct, @selector(setCPULevel:), 1);
+}
+setCommonProductCeiling(@selector(setCPUPowerCeiling:fromDecisionSource:), 40);
+setCommonProductCeiling(@selector(setGPUPowerCeiling:fromDecisionSource:), 40);
+setCommonProductCeiling(@selector(setPackagePowerCeiling:fromDecisionSource:), 40);
+NSLog(@"[CPUthermal] 已主动套用低功耗 CommonProduct 状态");
+} @catch (NSException *exception) {
+NSLog(@"[CPUthermal] 套用低功耗 CommonProduct 状态失败: %@", exception);
+}
+}
+
+static void applyCurrentPowerModeToRuntime(void) {
+if (!g_enabled || !g_cpuProtection) return;
+if (isLowPowerMode()) {
+applyLowPowerToCommonProduct();
+applyLowPowerLimitsToTrackedControllers();
+return;
+}
+if (isFullPowerMode()) {
+if (fullPowerBootGuardActive()) {
+double elapsed = CFAbsoluteTimeGetCurrent() - g_processStartTime;
+double remaining = kFullPowerBootGuardDuration - elapsed;
+scheduleDeferredRuntimeApply(MAX(remaining, 0.1) + 0.1);
+return;
+}
+applyFullPowerToCommonProduct();
+restoreFullPowerToTrackedControllers();
+}
+}
+
+static void scheduleDeferredRuntimeApply(double delay) {
+if (g_deferredRuntimeApplyScheduled) return;
+g_deferredRuntimeApplyScheduled = YES;
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+g_deferredRuntimeApplyScheduled = NO;
+applyCurrentPowerModeToRuntime();
+});
 }
 
 static BOOL keyMatchesLowPowerLimit(NSString *key) {
@@ -784,6 +873,7 @@ id res = %orig;
 if (g_enabled) {
 g_commonProduct = self;
 [self putDeviceInThermalSimulationMode:S("nominal")];
+applyCurrentPowerModeToRuntime();
 NSLog(@"[CPUthermal] CommonProduct init, 已重置热状态为 nominal, 功率模式:%@", isLowPowerMode() ? S("低功耗") : S("解除温控"));
 }
 return res;
@@ -1028,11 +1118,7 @@ if (!g_mitigationControllers) g_mitigationControllers = [NSMutableArray array];
 if (![g_mitigationControllers containsObject:res]) {
 [g_mitigationControllers addObject:res];
 }
-if (isLowPowerMode()) {
-applyLowPowerLimitToController(res);
-} else if (isFullPowerMode()) {
-restoreFullPowerToController(res);
-}
+applyCurrentPowerModeToRuntime();
 }
 return res;
 }
@@ -1331,6 +1417,18 @@ backlight[S("expectsCPMSSupport")] = @0;
 }
 
 dict[S("backlightComponentControl")] = backlight;
+
+// 来自 Insulation 逆向配置键：禁用口袋阳光/暴晒相关触发，避免背光被阳光热策略拉低。
+dict[S("thermalDisablePocketSunlightEnabled")] = @YES;
+dict[S("sunlightOverridePersistentlyEnabled")] = @YES;
+dict[S("OSThermalNotificationPersistentlyEnabled")] = @NO;
+dict[S("engageBehaviorPersistentlyEnabled")] = @NO;
+dict[S("needsPushingTSFDtoDisplayDriver")] = @NO;
+dict[S("displayBrightnessMitigation")] = @NO;
+dict[S("displayMitigation")] = @NO;
+dict[S("shouldEnforceThermalPressure")] = @NO;
+dict[S("shouldEnforceLightThermalPressure")] = @NO;
+dict[S("hipPersistentlyEnabled")] = @NO;
 }
 
 // --- NSDictionary: 拦截 thermal plist 加载并修补 ---
@@ -1377,11 +1475,7 @@ executePuppetEvent();
 
 static void onPowerModeChanged(CFNotificationCenterRef center, void *observer, CFNotificationName name, const void *object, CFDictionaryRef userInfo) {
 loadPrefs();
-if (isLowPowerMode()) {
-applyLowPowerLimitsToTrackedControllers();
-} else if (isFullPowerMode()) {
-restoreFullPowerToTrackedControllers();
-}
+applyCurrentPowerModeToRuntime();
 NSLog(@"[CPUthermal] 功率模式已切换: %@", isLowPowerMode() ? S("低功耗") : S("解除温控"));
 }
 
@@ -1390,6 +1484,7 @@ NSLog(@"[CPUthermal] 功率模式已切换: %@", isLowPowerMode() ? S("低功耗
 // ============================================================================
 %ctor {
 @autoreleasepool {
+g_processStartTime = CFAbsoluteTimeGetCurrent();
 loadPrefs();
 if (!g_enabled) {
 NSLog(@"[CPUthermal] 配置关闭，跳过加载");

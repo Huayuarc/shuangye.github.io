@@ -21,6 +21,7 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
 - (void)centerMenuItemLabelsInView:(UIView *)view;
 - (void)centerMenuItemLabelsAfterLayout;
 - (BOOL)isModeTitle:(NSString *)text;
+- (NSString *)menuTitleForTitle:(NSString *)title selected:(BOOL)isSelected;
 @end
 
 @interface UIView (CPUthermalCCPrivateLayout)
@@ -228,19 +229,20 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
     for (NSUInteger i = 0; i < itemCount; i++) {
         NSString *title = self.modeTitles[i];
         BOOL isSelected = ((NSInteger)i == self.selectedIndex);
+        NSString *displayTitle = [self menuTitleForTitle:title selected:isSelected];
 
         NSString *identifier = S("cpu-item-");
         identifier = [identifier stringByAppendingFormat:S("%lu"), (unsigned long)i];
         __weak typeof(self) weakSelf = self;
         NSInteger itemIndex = (NSInteger)i;
-        CCUIMenuModuleItem *item = [[CCUIMenuModuleItem alloc] initWithTitle:title identifier:identifier handler:^{
+        CCUIMenuModuleItem *item = [[CCUIMenuModuleItem alloc] initWithTitle:displayTitle identifier:identifier handler:^{
             [weakSelf selectPowerModeAtIndex:itemIndex];
         }];
         if (!item) {
             continue;
         }
         if ([item respondsToSelector:@selector(setSelected:)]) {
-            [item setSelected:isSelected];
+            [item setSelected:NO];
         }
 
         // 根据模式设置选中状态和颜色（用 respondsToSelector 保护私有 API）
@@ -272,6 +274,13 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
     [self centerMenuItemLabelsAfterLayout];
 }
 
+- (NSString *)menuTitleForTitle:(NSString *)title selected:(BOOL)isSelected {
+    if (!isSelected) {
+        return title;
+    }
+    return [title stringByAppendingString:S("✓")];
+}
+
 - (void)centerMenuItemLabelsAfterLayout {
     dispatch_async(dispatch_get_main_queue(), ^{
         [self.view layoutIfNeeded];
@@ -284,7 +293,7 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
         return NO;
     }
     for (NSString *title in self.modeTitles) {
-        if ([text isEqualToString:title]) {
+        if ([text isEqualToString:title] || [text isEqualToString:[self menuTitleForTitle:title selected:YES]]) {
             return YES;
         }
     }
