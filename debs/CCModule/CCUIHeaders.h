@@ -19,6 +19,9 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface CCUIMenuModuleItem : NSObject
 @property (nonatomic, copy) NSString *title;
+@property (nonatomic, copy) NSString *subtitle;
+- (instancetype)initWithTitle:(NSString *)title identifier:(NSString *)identifier handler:(void (^)(void))handler;
+- (void)setSubtitle:(NSString *)subtitle;
 - (void)setSelectedGlyphColor:(UIColor *)color;
 @end
 

@@ -16,6 +16,7 @@ static const char *kPrefRelativePathC = "Library/Preferences/com.huayuarc.CPUthe
 static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeChanged";
 
 @interface CPUthermalCCModuleViewController ()
+- (void)selectPowerModeAtIndex:(NSInteger)index;
 @end
 
 @implementation CPUthermalCCModuleViewController
@@ -181,15 +182,34 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
 }
 
 - (void)setupModeButtons {
-    BOOL isFullPower = [self.currentPowerMode isEqualToString:S("fullPower")];
+    NSString *currentMode = [self currentPowerMode];
+    BOOL isFullPower = [currentMode isEqualToString:S("fullPower")];
+    NSUInteger itemCount = MIN(self.modeValues.count, self.modeTitles.count);
 
-    NSMutableArray *items = [NSMutableArray array];
-    for (NSInteger i = 0; i < self.modeValues.count; i++) {
+    NSMutableArray *items = [NSMutableArray arrayWithCapacity:itemCount];
+    for (NSUInteger i = 0; i < itemCount; i++) {
         NSString *title = self.modeTitles[i];
-        BOOL isSelected = (i == self.selectedIndex);
+        NSString *identifier = self.modeValues[i];
+        BOOL isSelected = ((NSInteger)i == self.selectedIndex);
+        __weak typeof(self) weakSelf = self;
 
-        CCUIMenuModuleItem *item = [[CCUIMenuModuleItem alloc] init];
-        item.title = title;
+        CCUIMenuModuleItem *item = nil;
+        if ([CCUIMenuModuleItem instancesRespondToSelector:@selector(initWithTitle:identifier:handler:)]) {
+            item = [[CCUIMenuModuleItem alloc] initWithTitle:title identifier:identifier handler:^{
+                [weakSelf selectPowerModeAtIndex:(NSInteger)i];
+            }];
+        } else {
+            item = [[CCUIMenuModuleItem alloc] init];
+            item.title = title;
+        }
+
+        if (!item) {
+            continue;
+        }
+
+        if (isSelected && [item respondsToSelector:@selector(setSubtitle:)]) {
+            [item setSubtitle:S("当前")];
+        }
 
         // 根据模式设置选中状态和颜色（用 respondsToSelector 保护私有 API）
         if (isSelected) {
@@ -221,27 +241,32 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
 }
 
 - (void)buttonModeTapped:(CCUIMenuModuleItem *)sender {
-    // 处理模式切换
     NSInteger index = [self.menuItems indexOfObject:sender];
-    if (index != NSNotFound && index < self.modeValues.count) {
-        self.selectedIndex = index;
-        NSString *modeValue = self.modeValues[index];
+    [self selectPowerModeAtIndex:index];
+}
 
-        // 写入偏好设置并通知 tweak
-        [self savePowerMode:modeValue];
-
-        // 刷新 UI
-        [self setupModeButtons];
-        if ([self respondsToSelector:@selector(setSelected:)]) {
-            [self setSelected:YES];
-        }
-
-        // 短暂延迟后折叠
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)),
-                       dispatch_get_main_queue(), ^{
-            [self dismissViewControllerAnimated:YES completion:nil];
-        });
+- (void)selectPowerModeAtIndex:(NSInteger)index {
+    if (index == NSNotFound || index < 0 || index >= (NSInteger)self.modeValues.count) {
+        return;
     }
+
+    self.selectedIndex = index;
+    NSString *modeValue = self.modeValues[index];
+
+    // 写入偏好设置并通知 tweak
+    [self savePowerMode:modeValue];
+
+    // 刷新 UI
+    [self setupModeButtons];
+    if ([self respondsToSelector:@selector(setSelected:)]) {
+        [self setSelected:YES];
+    }
+
+    // 短暂延迟后折叠
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+        [self dismissViewControllerAnimated:YES completion:nil];
+    });
 }
 
 //==============================================================================
