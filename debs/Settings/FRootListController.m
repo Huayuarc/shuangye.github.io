@@ -240,44 +240,6 @@ preferredStyle:UIAlertControllerStyleAlert];
 fallback:S("https://qr.alipay.com/fkx16683ylwdrfdo8fiuy01")];
 }
 
-// 通过 SpringBoard 打开 URL（绕过 Settings.app 沙箱限制）
-- (BOOL)openURLViaSpringBoard:(NSURL *)url {
-void *handle = dlopen("/System/Library/PrivateFrameworks/SpringBoardServices.framework/SpringBoardServices", RTLD_LAZY);
-if (!handle) return NO;
-
-BOOL (*SBSOpenSensitiveURLAndUnlock)(NSURL *, int) = dlsym(handle, "SBSOpenSensitiveURLAndUnlock");
-if (!SBSOpenSensitiveURLAndUnlock) {
-dlclose(handle);
-return NO;
-}
-
-BOOL result = SBSOpenSensitiveURLAndUnlock(url, 0);
-dlclose(handle);
-return result;
-}
-
-// 微信投喂我
-- (void)openWechatDonate {
-// 微信未注册 wxp:// scheme（只有 weixin://），改用 weixin://
-// 并通过 SpringBoard Services 打开以绕过沙箱限制
-NSURL *url = [NSURL URLWithString:S("wxp://f2f0bJllRZK8WNaJ6zH2fXCY0QFd2topEh-BqW1LogWPJz7FyoIi6pXyuiUeUHK3m_k7")];
-if (!url) return;
-
-if ([self openURLViaSpringBoard:url]) return;
-
-// Fallback: 标准 openURL
-[[UIApplication sharedApplication] openURL:url
-options:[NSDictionary dictionary]
-completionHandler:^(BOOL success) {
-if (success) return;
-[self showSimpleAlertWithTitle:S("提示") message:S("无法打开微信，请确认已安装微信。")];
-}];
-}
-
-- (void)openWeChatDonate {
-[self openWechatDonate];
-}
-
 // 打开Sileo添加源（优先sileo://协议，否则打开网页）
 - (void)openRepo {
 [self openURLString:S("sileo://source/https://huayuarc.github.io") fallback:S("https://huayuarc.github.io")];
@@ -404,9 +366,6 @@ identifier:S("qqGroup")]];
 [specs addObject:[self buttonSpecifier:S("💰 支付宝🧧打赏")
 action:@selector(openAlipayDonate)
 identifier:S("alipayDonate")]];
-[specs addObject:[self buttonSpecifier:S("💰 微信🧧打赏")
-action:@selector(openWechatDonate)
-identifier:S("wechatDonate")]];
 [specs addObject:[self buttonSpecifier:S("📦 Sileo 添加源")
 action:@selector(openRepo)
 identifier:S("sileoRepo")]];
