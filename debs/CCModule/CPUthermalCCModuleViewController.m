@@ -18,6 +18,15 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
 @interface CPUthermalCCModuleViewController ()
 - (void)updateSelectedIndexFromCurrentMode;
 - (void)selectPowerModeAtIndex:(NSInteger)index;
+- (void)centerMenuItemLabelsInView:(UIView *)view;
+@end
+
+@interface UIView (CPUthermalCCPrivateLayout)
+- (UILabel *)titleLabel;
+- (UILabel *)subtitleLabel;
+- (void)setUseTrailingCheckmarkLayout:(BOOL)useTrailingCheckmarkLayout;
+- (void)setUseTrailingInset:(BOOL)useTrailingInset;
+- (void)setIndentation:(CGFloat)indentation;
 @end
 
 @implementation CPUthermalCCModuleViewController
@@ -123,7 +132,7 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
     }
 
     if ([self respondsToSelector:@selector(setUseTrailingCheckmarkLayout:)]) {
-        [self setUseTrailingCheckmarkLayout:YES];
+        [self setUseTrailingCheckmarkLayout:NO];
     }
     if ([self respondsToSelector:@selector(setUseTallLayout:)]) {
         [self setUseTallLayout:NO];
@@ -142,6 +151,11 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
 - (void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
     [self refreshState];
+}
+
+- (void)viewDidLayoutSubviews {
+    [super viewDidLayoutSubviews];
+    [self centerMenuItemLabelsInView:self.view];
 }
 
 //==============================================================================
@@ -250,6 +264,54 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
     // 父类 setMenuItems: 有 respondsToSelector 兜底
     if ([self respondsToSelector:@selector(setMenuItems:)]) {
         self.menuItems = items;
+    }
+
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self centerMenuItemLabelsInView:self.view];
+    });
+}
+
+- (void)centerMenuItemLabelsInView:(UIView *)view {
+    if (!view) {
+        return;
+    }
+
+    BOOL isMenuItemView = [NSStringFromClass([view class]) isEqualToString:S("CCUIMenuModuleItemView")];
+    if (isMenuItemView) {
+        if ([view respondsToSelector:@selector(setUseTrailingCheckmarkLayout:)]) {
+            [view setUseTrailingCheckmarkLayout:NO];
+        }
+        if ([view respondsToSelector:@selector(setUseTrailingInset:)]) {
+            [view setUseTrailingInset:NO];
+        }
+        if ([view respondsToSelector:@selector(setIndentation:)]) {
+            [view setIndentation:0.0];
+        }
+
+        UILabel *titleLabel = nil;
+        UILabel *subtitleLabel = nil;
+        if ([view respondsToSelector:@selector(titleLabel)]) {
+            titleLabel = [view titleLabel];
+        }
+        if ([view respondsToSelector:@selector(subtitleLabel)]) {
+            subtitleLabel = [view subtitleLabel];
+        }
+
+        for (UILabel *label in @[titleLabel ?: (UILabel *)[NSNull null], subtitleLabel ?: (UILabel *)[NSNull null]]) {
+            if (![label isKindOfClass:[UILabel class]]) {
+                continue;
+            }
+            label.textAlignment = NSTextAlignmentCenter;
+            label.numberOfLines = 1;
+            CGRect frame = label.frame;
+            frame.origin.x = 0.0;
+            frame.size.width = CGRectGetWidth(view.bounds);
+            label.frame = frame;
+        }
+    }
+
+    for (UIView *subview in view.subviews) {
+        [self centerMenuItemLabelsInView:subview];
     }
 }
 
