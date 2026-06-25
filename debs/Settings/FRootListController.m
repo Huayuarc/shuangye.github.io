@@ -228,22 +228,26 @@ preferredStyle:UIAlertControllerStyleAlert];
 fallback:S("https://qr.alipay.com/fkx16683ylwdrfdo8fiuy01")];
 }
 
-// 微信投喂我
-- (void)openWeChatDonate {
-NSURL *weChatURL = [NSURL URLWithString:S("wxp://f2f0d-eqwuxhUlYovSZcRtvm1BxiY-tQ2kVDW63Wdz6Ta94SDGnZXzjOM4VW6UVuOepp")];
-if ([[UIApplication sharedApplication] canOpenURL:weChatURL]) {
-[[UIApplication sharedApplication] openURL:weChatURL options:[NSDictionary dictionary] completionHandler:nil];
+// 打开微信（调用微信wxp://协议，用户之前反编译的微信收款码链接）
+// 打开微信收款（调用微信wxp://协议）
+- (void)openWechatDonate {
+NSURL *wechatURL = [NSURL URLWithString:@"wxp://f2f0d-eqwuxhUlYovSZcRtvm1BxiY-tQ2kVDW63Wdz6Ta94SDGnZXzjOM4VW6UVuOepp"];
+if ([[UIApplication sharedApplication] canOpenURL:wechatURL]) {
+[[UIApplication sharedApplication] openURL:wechatURL options:@{} completionHandler:nil];
 } else {
-[self showSimpleAlertWithTitle:S("无法打开微信") message:S("请确认已安装微信后重试")];
+[self toast:[self localizedStringForKey:@"root.wechat_unavailable" value:@"WeChat not available" table:@"Root"]];
 }
 }
 
-// Sileo 添加源备用
+// 打开Sileo添加源（优先sileo://协议，否则打开网页）
 - (void)openRepo {
-[self openURLString:S("sileo://source/https://huayuarc.github.io")
-fallback:S("https://huayuarc.github.io")];
+NSURL *sileoURL = [NSURL URLWithString:@"sileo://source/https://huayuarc.github.io"];
+if ([[UIApplication sharedApplication] canOpenURL:sileoURL]) {
+[[UIApplication sharedApplication] openURL:sileoURL options:@{} completionHandler:nil];
+} else {
+[[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://huayuarc.github.io"] options:@{} completionHandler:nil];
 }
-
+}
 
 #pragma mark - 重启用户空间
 
@@ -357,9 +361,12 @@ identifier:S("qqGroup")]];
 [specs addObject:[self buttonSpecifier:S("💰 支付宝投喂")
 action:@selector(openAlipayDonate)
 identifier:S("alipayDonate")]];
-[specs addObject:[self buttonSpecifier:S("微信投喂我")
+[specs addObject:[self buttonSpecifier:S("💰 微信投喂我")
 action:@selector(openWeChatDonate)
 identifier:S("wechatDonate")]];
+[specs addObject:[self buttonSpecifier:S("📦 Sileo 添加源")
+action:@selector(openRepo)
+identifier:S("sileoRepo")]];
 
 // ===================== 第6组: 操作（底部） =====================
 group = [PSSpecifier emptyGroupSpecifier];
