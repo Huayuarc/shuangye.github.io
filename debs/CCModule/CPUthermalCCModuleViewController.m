@@ -207,12 +207,12 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
         NSString *title = self.modeTitles[i];
         BOOL isSelected = ((NSInteger)i == self.selectedIndex);
 
-        CCUIMenuModuleItem *item = [[CCUIMenuModuleItem alloc] init];
+        NSString *identifier = S("cpu-item-");
+        identifier = [identifier stringByAppendingFormat:S("%lu"), (unsigned long)i];
+        CCUIMenuModuleItem *item = [[CCUIMenuModuleItem alloc] initWithTitle:title identifier:identifier handler:^{}];
         if (!item) {
             continue;
         }
-
-        item.title = title;
         if ([item respondsToSelector:@selector(setSelected:)]) {
             [item setSelected:isSelected];
         }

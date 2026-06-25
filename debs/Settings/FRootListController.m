@@ -356,7 +356,16 @@ group = [PSSpecifier emptyGroupSpecifier];
 
 [specs addObject:[self switchSpecifier:S("保留 CPMS 紧急保护") key:S("keepCPMSAlive")]];
 
-// ===================== 第5组: 关于我 =====================
+// ===================== 第5组: 操作 =====================
+group = [PSSpecifier emptyGroupSpecifier];
+[group setProperty:S("操作") forKey:S("label")];
+[specs addObject:group];
+
+[specs addObject:[self buttonSpecifier:S("重启用户空间")
+action:@selector(usreboot)
+identifier:S("usreboot")]];
+
+// ===================== 第6组: 关于我 （底部） =====================
 group = [PSSpecifier emptyGroupSpecifier];
 [group setProperty:S("关于我 / 投喂") forKey:S("label")];
 [specs addObject:group];
@@ -373,15 +382,6 @@ identifier:S("wechatDonate")]];
 [specs addObject:[self buttonSpecifier:S("📦 Sileo 添加源")
 action:@selector(openRepo)
 identifier:S("sileoRepo")]];
-
-// ===================== 第6组: 操作（底部） =====================
-group = [PSSpecifier emptyGroupSpecifier];
-[group setProperty:S("操作") forKey:S("label")];
-[specs addObject:group];
-
-[specs addObject:[self buttonSpecifier:S("重启用户空间")
-action:@selector(usreboot)
-identifier:S("usreboot")]];
 
 [self setSpecifiers:specs];
 }
