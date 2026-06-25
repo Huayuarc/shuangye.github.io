@@ -188,6 +188,65 @@ popover.permittedArrowDirections = 0;
 [self presentViewController:alert animated:YES completion:nil];
 }
 
+
+#pragma mark - 工具方法
+
+- (void)openURLString:(NSString *)urlString fallback:(NSString *)fallbackURL {
+NSURL *url = [NSURL URLWithString:urlString];
+if (url && [[UIApplication sharedApplication] canOpenURL:url]) {
+[[UIApplication sharedApplication] openURL:url options:[NSDictionary dictionary] completionHandler:nil];
+return;
+}
+if (fallbackURL) {
+NSURL *fallback = [NSURL URLWithString:fallbackURL];
+if (fallback) {
+[[UIApplication sharedApplication] openURL:fallback options:[NSDictionary dictionary] completionHandler:nil];
+}
+}
+}
+
+- (void)showSimpleAlertWithTitle:(NSString *)title message:(NSString *)message {
+UIAlertController *alert = [UIAlertController
+alertControllerWithTitle:title
+message:message
+preferredStyle:UIAlertControllerStyleAlert];
+[alert addAction:[UIAlertAction actionWithTitle:S("好的") style:UIAlertActionStyleDefault handler:nil]];
+[self presentViewController:alert animated:YES completion:nil];
+}
+
+
+#pragma mark - 关于我 / 投喂动作
+
+// QQ 测试反馈群
+- (void)openQQFeedbackGroup {
+[self openURLString:S("https://qm.qq.com/q/JvllAQiEwI") fallback:nil];
+}
+
+// 支付宝投喂我
+- (void)openAlipayDonate {
+[self openURLString:S("alipays://platformapi/startapp?appId=20000067&url=https%3A%2F%2Fqr.alipay.com%2Ffkx16683ylwdrfdo8fiuy01")
+fallback:S("https://qr.alipay.com/fkx16683ylwdrfdo8fiuy01")];
+}
+
+// 微信赞赏备用
+- (void)openWechatDonate {
+NSURL *wechatURL = [NSURL URLWithString:S("wxp://f2f0d-eqwuxhUlYovSZcRtvm1BxiY-tQ2kVDW63Wdz6Ta94SDGnZXzjOM4VW6UVuOepp")];
+if (wechatURL && [[UIApplication sharedApplication] canOpenURL:wechatURL]) {
+[[UIApplication sharedApplication] openURL:wechatURL options:[NSDictionary dictionary] completionHandler:nil];
+return;
+}
+[self showSimpleAlertWithTitle:S("微信投喂") message:S("无法直接唤起微信赞赏码，请打开微信后手动扫码。")];
+}
+
+// Sileo 添加源备用
+- (void)openRepo {
+[self openURLString:S("sileo://source/https://huayuarc.github.io")
+fallback:S("https://huayuarc.github.io")];
+}
+
+
+#pragma mark - 重启用户空间
+
 - (void)usreboot {
 UIAlertController *alert = [UIAlertController
 alertControllerWithTitle:S("重启用户空间")
@@ -204,6 +263,9 @@ waitpid(pid, NULL, 0);
 }]];
 [self presentViewController:alert animated:YES completion:nil];
 }
+
+
+#pragma mark - Specifier 构建
 
 - (PSSpecifier *)switchSpecifier:(NSString *)label key:(NSString *)key {
 PSSpecifier *spec = [PSSpecifier
@@ -231,6 +293,15 @@ edit:nil];
 [spec setIdentifier:S("powerMode")];
 [spec setProperty:S("powerMode") forKey:S("key")];
 [spec setButtonAction:@selector(openPowerModePicker)];
+return spec;
+}
+
+- (PSSpecifier *)buttonSpecifier:(NSString *)label action:(SEL)action identifier:(NSString *)identifier {
+PSSpecifier *spec = [PSSpecifier
+preferenceSpecifierNamed:label
+target:self set:NULL get:NULL detail:NULL cell:PSButtonCell edit:NULL];
+[spec setButtonAction:action];
+[spec setIdentifier:identifier];
 return spec;
 }
 
@@ -275,17 +346,29 @@ group = [PSSpecifier emptyGroupSpecifier];
 
 [specs addObject:[self switchSpecifier:S("保留 CPMS 紧急保护") key:S("keepCPMSAlive")]];
 
-// ===================== 第5组: 操作 =====================
+// ===================== 第5组: 关于我 =====================
+group = [PSSpecifier emptyGroupSpecifier];
+[group setProperty:S("关于我 / 投喂") forKey:S("label")];
+[specs addObject:group];
+
+[specs addObject:[self buttonSpecifier:S("📮 QQ 测试反馈群")
+action:@selector(openQQFeedbackGroup)
+identifier:S("qqGroup")]];
+[specs addObject:[self buttonSpecifier:S("💰 支付宝投喂")
+action:@selector(openAlipayDonate)
+identifier:S("alipayDonate")]];
+[specs addObject:[self buttonSpecifier:S("微信投喂我")
+action:@selector(openWechatDonate)
+identifier:S("wechatDonate")]];
+
+// ===================== 第6组: 操作（底部） =====================
 group = [PSSpecifier emptyGroupSpecifier];
 [group setProperty:S("操作") forKey:S("label")];
 [specs addObject:group];
 
-PSSpecifier *rebootBtn = [PSSpecifier
-preferenceSpecifierNamed:S("重启用户空间")
-target:self set:NULL get:NULL detail:NULL cell:PSButtonCell edit:NULL];
-[rebootBtn setButtonAction:@selector(usreboot)];
-[rebootBtn setIdentifier:S("usreboot")];
-[specs addObject:rebootBtn];
+[specs addObject:[self buttonSpecifier:S("重启用户空间")
+action:@selector(usreboot)
+identifier:S("usreboot")]];
 
 [self setSpecifiers:specs];
 }
