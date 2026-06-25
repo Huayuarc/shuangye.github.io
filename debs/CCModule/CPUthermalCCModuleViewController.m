@@ -16,6 +16,7 @@ static const char *kPrefRelativePathC = "Library/Preferences/com.huayuarc.CPUthe
 static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeChanged";
 
 @interface CPUthermalCCModuleViewController ()
+- (void)updateSelectedIndexFromCurrentMode;
 - (void)selectPowerModeAtIndex:(NSInteger)index;
 @end
 
@@ -148,11 +149,8 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
 //==============================================================================
 
 - (void)refreshState {
-    NSString *currentMode = [self currentPowerMode];
-    NSInteger newIndex = [self.modeValues indexOfObject:currentMode];
-    if (newIndex != NSNotFound && newIndex != self.selectedIndex) {
-        self.selectedIndex = newIndex;
-    }
+    [self updateSelectedIndexFromCurrentMode];
+    [self setupModeButtons];
     if ([self respondsToSelector:@selector(setSelected:)]) {
         [self setSelected:(self.selectedIndex == 0) ? NO : YES];
     }
@@ -170,7 +168,6 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
     [super willTransitionToExpandedContentMode:animated];
     // 展开时刷新菜单
     [self refreshState];
-    [self setupModeButtons];
 }
 
 - (CGFloat)preferredExpandedContentHeight {
@@ -194,12 +191,7 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
 //==============================================================================
 
 - (void)setupView {
-    // 获取当前模式并计算选中索引
-    NSString *currentMode = [self currentPowerMode];
-    self.selectedIndex = [self.modeValues indexOfObject:currentMode];
-    if (self.selectedIndex == NSNotFound) {
-        self.selectedIndex = 1;
-    }
+    [self updateSelectedIndexFromCurrentMode];
 
     // 设置菜单项
     [self setupModeButtons];
@@ -234,10 +226,6 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
             [item setSelected:isSelected];
         }
 
-        if (isSelected && [item respondsToSelector:@selector(setSubtitle:)]) {
-            [item setSubtitle:S("当前")];
-        }
-
         // 根据模式设置选中状态和颜色（用 respondsToSelector 保护私有 API）
         if (isSelected) {
             if ([item respondsToSelector:@selector(setSelectedGlyphColor:)]) {
@@ -269,6 +257,15 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
 #pragma mark - Button Actions
 //==============================================================================
 
+- (void)updateSelectedIndexFromCurrentMode {
+    NSString *currentMode = [self currentPowerMode];
+    NSInteger newIndex = [self.modeValues indexOfObject:currentMode];
+    if (newIndex == NSNotFound) {
+        newIndex = 1;
+    }
+    _selectedIndex = newIndex;
+}
+
 - (void)buttonTapped:(id)arg forEvent:(id)event {
     // 展开控制中心菜单
     [super buttonTapped:arg forEvent:event];
@@ -284,7 +281,7 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
         return;
     }
 
-    self.selectedIndex = index;
+    _selectedIndex = index;
     NSString *modeValue = self.modeValues[index];
 
     // 写入偏好设置并通知 tweak
