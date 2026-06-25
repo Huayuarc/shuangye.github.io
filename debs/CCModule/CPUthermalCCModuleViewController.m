@@ -160,6 +160,22 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
     [self setupModeButtons];
 }
 
+- (CGFloat)preferredExpandedContentHeight {
+    return 132.0;
+}
+
+- (CGFloat)preferredExpandedContentWidth {
+    return 280.0;
+}
+
+- (BOOL)providesOwnPlatter {
+    return NO;
+}
+
+- (BOOL)_toggleModuleExpanded {
+    return YES;
+}
+
 //==============================================================================
 #pragma mark - Setup
 //==============================================================================
@@ -189,22 +205,16 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
     NSMutableArray *items = [NSMutableArray arrayWithCapacity:itemCount];
     for (NSUInteger i = 0; i < itemCount; i++) {
         NSString *title = self.modeTitles[i];
-        NSString *identifier = self.modeValues[i];
         BOOL isSelected = ((NSInteger)i == self.selectedIndex);
-        __weak typeof(self) weakSelf = self;
 
-        CCUIMenuModuleItem *item = nil;
-        if ([CCUIMenuModuleItem instancesRespondToSelector:@selector(initWithTitle:identifier:handler:)]) {
-            item = [[CCUIMenuModuleItem alloc] initWithTitle:title identifier:identifier handler:^{
-                [weakSelf selectPowerModeAtIndex:(NSInteger)i];
-            }];
-        } else {
-            item = [[CCUIMenuModuleItem alloc] init];
-            item.title = title;
-        }
-
+        CCUIMenuModuleItem *item = [[CCUIMenuModuleItem alloc] init];
         if (!item) {
             continue;
+        }
+
+        item.title = title;
+        if ([item respondsToSelector:@selector(setSelected:)]) {
+            [item setSelected:isSelected];
         }
 
         if (isSelected && [item respondsToSelector:@selector(setSubtitle:)]) {
@@ -259,7 +269,7 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
     // 刷新 UI
     [self setupModeButtons];
     if ([self respondsToSelector:@selector(setSelected:)]) {
-        [self setSelected:YES];
+        [self setSelected:(self.selectedIndex == 0) ? NO : YES];
     }
 
     // 短暂延迟后折叠

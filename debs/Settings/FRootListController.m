@@ -192,17 +192,28 @@ popover.permittedArrowDirections = 0;
 #pragma mark - 工具方法
 
 - (void)openURLString:(NSString *)urlString fallback:(NSString *)fallbackURL {
-NSURL *url = [NSURL URLWithString:urlString];
-if (url && [[UIApplication sharedApplication] canOpenURL:url]) {
-[[UIApplication sharedApplication] openURL:url options:[NSDictionary dictionary] completionHandler:nil];
-return;
+[self openURLString:urlString fallback:fallbackURL failureMessage:nil];
 }
+
+- (void)openURLString:(NSString *)urlString fallback:(NSString *)fallbackURL failureMessage:(NSString *)failureMessage {
+NSURL *url = [NSURL URLWithString:urlString];
+if (!url) return;
+
+[[UIApplication sharedApplication] openURL:url
+options:[NSDictionary dictionary]
+completionHandler:^(BOOL success) {
+if (success) return;
 if (fallbackURL) {
 NSURL *fallback = [NSURL URLWithString:fallbackURL];
 if (fallback) {
 [[UIApplication sharedApplication] openURL:fallback options:[NSDictionary dictionary] completionHandler:nil];
+return;
 }
 }
+if (failureMessage) {
+[self showSimpleAlertWithTitle:S("提示") message:failureMessage];
+}
+}];
 }
 
 - (void)showSimpleAlertWithTitle:(NSString *)title message:(NSString *)message {
@@ -228,25 +239,20 @@ preferredStyle:UIAlertControllerStyleAlert];
 fallback:S("https://qr.alipay.com/fkx16683ylwdrfdo8fiuy01")];
 }
 
-// 打开微信（调用微信wxp://协议，用户之前反编译的微信收款码链接）
-// 打开微信收款（调用微信wxp://协议）
+// 微信投喂我
 - (void)openWechatDonate {
-NSURL *wechatURL = [NSURL URLWithString:@"wxp://f2f0d-eqwuxhUlYovSZcRtvm1BxiY-tQ2kVDW63Wdz6Ta94SDGnZXzjOM4VW6UVuOepp"];
-if ([[UIApplication sharedApplication] canOpenURL:wechatURL]) {
-[[UIApplication sharedApplication] openURL:wechatURL options:@{} completionHandler:nil];
-} else {
-[self showSimpleAlertWithTitle:S("提示") message:S("WeChat not available")];
+[self openURLString:S("wxp://f2f0d-eqwuxhUlYovSZcRtvm1BxiY-tQ2kVDW63Wdz6Ta94SDGnZXzjOM4VW6UVuOepp")
+fallback:nil
+failureMessage:S("无法打开微信，请确认已安装微信并允许从设置跳转。")];
 }
+
+- (void)openWeChatDonate {
+[self openWechatDonate];
 }
 
 // 打开Sileo添加源（优先sileo://协议，否则打开网页）
 - (void)openRepo {
-NSURL *sileoURL = [NSURL URLWithString:@"sileo://source/https://huayuarc.github.io"];
-if ([[UIApplication sharedApplication] canOpenURL:sileoURL]) {
-[[UIApplication sharedApplication] openURL:sileoURL options:@{} completionHandler:nil];
-} else {
-[[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://huayuarc.github.io"] options:@{} completionHandler:nil];
-}
+[self openURLString:S("sileo://source/https://huayuarc.github.io") fallback:S("https://huayuarc.github.io")];
 }
 
 #pragma mark - 重启用户空间
@@ -358,11 +364,11 @@ group = [PSSpecifier emptyGroupSpecifier];
 [specs addObject:[self buttonSpecifier:S("📮 QQ 测试反馈群")
 action:@selector(openQQFeedbackGroup)
 identifier:S("qqGroup")]];
-[specs addObject:[self buttonSpecifier:S("💰 支付宝投喂")
+[specs addObject:[self buttonSpecifier:S("💰 支付宝🧧打赏")
 action:@selector(openAlipayDonate)
 identifier:S("alipayDonate")]];
-[specs addObject:[self buttonSpecifier:S("💰 微信投喂我")
-action:@selector(openWeChatDonate)
+[specs addObject:[self buttonSpecifier:S("💰 微信🧧打赏")
+action:@selector(openWechatDonate)
 identifier:S("wechatDonate")]];
 [specs addObject:[self buttonSpecifier:S("📦 Sileo 添加源")
 action:@selector(openRepo)

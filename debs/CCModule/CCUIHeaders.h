@@ -7,7 +7,11 @@ NS_ASSUME_NONNULL_BEGIN
 //==============================================================================
 
 @protocol CCUIContentModuleContentViewController <NSObject>
+@required
+- (CGFloat)preferredExpandedContentHeight;
 @optional
+- (CGFloat)preferredExpandedContentWidth;
+- (BOOL)providesOwnPlatter;
 - (BOOL)shouldBeginTransitionToExpandedContentModule;
 - (void)willTransitionToExpandedContentMode:(BOOL)animated;
 - (void)willReturnToExpandedContentModule;
@@ -20,6 +24,7 @@ NS_ASSUME_NONNULL_BEGIN
 @interface CCUIMenuModuleItem : NSObject
 @property (nonatomic, copy) NSString *title;
 @property (nonatomic, copy) NSString *subtitle;
+@property (nonatomic, assign, getter=isSelected) BOOL selected;
 - (instancetype)initWithTitle:(NSString *)title identifier:(NSString *)identifier handler:(void (^)(void))handler;
 - (void)setSubtitle:(NSString *)subtitle;
 - (void)setSelectedGlyphColor:(UIColor *)color;
