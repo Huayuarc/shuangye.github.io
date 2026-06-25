@@ -4,6 +4,7 @@
 #import <spawn.h>
 #import <sys/wait.h>
 #import <notify.h>
+#import <dlfcn.h>
 
 // ============================================================
 // 注意: 禁止使用 @"" ObjC 字符串常量
@@ -239,11 +240,38 @@ preferredStyle:UIAlertControllerStyleAlert];
 fallback:S("https://qr.alipay.com/fkx16683ylwdrfdo8fiuy01")];
 }
 
+// 通过 SpringBoard 打开 URL（绕过 Settings.app 沙箱限制）
+- (BOOL)openURLViaSpringBoard:(NSURL *)url {
+void *handle = dlopen("/System/Library/PrivateFrameworks/SpringBoardServices.framework/SpringBoardServices", RTLD_LAZY);
+if (!handle) return NO;
+
+BOOL (*SBSOpenSensitiveURLAndUnlock)(NSURL *, int) = dlsym(handle, "SBSOpenSensitiveURLAndUnlock");
+if (!SBSOpenSensitiveURLAndUnlock) {
+dlclose(handle);
+return NO;
+}
+
+BOOL result = SBSOpenSensitiveURLAndUnlock(url, 0);
+dlclose(handle);
+return result;
+}
+
 // 微信投喂我
 - (void)openWechatDonate {
-[self openURLString:S("wxp://f2f0d-eqwuxhUlYovSZcRtvm1BxiY-tQ2kVDW63Wdz6Ta94SDGnZXzjOM4VW6UVuOepp")
-fallback:nil
-failureMessage:S("无法打开微信，请确认已安装微信并允许从设置跳转。")];
+// 微信未注册 wxp:// scheme（只有 weixin://），改用 weixin://
+// 并通过 SpringBoard Services 打开以绕过沙箱限制
+NSURL *url = [NSURL URLWithString:S("weixin://f2f0d-eqwuxhUlYovSZcRtvm1BxiY-tQ2kVDW63Wdz6Ta94SDGnZXzjOM4VW6UVuOepp")];
+if (!url) return;
+
+if ([self openURLViaSpringBoard:url]) return;
+
+// Fallback: 标准 openURL
+[[UIApplication sharedApplication] openURL:url
+options:[NSDictionary dictionary]
+completionHandler:^(BOOL success) {
+if (success) return;
+[self showSimpleAlertWithTitle:S("提示") message:S("无法打开微信，请确认已安装微信。")];
+}];
 }
 
 - (void)openWeChatDonate {

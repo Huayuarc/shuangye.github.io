@@ -278,7 +278,7 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
     if (!isSelected) {
         return title;
     }
-    return [title stringByAppendingString:S("✓")];
+    return [title stringByAppendingString:S("  ✓")];
 }
 
 - (void)centerMenuItemLabelsAfterLayout {
