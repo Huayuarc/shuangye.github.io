@@ -36,10 +36,21 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface CCUIMenuModuleViewController : UIViewController <CCUIContentModuleContentViewController>
 @property (nonatomic, copy) NSArray<CCUIMenuModuleItem *> *menuItems;
+@property (nonatomic, assign) NSInteger visibleMenuItems;
+@property (nonatomic, assign) NSInteger minimumMenuItems;
+@property (nonatomic, assign) BOOL useTallLayout;
+@property (nonatomic, assign) BOOL useTrailingCheckmarkLayout;
+@property (nonatomic, assign) BOOL hideGlyphInHeader;
 - (void)setGlyphImage:(UIImage *)image;
 - (void)setSelectedGlyphColor:(UIColor *)color;
 - (void)setSelected:(BOOL)selected;
 - (void)setMenuItems:(NSArray<CCUIMenuModuleItem *> *)menuItems;
+- (void)setVisibleMenuItems:(NSInteger)visibleMenuItems;
+- (void)setMinimumMenuItems:(NSInteger)minimumMenuItems;
+- (void)setUseTallLayout:(BOOL)useTallLayout;
+- (void)setUseTrailingCheckmarkLayout:(BOOL)useTrailingCheckmarkLayout;
+- (void)setHideGlyphInHeader:(BOOL)hideGlyphInHeader;
+- (void)setShouldProvideOwnPlatter:(BOOL)shouldProvideOwnPlatter;
 - (void)buttonTapped:(id)arg forEvent:(id)event;
 @end
 

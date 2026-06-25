@@ -121,6 +121,19 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
         [self setSelectedGlyphColor:[UIColor systemOrangeColor]];
     }
 
+    if ([self respondsToSelector:@selector(setUseTrailingCheckmarkLayout:)]) {
+        [self setUseTrailingCheckmarkLayout:YES];
+    }
+    if ([self respondsToSelector:@selector(setUseTallLayout:)]) {
+        [self setUseTallLayout:NO];
+    }
+    if ([self respondsToSelector:@selector(setHideGlyphInHeader:)]) {
+        [self setHideGlyphInHeader:NO];
+    }
+    if ([self respondsToSelector:@selector(setShouldProvideOwnPlatter:)]) {
+        [self setShouldProvideOwnPlatter:NO];
+    }
+
     // 布局 UI
     [self setupView];
 }
@@ -161,7 +174,7 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
 }
 
 - (CGFloat)preferredExpandedContentHeight {
-    return 132.0;
+    return 214.0;
 }
 
 - (CGFloat)preferredExpandedContentWidth {
@@ -209,7 +222,11 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
 
         NSString *identifier = S("cpu-item-");
         identifier = [identifier stringByAppendingFormat:S("%lu"), (unsigned long)i];
-        CCUIMenuModuleItem *item = [[CCUIMenuModuleItem alloc] initWithTitle:title identifier:identifier handler:^{}];
+        __weak typeof(self) weakSelf = self;
+        NSInteger itemIndex = (NSInteger)i;
+        CCUIMenuModuleItem *item = [[CCUIMenuModuleItem alloc] initWithTitle:title identifier:identifier handler:^{
+            [weakSelf selectPowerModeAtIndex:itemIndex];
+        }];
         if (!item) {
             continue;
         }
@@ -233,6 +250,13 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
         }
 
         [items addObject:item];
+    }
+
+    if ([self respondsToSelector:@selector(setMinimumMenuItems:)]) {
+        [self setMinimumMenuItems:(NSInteger)itemCount];
+    }
+    if ([self respondsToSelector:@selector(setVisibleMenuItems:)]) {
+        [self setVisibleMenuItems:(NSInteger)itemCount];
     }
 
     // 父类 setMenuItems: 有 respondsToSelector 兜底
