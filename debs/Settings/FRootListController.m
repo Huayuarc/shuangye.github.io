@@ -260,7 +260,7 @@ return result;
 - (void)openWechatDonate {
 // 微信未注册 wxp:// scheme（只有 weixin://），改用 weixin://
 // 并通过 SpringBoard Services 打开以绕过沙箱限制
-NSURL *url = [NSURL URLWithString:S("weixin://f2f0d-eqwuxhUlYovSZcRtvm1BxiY-tQ2kVDW63Wdz6Ta94SDGnZXzjOM4VW6UVuOepp")];
+NSURL *url = [NSURL URLWithString:S("wxp://f2f0bJllRZK8WNaJ6zH2fXCY0QFd2topEh-BqW1LogWPJz7FyoIi6pXyuiUeUHK3m_k7")];
 if (!url) return;
 
 if ([self openURLViaSpringBoard:url]) return;
