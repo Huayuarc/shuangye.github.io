@@ -19,11 +19,14 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
 - (void)updateSelectedIndexFromCurrentMode;
 - (void)selectPowerModeAtIndex:(NSInteger)index;
 - (void)centerMenuItemLabelsInView:(UIView *)view;
+- (void)centerMenuItemLabelsAfterLayout;
+- (BOOL)isModeTitle:(NSString *)text;
 @end
 
 @interface UIView (CPUthermalCCPrivateLayout)
 - (UILabel *)titleLabel;
 - (UILabel *)subtitleLabel;
+- (UIView *)contentView;
 - (void)setUseTrailingCheckmarkLayout:(BOOL)useTrailingCheckmarkLayout;
 - (void)setUseTrailingInset:(BOOL)useTrailingInset;
 - (void)setIndentation:(CGFloat)indentation;
@@ -155,7 +158,7 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
 
 - (void)viewDidLayoutSubviews {
     [super viewDidLayoutSubviews];
-    [self centerMenuItemLabelsInView:self.view];
+    [self centerMenuItemLabelsAfterLayout];
 }
 
 //==============================================================================
@@ -266,9 +269,26 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
         self.menuItems = items;
     }
 
+    [self centerMenuItemLabelsAfterLayout];
+}
+
+- (void)centerMenuItemLabelsAfterLayout {
     dispatch_async(dispatch_get_main_queue(), ^{
+        [self.view layoutIfNeeded];
         [self centerMenuItemLabelsInView:self.view];
     });
+}
+
+- (BOOL)isModeTitle:(NSString *)text {
+    if (![text isKindOfClass:[NSString class]] || [text length] == 0) {
+        return NO;
+    }
+    for (NSString *title in self.modeTitles) {
+        if ([text isEqualToString:title]) {
+            return YES;
+        }
+    }
+    return NO;
 }
 
 - (void)centerMenuItemLabelsInView:(UIView *)view {
@@ -276,7 +296,8 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
         return;
     }
 
-    BOOL isMenuItemView = [NSStringFromClass([view class]) isEqualToString:S("CCUIMenuModuleItemView")];
+    NSString *className = NSStringFromClass([view class]);
+    BOOL isMenuItemView = [className containsString:S("MenuModuleItem")];
     if (isMenuItemView) {
         if ([view respondsToSelector:@selector(setUseTrailingCheckmarkLayout:)]) {
             [view setUseTrailingCheckmarkLayout:NO];
@@ -287,6 +308,10 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
         if ([view respondsToSelector:@selector(setIndentation:)]) {
             [view setIndentation:0.0];
         }
+        if ([view respondsToSelector:@selector(setPreservesSuperviewLayoutMargins:)]) {
+            [view setPreservesSuperviewLayoutMargins:NO];
+        }
+        view.layoutMargins = UIEdgeInsetsZero;
 
         UILabel *titleLabel = nil;
         UILabel *subtitleLabel = nil;
@@ -297,15 +322,42 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
             subtitleLabel = [view subtitleLabel];
         }
 
-        for (UILabel *label in @[titleLabel ?: (UILabel *)[NSNull null], subtitleLabel ?: (UILabel *)[NSNull null]]) {
+        NSMutableArray<UILabel *> *labels = [NSMutableArray array];
+        if (titleLabel) {
+            [labels addObject:titleLabel];
+        }
+        if (subtitleLabel && subtitleLabel != titleLabel) {
+            [labels addObject:subtitleLabel];
+        }
+        for (UIView *subview in view.subviews) {
+            if ([subview isKindOfClass:[UILabel class]] && ![labels containsObject:(UILabel *)subview]) {
+                [labels addObject:(UILabel *)subview];
+            }
+            for (UIView *nestedSubview in subview.subviews) {
+                if ([nestedSubview isKindOfClass:[UILabel class]] && ![labels containsObject:(UILabel *)nestedSubview]) {
+                    [labels addObject:(UILabel *)nestedSubview];
+                }
+            }
+        }
+
+        for (UILabel *label in labels) {
             if (![label isKindOfClass:[UILabel class]]) {
+                continue;
+            }
+            if (![self isModeTitle:label.text]) {
                 continue;
             }
             label.textAlignment = NSTextAlignmentCenter;
             label.numberOfLines = 1;
+            label.translatesAutoresizingMaskIntoConstraints = YES;
+            label.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin;
+
+            UIView *labelContainer = label.superview ?: view;
+            CGFloat targetWidth = CGRectGetWidth(view.bounds);
+            CGRect frameInView = [view convertRect:view.bounds toView:labelContainer];
             CGRect frame = label.frame;
-            frame.origin.x = 0.0;
-            frame.size.width = CGRectGetWidth(view.bounds);
+            frame.origin.x = frameInView.origin.x;
+            frame.size.width = targetWidth;
             label.frame = frame;
         }
     }
