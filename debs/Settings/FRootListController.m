@@ -104,7 +104,6 @@ NSMutableDictionary *prefs = [self prefs];
 prefs[S("powerMode")] = mode ?: S("fullPower");
 [self savePrefs:prefs];
 notify_post(kPowerModeNotifNameC);
-[self restartThermalmonitord];
 PSSpecifier *specifier = [self specifierForID:S("powerMode")];
 specifier.name = [self powerModeLabel];
 [self reloadSpecifierID:S("powerMode") animated:YES];

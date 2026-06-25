@@ -160,6 +160,7 @@ static BOOL g_deferredRuntimeApplyScheduled = NO;
 
 static BOOL shouldApplyLowPowerLimit(void);
 static void applyCurrentPowerModeToRuntime(void);
+static void applyPowerModeToRuntime(BOOL respectBootGuard);
 static void scheduleDeferredRuntimeApply(double delay);
 
 static NSString *controllerKey(id controller, const char *name) {
@@ -397,6 +398,7 @@ if (!g_commonProduct || ![g_commonProduct respondsToSelector:selector]) return;
 static void applyFullPowerToCommonProduct(void) {
 if (!g_commonProduct || !g_enabled || !g_cpuProtection || !isFullPowerMode()) return;
 @try {
+g_restoringFullPower = YES;
 if ([g_commonProduct respondsToSelector:@selector(setCPMSMitigationsEnabled:)] && !g_keepCPSMAlive) {
 ((void (*)(id, SEL, BOOL))objc_msgSend)(g_commonProduct, @selector(setCPMSMitigationsEnabled:), NO);
 }
@@ -412,6 +414,8 @@ if ([g_commonProduct respondsToSelector:@selector(setThermalState:)]) {
 NSLog(@"[CPUthermal] 已主动套用解除温控 CommonProduct 状态");
 } @catch (NSException *exception) {
 NSLog(@"[CPUthermal] 套用解除温控 CommonProduct 状态失败: %@", exception);
+} @finally {
+g_restoringFullPower = NO;
 }
 }
 
@@ -434,6 +438,10 @@ NSLog(@"[CPUthermal] 套用低功耗 CommonProduct 状态失败: %@", exception)
 }
 
 static void applyCurrentPowerModeToRuntime(void) {
+applyPowerModeToRuntime(YES);
+}
+
+static void applyPowerModeToRuntime(BOOL respectBootGuard) {
 if (!g_enabled || !g_cpuProtection) return;
 if (isLowPowerMode()) {
 applyLowPowerToCommonProduct();
@@ -441,7 +449,7 @@ applyLowPowerLimitsToTrackedControllers();
 return;
 }
 if (isFullPowerMode()) {
-if (fullPowerBootGuardActive()) {
+if (respectBootGuard && fullPowerBootGuardActive()) {
 double elapsed = CFAbsoluteTimeGetCurrent() - g_processStartTime;
 double remaining = kFullPowerBootGuardDuration - elapsed;
 scheduleDeferredRuntimeApply(MAX(remaining, 0.1) + 0.1);
@@ -1475,7 +1483,7 @@ executePuppetEvent();
 
 static void onPowerModeChanged(CFNotificationCenterRef center, void *observer, CFNotificationName name, const void *object, CFDictionaryRef userInfo) {
 loadPrefs();
-applyCurrentPowerModeToRuntime();
+applyPowerModeToRuntime(NO);
 NSLog(@"[CPUthermal] 功率模式已切换: %@", isLowPowerMode() ? S("低功耗") : S("解除温控"));
 }
 

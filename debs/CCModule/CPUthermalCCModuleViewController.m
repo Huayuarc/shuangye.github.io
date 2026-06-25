@@ -75,9 +75,6 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
 
     [prefs writeToFile:path atomically:YES];
     notify_post(kPowerModeChangedNotifC);
-
-    // kill thermalmonitord 使新配置立即生效
-    [self restartThermalmonitord];
 }
 
 /// 重启 thermalmonitord 进程
