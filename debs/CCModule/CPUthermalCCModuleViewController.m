@@ -3,17 +3,13 @@
 #import <sys/wait.h>
 #import <notify.h>
 #import <Foundation/Foundation.h>
+#import <CPUthermalPaths.h>
 
 // ============================================================
 // 注意: 禁止使用 @"" ObjC 字符串常量
 // roothide 重映射会破坏 __cfstring 内部指针，导致 SIGBUS
 // 所有字符串通过 C 字符串 + stringWithUTF8String: 动态创建
 // ============================================================
-
-#define S(str) [NSString stringWithUTF8String:(str)]
-
-static const char *kPrefRelativePathC = "Library/Preferences/com.huayuarc.CPUthermal.plist";
-static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeChanged";
 
 @interface CPUthermalCCModuleViewController ()
 - (void)updateSelectedIndexFromCurrentMode;
@@ -45,16 +41,12 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
 
 /// 解析 /var/jb 真实路径，拼接 Prefs 路径
 - (NSString *)prefPath {
-    NSString *resolvedJBRoot = [[NSFileManager defaultManager] destinationOfSymbolicLinkAtPath:S("/var/jb") error:nil];
-    if (resolvedJBRoot) {
-        return [resolvedJBRoot stringByAppendingPathComponent:S(kPrefRelativePathC)];
-    }
-    return [S("/var/jb") stringByAppendingPathComponent:S(kPrefRelativePathC)];
+    return CPUthermalCurrentPrefPath();
 }
 
 /// 读取当前功率模式值
 - (NSString *)currentPowerMode {
-    NSDictionary *prefs = [NSDictionary dictionaryWithContentsOfFile:[self prefPath]];
+    NSDictionary *prefs = CPUthermalReadPrefs();
     NSString *mode = prefs[S("powerMode")];
     if ([mode isKindOfClass:[NSString class]] && [mode length] > 0) {
         return mode;
@@ -64,17 +56,13 @@ static const char *kPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeC
 
 /// 写入功率模式并发送通知
 - (void)savePowerMode:(NSString *)mode {
-    NSString *path = [self prefPath];
-    NSMutableDictionary *prefs = [NSMutableDictionary dictionaryWithContentsOfFile:path];
+    NSMutableDictionary *prefs = CPUthermalReadMutablePrefs();
     if (!prefs) prefs = [NSMutableDictionary dictionary];
     prefs[S("powerMode")] = mode ?: S("fullPower");
 
-    // 确保目录存在
-    NSString *dir = [path stringByDeletingLastPathComponent];
-    [[NSFileManager defaultManager] createDirectoryAtPath:dir withIntermediateDirectories:YES attributes:nil error:nil];
-
-    [prefs writeToFile:path atomically:YES];
-    notify_post(kPowerModeChangedNotifC);
+    CPUthermalWritePrefs(prefs);
+    notify_post(kCPUthermalSettingsChangedNotifC);
+    notify_post(kCPUthermalPowerModeChangedNotifC);
 }
 
 /// 重启 thermalmonitord 进程

@@ -13,7 +13,7 @@
 #import <Foundation/Foundation.h>
 #import <substrate.h>
 #import <notify.h>
-#import <roothide.h>
+#import <CPUthermalPaths.h>
 #import <objc/runtime.h>
 #import <syslog.h>
 
@@ -23,16 +23,6 @@
 // roothide 重映射 dylib 后会破坏 __cfstring 的内部指针
 // 导致加载时直接 SIGBUS (EXC_BAD_ACCESS)
 // ============================================================
-static const char *kPrefRelativePath =
-    "Library/Preferences/com.huayuarc.CPUthermal.plist";
-static const char *kLegacyPrefPath =
-    "/var/mobile/Library/Preferences/com.huayuarc.CPUthermal.plist";
-static const char *kNotifName =
-    "com.huayuarc.CPUthermal/settingsChanged";
-
-// 动态创建 NSString 的辅助宏 — 避免编译期 __cfstring
-#define S(str) [NSString stringWithUTF8String:(str)]
-
 // ============================================================
 // 全局状态
 // ============================================================
@@ -41,37 +31,8 @@ static BOOL gHookInstalled = NO;
 static CFStringRef gNotifCFName = NULL;
 static IMP orig_getBatteryServiceSuggestion = nil;
 
-static NSString *safePrefPath(void) {
-    NSString *resolvedJBRoot = [[NSFileManager defaultManager] destinationOfSymbolicLinkAtPath:S("/var/jb") error:nil];
-    if (resolvedJBRoot) {
-        return [resolvedJBRoot stringByAppendingPathComponent:S(kPrefRelativePath)];
-    }
-    return [S("/var/jb") stringByAppendingPathComponent:S(kPrefRelativePath)];
-}
-
 static NSDictionary *readPrefsDictionary(void) {
-    NSString *path = safePrefPath();
-    NSDictionary *prefs = [NSDictionary dictionaryWithContentsOfFile:path];
-    if (prefs) {
-        return prefs;
-    }
-
-    NSString *legacyPath = [NSString stringWithUTF8String:jbroot(kLegacyPrefPath)];
-    prefs = [NSDictionary dictionaryWithContentsOfFile:legacyPath];
-    if (!prefs) {
-        return nil;
-    }
-
-    NSFileManager *fileManager = [NSFileManager defaultManager];
-    NSString *directory = [path stringByDeletingLastPathComponent];
-    [fileManager createDirectoryAtPath:directory
-           withIntermediateDirectories:YES
-                            attributes:nil
-                                 error:nil];
-    if ([prefs writeToFile:path atomically:YES]) {
-        [fileManager removeItemAtPath:legacyPath error:nil];
-    }
-    return prefs;
+    return CPUthermalReadPrefs();
 }
 
 // ============================================================
@@ -186,7 +147,7 @@ static void onBundleDidLoad(CFNotificationCenterRef center,
         // 1. 读取当前偏好设置
         loadPrefs();
         if (!gNotifCFName) {
-            gNotifCFName = CFStringCreateWithCString(kCFAllocatorDefault, kNotifName, kCFStringEncodingUTF8);
+            gNotifCFName = CFStringCreateWithCString(kCFAllocatorDefault, kCPUthermalSettingsChangedNotifC, kCFStringEncodingUTF8);
         }
 
         // 2. 监听 bundle 加载事件 (等 Preferences.app 加载)

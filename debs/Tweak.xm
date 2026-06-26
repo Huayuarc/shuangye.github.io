@@ -6,7 +6,7 @@
 #import <string.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
-#include <roothide.h>
+#include <CPUthermalPaths.h>
 #import <IOKit/IOKitLib.h>
 
 // ============================================================================
@@ -25,9 +25,6 @@
 // 注意: 禁止使用 @"" ObjC 字符串常量（roothide 重映射会破坏 __cfstring）
 // 所有字符串通过 C 字符串 + stringWithUTF8String: 动态创建
 // ============================================================================
-
-// 动态创建 NSString 的辅助宏 — 避免编译期 __cfstring
-#define S(str) [NSString stringWithUTF8String:(str)]
 
 // ============================================================================
 // ObjC 类声明（thermalmonitord 内部类，class-dump 获取）
@@ -145,10 +142,6 @@ static const int64_t kLowPowerMaxFrequencyMHz = 2016;
 
 // 温度安全阀 — 超过此值不拦截任何保护
 static const int64_t kSafetyTempThreshold = 75000;  // 75°C (毫摄氏度)
-
-// 注意: 用 C 字符串而非 ObjC 常量，避免 roothide 重映射破坏 __cfstring
-static const char *kPrefRelativePathC = "Library/Preferences/com.huayuarc.CPUthermal.plist";
-static const char *kLegacyPrefPathC = "/var/mobile/Library/Preferences/com.huayuarc.CPUthermal.plist";
 
 static CommonProduct *g_commonProduct = nil;
 static NSMutableArray *g_mitigationControllers = nil;
@@ -588,37 +581,8 @@ return [lower containsString:S("thermalstate")] ||
 [lower containsString:S("notification")]));
 }
 
-static NSString *safePrefPath(void) {
-NSString *resolvedJBRoot = [[NSFileManager defaultManager] destinationOfSymbolicLinkAtPath:S("/var/jb") error:nil];
-if (resolvedJBRoot) {
-return [resolvedJBRoot stringByAppendingPathComponent:S(kPrefRelativePathC)];
-}
-return [S("/var/jb") stringByAppendingPathComponent:S(kPrefRelativePathC)];
-}
-
-static NSString *legacyPrefPath(void) {
-return [NSString stringWithUTF8String:jbroot(kLegacyPrefPathC)];
-}
-
 static NSDictionary *readPrefsDictionary(void) {
-NSString *path = safePrefPath();
-NSDictionary *prefs = [NSDictionary dictionaryWithContentsOfFile:path];
-if (prefs) return prefs;
-
-NSString *legacyPath = legacyPrefPath();
-prefs = [NSDictionary dictionaryWithContentsOfFile:legacyPath];
-if (!prefs) return nil;
-
-NSFileManager *fileManager = [NSFileManager defaultManager];
-NSString *directory = [path stringByDeletingLastPathComponent];
-[fileManager createDirectoryAtPath:directory
-withIntermediateDirectories:YES
-attributes:nil
-error:nil];
-if ([prefs writeToFile:path atomically:YES]) {
-[fileManager removeItemAtPath:legacyPath error:nil];
-}
-return prefs;
+return CPUthermalReadPrefs();
 }
 
 static void loadPrefs(void) {
@@ -1487,6 +1451,16 @@ applyPowerModeToRuntime(NO);
 NSLog(@"[CPUthermal] 功率模式已切换: %@", isLowPowerMode() ? S("低功耗") : S("解除温控"));
 }
 
+static void onSettingsChanged(CFNotificationCenterRef center, void *observer, CFNotificationName name, const void *object, CFDictionaryRef userInfo) {
+loadPrefs();
+if (g_enabled) {
+applyPowerModeToRuntime(NO);
+}
+NSLog(@"[CPUthermal] 设置已重载 enabled:%d CPU:%d 亮度:%d 热状态:%d HID:%d 通知:%d",
+g_enabled, g_cpuProtection, g_brightnessProtection, g_thermalStateProtection,
+g_blockHidEvents, g_suppressThermalNotifications);
+}
+
 // ============================================================================
 // %ctor — 构造函数（配置仅在进程启动时加载一次）
 // ============================================================================
@@ -1536,12 +1510,15 @@ g_blockHidEvents, g_keepCPSMAlive);
 // 模拟热级别监听（独立功能，不影响配置重载）
 CFNotificationCenterRef c = CFNotificationCenterGetDarwinNotifyCenter();
 if (c) {
-CFNotificationCenterAddObserver(c, NULL, onPuppetEvent,
-(__bridge CFStringRef)S("com.huayuarc.CPUthermal.puppet"),
-NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
-CFNotificationCenterAddObserver(c, NULL, onPowerModeChanged,
-(__bridge CFStringRef)S("com.huayuarc.CPUthermal/powerModeChanged"),
-NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
-}
+	CFNotificationCenterAddObserver(c, NULL, onPuppetEvent,
+	(__bridge CFStringRef)S("com.huayuarc.CPUthermal.puppet"),
+	NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+	CFNotificationCenterAddObserver(c, NULL, onSettingsChanged,
+	(__bridge CFStringRef)S(kCPUthermalSettingsChangedNotifC),
+	NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+	CFNotificationCenterAddObserver(c, NULL, onPowerModeChanged,
+	(__bridge CFStringRef)S(kCPUthermalPowerModeChangedNotifC),
+	NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+	}
 }
 }

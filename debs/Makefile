@@ -13,12 +13,18 @@ TWEAK_NAME = CPUthermal CPUthermalPrefHook
 CPUthermal_FILES = Tweak.xm
 CPUthermal_CFLAGS = -fobjc-arc -Iinclude -Wno-deprecated-declarations -DTHEOS_INSIDE
 CPUthermal_FRAMEWORKS = Foundation UIKit CoreFoundation IOKit
+ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
+CPUthermal_LDFLAGS += -lroothide
+endif
 
 # ThermalManager hook (Preferences 中的散热建议拦截)
 CPUthermalPrefHook_FILES = Tweak_PrefHook.xm
 CPUthermalPrefHook_CFLAGS = -fobjc-arc -Iinclude -Wno-deprecated-declarations
 CPUthermalPrefHook_FRAMEWORKS = Foundation CoreFoundation
 CPUthermalPrefHook_LDFLAGS = -lsubstrate -lc++
+ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
+CPUthermalPrefHook_LDFLAGS += -lroothide
+endif
 include $(THEOS_MAKE_PATH)/tweak.mk
 
 BUNDLE_NAME = CPUthermalSettings CPUthermalCC
@@ -26,16 +32,22 @@ BUNDLE_NAME = CPUthermalSettings CPUthermalCC
 # PreferenceBundle: 设置面板
 CPUthermalSettings_FILES = Settings/FRootListController.m
 CPUthermalSettings_INSTALL_PATH = /Library/PreferenceBundles
-CPUthermalSettings_CFLAGS = -fobjc-arc
+CPUthermalSettings_CFLAGS = -fobjc-arc -Iinclude
 CPUthermalSettings_FRAMEWORKS = UIKit Foundation
 CPUthermalSettings_PRIVATE_FRAMEWORKS = Preferences
+ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
+CPUthermalSettings_LDFLAGS += -lroothide
+endif
 
 # ControlCenter Bundle: 控制中心模块
 CPUthermalCC_FILES = CCModule/CPUthermalCCModule.m CCModule/CPUthermalCCModuleViewController.m
-CPUthermalCC_CFLAGS = -fobjc-arc
+CPUthermalCC_CFLAGS = -fobjc-arc -Iinclude
 CPUthermalCC_FRAMEWORKS = Foundation UIKit ControlCenterUIKit
 CPUthermalCC_PRIVATE_FRAMEWORKS = ControlCenterUIKit
 CPUthermalCC_INSTALL_PATH = /Library/ControlCenter/Bundles/
+ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
+CPUthermalCC_LDFLAGS += -lroothide
+endif
 
 include $(THEOS_MAKE_PATH)/bundle.mk
 
@@ -56,4 +68,3 @@ after-stage::
 	$(ECHO_NOTHING)cp CCModule/Info.plist "$(THEOS_STAGING_DIR)/Library/ControlCenter/Bundles/CPUthermalCC.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp CCModule/SettingsIcon.png "$(THEOS_STAGING_DIR)/Library/ControlCenter/Bundles/CPUthermalCC.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp postinst "$(THEOS_STAGING_DIR)/DEBIAN/" && chmod 0755 "$(THEOS_STAGING_DIR)/DEBIAN/postinst"$(ECHO_END)
-

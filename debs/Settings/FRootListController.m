@@ -5,6 +5,7 @@
 #import <sys/wait.h>
 #import <notify.h>
 #import <dlfcn.h>
+#import <CPUthermalPaths.h>
 
 // ============================================================
 // 注意: 禁止使用 @"" ObjC 字符串常量
@@ -12,29 +13,18 @@
 // 所有字符串通过 C 字符串 + stringWithUTF8String: 动态创建
 // ============================================================
 
-static const char *kPrefRelativePathC = "Library/Preferences/com.huayuarc.CPUthermal.plist";
-static const char *kLegacyPrefPathC = "/var/mobile/Library/Preferences/com.huayuarc.CPUthermal.plist";
-static const char *kNotifNameC = "com.huayuarc.CPUthermal/settingsChanged";
-static const char *kPowerModeNotifNameC = "com.huayuarc.CPUthermal/powerModeChanged";
-
-// 动态创建 NSString 的辅助宏 — 避免编译期 __cfstring
-#define S(str) [NSString stringWithUTF8String:(str)]
-
 @interface FRootListController : PSListController
 @end
 
 @implementation FRootListController
 
 - (NSString *)prefPath {
-NSString *resolvedJBRoot = [[NSFileManager defaultManager] destinationOfSymbolicLinkAtPath:S("/var/jb") error:nil];
-if (resolvedJBRoot) {
-return [resolvedJBRoot stringByAppendingPathComponent:S(kPrefRelativePathC)];
-}
-return [S("/var/jb") stringByAppendingPathComponent:S(kPrefRelativePathC)];
+return CPUthermalCurrentPrefPath();
 }
 
 - (NSString *)legacyPrefPath {
-return S(kLegacyPrefPathC);
+NSArray<NSString *> *paths = CPUthermalLegacyPrefPaths();
+return paths.count > 0 ? paths[0] : nil;
 }
 
 - (void)ensurePrefsDirectory {
@@ -46,32 +36,18 @@ error:nil];
 }
 
 - (void)migrateLegacyPrefsIfNeeded {
-NSFileManager *fileManager = [NSFileManager defaultManager];
-NSString *prefPath = [self prefPath];
-if ([fileManager fileExistsAtPath:prefPath]) return;
-
-NSString *legacyPath = [self legacyPrefPath];
-NSDictionary *legacyPrefs = [NSDictionary dictionaryWithContentsOfFile:legacyPath];
-if (!legacyPrefs) return;
-
-[self ensurePrefsDirectory];
-if ([legacyPrefs writeToFile:prefPath atomically:YES]) {
-[fileManager removeItemAtPath:legacyPath error:nil];
-}
+CPUthermalReadPrefs();
 }
 
 - (NSMutableDictionary *)prefs {
-[self migrateLegacyPrefsIfNeeded];
-NSMutableDictionary *d = [NSMutableDictionary dictionaryWithContentsOfFile:[self prefPath]];
+NSMutableDictionary *d = CPUthermalReadMutablePrefs();
 if (!d) d = [NSMutableDictionary dictionary];
 return d;
 }
 
 - (void)savePrefs:(NSMutableDictionary *)prefs {
-[self ensurePrefsDirectory];
-[prefs writeToFile:[self prefPath] atomically:YES];
-[[NSFileManager defaultManager] removeItemAtPath:[self legacyPrefPath] error:nil];
-notify_post(kNotifNameC);
+CPUthermalWritePrefs(prefs);
+notify_post(kCPUthermalSettingsChangedNotifC);
 }
 
 - (NSString *)powerModeValue {
@@ -103,7 +79,7 @@ return;
 NSMutableDictionary *prefs = [self prefs];
 prefs[S("powerMode")] = mode ?: S("fullPower");
 [self savePrefs:prefs];
-notify_post(kPowerModeNotifNameC);
+notify_post(kCPUthermalPowerModeChangedNotifC);
 PSSpecifier *specifier = [self specifierForID:S("powerMode")];
 specifier.name = [self powerModeLabel];
 [self reloadSpecifierID:S("powerMode") animated:YES];
