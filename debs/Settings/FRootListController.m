@@ -359,7 +359,7 @@ group = [PSSpecifier emptyGroupSpecifier];
 [group setProperty:S("关于我 / 投喂") forKey:S("label")];
 [specs addObject:group];
 
-[specs addObject:[self buttonSpecifier:S("📮 QQ 测试反馈群")
+[specs addObject:[self buttonSpecifier:S("📮 QQ 交流反馈群")
 action:@selector(openQQFeedbackGroup)
 identifier:S("qqGroup")]];
 [specs addObject:[self buttonSpecifier:S("💰 支付宝🧧打赏")
