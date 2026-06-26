@@ -40,30 +40,56 @@ jobs:
           rm -f /tmp/sdk.tar.xz
           ls -la "$HOME/theos/sdks/"
 
+      - name: Build rootless
+        working-directory: debs
+        run: |
+          set -x
+          export ARCHS="arm64 arm64e"
+          export THEOS_PACKAGE_SCHEME="rootless"
+          echo "=== 编译 rootless (arm64) ==="
+          make clean
+          make FINALPACKAGE=1 2>&1
+          make package FINALPACKAGE=1 2>&1
+          echo "=== rootless 构建产物 ==="
+          ls -la packages/*.deb 2>/dev/null
+          # 保存 rootless deb 到临时目录
+          mkdir -p ${{ github.workspace }}/debs-rootless
+          cp packages/*.deb ${{ github.workspace }}/debs-rootless/ 2>/dev/null || echo "无 rootless deb"
+
       - name: Build roothide
         working-directory: debs
         run: |
           set -x
           export ARCHS="arm64 arm64e"
+          export THEOS_PACKAGE_SCHEME="roothide"
           # 验证 roothide 模块齐全
           echo "=== 检查 roothide vendor 文件 ==="
           ls -la "$THEOS/vendor/include/roothide.h" 2>/dev/null || echo "MISSING: vendor/include/roothide.h"
           ls -la "$THEOS/vendor/include/roothide/" 2>/dev/null || echo "MISSING: vendor/include/roothide/"
           ls -la "$THEOS/vendor/mod/roothide/" 2>/dev/null || echo "MISSING: vendor/mod/roothide/"
           ls -la "$THEOS/vendor/lib/libroothide.tbd" 2>/dev/null || echo "MISSING: vendor/lib/libroothide.tbd"
-          echo "=== 开始编译 ==="
+          echo "=== 编译 roothide (arm64e) ==="
           make clean
           make FINALPACKAGE=1 2>&1
           make package FINALPACKAGE=1 2>&1
-          echo "=== 构建产物 ==="
+          echo "=== roothide 构建产物 ==="
           ls -la packages/*.deb 2>/dev/null
+          # 保存 roothide deb 到临时目录
+          mkdir -p ${{ github.workspace }}/debs-roothide
+          cp packages/*.deb ${{ github.workspace }}/debs-roothide/ 2>/dev/null || echo "无 roothide deb"
 
       - name: Collect debs
         if: always()
         run: |
           set -x
           mkdir -p ${{ github.workspace }}/packages
-          cp ${{ github.workspace }}/debs/packages/*.deb ${{ github.workspace }}/packages/ 2>/dev/null || echo "无 deb"
+          echo "=== rootless debs ==="
+          ls -la ${{ github.workspace }}/debs-rootless/ 2>/dev/null || echo "无"
+          cp ${{ github.workspace }}/debs-rootless/*.deb ${{ github.workspace }}/packages/ 2>/dev/null || true
+          echo "=== roothide debs ==="
+          ls -la ${{ github.workspace }}/debs-roothide/ 2>/dev/null || echo "无"
+          cp ${{ github.workspace }}/debs-roothide/*.deb ${{ github.workspace }}/packages/ 2>/dev/null || true
+          echo "=== 汇总产物 ==="
           ls -la ${{ github.workspace }}/packages/
 
       - name: Commit and push debs
