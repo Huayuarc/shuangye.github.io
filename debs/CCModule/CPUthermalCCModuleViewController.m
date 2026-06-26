@@ -13,7 +13,9 @@
 
 @interface CPUthermalCCModuleViewController ()
 - (void)updateSelectedIndexFromCurrentMode;
+- (void)togglePowerMode;
 - (void)selectPowerModeAtIndex:(NSInteger)index;
+- (void)selectPowerModeAtIndex:(NSInteger)index dismissAfterSelection:(BOOL)dismissAfterSelection;
 - (void)centerMenuItemLabelsInView:(UIView *)view;
 - (void)centerMenuItemLabelsAfterLayout;
 - (BOOL)isModeTitle:(NSString *)text;
@@ -164,7 +166,7 @@
 //==============================================================================
 
 - (BOOL)shouldBeginTransitionToExpandedContentModule {
-    return YES;
+    return NO;
 }
 
 - (void)willTransitionToExpandedContentMode:(BOOL)animated {
@@ -186,7 +188,7 @@
 }
 
 - (BOOL)_toggleModuleExpanded {
-    return YES;
+    return NO;
 }
 
 //==============================================================================
@@ -375,8 +377,14 @@
 }
 
 - (void)buttonTapped:(id)arg forEvent:(id)event {
-    // 展开控制中心菜单
-    [super buttonTapped:arg forEvent:event];
+    [self togglePowerMode];
+}
+
+- (void)togglePowerMode {
+    [self updateSelectedIndexFromCurrentMode];
+
+    NSInteger nextIndex = (self.selectedIndex == 0) ? 1 : 0;
+    [self selectPowerModeAtIndex:nextIndex dismissAfterSelection:NO];
 }
 
 - (void)buttonModeTapped:(CCUIMenuModuleItem *)sender {
@@ -385,6 +393,10 @@
 }
 
 - (void)selectPowerModeAtIndex:(NSInteger)index {
+    [self selectPowerModeAtIndex:index dismissAfterSelection:YES];
+}
+
+- (void)selectPowerModeAtIndex:(NSInteger)index dismissAfterSelection:(BOOL)dismissAfterSelection {
     if (index == NSNotFound || index < 0 || index >= (NSInteger)self.modeValues.count) {
         return;
     }
@@ -399,6 +411,10 @@
     [self setupModeButtons];
     if ([self respondsToSelector:@selector(setSelected:)]) {
         [self setSelected:(self.selectedIndex == 0) ? NO : YES];
+    }
+
+    if (!dismissAfterSelection) {
+        return;
     }
 
     // 短暂延迟后折叠
