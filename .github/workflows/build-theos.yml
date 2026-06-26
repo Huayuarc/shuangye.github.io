@@ -19,15 +19,20 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Theos
+      - name: Setup Theos (roothide fork)
         run: |
           set -x
           rm -rf "$HOME/theos"
-          git clone --recursive https://github.com/theos/theos.git "$HOME/theos"
+          # 使用 roothide/theos 分支，提供 vendor 中的 roothide 模块和 libroothide.tbd
+          git clone --recursive https://github.com/roothide/theos.git "$HOME/theos"
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
-          # ldid: Theos 签名必需，macOS runner 默认没有
+          # 确保 vendor 子模块完整
+          cd "$HOME/theos"
+          git submodule update --init --recursive || true
+          cd "$OLDPWD"
+          # ldid: 签名必需
           brew install ldid 2>/dev/null || true
-          # 下载 Theos SDK（含 IOKit for iOS）
+          # 下载 Theos SDK
           mkdir -p "$HOME/theos/sdks"
           curl -fsSL -o /tmp/sdk.tar.xz \
             "https://github.com/theos/sdks/releases/download/master-146e41f/iPhoneOS16.5.sdk.tar.xz"
@@ -35,32 +40,22 @@ jobs:
           rm -f /tmp/sdk.tar.xz
           ls -la "$HOME/theos/sdks/"
 
-      - name: Build rootless
+      - name: Build roothide
         working-directory: debs
         run: |
           set -x
-          export THEOS_PACKAGE_SCHEME=rootless
           export ARCHS="arm64 arm64e"
+          # 验证 roothide 模块齐全
+          echo "=== 检查 roothide vendor 文件 ==="
+          ls -la "$THEOS/vendor/include/roothide.h" 2>/dev/null || echo "MISSING: vendor/include/roothide.h"
+          ls -la "$THEOS/vendor/include/roothide/" 2>/dev/null || echo "MISSING: vendor/include/roothide/"
+          ls -la "$THEOS/vendor/mod/roothide/" 2>/dev/null || echo "MISSING: vendor/mod/roothide/"
+          ls -la "$THEOS/vendor/lib/libroothide.tbd" 2>/dev/null || echo "MISSING: vendor/lib/libroothide.tbd"
+          echo "=== 开始编译 ==="
           make clean
           make FINALPACKAGE=1 2>&1
           make package FINALPACKAGE=1 2>&1
-          ls -la packages/*.deb 2>/dev/null
-
-      - name: Build roothide
-        working-directory: debs
-        continue-on-error: true
-        run: |
-          set -x
-          # CI 没有 libroothide，跳过
-          if ! echo '#include <roothide.h>' | cc -x c - -fsyntax-only 2>/dev/null; then
-            echo "libroothide 不可用，跳过 roothide 构建"
-            exit 0
-          fi
-          export THEOS_PACKAGE_SCHEME=roothide
-          export ARCHS="arm64 arm64e"
-          make clean
-          make FINALPACKAGE=1 SCHEME=roothide 2>&1
-          make package FINALPACKAGE=1 SCHEME=roothide 2>&1
+          echo "=== 构建产物 ==="
           ls -la packages/*.deb 2>/dev/null
 
       - name: Collect debs
