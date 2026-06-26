@@ -146,22 +146,28 @@ static const int64_t kSafetyTempThreshold = 75000;  // 75°C (毫摄氏度)
 static CommonProduct *g_commonProduct = nil;
 static NSMutableArray *g_mitigationControllers = nil;
 static BOOL g_restoringFullPower = NO;
+static BOOL g_applyingLowPower = NO;
 static NSMutableDictionary *g_originalControllerValues = nil;
 static CFAbsoluteTime g_processStartTime = 0;
 static const double kFullPowerBootGuardDuration = 5.0;
 static BOOL g_deferredRuntimeApplyScheduled = NO;
+static BOOL g_fullPowerRecoveryPulseScheduled = NO;
 
 static BOOL shouldApplyLowPowerLimit(void);
+static int lowPowerTargetValue(void);
 static void applyCurrentPowerModeToRuntime(void);
 static void applyPowerModeToRuntime(BOOL respectBootGuard);
 static void scheduleDeferredRuntimeApply(double delay);
+static void scheduleFullPowerRecoveryPulse(void);
+static void runFullPowerRecoveryPulse(int remainingPulses);
 
 static NSString *controllerKey(id controller, const char *name) {
 return [NSString stringWithFormat:S("%p:%s"), controller, name];
 }
 
 static void rememberOriginalIntValue(id controller, const char *name, int value) {
-if (!controller || g_restoringFullPower || !shouldApplyLowPowerLimit()) return;
+if (!controller || g_restoringFullPower || g_applyingLowPower || !shouldApplyLowPowerLimit()) return;
+if (value <= lowPowerTargetValue()) return;
 if (!g_originalControllerValues) g_originalControllerValues = [NSMutableDictionary dictionary];
 NSString *key = controllerKey(controller, name);
 if (!key || [g_originalControllerValues objectForKey:key]) return;
@@ -207,6 +213,10 @@ static int fullPowerFrequencyValue(void) {
 return INT_MAX;
 }
 
+static int fullPowerPercentValue(void) {
+return 100;
+}
+
 static CFStringRef cpuMaxPowerPropertyName(void) {
 static CFStringRef propertyName = NULL;
 static dispatch_once_t once;
@@ -222,6 +232,33 @@ Method method = class_getInstanceMethod(object_getClass(object), selector);
 if (!method) return NO;
 const char *types = method_getTypeEncoding(method);
 return types && strstr(types, needle) != NULL;
+}
+
+static BOOL methodArgumentTypeIsObject(id object, SEL selector, unsigned int index) {
+if (!object || !selector) return NO;
+Method method = class_getInstanceMethod(object_getClass(object), selector);
+if (!method) return NO;
+char type[32] = {0};
+method_getArgumentType(method, index, type, sizeof(type));
+return type[0] == '@';
+}
+
+static void sendSetPowerSaveToken(id controller, int token) {
+if (!controller || ![controller respondsToSelector:@selector(setPowerSaveToken:)]) return;
+if (methodArgumentTypeIsObject(controller, @selector(setPowerSaveToken:), 2)) {
+id tokenObject = token ? [NSNumber numberWithInt:token] : nil;
+((void (*)(id, SEL, id))objc_msgSend)(controller, @selector(setPowerSaveToken:), tokenObject);
+return;
+}
+((void (*)(id, SEL, int))objc_msgSend)(controller, @selector(setPowerSaveToken:), token);
+}
+
+static void trackPowerController(id controller) {
+if (!controller) return;
+if (!g_mitigationControllers) g_mitigationControllers = [NSMutableArray array];
+if (![g_mitigationControllers containsObject:controller]) {
+[g_mitigationControllers addObject:controller];
+}
 }
 
 static BOOL setMaxCPUPowerTargetUsesCFString(id controller) {
@@ -278,7 +315,7 @@ return fullPowerFrequencyValue();
 
 static int fullPowerCeilingForController(id controller) {
 int remembered = rememberedOriginalIntValue(controller, "CPUPowerCeiling", fullPowerTargetValue());
-return remembered > 0 ? remembered : fullPowerTargetValue();
+return remembered > lowPowerTargetValue() ? remembered : fullPowerTargetValue();
 }
 
 static int fullPowerFloorForController(id controller) {
@@ -294,11 +331,12 @@ return fullPowerTargetForController(controller);
 static void applyLowPowerLimitToController(id controller) {
 if (!controller || !shouldApplyLowPowerLimit()) return;
 @try {
+g_applyingLowPower = YES;
 if ([controller respondsToSelector:@selector(setPowerSaveActive:)]) {
 ((void (*)(id, SEL, BOOL))objc_msgSend)(controller, @selector(setPowerSaveActive:), YES);
 }
 if ([controller respondsToSelector:@selector(setPowerSaveToken:)]) {
-((void (*)(id, SEL, int))objc_msgSend)(controller, @selector(setPowerSaveToken:), 1);
+sendSetPowerSaveToken(controller, 1);
 }
 if ([controller respondsToSelector:@selector(setCPULowPowerTarget:)]) {
 ((void (*)(id, SEL, int))objc_msgSend)(controller, @selector(setCPULowPowerTarget:), lowPowerTargetValue());
@@ -324,6 +362,8 @@ if ([controller respondsToSelector:@selector(updatePackage)]) {
 NSLog(@"[CPUthermal] 已主动下发低功耗 CPU 限制: %lld-%lldMHz controller:%@", kLowPowerMinFrequencyMHz, kLowPowerMaxFrequencyMHz, controller);
 } @catch (NSException *exception) {
 NSLog(@"[CPUthermal] 下发低功耗 CPU 限制失败: %@", exception);
+} @finally {
+g_applyingLowPower = NO;
 }
 }
 
@@ -345,7 +385,10 @@ if ([controller respondsToSelector:@selector(setPowerSaveActive:)]) {
 ((void (*)(id, SEL, BOOL))objc_msgSend)(controller, @selector(setPowerSaveActive:), NO);
 }
 if ([controller respondsToSelector:@selector(setPowerSaveToken:)]) {
-((void (*)(id, SEL, int))objc_msgSend)(controller, @selector(setPowerSaveToken:), 0);
+sendSetPowerSaveToken(controller, 0);
+}
+if ([controller respondsToSelector:@selector(setCPULowPowerTarget:)]) {
+((void (*)(id, SEL, int))objc_msgSend)(controller, @selector(setCPULowPowerTarget:), fullPowerPercentValue());
 }
 if ([controller respondsToSelector:@selector(setMaxCPUPowerTarget:useLegacyPath:setProperty:)]) {
 sendSetMaxCPUPowerTarget(controller, fullPowerTargetForController(controller), NO);
@@ -380,6 +423,7 @@ NSArray *controllers = [g_mitigationControllers copy];
 for (id controller in controllers) {
 restoreFullPowerToController(controller);
 }
+[g_originalControllerValues removeAllObjects];
 }
 }
 
@@ -450,6 +494,7 @@ return;
 }
 applyFullPowerToCommonProduct();
 restoreFullPowerToTrackedControllers();
+scheduleFullPowerRecoveryPulse();
 }
 }
 
@@ -459,6 +504,30 @@ g_deferredRuntimeApplyScheduled = YES;
 dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
 g_deferredRuntimeApplyScheduled = NO;
 applyCurrentPowerModeToRuntime();
+});
+}
+
+static void scheduleFullPowerRecoveryPulse(void) {
+if (g_fullPowerRecoveryPulseScheduled || !g_enabled || !g_cpuProtection || !isFullPowerMode()) return;
+g_fullPowerRecoveryPulseScheduled = YES;
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.15 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+runFullPowerRecoveryPulse(4);
+});
+}
+
+static void runFullPowerRecoveryPulse(int remainingPulses) {
+if (remainingPulses <= 0 || !g_enabled || !g_cpuProtection || !isFullPowerMode()) {
+g_fullPowerRecoveryPulseScheduled = NO;
+return;
+}
+applyFullPowerToCommonProduct();
+restoreFullPowerToTrackedControllers();
+if (remainingPulses <= 1) {
+g_fullPowerRecoveryPulseScheduled = NO;
+return;
+}
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.25 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+runFullPowerRecoveryPulse(remainingPulses - 1);
 });
 }
 
@@ -1005,6 +1074,69 @@ return result;
 // --- ThermalControl: hook 控制力度计算 ---
 %hook ThermalControl
 
+- (id)initForFastLoop:(BOOL)fastLoop noDisplay:(BOOL)noDisplay powerSaveParams:(id)saveParams powerZoneParams:(id)zoneParams {
+id res = %orig(fastLoop, noDisplay, saveParams, zoneParams);
+if (res) {
+trackPowerController(res);
+applyCurrentPowerModeToRuntime();
+}
+return res;
+}
+
+- (id)initWithParams:(id)params {
+id res = %orig(params);
+if (res) {
+trackPowerController(res);
+applyCurrentPowerModeToRuntime();
+}
+return res;
+}
+
+- (BOOL)powerSaveActive {
+if (g_restoringFullPower) {
+return %orig;
+}
+if (shouldApplyLowPowerLimit()) {
+return YES;
+}
+if (shouldApplyFullCPUProtection()) {
+return NO;
+}
+return %orig;
+}
+
+- (void)setPowerSaveActive:(BOOL)active {
+if (g_restoringFullPower) {
+%orig(active);
+return;
+}
+if (shouldApplyLowPowerLimit()) {
+%orig(YES);
+return;
+}
+if (shouldApplyFullCPUProtection()) {
+%orig(NO);
+return;
+}
+%orig;
+}
+
+- (void)setPowerSaveToken:(id)token {
+if (g_restoringFullPower) {
+%orig(token);
+return;
+}
+if (shouldApplyLowPowerLimit()) {
+%orig([NSNumber numberWithInt:1]);
+return;
+}
+if (shouldApplyFullCPUProtection()) {
+%orig(nil);
+return;
+}
+%orig;
+}
+
 // 计算控制力度 — 这是 throttle 量的核心
 // soften 模式下减半但不归零，保留基础调节能力
 - (float)calculateControlEffort:(id)trigger trigger:(id)arg2 {
@@ -1086,10 +1218,7 @@ return;
 - (id)initForFastLoop:(BOOL)fastLoop noDisplay:(BOOL)noDisplay powerSaveParams:(id)saveParams powerZoneParams:(id)zoneParams {
 id res = %orig(fastLoop, noDisplay, saveParams, zoneParams);
 if (res) {
-if (!g_mitigationControllers) g_mitigationControllers = [NSMutableArray array];
-if (![g_mitigationControllers containsObject:res]) {
-[g_mitigationControllers addObject:res];
-}
+trackPowerController(res);
 applyCurrentPowerModeToRuntime();
 }
 return res;

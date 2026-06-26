@@ -5,6 +5,6 @@ Description: 注入 thermalmonitord 的 iOS 温控管理插件。双防护层架
 Depends: mobilesubstrate, preferenceloader
 Maintainer: Huayuarc
 Section: Tweaks
-Version: 2.1.7
+Version: 2.1.8
 Architecture: iphoneos-arm
 Icon: https://huayuarc.github.io/icon/cputhermal.png
