@@ -5,45 +5,71 @@
 #import <dlfcn.h>
 #import <math.h>
 #import <sys/sysctl.h>
+#import <stdlib.h>
+#import <mach/mach_time.h>
 
 #define S(str) [NSString stringWithUTF8String:(str)]
 
-typedef void *CPUthermalIOReportSubscriptionRef;
-typedef CFDictionaryRef (*CPUthermalIOReportCopyChannelsInGroupFn)(CFStringRef, CFStringRef, uint64_t, uint64_t, uint64_t);
-typedef CPUthermalIOReportSubscriptionRef (*CPUthermalIOReportCreateSubscriptionFn)(CFAllocatorRef, CFMutableDictionaryRef, CFMutableDictionaryRef *, uint64_t, CFTypeRef);
-typedef CFDictionaryRef (*CPUthermalIOReportCreateSamplesFn)(CPUthermalIOReportSubscriptionRef, CFMutableDictionaryRef, CFTypeRef);
-typedef CFDictionaryRef (*CPUthermalIOReportCreateSamplesDeltaFn)(CFDictionaryRef, CFDictionaryRef, CFTypeRef);
-typedef int (*CPUthermalIOReportIterateFn)(CFDictionaryRef, int (^)(CFDictionaryRef));
-typedef int64_t (*CPUthermalIOReportSimpleGetIntegerValueFn)(CFDictionaryRef, int);
-typedef CFStringRef (*CPUthermalIOReportChannelGetChannelNameFn)(CFDictionaryRef);
-typedef CFStringRef (*CPUthermalIOReportChannelGetUnitLabelFn)(CFDictionaryRef);
-typedef int (*CPUthermalIOReportStateGetCountFn)(CFDictionaryRef);
-typedef CFStringRef (*CPUthermalIOReportStateGetNameForIndexFn)(CFDictionaryRef, int);
-typedef int64_t (*CPUthermalIOReportStateGetResidencyFn)(CFDictionaryRef, int);
+// ============================================================================
+// A15 (iPhone 13 Pro) P-State 频率表 (MHz)
+// P-cores (Avalanche):  索引 0..8
+// E-cores (Blizzard):   索引 0..4
+// ============================================================================
+static const NSInteger kPCPUFreqs[] = { 600, 972, 1332, 1692, 2052, 2412, 2772, 3132, 3240 };
+static const NSInteger kECPUFreqs[] = { 600, 972, 1332, 1692, 2016 };
+static const NSInteger kPCPUFreqCount = 9;
+static const NSInteger kECPUFreqCount = 5;
 
+// 平滑参数
+static const double kSmoothingAlpha = 0.35;        // 指数平滑系数(值越小越平滑)
+static const double kMaxFrequencyJump = 600.0;     // 每秒最大容忍跳变(MHz)
+static const double kValidMinMHz = 100.0;
+static const double kValidMaxMHz = 3600.0;
+static const NSInteger kMinSamplesBeforeDisplay = 3;  // 至少采集N次再显示
+
+// ============================================================================
+// IOReport 函数指针类型
+// ============================================================================
+typedef void *IOReportSubscriptionRef;
+typedef CFDictionaryRef (*IOReportCopyChannelsInGroupFn)(CFStringRef, CFStringRef, uint64_t, uint64_t, uint64_t);
+typedef IOReportSubscriptionRef (*IOReportCreateSubscriptionFn)(CFAllocatorRef, CFMutableDictionaryRef, CFMutableDictionaryRef *, uint64_t, CFTypeRef);
+typedef CFDictionaryRef (*IOReportCreateSamplesFn)(IOReportSubscriptionRef, CFMutableDictionaryRef, CFTypeRef);
+typedef CFDictionaryRef (*IOReportCreateSamplesDeltaFn)(CFDictionaryRef, CFDictionaryRef, CFTypeRef);
+typedef int (*IOReportIterateFn)(CFDictionaryRef, int (^)(CFDictionaryRef));
+typedef int64_t (*IOReportSimpleGetIntegerValueFn)(CFDictionaryRef, int);
+typedef CFStringRef (*IOReportChannelGetChannelNameFn)(CFDictionaryRef);
+typedef CFStringRef (*IOReportChannelGetUnitLabelFn)(CFDictionaryRef);
+typedef int (*IOReportStateGetCountFn)(CFDictionaryRef);
+typedef CFStringRef (*IOReportStateGetNameForIndexFn)(CFDictionaryRef, int);
+typedef int64_t (*IOReportStateGetResidencyFn)(CFDictionaryRef, int);
+
+// ============================================================================
+// 接口
+// ============================================================================
 @interface CPUthermalFreqCCModuleViewController () {
+    // IOReport
     void *_ioReportHandle;
-    CPUthermalIOReportCopyChannelsInGroupFn _ioReportCopyChannelsInGroup;
-    CPUthermalIOReportCreateSubscriptionFn _ioReportCreateSubscription;
-    CPUthermalIOReportCreateSamplesFn _ioReportCreateSamples;
-    CPUthermalIOReportCreateSamplesDeltaFn _ioReportCreateSamplesDelta;
-    CPUthermalIOReportIterateFn _ioReportIterate;
-    CPUthermalIOReportSimpleGetIntegerValueFn _ioReportSimpleGetIntegerValue;
-    CPUthermalIOReportChannelGetChannelNameFn _ioReportChannelGetChannelName;
-    CPUthermalIOReportChannelGetUnitLabelFn _ioReportChannelGetUnitLabel;
-    CPUthermalIOReportStateGetCountFn _ioReportStateGetCount;
-    CPUthermalIOReportStateGetNameForIndexFn _ioReportStateGetNameForIndex;
-    CPUthermalIOReportStateGetResidencyFn _ioReportStateGetResidency;
+    IOReportCopyChannelsInGroupFn _ioReportCopyChannelsInGroup;
+    IOReportCreateSubscriptionFn _ioReportCreateSubscription;
+    IOReportCreateSamplesFn _ioReportCreateSamples;
+    IOReportCreateSamplesDeltaFn _ioReportCreateSamplesDelta;
+    IOReportIterateFn _ioReportIterate;
+    IOReportSimpleGetIntegerValueFn _ioReportSimpleGetIntegerValue;
+    IOReportChannelGetChannelNameFn _ioReportChannelGetChannelName;
+    IOReportChannelGetUnitLabelFn _ioReportChannelGetUnitLabel;
+    IOReportStateGetCountFn _ioReportStateGetCount;
+    IOReportStateGetNameForIndexFn _ioReportStateGetNameForIndex;
+    IOReportStateGetResidencyFn _ioReportStateGetResidency;
 
-    CPUthermalIOReportSubscriptionRef _clpcSubscription;
-    CFMutableDictionaryRef _clpcChannels;
-    CFDictionaryRef _lastCLPCSamples;
-
-    CPUthermalIOReportSubscriptionRef _stateSubscription;
+    IOReportSubscriptionRef _stateSubscription;
     CFMutableDictionaryRef _stateChannels;
     CFDictionaryRef _lastStateSamples;
 
-    NSInteger _lastValidMHz;
+    // 运行时状态
+    NSInteger _lastDisplayedMHz;
+    double _smoothedMHz;
+    NSInteger _sampleCount;
+    BOOL _hasStableReading;
 }
 @property (nonatomic, strong) UILabel *frequencyLabel;
 @property (nonatomic, strong) UILabel *unitLabel;
@@ -53,10 +79,18 @@ typedef int64_t (*CPUthermalIOReportStateGetResidencyFn)(CFDictionaryRef, int);
 
 @implementation CPUthermalFreqCCModuleViewController
 
+// ============================================================================
+#pragma mark - 生命周期
+// ============================================================================
+
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.title = S("CPU频率");
     self.view.backgroundColor = [UIColor clearColor];
+    _smoothedMHz = 0.0;
+    _sampleCount = 0;
+    _hasStableReading = NO;
+    _lastDisplayedMHz = 0;
     [self setupViews];
     [self refreshFrequency];
 }
@@ -74,8 +108,12 @@ typedef int64_t (*CPUthermalIOReportStateGetResidencyFn)(CFDictionaryRef, int);
 
 - (void)dealloc {
     [self stopTimer];
-    [self releaseIOReportState];
+    [self cleanupIOReport];
 }
+
+// ============================================================================
+#pragma mark - UI
+// ============================================================================
 
 - (void)setupViews {
     UIView *contentView = [[UIView alloc] initWithFrame:CGRectZero];
@@ -109,7 +147,7 @@ typedef int64_t (*CPUthermalIOReportStateGetResidencyFn)(CFDictionaryRef, int);
     self.sourceLabel.textAlignment = NSTextAlignmentCenter;
     self.sourceLabel.font = [UIFont systemFontOfSize:7.0 weight:UIFontWeightMedium];
     self.sourceLabel.textColor = [UIColor colorWithWhite:1.0 alpha:0.42];
-    self.sourceLabel.text = S("REAL");
+    self.sourceLabel.text = S("CPU");
     [contentView addSubview:self.sourceLabel];
 
     [NSLayoutConstraint activateConstraints:@[
@@ -145,92 +183,166 @@ typedef int64_t (*CPUthermalIOReportStateGetResidencyFn)(CFDictionaryRef, int);
     self.refreshTimer = nil;
 }
 
+// ============================================================================
+#pragma mark - 频率读取主入口
+// ============================================================================
+
 - (void)refreshFrequency {
-    NSInteger mhz = [self currentCPUFrequencyMHz];
-    if (mhz > 0) {
-        _lastValidMHz = mhz;
-        self.frequencyLabel.text = [NSString stringWithFormat:S("%ld"), (long)mhz];
-        self.sourceLabel.text = S("REAL");
+    double mhz = [self readCurrentFrequencyMHz];
+
+    if (mhz < kValidMinMHz || mhz > kValidMaxMHz) {
+        // 无效值：显示最后有效值（如果有）
+        if (_lastDisplayedMHz > 0) {
+            self.frequencyLabel.text = [NSString stringWithFormat:S("%ld"), (long)_lastDisplayedMHz];
+            self.sourceLabel.text = S("HOLD");
+        }
         return;
     }
 
-    if (_lastValidMHz > 0) {
-        self.frequencyLabel.text = [NSString stringWithFormat:S("%ld"), (long)_lastValidMHz];
-        self.sourceLabel.text = S("IDLE");
+    // 指数平滑
+    if (_smoothedMHz < kValidMinMHz) {
+        _smoothedMHz = mhz;
+    } else {
+        // 离群值剔除：跳变超过阈值则丢弃
+        double delta = fabs(mhz - _smoothedMHz);
+        if (delta <= kMaxFrequencyJump || _sampleCount < 2) {
+            _smoothedMHz = kSmoothingAlpha * mhz + (1.0 - kSmoothingAlpha) * _smoothedMHz;
+        }
+        // 大幅跳变时不更新平滑值，直接丢弃这帧
+    }
+
+    _sampleCount++;
+
+    // 前 N 帧不显示，积累稳定数据
+    if (_sampleCount < kMinSamplesBeforeDisplay) {
+        self.sourceLabel.text = S("WARM");
         return;
     }
 
-    self.frequencyLabel.text = S("----");
-    self.sourceLabel.text = S("WAIT");
+    _hasStableReading = YES;
+    NSInteger displayMHz = [self snapToPState:llround(_smoothedMHz)];
+    if (displayMHz <= 0) {
+        displayMHz = (NSInteger)llround(_smoothedMHz);
+    }
+
+    _lastDisplayedMHz = displayMHz;
+    self.frequencyLabel.text = [NSString stringWithFormat:S("%ld"), (long)displayMHz];
+    self.sourceLabel.text = S("REAL");
 }
 
-- (NSInteger)currentCPUFrequencyMHz {
-    NSInteger ioReportValue = [self ioReportFrequencyMHz];
-    if (ioReportValue > 0) return ioReportValue;
+// ============================================================================
+#pragma mark - P-State 匹配
+// ============================================================================
 
-    NSInteger directValue = [self dynamicFrequencyFromIORegistry];
-    if (directValue > 0) return directValue;
+/// 将测量值吸附到最近的已知 P-State 频率
+- (NSInteger)snapToPState:(NSInteger)mhz {
+    if (mhz <= 0) return 0;
 
-    NSInteger sysctlValue = [self cpuFrequencyFromSysctl];
-    if (sysctlValue > 0) return sysctlValue;
+    NSInteger bestState = 0;
+    NSInteger bestDelta = NSIntegerMax;
 
-    return 0;
+    // 先尝试 P-core 频率表（高频段）
+    for (NSInteger i = 0; i < kPCPUFreqCount; i++) {
+        NSInteger state = kPCPUFreqs[i];
+        NSInteger delta = labs(mhz - state);
+        NSInteger tolerance = MAX(60, (NSInteger)llround((double)state * 0.06));
+        if (delta <= tolerance && delta < bestDelta) {
+            bestDelta = delta;
+            bestState = state;
+        }
+    }
+
+    // 再尝试 E-core 频率表（低频段）
+    for (NSInteger i = 0; i < kECPUFreqCount; i++) {
+        NSInteger state = kECPUFreqs[i];
+        NSInteger delta = labs(mhz - state);
+        NSInteger tolerance = MAX(60, (NSInteger)llround((double)state * 0.06));
+        if (delta <= tolerance && delta < bestDelta) {
+            bestDelta = delta;
+            bestState = state;
+        }
+    }
+
+    return bestState;
 }
 
-- (BOOL)setupIOReportIfNeeded {
-    if (_clpcSubscription && _stateSubscription) return YES;
+// ============================================================================
+#pragma mark - 核心频率读取（三层策略）
+// ============================================================================
+
+- (double)readCurrentFrequencyMHz {
+    // 第1层：IOReport P-State 驻留计算（最准确）
+    double ioReportFreq = [self ioReportPStateFrequencyMHz];
+    if (ioReportFreq >= kValidMinMHz && ioReportFreq <= kValidMaxMHz) {
+        return ioReportFreq;
+    }
+
+    // 第2层：AppleCLPC IOKit 直读（次选，越狱环境有效）
+    double clpcFreq = [self clpcFrequencyFromIOKit];
+    if (clpcFreq >= kValidMinMHz && clpcFreq <= kValidMaxMHz) {
+        return clpcFreq;
+    }
+
+    // 第3层：sysctl（兜底，一般只返回固定最大值）
+    double sysctlFreq = [self sysctlFrequencyMHz];
+    if (sysctlFreq >= kValidMinMHz && sysctlFreq <= kValidMaxMHz) {
+        return sysctlFreq;
+    }
+
+    return 0.0;
+}
+
+// ============================================================================
+#pragma mark - 第1层：IOReport P-State 驻留时间加权频率
+// ============================================================================
+
+- (BOOL)setupIOReport {
+    if (_stateSubscription && _stateChannels) return YES;
 
     if (!_ioReportHandle) {
-        _ioReportHandle = dlopen("/usr/lib/libIOReport.dylib", RTLD_NOW);
+        _ioReportHandle = dlopen("/usr/lib/libIOReport.dylib", RTLD_NOW | RTLD_GLOBAL);
+        if (!_ioReportHandle) return NO;
     }
-    if (!_ioReportHandle) return NO;
 
+    // 解析符号（一次）
     if (!_ioReportCopyChannelsInGroup) {
-        _ioReportCopyChannelsInGroup = (CPUthermalIOReportCopyChannelsInGroupFn)dlsym(_ioReportHandle, "IOReportCopyChannelsInGroup");
-        _ioReportCreateSubscription = (CPUthermalIOReportCreateSubscriptionFn)dlsym(_ioReportHandle, "IOReportCreateSubscription");
-        _ioReportCreateSamples = (CPUthermalIOReportCreateSamplesFn)dlsym(_ioReportHandle, "IOReportCreateSamples");
-        _ioReportCreateSamplesDelta = (CPUthermalIOReportCreateSamplesDeltaFn)dlsym(_ioReportHandle, "IOReportCreateSamplesDelta");
-        _ioReportIterate = (CPUthermalIOReportIterateFn)dlsym(_ioReportHandle, "IOReportIterate");
-        _ioReportSimpleGetIntegerValue = (CPUthermalIOReportSimpleGetIntegerValueFn)dlsym(_ioReportHandle, "IOReportSimpleGetIntegerValue");
-        _ioReportChannelGetChannelName = (CPUthermalIOReportChannelGetChannelNameFn)dlsym(_ioReportHandle, "IOReportChannelGetChannelName");
-        _ioReportChannelGetUnitLabel = (CPUthermalIOReportChannelGetUnitLabelFn)dlsym(_ioReportHandle, "IOReportChannelGetUnitLabel");
-        _ioReportStateGetCount = (CPUthermalIOReportStateGetCountFn)dlsym(_ioReportHandle, "IOReportStateGetCount");
-        _ioReportStateGetNameForIndex = (CPUthermalIOReportStateGetNameForIndexFn)dlsym(_ioReportHandle, "IOReportStateGetNameForIndex");
-        _ioReportStateGetResidency = (CPUthermalIOReportStateGetResidencyFn)dlsym(_ioReportHandle, "IOReportStateGetResidency");
+        _ioReportCopyChannelsInGroup = (IOReportCopyChannelsInGroupFn)dlsym(_ioReportHandle, "IOReportCopyChannelsInGroup");
+        _ioReportCreateSubscription = (IOReportCreateSubscriptionFn)dlsym(_ioReportHandle, "IOReportCreateSubscription");
+        _ioReportCreateSamples = (IOReportCreateSamplesFn)dlsym(_ioReportHandle, "IOReportCreateSamples");
+        _ioReportCreateSamplesDelta = (IOReportCreateSamplesDeltaFn)dlsym(_ioReportHandle, "IOReportCreateSamplesDelta");
+        _ioReportIterate = (IOReportIterateFn)dlsym(_ioReportHandle, "IOReportIterate");
+        _ioReportSimpleGetIntegerValue = (IOReportSimpleGetIntegerValueFn)dlsym(_ioReportHandle, "IOReportSimpleGetIntegerValue");
+        _ioReportChannelGetChannelName = (IOReportChannelGetChannelNameFn)dlsym(_ioReportHandle, "IOReportChannelGetChannelName");
+        _ioReportChannelGetUnitLabel = (IOReportChannelGetUnitLabelFn)dlsym(_ioReportHandle, "IOReportChannelGetUnitLabel");
+        _ioReportStateGetCount = (IOReportStateGetCountFn)dlsym(_ioReportHandle, "IOReportStateGetCount");
+        _ioReportStateGetNameForIndex = (IOReportStateGetNameForIndexFn)dlsym(_ioReportHandle, "IOReportStateGetNameForIndex");
+        _ioReportStateGetResidency = (IOReportStateGetResidencyFn)dlsym(_ioReportHandle, "IOReportStateGetResidency");
     }
 
     if (!_ioReportCopyChannelsInGroup || !_ioReportCreateSubscription || !_ioReportCreateSamples ||
-        !_ioReportCreateSamplesDelta || !_ioReportIterate || !_ioReportSimpleGetIntegerValue ||
-        !_ioReportChannelGetChannelName || !_ioReportChannelGetUnitLabel || !_ioReportStateGetCount ||
+        !_ioReportCreateSamplesDelta || !_ioReportIterate || !_ioReportStateGetCount ||
         !_ioReportStateGetNameForIndex || !_ioReportStateGetResidency) {
         return NO;
     }
 
-    if (!_clpcSubscription) {
-        [self createSubscriptionForGroup:S("CLPC Stats")
-                                subgroup:S("Accumulators")
-                            subscription:&_clpcSubscription
-                                channels:&_clpcChannels];
-    }
     if (!_stateSubscription) {
-        [self createSubscriptionForGroup:S("CPU Stats")
-                                subgroup:S("CPU Core Performance States")
-                            subscription:&_stateSubscription
-                                channels:&_stateChannels];
+        [self subscribeToCPUPerformanceStates];
     }
 
-    return _clpcSubscription && _clpcChannels && _stateSubscription && _stateChannels;
+    return (_stateSubscription != NULL && _stateChannels != NULL);
 }
 
-- (void)createSubscriptionForGroup:(NSString *)group
-                          subgroup:(NSString *)subgroup
-                      subscription:(CPUthermalIOReportSubscriptionRef *)subscription
-                          channels:(CFMutableDictionaryRef *)channels {
-    if (!subscription || !channels) return;
-
-    CFDictionaryRef rawChannels = _ioReportCopyChannelsInGroup((__bridge CFStringRef)group,
-                                                               (__bridge CFStringRef)subgroup,
-                                                               0, 0, 0);
+- (void)subscribeToCPUPerformanceStates {
+    // 订阅 "CPU Stats" / "CPU Core Performance States"
+    CFDictionaryRef rawChannels = _ioReportCopyChannelsInGroup(CFSTR("CPU Stats"),
+                                                                CFSTR("CPU Core Performance States"),
+                                                                0, 0, 0);
+    if (!rawChannels) {
+        // 尝试备用渠道名
+        rawChannels = _ioReportCopyChannelsInGroup(CFSTR("CPU Stats"),
+                                                   CFSTR("CPU Performance States"),
+                                                   0, 0, 0);
+    }
     if (!rawChannels) return;
 
     CFMutableDictionaryRef mutableChannels = CFDictionaryCreateMutableCopy(kCFAllocatorDefault, 0, rawChannels);
@@ -238,285 +350,261 @@ typedef int64_t (*CPUthermalIOReportStateGetResidencyFn)(CFDictionaryRef, int);
     if (!mutableChannels) return;
 
     CFMutableDictionaryRef subscribedChannels = NULL;
-    CPUthermalIOReportSubscriptionRef newSubscription = _ioReportCreateSubscription(kCFAllocatorDefault,
-                                                                                    mutableChannels,
-                                                                                    &subscribedChannels,
-                                                                                    0,
-                                                                                    NULL);
+    IOReportSubscriptionRef subscription = _ioReportCreateSubscription(kCFAllocatorDefault,
+                                                                        mutableChannels,
+                                                                        &subscribedChannels,
+                                                                        0, NULL);
     CFRelease(mutableChannels);
 
-    if (newSubscription && subscribedChannels) {
-        *subscription = newSubscription;
-        *channels = subscribedChannels;
-        return;
+    if (subscription && subscribedChannels) {
+        _stateSubscription = subscription;
+        _stateChannels = subscribedChannels;
+    } else {
+        if (subscription) CFRelease(subscription);
+        if (subscribedChannels) CFRelease(subscribedChannels);
     }
-
-    if (newSubscription) CFRelease(newSubscription);
-    if (subscribedChannels) CFRelease(subscribedChannels);
 }
 
-- (NSInteger)ioReportFrequencyMHz {
-    if (![self setupIOReportIfNeeded]) return 0;
+/// 通过 IOReport P-State 驻留时间计算有效频率
+/// 原理: 每个核心的驻留时间分布在各个 P-State 上
+///       effective_freq = Σ(residency_i * freq_i) / Σ(residency_i)
+///       其中 freq_i 是 P-State i 对应的频率
+- (double)ioReportPStateFrequencyMHz {
+    if (![self setupIOReport]) return 0.0;
 
-    CFDictionaryRef currentCLPCSamples = _ioReportCreateSamples(_clpcSubscription, _clpcChannels, NULL);
-    CFDictionaryRef currentStateSamples = _ioReportCreateSamples(_stateSubscription, _stateChannels, NULL);
-    if (!currentCLPCSamples || !currentStateSamples) {
-        if (currentCLPCSamples) CFRelease(currentCLPCSamples);
-        if (currentStateSamples) CFRelease(currentStateSamples);
-        return 0;
+    CFDictionaryRef currentSamples = _ioReportCreateSamples(_stateSubscription, _stateChannels, NULL);
+    if (!currentSamples) {
+        return 0.0;
     }
 
-    if (!_lastCLPCSamples || !_lastStateSamples) {
-        if (_lastCLPCSamples) CFRelease(_lastCLPCSamples);
-        if (_lastStateSamples) CFRelease(_lastStateSamples);
-        _lastCLPCSamples = currentCLPCSamples;
-        _lastStateSamples = currentStateSamples;
-        return 0;
+    // 首次调用：只存储，不计算
+    if (!_lastStateSamples) {
+        _lastStateSamples = currentSamples;
+        return 0.0;
     }
 
-    CFDictionaryRef clpcDelta = _ioReportCreateSamplesDelta(_lastCLPCSamples, currentCLPCSamples, NULL);
-    CFDictionaryRef stateDelta = _ioReportCreateSamplesDelta(_lastStateSamples, currentStateSamples, NULL);
-
-    CFRelease(_lastCLPCSamples);
+    // 计算 delta
+    CFDictionaryRef delta = _ioReportCreateSamplesDelta(_lastStateSamples, currentSamples, NULL);
     CFRelease(_lastStateSamples);
-    _lastCLPCSamples = currentCLPCSamples;
-    _lastStateSamples = currentStateSamples;
+    _lastStateSamples = currentSamples;
 
-    if (!clpcDelta || !stateDelta) {
-        if (clpcDelta) CFRelease(clpcDelta);
-        if (stateDelta) CFRelease(stateDelta);
-        return 0;
-    }
+    if (!delta) return 0.0;
 
-    double pCycles = 0.0;
-    double eCycles = 0.0;
-    [self extractCyclesFromCLPCDelta:clpcDelta pCycles:&pCycles eCycles:&eCycles];
+    // 从 delta 中解析每个核心每个 P-State 的驻留时间
+    __block double totalWeightedFreq = 0.0;
+    __block double totalResidency = 0.0;
 
-    double pActiveSeconds = 0.0;
-    double eActiveSeconds = 0.0;
-    [self extractActiveSecondsFromStateDelta:stateDelta pSeconds:&pActiveSeconds eSeconds:&eActiveSeconds];
-
-    CFRelease(clpcDelta);
-    CFRelease(stateDelta);
-
-    double pMHz = (pCycles > 0.0 && pActiveSeconds > 0.01) ? (pCycles / pActiveSeconds / 1000000.0) : 0.0;
-    double eMHz = (eCycles > 0.0 && eActiveSeconds > 0.01) ? (eCycles / eActiveSeconds / 1000000.0) : 0.0;
-    double bestMHz = MAX(pMHz, eMHz);
-
-    if (bestMHz < 100.0 || bestMHz > 5000.0 || isnan(bestMHz) || isinf(bestMHz)) return 0;
-    return (NSInteger)llround(bestMHz);
-}
-
-- (void)extractCyclesFromCLPCDelta:(CFDictionaryRef)delta pCycles:(double *)pCycles eCycles:(double *)eCycles {
-    if (!delta) return;
-    __block double pValue = 0.0;
-    __block double eValue = 0.0;
     _ioReportIterate(delta, ^int(CFDictionaryRef sample) {
         NSString *name = (__bridge NSString *)_ioReportChannelGetChannelName(sample);
-        int64_t value = _ioReportSimpleGetIntegerValue(sample, 0);
-        if (value <= 0) return 0;
-        if ([name isEqualToString:S("p-cyclecount")]) {
-            pValue = (double)value;
-        } else if ([name isEqualToString:S("e-cyclecount")]) {
-            eValue = (double)value;
-        }
-        return 0;
-    });
-    if (pCycles) *pCycles = pValue;
-    if (eCycles) *eCycles = eValue;
-}
+        if (!name) return 0;
 
-- (void)extractActiveSecondsFromStateDelta:(CFDictionaryRef)delta pSeconds:(double *)pSeconds eSeconds:(double *)eSeconds {
-    if (!delta) return;
-    __block double pValue = 0.0;
-    __block double eValue = 0.0;
-    _ioReportIterate(delta, ^int(CFDictionaryRef sample) {
-        NSString *name = (__bridge NSString *)_ioReportChannelGetChannelName(sample);
-        if (![name hasPrefix:S("PCPU")] && ![name hasPrefix:S("ECPU")]) return 0;
+        // 只处理 PCPU 和 ECPU 核心状态
+        BOOL isPCPU = [name hasPrefix:S("PCPU")];
+        BOOL isECPU = [name hasPrefix:S("ECPU")];
+        if (!isPCPU && !isECPU) return 0;
+
+        // 跳过 PM 管理通道（PCPM / ECPM）
         if ([name isEqualToString:S("PCPM")] || [name isEqualToString:S("ECPM")]) return 0;
 
-        double activeSeconds = [self activeSecondsFromStateSample:sample];
+        int stateCount = _ioReportStateGetCount(sample);
+        if (stateCount <= 0 || stateCount > 256) return 0;
 
-        if ([name hasPrefix:S("PCPU")]) {
-            pValue += activeSeconds;
-        } else if ([name hasPrefix:S("ECPU")]) {
-            eValue += activeSeconds;
+        // 确定该核心的 P-State 频率表
+        const NSInteger *freqTable = isPCPU ? kPCPUFreqs : kECPUFreqs;
+        NSInteger freqCount = isPCPU ? kPCPUFreqCount : kECPUFreqCount;
+
+        // 遍历每个 P-State 索引
+        for (int idx = 0; idx < stateCount; idx++) {
+            NSString *stateName = (__bridge NSString *)_ioReportStateGetNameForIndex(sample, idx);
+            int64_t residency = _ioReportStateGetResidency(sample, idx);
+
+            if (residency <= 0) continue;
+
+            // 跳过空闲/关闭状态
+            BOOL isIdle = NO;
+            if (stateName) {
+                NSString *upper = [stateName uppercaseString];
+                isIdle = [upper isEqualToString:S("IDLE")] ||
+                         [upper isEqualToString:S("DOWN")] ||
+                         [upper isEqualToString:S("OFF")] ||
+                         [upper hasPrefix:S("SLEEP")];
+            } else {
+                // 无名状态且索引为 0 通常是 IDLE
+                isIdle = (idx == 0);
+            }
+
+            if (isIdle) continue;
+
+            // State 索引对应 P-State 频率表中的索引
+            // 限制索引范围
+            double stateFreq = 0.0;
+            if (idx >= 0 && idx < freqCount) {
+                stateFreq = (double)freqTable[idx];
+            } else {
+                // 索引超出频率表范围，使用最后已知频率
+                stateFreq = (double)freqTable[freqCount - 1];
+            }
+
+            totalWeightedFreq += (double)residency * stateFreq;
+            totalResidency += (double)residency;
         }
+
         return 0;
     });
-    if (pSeconds) *pSeconds = pValue;
-    if (eSeconds) *eSeconds = eValue;
+
+    CFRelease(delta);
+
+    if (totalResidency <= 0.0) return 0.0;
+
+    return totalWeightedFreq / totalResidency;
 }
 
-- (double)activeSecondsFromStateSample:(CFDictionaryRef)sample {
-    int stateCount = _ioReportStateGetCount(sample);
-    if (stateCount <= 0 || stateCount > 256) return 0.0;
+// ============================================================================
+#pragma mark - 第2层：AppleCLPC IOKit 直读（越狱环境）
+// ============================================================================
 
-    NSString *unitLabel = (__bridge NSString *)_ioReportChannelGetUnitLabel(sample);
-    double divisor = [self residencySecondsDivisorForUnitLabel:unitLabel];
-    if (divisor <= 0.0) return 0.0;
-
-    double seconds = 0.0;
-    for (int index = 0; index < stateCount; index++) {
-        NSString *stateName = (__bridge NSString *)_ioReportStateGetNameForIndex(sample, index);
-        if ([self shouldIgnoreResidencyStateName:stateName atIndex:index]) continue;
-
-        int64_t residency = _ioReportStateGetResidency(sample, index);
-        if (residency <= 0) continue;
-
-        seconds += (double)residency / divisor;
-    }
-
-    return seconds;
-}
-
-- (BOOL)shouldIgnoreResidencyStateName:(NSString *)stateName atIndex:(int)index {
-    if (stateName.length == 0) return index == 0;
-
-    NSString *uppercaseName = [stateName uppercaseString];
-    return [uppercaseName isEqualToString:S("IDLE")] ||
-           [uppercaseName isEqualToString:S("DOWN")] ||
-           [uppercaseName isEqualToString:S("OFF")];
-}
-
-- (double)residencySecondsDivisorForUnitLabel:(NSString *)unitLabel {
-    NSString *trimmedUnit = [unitLabel stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-    if ([trimmedUnit isEqualToString:S("s")]) return 1.0;
-    if ([trimmedUnit isEqualToString:S("ms")]) return 1000.0;
-    if ([trimmedUnit isEqualToString:S("us")]) return 1000000.0;
-    if ([trimmedUnit isEqualToString:S("ns")]) return 1000000000.0;
-    if ([trimmedUnit isEqualToString:S("24Mticks")] || [trimmedUnit containsString:S("24M")]) return 24000000.0;
-    return 1000000000.0;
-}
-
-- (NSInteger)dynamicFrequencyFromIORegistry {
-    NSArray<NSString *> *serviceNames = @[
-        S("clpc"),
-        S("ppm"),
+- (double)clpcFrequencyFromIOKit {
+    // 尝试多个可能的 IOKit 服务名
+    NSArray *serviceNames = @[
         S("AppleCLPC"),
-        S("ApplePPM")
+        S("clpc"),
+        S("ApplePPM"),
+        S("ppm"),
+        S("pmu")
     ];
-    NSArray<NSString *> *keys = @[
+
+    NSArray *freqKeys = @[
         S("CPUFrequency"),
         S("CPU Frequency"),
         S("current-frequency"),
         S("current-cpu-frequency"),
         S("cpu-current-frequency"),
         S("cpu-frequency"),
-        S("freq"),
         S("frequency"),
+        S("freq"),
         S("AETS p-limited mhz"),
         S("AETS e-limited mhz")
     ];
 
     for (NSString *serviceName in serviceNames) {
-        io_service_t service = IOServiceGetMatchingService(kIOMasterPortDefault, IOServiceNameMatching([serviceName UTF8String]));
+        io_service_t service = IOServiceGetMatchingService(kIOMasterPortDefault,
+                                                           IOServiceNameMatching([serviceName UTF8String]));
         if (!service) continue;
-        NSInteger mhz = [self frequencyFromService:service keys:keys];
+
+        for (NSString *key in freqKeys) {
+            CFTypeRef value = IORegistryEntryCreateCFProperty(service,
+                                                               (__bridge CFStringRef)key,
+                                                               kCFAllocatorDefault, 0);
+            if (!value) continue;
+
+            double mhz = [self extractMHzFromIOObject:(__bridge id)value];
+            CFRelease(value);
+            if (mhz >= kValidMinMHz && mhz <= kValidMaxMHz) {
+                IOObjectRelease(service);
+                return mhz;
+            }
+        }
         IOObjectRelease(service);
-        if (mhz > 0) return mhz;
     }
 
-    return 0;
+    return 0.0;
 }
 
-- (NSInteger)frequencyFromService:(io_service_t)service keys:(NSArray<NSString *> *)keys {
-    for (NSString *key in keys) {
-        CFTypeRef value = IORegistryEntryCreateCFProperty(service, (__bridge CFStringRef)key, kCFAllocatorDefault, 0);
-        NSInteger mhz = [self frequencyMHzFromObject:(__bridge id)value];
-        if (value) CFRelease(value);
-        if (mhz > 0) return mhz;
-    }
-    return 0;
-}
-
-- (NSInteger)frequencyMHzFromObject:(id)object {
-    if (!object) return 0;
+- (double)extractMHzFromIOObject:(id)object {
+    if (!object) return 0.0;
 
     if ([object isKindOfClass:[NSNumber class]]) {
-        return [self normalizedMHzFromRawValue:[(NSNumber *)object longLongValue]];
+        return [self rawValueToMHz:[(NSNumber *)object longLongValue]];
     }
 
     if ([object isKindOfClass:[NSData class]]) {
         NSData *data = (NSData *)object;
-        if (data.length >= sizeof(uint64_t)) {
-            uint64_t value = 0;
-            [data getBytes:&value length:sizeof(value)];
-            NSInteger mhz = [self normalizedMHzFromRawValue:(int64_t)value];
-            if (mhz > 0) return mhz;
+        if (data.length >= 8) {
+            uint64_t val64 = 0;
+            [data getBytes:&val64 length:8];
+            double mhz = [self rawValueToMHz:(int64_t)val64];
+            if (mhz >= kValidMinMHz) return mhz;
         }
-        if (data.length >= sizeof(uint32_t)) {
-            uint32_t value = 0;
-            [data getBytes:&value length:sizeof(value)];
-            NSInteger mhz = [self normalizedMHzFromRawValue:value];
-            if (mhz > 0) return mhz;
+        if (data.length >= 4) {
+            uint32_t val32 = 0;
+            [data getBytes:&val32 length:4];
+            return [self rawValueToMHz:val32];
         }
     }
 
     if ([object isKindOfClass:[NSArray class]]) {
-        NSInteger best = 0;
         for (id item in (NSArray *)object) {
-            NSInteger mhz = [self frequencyMHzFromObject:item];
-            if (mhz > best) best = mhz;
+            double mhz = [self extractMHzFromIOObject:item];
+            if (mhz >= kValidMinMHz) return mhz;
         }
-        return best;
     }
 
     if ([object isKindOfClass:[NSDictionary class]]) {
-        NSInteger best = 0;
         for (id value in [(NSDictionary *)object allValues]) {
-            NSInteger mhz = [self frequencyMHzFromObject:value];
-            if (mhz > best) best = mhz;
+            double mhz = [self extractMHzFromIOObject:value];
+            if (mhz >= kValidMinMHz) return mhz;
         }
-        return best;
     }
 
-    return 0;
+    return 0.0;
 }
 
-- (NSInteger)normalizedMHzFromRawValue:(int64_t)value {
-    if (value <= 0) return 0;
-    int64_t mhz = value;
-    if (mhz > 1000000000LL) mhz /= 1000000LL;
-    else if (mhz > 1000000LL) mhz /= 1000LL;
-    if (mhz < 100 || mhz > 5000) return 0;
-    return (NSInteger)mhz;
+- (double)rawValueToMHz:(int64_t)value {
+    if (value <= 0) return 0.0;
+    double mhz = (double)value;
+    if (mhz >= 1000000000.0) mhz /= 1000000.0;
+    else if (mhz >= 1000000.0) mhz /= 1000.0;
+    if (mhz < kValidMinMHz || mhz > kValidMaxMHz) return 0.0;
+    return mhz;
 }
 
-- (NSInteger)cpuFrequencyFromSysctl {
+// ============================================================================
+#pragma mark - 第3层：sysctl 兜底
+// ============================================================================
+
+- (double)sysctlFrequencyMHz {
     int64_t value = 0;
     size_t size = sizeof(value);
+
     if (sysctlbyname("hw.cpufrequency", &value, &size, NULL, 0) == 0) {
-        NSInteger mhz = [self normalizedMHzFromRawValue:value];
-        if (mhz > 0) return mhz;
+        double mhz = [self rawValueToMHz:value];
+        if (mhz >= kValidMinMHz) return mhz;
     }
+
     if (sysctlbyname("hw.cpufrequency_max", &value, &size, NULL, 0) == 0) {
-        NSInteger mhz = [self normalizedMHzFromRawValue:value];
-        if (mhz > 0) return mhz;
+        double mhz = [self rawValueToMHz:value];
+        if (mhz >= kValidMinMHz) return mhz;
     }
-    return 0;
+
+    // 备用: 从 timebase 频率估算
+    mach_timebase_info_data_t tb;
+    mach_timebase_info(&tb);
+    if (tb.denom > 0 && tb.numer > 0) {
+        // timebase freq ~ 24 MHz on A-series
+        // tb_freq = 1e9 * tb.denom / tb.numer
+        // 这个值不是 CPU 频率，但可以用来帮助判断设备类型
+        double tbFreq = 1000000000.0 * (double)tb.denom / (double)tb.numer;
+        if (tbFreq > 20000000.0 && tbFreq < 30000000.0) {
+            // A15 典型 timebase ~24MHz, 不是 CPU 频率
+            return 0.0;
+        }
+    }
+
+    return 0.0;
 }
 
-- (void)releaseIOReportState {
-    if (_lastCLPCSamples) {
-        CFRelease(_lastCLPCSamples);
-        _lastCLPCSamples = NULL;
-    }
+// ============================================================================
+#pragma mark - 清理
+// ============================================================================
+
+- (void)cleanupIOReport {
     if (_lastStateSamples) {
         CFRelease(_lastStateSamples);
         _lastStateSamples = NULL;
     }
-    if (_clpcChannels) {
-        CFRelease(_clpcChannels);
-        _clpcChannels = NULL;
-    }
     if (_stateChannels) {
         CFRelease(_stateChannels);
         _stateChannels = NULL;
-    }
-    if (_clpcSubscription) {
-        CFRelease(_clpcSubscription);
-        _clpcSubscription = NULL;
     }
     if (_stateSubscription) {
         CFRelease(_stateSubscription);
@@ -527,6 +615,10 @@ typedef int64_t (*CPUthermalIOReportStateGetResidencyFn)(CFDictionaryRef, int);
         _ioReportHandle = NULL;
     }
 }
+
+// ============================================================================
+#pragma mark - CCUIContentModuleContentViewController
+// ============================================================================
 
 - (CGFloat)preferredExpandedContentHeight {
     return 64.0;
@@ -550,6 +642,13 @@ typedef int64_t (*CPUthermalIOReportStateGetResidencyFn)(CFDictionaryRef, int);
 
 - (void)buttonTapped:(id)arg forEvent:(id)event {
     [self refreshFrequency];
+
+    // 点击时可选择重置采样积累（重新 warm up）
+    // 如果已经稳定显示，不重置
+    if (!_hasStableReading) {
+        _sampleCount = 0;
+        _smoothedMHz = 0.0;
+    }
 }
 
 @end

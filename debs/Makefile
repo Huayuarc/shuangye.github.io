@@ -56,7 +56,6 @@ CPUthermalFreqCC_CFLAGS = -fobjc-arc -Iinclude
 CPUthermalFreqCC_CODESIGN_FLAGS = -SCCModule/CPUthermalFreq.entitlements
 CPUthermalFreqCC_FRAMEWORKS = Foundation UIKit CoreFoundation IOKit QuartzCore ControlCenterUIKit
 CPUthermalFreqCC_PRIVATE_FRAMEWORKS = ControlCenterUIKit
-CPUthermalFreqCC_LDFLAGS += -lIOReport
 CPUthermalFreqCC_INSTALL_PATH = /Library/ControlCenter/Bundles/
 ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
 CPUthermalFreqCC_LDFLAGS += -lroothide
