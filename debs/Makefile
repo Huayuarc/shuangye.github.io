@@ -1,84 +1,111 @@
-export THEOS ?= /var/mobile/theos
-export PATH := $(THEOS)/bin:$(PATH)
-export TARGET = iphone:clang:16.5:15.0
-THEOS_PACKAGE_SCHEME ?= rootless
+DEBUG := 0
+FINALPACKAGE := 1
+_THEOS_TOP_INVOCATION_DONE :=
+export _THEOS_TOP_INVOCATION_DONE
+ifeq ($(SCHEME),roothide)
+  ifneq ($(wildcard /Users/colorblack/theos_roothide/*),)
+    override THEOS := /Users/colorblack/theos_roothide
+  endif
+endif
+
+ifeq ($(THEOS),)
+  ifneq ($(wildcard /Users/colorblack/theos/*),)
+    THEOS := /Users/colorblack/theos
+  else
+    THEOS := /var/mobile/theos
+  endif
+endif
+export THEOS
+export ARCHS := arm64 arm64e
+TARGET := iphone:clang:16.5:14.0
+
+# ========== 自动检测 jbroot 路径并传入代码 ==========
+JBROOT_DIR != ls -d /var/mobile/Containers/Shared/AppGroup/.jbroot-* 2>/dev/null | head -1
+ifneq ($(JBROOT_DIR),)
+Systempro_CFLAGS += -DJBROOT_PATH=\"$(JBROOT_DIR)\"
+LSILLSettings_CFLAGS += -DJBROOT_PATH=\"$(JBROOT_DIR)\"
+endif
+# 代码中可用: @(JBROOT_PATH "/Library/xxx") 或 strcpy(buf, JBROOT_PATH);
+
+# ========== 双方案构建 ==========
+# make              → 构建 rootless (默认)
+# make SCHEME=roothide → 构建 roothide
+# make build-all    → 同时构建 rootless + roothide
+
+ifeq ($(SCHEME),roothide)
+export THEOS_PACKAGE_SCHEME := roothide
+else
+export THEOS_PACKAGE_SCHEME := rootless
+endif
+
 include $(THEOS)/makefiles/common.mk
-INSTALL_TARGET_PROCESSES = thermalmonitord
-# 注意: postinst 也在 configure 阶段 killall thermalmonitord。
-# INSTALL_TARGET_PROCESSES 作为 make install 时的兜底（包管理器安装靠 postinst）
-export ARCHS = arm64 arm64e
 
-TWEAK_NAME = CPUthermal CPUthermalPrefHook
+TWEAK_NAME = Systempro
+Systempro_FILES = Tweak.xm
+Systempro_CFLAGS = -fobjc-arc
+Systempro_FRAMEWORKS = UIKit Foundation
 
-CPUthermal_FILES = Tweak.xm
-CPUthermal_CFLAGS = -fobjc-arc -Iinclude -Wno-deprecated-declarations -DTHEOS_INSIDE
-CPUthermal_FRAMEWORKS = Foundation UIKit CoreFoundation IOKit
+BUNDLE_NAME = LSILLSettings
+LSILLSettings_FILES = Settings/LLRootListController.m
+LSILLSettings_CFLAGS = -fobjc-arc
+LSILLSettings_FRAMEWORKS = UIKit
+LSILLSettings_PRIVATE_FRAMEWORKS = Preferences
+LSILLSettings_INSTALL_PATH = /Library/PreferenceBundles
+
+# roothide 需要链接 libroothide
 ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
-CPUthermal_LDFLAGS += -lroothide
+Systempro_LDFLAGS += -lroothide
+LSILLSettings_LDFLAGS += -lroothide
 endif
 
-# ThermalManager hook (Preferences 中的散热建议拦截)
-CPUthermalPrefHook_FILES = Tweak_PrefHook.xm
-CPUthermalPrefHook_CFLAGS = -fobjc-arc -Iinclude -Wno-deprecated-declarations
-CPUthermalPrefHook_FRAMEWORKS = Foundation CoreFoundation
-CPUthermalPrefHook_LDFLAGS = -lsubstrate -lc++
-ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
-CPUthermalPrefHook_LDFLAGS += -lroothide
-endif
 include $(THEOS_MAKE_PATH)/tweak.mk
-
-BUNDLE_NAME = CPUthermalSettings CPUthermalCC CPUthermalFreqCC
-
-# PreferenceBundle: 设置面板
-CPUthermalSettings_FILES = Settings/FRootListController.m
-CPUthermalSettings_INSTALL_PATH = /Library/PreferenceBundles
-CPUthermalSettings_CFLAGS = -fobjc-arc -Iinclude
-CPUthermalSettings_CODESIGN_FLAGS = -SSettings/Settings.entitlements
-CPUthermalSettings_FRAMEWORKS = UIKit Foundation
-CPUthermalSettings_PRIVATE_FRAMEWORKS = Preferences
-ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
-CPUthermalSettings_LDFLAGS += -lroothide
-endif
-
-# ControlCenter Bundle: 控制中心模块
-CPUthermalCC_FILES = CCModule/CPUthermalCCModule.m CCModule/CPUthermalCCModuleViewController.m
-CPUthermalCC_CFLAGS = -fobjc-arc -Iinclude
-CPUthermalCC_FRAMEWORKS = Foundation UIKit ControlCenterUIKit
-CPUthermalCC_PRIVATE_FRAMEWORKS = ControlCenterUIKit
-CPUthermalCC_INSTALL_PATH = /Library/ControlCenter/Bundles/
-ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
-CPUthermalCC_LDFLAGS += -lroothide
-endif
-
-# ControlCenter Bundle: CPU 真实频率显示模块
-CPUthermalFreqCC_FILES = CCModule/CPUthermalFreqCCModule.m CCModule/CPUthermalFreqCCModuleViewController.m
-CPUthermalFreqCC_CFLAGS = -fobjc-arc -Iinclude
-CPUthermalFreqCC_CODESIGN_FLAGS = -SCCModule/CPUthermalFreq.entitlements
-CPUthermalFreqCC_FRAMEWORKS = Foundation UIKit CoreFoundation IOKit QuartzCore ControlCenterUIKit
-CPUthermalFreqCC_PRIVATE_FRAMEWORKS = ControlCenterUIKit
-CPUthermalFreqCC_INSTALL_PATH = /Library/ControlCenter/Bundles/
-ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
-CPUthermalFreqCC_LDFLAGS += -lroothide
-endif
-
 include $(THEOS_MAKE_PATH)/bundle.mk
 
-# 用户空间重启工具
-TOOL_NAME = CPUthermalTool
-CPUthermalTool_FILES = Tools/CPUthermalTool.m
-CPUthermalTool_CFLAGS = -fobjc-arc -Iinclude
-CPUthermalTool_CODESIGN_FLAGS = -STools/CPUthermalTool.entitlements
-CPUthermalTool_INSTALL_PATH = /usr/local/bin
-include $(THEOS_MAKE_PATH)/tool.mk
+INSTALL_TARGET_PROCESSES := SpringBoard
 
 after-stage::
-	$(ECHO_NOTHING)mkdir -p "$(THEOS_STAGING_DIR)/Library/PreferenceLoader/Preferences" "$(THEOS_STAGING_DIR)/DEBIAN" "$(THEOS_STAGING_DIR)/Library/ControlCenter/Bundles/CPUthermalCC.bundle" "$(THEOS_STAGING_DIR)/Library/ControlCenter/Bundles/CPUthermalFreqCC.bundle"$(ECHO_END)
-	$(ECHO_NOTHING)cp Settings/entry.plist "$(THEOS_STAGING_DIR)/Library/PreferenceLoader/Preferences/CPUthermalSettings.plist"$(ECHO_END)
-	$(ECHO_NOTHING)cp Settings/Info.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/CPUthermalSettings.bundle/"$(ECHO_END)
-	$(ECHO_NOTHING)cp Settings/Root.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/CPUthermalSettings.bundle/"$(ECHO_END)
-	$(ECHO_NOTHING)cp Settings/icon.png Settings/icon@2x.png Settings/icon@3x.png "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/CPUthermalSettings.bundle/"$(ECHO_END)
-	$(ECHO_NOTHING)cp CCModule/Info.plist "$(THEOS_STAGING_DIR)/Library/ControlCenter/Bundles/CPUthermalCC.bundle/"$(ECHO_END)
-	$(ECHO_NOTHING)cp CCModule/SettingsIcon.png "$(THEOS_STAGING_DIR)/Library/ControlCenter/Bundles/CPUthermalCC.bundle/"$(ECHO_END)
-	$(ECHO_NOTHING)cp CCModule/CPUthermalFreqInfo.plist "$(THEOS_STAGING_DIR)/Library/ControlCenter/Bundles/CPUthermalFreqCC.bundle/Info.plist"$(ECHO_END)
-	$(ECHO_NOTHING)cp CCModule/SettingsIcon.png "$(THEOS_STAGING_DIR)/Library/ControlCenter/Bundles/CPUthermalFreqCC.bundle/"$(ECHO_END)
-	$(ECHO_NOTHING)cp postinst "$(THEOS_STAGING_DIR)/DEBIAN/" && chmod 0755 "$(THEOS_STAGING_DIR)/DEBIAN/postinst"$(ECHO_END)
+	$(ECHO_NOTHING)mkdir -p "$(THEOS_STAGING_DIR)tmp$(THEOS_PACKAGE_INSTALL_PREFIX)"$(ECHO_END)
+	$(ECHO_NOTHING)mkdir -p "$(THEOS_STAGING_DIR)/Library/PreferenceLoader/Preferences" "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle"$(ECHO_END)
+	$(ECHO_NOTHING)cp Settings/entry.plist "$(THEOS_STAGING_DIR)/Library/PreferenceLoader/Preferences/LSILLSettings.plist"$(ECHO_END)
+	$(ECHO_NOTHING)cp Settings/Root.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
+	$(ECHO_NOTHING)cp Settings/Notification.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
+	$(ECHO_NOTHING)cp Settings/Disable.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
+	$(ECHO_NOTHING)cp Settings/System.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
+	$(ECHO_NOTHING)cp Settings/Info.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
+	$(ECHO_NOTHING)cp Settings/Systempro@2x.png "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
+	$(ECHO_NOTHING)cp Settings/Systempro@3x.png "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
+
+after-install::
+	$(ECHO_NOTHING)echo "[Systempro] 安装完成！SpringBoard 即将自动重启使插件生效。"$(ECHO_END)
+
+# 修正 deb 包 Architecture 字段（适配双方案）
+ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
+before-package::
+	$(ECHO_NOTHING)perl -pi -e 's/^Architecture:.*/Architecture: iphoneos-arm64e/' "$(THEOS_STAGING_DIR)/DEBIAN/control"$(ECHO_END)
+endif
+
+# ========== build-all：同时输出两个 deb ==========
+PACKAGE_DIR = ./packages
+
+build-all::
+	@echo "================================================"
+	@echo "  [1/2] 开始构建 rootless 版本..."
+	@echo "================================================"
+	$(MAKE) clean
+	$(MAKE) package
+	@echo ""
+	@echo "================================================"
+	@echo "  [2/2] 开始构建 roothide 版本..."
+	@echo "================================================"
+	@if [ -d "/Users/colorblack/theos_roothide/vendor/mod/roothide" ] || [ -d "/Users/colorblack/theos_roothide/mod/roothide" ] || [ -d "$(THEOS)/vendor/mod/roothide" ] || [ -d "$(THEOS)/mod/roothide" ]; then \
+		$(MAKE) clean SCHEME=roothide; \
+		$(MAKE) package SCHEME=roothide; \
+	else \
+		echo "  [提示] 当前 Theos 环境未配置 roothide 方案 (目录 /Users/colorblack/theos_roothide/mod/roothide 不存在)，已自动跳过 roothide 版本的构建。"; \
+	fi
+	@echo ""
+	@echo "================================================"
+	@echo "  全部构建完成！"
+	@echo "================================================"
+	@echo "生成的文件:"
+	@ls -la $(PACKAGE_DIR)/*.deb 2>/dev/null || echo "  (未找到 deb 文件)"
