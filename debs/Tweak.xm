@@ -32,25 +32,8 @@ static NSString *const kLowPowerOnLockKey   = @"lowPowerOnLock";
 static NSString *const kLockWhenFaceDownKey = @"lockWhenFaceDown";
 
 // ===== Cyanide 移植功能键 =====
-static NSString *const kDoubleTapToLockKey  = @"doubleTapToLock";
-static NSString *const kDoubleTapToWakeKey  = @"doubleTapToWake";
 static NSString *const kDisableIconFlyInKey = @"disableIconFlyIn";
 static NSString *const kZeroWakeAnimationKey = @"zeroWakeAnimation";
-// ===== App Switcher Grid 增强 =====
-// 模式: 0=off(deck), 1=grid, 2=auto
-static int      g_switcherStyle        = 0;
-static int      g_switcherColumns      = 4;      // 3-6 列
-static CGFloat  g_switcherInsetTop     = 0;
-static CGFloat  g_switcherInsetBottom  = 0;
-static CGFloat  g_switcherInsetLeft    = 0;
-static CGFloat  g_switcherInsetRight   = 0;
-static NSString *const kSwitcherStyleKey    = @"switcherStyle";
-static NSString *const kSwitcherColumnsKey  = @"switcherColumns";
-static NSString *const kSwitcherInsetTopKey    = @"switcherInsetTop";
-static NSString *const kSwitcherInsetBottomKey = @"switcherInsetBottom";
-static NSString *const kSwitcherInsetLeftKey   = @"switcherInsetLeft";
-static NSString *const kSwitcherInsetRightKey  = @"switcherInsetRight";
-static NSString *const kHideAppLabelsKey    = @"hideAppLabels";
 static NSString *const kCCRecordNoDelayKey  = @"ccRecordNoDelay";
 
 static NSString *const kNotifyPrefsChanged = @"com.huayuarc.systempro.prefschanged";
@@ -98,31 +81,12 @@ static BOOL      g_lockWhenFaceDown           = NO;
 static BOOL      g_isLPMOnBeforeLock          = NO;
 
 // ===== Cyanide 移植功能全局变量 =====
-static BOOL      g_doubleTapToLock     = NO;
-static BOOL      g_doubleTapToWake     = NO;
 static BOOL      g_disableIconFlyIn    = NO;
 static BOOL      g_zeroWakeAnimation   = NO;
-static BOOL      g_hideAppLabels       = NO;
 
 // ===== 录屏去延迟 =====
 static BOOL      g_ccRecordNoDelay               = NO;
 static BOOL      g_ccRecordNoDelayHooksInited    = NO;
-
-// 双击锁屏 — 跟踪已添加的手势，防止重复添加
-static UITapGestureRecognizer *g_doubleTapRecognizer = nil;
-static BOOL      g_springBoardDidFinishLaunching = NO;
-static BOOL      g_doubleTapInstallScheduled = NO;
-
-// ===== 自定义动画速度 =====
-static float g_animationSpeed = 1.0f;
-static int g_animationSpeedIdx = 2; // 索引 0-4
-// 速度倍率映射表：索引 → 实际倍率
-static const float kAnimationSpeedValues[] = {0.25f, 0.5f, 1.0f, 2.0f, 4.0f};
-static NSString *const kAnimationSpeedKey = @"animationSpeed";
-
-static inline NSTimeInterval adjustedAnimationDuration(NSTimeInterval duration) {
-	return (g_animationSpeed != 1.0f && duration > 0.0) ? duration / g_animationSpeed : duration;
-}
 
 // ============================================================================
 // 配置读写 — 内存缓存（避免热路径 I/O）
@@ -159,37 +123,11 @@ static void reloadConfiguration(void) {
 		g_lockWhenFaceDown           = [prefs[kLockWhenFaceDownKey] boolValue];
 
 		// ===== Cyanide 移植功能 =====
-		g_doubleTapToLock     = [prefs[kDoubleTapToLockKey] boolValue];
-		g_doubleTapToWake     = [prefs[kDoubleTapToWakeKey] boolValue];
 		g_disableIconFlyIn    = [prefs[kDisableIconFlyInKey] boolValue];
 		g_zeroWakeAnimation   = [prefs[kZeroWakeAnimationKey] boolValue];
-		g_hideAppLabels       = [prefs[kHideAppLabelsKey] boolValue];
 		g_ccRecordNoDelay     = [prefs[kCCRecordNoDelayKey] boolValue];
 
-		// ===== App Switcher Grid 增强 =====
-		{
-			id styleVal = prefs[kSwitcherStyleKey];
-			if (styleVal) {
-				g_switcherStyle = [styleVal intValue];
-			} else {
-				// 兼容旧的 appSwitcherGrid 布尔设置
-				g_switcherStyle = [prefs[@"appSwitcherGrid"] boolValue] ? 1 : 0;
-			}
-			if (g_switcherStyle < 0 || g_switcherStyle > 2) g_switcherStyle = 0;
-			int cols = (int)[prefs[kSwitcherColumnsKey] integerValue];
-			g_switcherColumns = (cols >= 3 && cols <= 6) ? cols : 4;
-			g_switcherInsetTop    = [prefs[kSwitcherInsetTopKey] floatValue];
-			g_switcherInsetBottom = [prefs[kSwitcherInsetBottomKey] floatValue];
-			g_switcherInsetLeft   = [prefs[kSwitcherInsetLeftKey] floatValue];
-			g_switcherInsetRight  = [prefs[kSwitcherInsetRightKey] floatValue];
-		}
-
-		// ===== 自定义动画速度 =====
-		int speedIdx = (int)[prefs[kAnimationSpeedKey] integerValue];
-		if (speedIdx < 0 || speedIdx > 4) speedIdx = 2;
-		g_animationSpeedIdx = speedIdx;
-		g_animationSpeed = kAnimationSpeedValues[speedIdx];
-
+		// 兜底：确保枚举值不越界
 		// 兜底：确保枚举值不越界
 		if (g_blockMode != LSBlockModeLowPower &&
 			g_blockMode != LSBlockModeSilent &&
@@ -217,70 +155,7 @@ static BOOL shouldBlock(void) {
 }
 
 // ============================================================================
-// ===== Cyanide 移植辅助函数 =====
-// ============================================================================
-
-// 双击锁屏 — 向主屏幕视图添加双击手势
-static void scheduleDoubleTapGestureInstall(void);
-
-static void installDoubleTapGesture(void) {
-	if (![NSThread isMainThread]) {
-		dispatch_async(dispatch_get_main_queue(), ^{
-			installDoubleTapGesture();
-		});
-		return;
-	}
-	if (!g_doubleTapToLock) return;
-	if (g_doubleTapRecognizer) return;
-	if (!g_springBoardDidFinishLaunching) {
-		scheduleDoubleTapGestureInstall();
-		return;
-	}
-
-	@try {
-		Class sbIconController = NSClassFromString(@"SBIconController");
-		if (!sbIconController || ![sbIconController respondsToSelector:@selector(sharedInstance)]) return;
-		id iconCtrl = [sbIconController performSelector:@selector(sharedInstance)];
-		if (!iconCtrl || ![iconCtrl respondsToSelector:@selector(iconManager)]) return;
-
-		// 通过 iconManager 拿到 rootFolderController 的 view
-		id iconMgr = [iconCtrl performSelector:@selector(iconManager)];
-		if (!iconMgr || ![iconMgr respondsToSelector:@selector(rootFolderController)]) return;
-		id rootFC = [iconMgr performSelector:@selector(rootFolderController)];
-		if (!rootFC || ![rootFC respondsToSelector:@selector(view)]) return;
-		UIView *homeView = [rootFC performSelector:@selector(view)];
-		if (!homeView) return;
-
-		UIApplication *application = [UIApplication sharedApplication];
-		if (![application respondsToSelector:@selector(_simulateLockButtonPress)]) return;
-
-		g_doubleTapRecognizer = [[UITapGestureRecognizer alloc]
-			initWithTarget:application
-			action:@selector(_simulateLockButtonPress)];
-		g_doubleTapRecognizer.numberOfTapsRequired = 2;
-		g_doubleTapRecognizer.cancelsTouchesInView = NO;
-		[homeView addGestureRecognizer:g_doubleTapRecognizer];
-	} @catch (NSException *exception) {
-		g_doubleTapRecognizer = nil;
-	}
-}
-
-static void removeDoubleTapGesture(void) {
-	if (!g_doubleTapRecognizer) return;
-	[g_doubleTapRecognizer.view removeGestureRecognizer:g_doubleTapRecognizer];
-	g_doubleTapRecognizer = nil;
-}
-
-static void scheduleDoubleTapGestureInstall(void) {
-	if (!g_doubleTapToLock || g_doubleTapRecognizer || g_doubleTapInstallScheduled) return;
-	g_doubleTapInstallScheduled = YES;
-	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-		g_doubleTapInstallScheduled = NO;
-		installDoubleTapGesture();
-	});
-}
-
-// ============================================================================
+// ===== Logos Hooks// ============================================================================
 // ===== Logos Hooks =====
 // ============================================================================
 
@@ -348,13 +223,6 @@ static void scheduleDoubleTapGestureInstall(void) {
 - (bool)lockScreenCameraSupported {
 	if (g_disableLockScreenCamera) return 0;
 	return %orig;
-}
-- (void)applicationDidFinishLaunching:(id)application {
-	%orig;
-	g_springBoardDidFinishLaunching = YES;
-	if (g_doubleTapToLock) {
-		scheduleDoubleTapGestureInstall();
-	}
 }
 %end
 
@@ -736,179 +604,7 @@ static void scheduleDoubleTapGestureInstall(void) {
 %end
 
 // ============================================================================
-// 7. Double Tap to Wake — 锁屏界面双击亮屏
-// 原理: 修改 SBTapToWakeController 使其需要双击才能唤醒屏幕。
-// 第一次点击被消费掉（不触发唤醒），第二次点击在 0.5 秒内才真正唤醒。
-// ============================================================================
-%group DoubleTapToWakeHooks
-
-static int      g_wakeTapCount    = 0;
-static CFTimeInterval g_lastWakeTapTime = 0;
-
-%hook SBTapToWakeController
-- (void)handleTapToWakeEvent:(id)arg1 {
-	if (!g_doubleTapToWake) {%orig; return;}
-
-	CFTimeInterval now = CACurrentMediaTime();
-	if (now - g_lastWakeTapTime > 0.5) {
-		// 第一次点击（或超时重置）— 消费掉，不唤醒
-		g_wakeTapCount    = 1;
-		g_lastWakeTapTime = now;
-		return;
-	}
-
-	// 双击检测到 — 放行，触发真正的唤醒
-	g_wakeTapCount    = 0;
-	g_lastWakeTapTime = 0;
-	%orig;
-}
-%end
-
-%end
-
-// ============================================================================
-// 4. App Switcher Grid — 应用切换器网格布局（增强版）
-// 移植自 Cyanide: tweaks/appswitchergrid.m
-// 增强: 多模式选择、列数调整、卡片边距、调试日志
-// switcherStyle: 0=off(deck), 1=grid, 2=auto(optional)
-// ============================================================================
-%group AppSwitcherGridHooks
-
-%hook SBAppSwitcherSettings
-- (long long)switcherStyle {
-	// 0=deck, 1=optional, 2=grid
-	if (g_switcherStyle == 1) return 2;  // 强制网格
-	if (g_switcherStyle == 2) return 1;  // 自动(optional)
-	return %orig;  // 停用=返回原始值(deck)
-}
-- (long long)numberOfColumns {
-	if (g_switcherStyle != 0) return g_switcherColumns;
-	return %orig;
-}
-%end
-
-// 通过 SBFluidSwitcherViewController 调整卡片布局
-%hook SBFluidSwitcherViewController
-- (void)viewDidAppear:(BOOL)arg1 {
-	%orig;
-	if (g_switcherStyle != 0) {
-		// 调试日志 — 实时输出当前布局参数
-		NSLog(@"[Systempro] SwitcherGrid active: style=%d cols=%d "
-			"insets{T:%.0f,B:%.0f,L:%.0f,R:%.0f}",
-			g_switcherStyle, g_switcherColumns,
-			g_switcherInsetTop, g_switcherInsetBottom,
-			g_switcherInsetLeft, g_switcherInsetRight);
-	}
-}
-- (void)_layoutSubviews {
-	%orig;
-	if (g_switcherStyle == 0) return;
-
-	// 应用卡片边距调整 — 修改 switcherScrollView 的 contentInset
-	UIScrollView *scrollView = [(id)self valueForKey:@"_switcherScrollView"];
-	if (!scrollView) return;
-
-	UIEdgeInsets insets = scrollView.contentInset;
-	BOOL changed = NO;
-	if (insets.top != g_switcherInsetTop)    { insets.top = g_switcherInsetTop;    changed = YES; }
-	if (insets.bottom != g_switcherInsetBottom) { insets.bottom = g_switcherInsetBottom; changed = YES; }
-	if (insets.left != g_switcherInsetLeft)  { insets.left = g_switcherInsetLeft;  changed = YES; }
-	if (insets.right != g_switcherInsetRight){ insets.right = g_switcherInsetRight;changed = YES; }
-	if (changed) {
-		scrollView.contentInset = insets;
-	}
-}
-%end
-
-%end
-
-// ============================================================================
-// 5. Hide App Labels — 隐藏主屏幕应用图标标签
-// 移植自 Cyanide: tweaks/sbcustomizer.m → hideLabels 参数
-// ============================================================================
-%group HideAppLabelsHooks
-
-%hook SBIconView
-- (void)setLabelHidden:(BOOL)hidden {
-	if (g_hideAppLabels) {
-		%orig(YES);
-		return;
-	}
-	%orig;
-}
-- (BOOL)isLabelHidden {
-	if (g_hideAppLabels) return YES;
-	return %orig;
-}
-%end
-
-%end
-
-// ============================================================================
-// 6. 自定义系统动画速度 — 控制 SpringBoard 全局动画速度
-// 速度倍率: 0.25x(极慢) 0.5x(慢) 1x(正常) 2x(快) 4x(极快)
-// ============================================================================
-%group AnimationSpeedHooks
-
-// UIKit 动画入口 — 不依赖 SpringBoard 私有类，确保设置始终生效
-%hook UIView
-+ (void)animateWithDuration:(NSTimeInterval)duration animations:(void (^)(void))animations {
-	%orig(adjustedAnimationDuration(duration), animations);
-}
-+ (void)animateWithDuration:(NSTimeInterval)duration animations:(void (^)(void))animations completion:(void (^)(BOOL finished))completion {
-	%orig(adjustedAnimationDuration(duration), animations, completion);
-}
-+ (void)animateWithDuration:(NSTimeInterval)duration delay:(NSTimeInterval)delay options:(UIViewAnimationOptions)options animations:(void (^)(void))animations completion:(void (^)(BOOL finished))completion {
-	%orig(adjustedAnimationDuration(duration), delay, options, animations, completion);
-}
-+ (void)animateWithDuration:(NSTimeInterval)duration delay:(NSTimeInterval)delay usingSpringWithDamping:(CGFloat)dampingRatio initialSpringVelocity:(CGFloat)velocity options:(UIViewAnimationOptions)options animations:(void (^)(void))animations completion:(void (^)(BOOL finished))completion {
-	%orig(adjustedAnimationDuration(duration), delay, dampingRatio, velocity, options, animations, completion);
-}
-%end
-
-// UIWindow._speed 影响窗口内 CALayer 动画速度
-%hook UIWindow
-- (CGFloat)_speed {
-	if (g_animationSpeed != 1.0f) return g_animationSpeed;
-	return %orig;
-}
-%end
-
-%end
-
-%group IconAnimationSpeedHooks
-%hook SBIconAnimationController
-- (double)animationDuration {
-	return adjustedAnimationDuration(%orig);
-}
-%end
-%end
-
-%group CoverSheetAnimationSpeedHooks
-%hook SBCoverSheetAnimationController
-- (double)animationDuration {
-	return adjustedAnimationDuration(%orig);
-}
-%end
-%end
-
-%group SBUIAnimationSpeedHooks
-%hook SBUIAnimationController
-- (double)animationDuration {
-	return adjustedAnimationDuration(%orig);
-}
-%end
-%end
-
-%group FolderAnimationSpeedHooks
-%hook SBFolderController
-- (double)animationDuration {
-	return adjustedAnimationDuration(%orig);
-}
-%end
-%end
-
-// ============================================================================
+// 录屏去延迟// ============================================================================
 // 录屏去延迟 — Hook ReplayKit 控制中心模块跳过 3 秒倒计时
 // 移植自 CCRecordNoDelay by LaYii
 // 原理: NSBundle -load 检测 ReplayKitModule.bundle 加载后，
@@ -984,13 +680,6 @@ static void onPrefsChanged(CFNotificationCenterRef center,
 						   const void *object,
 						   CFDictionaryRef userInfo) {
 	reloadConfiguration();
-
-	// 双击锁屏手势 — 动态添加/移除
-	if (g_doubleTapToLock) {
-		scheduleDoubleTapGestureInstall();
-	} else {
-		removeDoubleTapGesture();
-	}
 
 	// 录屏去延迟 — 运行时开启后尝试懒初始化 hook
 	if (g_ccRecordNoDelay && !g_ccRecordNoDelayHooksInited) {
@@ -1102,37 +791,7 @@ static void onRespring(CFNotificationCenterRef center,
 			%init(ZeroWakeHooks);
 		}
 
-		// 双击亮屏 — SBTapToWakeController iOS 16 上存在
-		if (NSClassFromString(@"SBTapToWakeController")) {
-			%init(DoubleTapToWakeHooks);
-		}
-
-		// App Switcher Grid — SBAppSwitcherSettings iOS 16 上存在
-		if (NSClassFromString(@"SBAppSwitcherSettings")) {
-			%init(AppSwitcherGridHooks);
-		}
-
-		// 隐藏应用标签 — SBIconView iOS 16 上存在
-		if (NSClassFromString(@"SBIconView")) {
-			%init(HideAppLabelsHooks);
-		}
-
-		// 自定义动画速度 — UIKit hook 始终启用，私有类存在时再追加细分 hook
-		%init(AnimationSpeedHooks);
-		if (NSClassFromString(@"SBIconAnimationController")) {
-			%init(IconAnimationSpeedHooks);
-		}
-		if (NSClassFromString(@"SBCoverSheetAnimationController")) {
-			%init(CoverSheetAnimationSpeedHooks);
-		}
-		if (NSClassFromString(@"SBUIAnimationController")) {
-			%init(SBUIAnimationSpeedHooks);
-		}
-		if (NSClassFromString(@"SBFolderController")) {
-			%init(FolderAnimationSpeedHooks);
-		}
-
-		// 监听静音开关状态变化
+		// 监听静音开关状态变化		// 监听静音开关状态变化
 		int ringerToken = 0;
 		notify_register_dispatch("com.apple.springboard.ringerState",
 			&ringerToken,

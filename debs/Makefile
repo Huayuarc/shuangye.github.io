@@ -42,14 +42,20 @@ endif
 
 include $(THEOS)/makefiles/common.mk
 
-TWEAK_NAME = Systempro
-Systempro_FILES = Tweak.xm
-Systempro_CFLAGS = -fobjc-arc
-Systempro_FRAMEWORKS = UIKit Foundation
+TWEAK_NAME = Systempro SystemproUnseen
+Systempro_FILES = Tweak.xm DynamicIslandHooks.xm DIContentView.m DIWindow.m DIDisplayManager.m DILocalization.m
+Systempro_CFLAGS += -fobjc-arc
+Systempro_FRAMEWORKS = UIKit Foundation CoreGraphics QuartzCore
+
+SystemproUnseen_FILES = SystemproUnseen.mm
+SystemproUnseen_CFLAGS += -fobjc-arc -I$(THEOS_PROJECT_DIR)/include
+SystemproUnseen_LDFLAGS += -L$(THEOS_PROJECT_DIR)/lib
+SystemproUnseen_LIBRARIES += dobby
+SystemproUnseen_FRAMEWORKS = Foundation CoreFoundation
 
 BUNDLE_NAME = LSILLSettings
 LSILLSettings_FILES = Settings/LLRootListController.m
-LSILLSettings_CFLAGS = -fobjc-arc
+LSILLSettings_CFLAGS += -fobjc-arc
 LSILLSettings_FRAMEWORKS = UIKit
 LSILLSettings_PRIVATE_FRAMEWORKS = Preferences
 LSILLSettings_INSTALL_PATH = /Library/PreferenceBundles
@@ -57,13 +63,14 @@ LSILLSettings_INSTALL_PATH = /Library/PreferenceBundles
 # roothide 需要链接 libroothide
 ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
 Systempro_LDFLAGS += -lroothide
+SystemproUnseen_LDFLAGS += -lroothide
 LSILLSettings_LDFLAGS += -lroothide
 endif
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 include $(THEOS_MAKE_PATH)/bundle.mk
 
-INSTALL_TARGET_PROCESSES := SpringBoard
+INSTALL_TARGET_PROCESSES := SpringBoard backboardd
 
 after-stage::
 	$(ECHO_NOTHING)mkdir -p "$(THEOS_STAGING_DIR)tmp$(THEOS_PACKAGE_INSTALL_PREFIX)"$(ECHO_END)
@@ -73,12 +80,15 @@ after-stage::
 	$(ECHO_NOTHING)cp Settings/Notification.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/Disable.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/System.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
+	$(ECHO_NOTHING)cp Settings/DynamicIsland.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/Info.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/Systempro@2x.png "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/Systempro@3x.png "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
+	$(ECHO_NOTHING)cp -R Settings/zh-Hans.lproj "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
+	$(ECHO_NOTHING)cp -R Settings/en.lproj "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
 
 after-install::
-	$(ECHO_NOTHING)echo "[Systempro] 安装完成！SpringBoard 即将自动重启使插件生效。"$(ECHO_END)
+	$(ECHO_NOTHING)echo "[Systempro] 安装完成！SpringBoard/backboardd 即将自动重启使插件生效。"$(ECHO_END)
 
 # 修正 deb 包 Architecture 字段（适配双方案）
 ifeq ($(THEOS_PACKAGE_SCHEME),roothide)

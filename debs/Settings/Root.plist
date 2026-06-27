@@ -18,6 +18,16 @@
 			<key>cell</key>
 			<string>PSLinkCell</string>
 			<key>detail</key>
+			<string>LLDynamicIslandListController</string>
+			<key>isController</key>
+			<true/>
+			<key>label</key>
+			<string>灵动岛</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>detail</key>
 			<string>LLDisableListController</string>
 			<key>isController</key>
 			<true/>

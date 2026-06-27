@@ -4,6 +4,10 @@
 #import <notify.h>
 #import <dlfcn.h>
 #import <spawn.h>
+#import <signal.h>
+#import <stdlib.h>
+#import <string.h>
+#import <sys/sysctl.h>
 #import <unistd.h>
 
 static NSString *const kPrefPath          = @"/var/mobile/Library/Preferences/com.huayuarc.systempro.plist";
@@ -41,6 +45,12 @@ static BOOL LSPerformRespring(void) {
 	return LSLaunchExecutable(killallPath, killallArguments);
 }
 
+static BOOL LSRestartRenderServices(void) {
+	const char *killallPath = LSExecutablePath("/usr/bin/killall", "/var/jb/usr/bin/killall", "/usr/bin/killall");
+	char *const arguments[] = {(char *)"killall", (char *)"-TERM", (char *)"backboardd", (char *)"SpringBoard", NULL};
+	return LSLaunchExecutable(killallPath, arguments);
+}
+
 typedef NS_ENUM(NSInteger, LSBlockMode) {
 	LSBlockModeLowPower = 0,
 	LSBlockModeSilent   = 1,
@@ -61,6 +71,9 @@ static NSInteger sanitizedBlockMode(id value) {
 @end
 
 @interface LLNotificationListController : LLRootListController
+@end
+
+@interface LLDynamicIslandListController : LLRootListController
 @end
 
 @interface LLDisableListController : LLRootListController
@@ -174,12 +187,99 @@ static NSInteger sanitizedBlockMode(id value) {
 	[self presentViewController:alert animated:YES completion:nil];
 }
 
+- (void)restartRenderServices {
+	UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"重启渲染服务"
+		message:@"将重启 backboardd 和 SpringBoard，使隐藏录屏状态/隐藏画面相关设置立即生效。屏幕可能短暂变黑。"
+		preferredStyle:UIAlertControllerStyleAlert];
+	[alert addAction:[UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:nil]];
+	[alert addAction:[UIAlertAction actionWithTitle:@"重启" style:UIAlertActionStyleDestructive handler:^(__unused UIAlertAction *action) {
+		notify_post(kNotifyPrefsChanged);
+		LSRestartRenderServices();
+	}]];
+	[self presentViewController:alert animated:YES completion:nil];
+}
+
+- (NSDictionary *)defaultValues {
+	return @{};
+}
+
+- (void)saveAllPrefs {
+	NSDictionary *defaults = [self defaultValues];
+	if (defaults.count == 0) return;
+
+	NSMutableDictionary *prefs = [NSMutableDictionary dictionaryWithContentsOfFile:kPrefPath];
+	if (!prefs) prefs = [NSMutableDictionary dictionary];
+
+	for (NSString *key in defaults) {
+		if (!prefs[key]) prefs[key] = defaults[key];
+	}
+
+	[prefs writeToFile:kPrefPath atomically:YES];
+	notify_post(kNotifyPrefsChanged);
+
+	UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"已保存"
+		message:[NSString stringWithFormat:@"已写入 %lu 项灵动岛设置", (unsigned long)defaults.count]
+		preferredStyle:UIAlertControllerStyleAlert];
+	[alert addAction:[UIAlertAction actionWithTitle:@"好" style:UIAlertActionStyleDefault handler:nil]];
+	[self presentViewController:alert animated:YES completion:nil];
+}
+
+- (void)resetAllPrefs {
+	NSDictionary *defaults = [self defaultValues];
+	if (defaults.count == 0) return;
+
+	UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"恢复默认值？"
+		message:@"仅会重置灵动岛分类下的设置，不影响 Systempro 其它功能。"
+		preferredStyle:UIAlertControllerStyleAlert];
+	[alert addAction:[UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:nil]];
+	[alert addAction:[UIAlertAction actionWithTitle:@"恢复" style:UIAlertActionStyleDestructive handler:^(__unused UIAlertAction *action) {
+		NSMutableDictionary *prefs = [NSMutableDictionary dictionaryWithContentsOfFile:kPrefPath];
+		if (!prefs) prefs = [NSMutableDictionary dictionary];
+		[prefs addEntriesFromDictionary:defaults];
+		[prefs writeToFile:kPrefPath atomically:YES];
+		notify_post(kNotifyPrefsChanged);
+		self->_specifiers = nil;
+		[self reloadSpecifiers];
+	}]];
+	[self presentViewController:alert animated:YES completion:nil];
+}
+
 @end
 
 @implementation LLNotificationListController
 
 - (NSString *)specifiersPlistName {
 	return @"Notification";
+}
+
+@end
+
+@implementation LLDynamicIslandListController
+
+- (NSString *)specifiersPlistName {
+	return @"DynamicIsland";
+}
+
+- (NSDictionary *)defaultValues {
+	return @{
+		@"islandEnabled": @NO,
+		@"yOffset": @45,
+		@"compactW": @155,
+		@"compactH": @35,
+		@"expandedW": @340,
+		@"fullW": @370,
+		@"fullH": @175,
+		@"reappearDelay": @1,
+		@"notificationEnabled": @NO,
+		@"notifDuration": @3,
+		@"mediaCornerRadius": @18,
+		@"notifCornerRadius": @22,
+		@"borderEnabled": @NO,
+		@"borderWidth": @1.5,
+		@"borderR": @255,
+		@"borderG": @255,
+		@"borderB": @255,
+	};
 }
 
 @end

@@ -50,6 +50,60 @@
 		</dict>
 		<dict>
 			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>下面 3 项来自 Unseen，受“屏蔽截图录制检测”总开关控制。开启后 App 通常无法通过系统通知得知截图/录屏状态，且截图和录屏可显示使用私有图层标记隐藏的普通内容；隐藏画面与录屏状态功能需要重启渲染服务后完全生效。</string>
+			<key>label</key>
+			<string>Unseen 增强</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>key</key>
+			<string>unseenRevealHiddenContent</string>
+			<key>label</key>
+			<string>显示被隐藏的画面</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>key</key>
+			<string>unseenHideScreenshotEvents</string>
+			<key>label</key>
+			<string>隐藏截图行为</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>key</key>
+			<string>unseenHideRecordingState</string>
+			<key>label</key>
+			<string>隐藏录屏/投屏状态</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>restartRenderServices</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>isDestructive</key>
+			<true/>
+			<key>label</key>
+			<string>重启渲染服务</string>
+		</dict>
+		<dict>
+			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
 			<false/>
@@ -158,30 +212,6 @@
 			<key>defaults</key>
 			<string>com.huayuarc.systempro</string>
 			<key>key</key>
-			<string>doubleTapToLock</string>
-			<key>label</key>
-			<string>双击锁屏</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSSwitchCell</string>
-			<key>default</key>
-			<false/>
-			<key>defaults</key>
-			<string>com.huayuarc.systempro</string>
-			<key>key</key>
-			<string>doubleTapToWake</string>
-			<key>label</key>
-			<string>双击亮屏</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSSwitchCell</string>
-			<key>default</key>
-			<false/>
-			<key>defaults</key>
-			<string>com.huayuarc.systempro</string>
-			<key>key</key>
 			<string>disableIconFlyIn</string>
 			<key>label</key>
 			<string>禁用图标飞入动画</string>
@@ -197,246 +227,6 @@
 			<string>zeroWakeAnimation</string>
 			<key>label</key>
 			<string>零唤醒动画</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSLinkListCell</string>
-			<key>default</key>
-			<integer>0</integer>
-			<key>defaults</key>
-			<string>com.huayuarc.systempro</string>
-			<key>detail</key>
-			<string>PSListItemsController</string>
-			<key>key</key>
-			<string>switcherStyle</string>
-			<key>label</key>
-			<string>应用切换器布局</string>
-			<key>validTitles</key>
-			<array>
-				<string>停用 (Deck)</string>
-				<string>网格 (Grid)</string>
-				<string>自动 (Auto)</string>
-			</array>
-			<key>validValues</key>
-			<array>
-				<integer>0</integer>
-				<integer>1</integer>
-				<integer>2</integer>
-			</array>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSLinkListCell</string>
-			<key>default</key>
-			<integer>4</integer>
-			<key>defaults</key>
-			<string>com.huayuarc.systempro</string>
-			<key>detail</key>
-			<string>PSListItemsController</string>
-			<key>key</key>
-			<string>switcherColumns</string>
-			<key>label</key>
-			<string>网格列数</string>
-			<key>validTitles</key>
-			<array>
-				<string>3 列</string>
-				<string>4 列</string>
-				<string>5 列</string>
-				<string>6 列</string>
-			</array>
-			<key>validValues</key>
-			<array>
-				<integer>3</integer>
-				<integer>4</integer>
-				<integer>5</integer>
-				<integer>6</integer>
-			</array>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSLinkListCell</string>
-			<key>default</key>
-			<integer>0</integer>
-			<key>defaults</key>
-			<string>com.huayuarc.systempro</string>
-			<key>detail</key>
-			<string>PSListItemsController</string>
-			<key>key</key>
-			<string>switcherInsetTop</string>
-			<key>label</key>
-			<string>上边距偏移</string>
-			<key>validTitles</key>
-			<array>
-				<string>-30</string>
-				<string>-20</string>
-				<string>-10</string>
-				<string>0</string>
-				<string>10</string>
-				<string>20</string>
-				<string>30</string>
-			</array>
-			<key>validValues</key>
-			<array>
-				<real>-30.0</real>
-				<real>-20.0</real>
-				<real>-10.0</real>
-				<real>0.0</real>
-				<real>10.0</real>
-				<real>20.0</real>
-				<real>30.0</real>
-			</array>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSLinkListCell</string>
-			<key>default</key>
-			<integer>0</integer>
-			<key>defaults</key>
-			<string>com.huayuarc.systempro</string>
-			<key>detail</key>
-			<string>PSListItemsController</string>
-			<key>key</key>
-			<string>switcherInsetBottom</string>
-			<key>label</key>
-			<string>下边距偏移</string>
-			<key>validTitles</key>
-			<array>
-				<string>-30</string>
-				<string>-20</string>
-				<string>-10</string>
-				<string>0</string>
-				<string>10</string>
-				<string>20</string>
-				<string>30</string>
-			</array>
-			<key>validValues</key>
-			<array>
-				<real>-30.0</real>
-				<real>-20.0</real>
-				<real>-10.0</real>
-				<real>0.0</real>
-				<real>10.0</real>
-				<real>20.0</real>
-				<real>30.0</real>
-			</array>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSLinkListCell</string>
-			<key>default</key>
-			<integer>0</integer>
-			<key>defaults</key>
-			<string>com.huayuarc.systempro</string>
-			<key>detail</key>
-			<string>PSListItemsController</string>
-			<key>key</key>
-			<string>switcherInsetLeft</string>
-			<key>label</key>
-			<string>左边距偏移</string>
-			<key>validTitles</key>
-			<array>
-				<string>-30</string>
-				<string>-20</string>
-				<string>-10</string>
-				<string>0</string>
-				<string>10</string>
-				<string>20</string>
-				<string>30</string>
-			</array>
-			<key>validValues</key>
-			<array>
-				<real>-30.0</real>
-				<real>-20.0</real>
-				<real>-10.0</real>
-				<real>0.0</real>
-				<real>10.0</real>
-				<real>20.0</real>
-				<real>30.0</real>
-			</array>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSLinkListCell</string>
-			<key>default</key>
-			<integer>0</integer>
-			<key>defaults</key>
-			<string>com.huayuarc.systempro</string>
-			<key>detail</key>
-			<string>PSListItemsController</string>
-			<key>key</key>
-			<string>switcherInsetRight</string>
-			<key>label</key>
-			<string>右边距偏移</string>
-			<key>validTitles</key>
-			<array>
-				<string>-30</string>
-				<string>-20</string>
-				<string>-10</string>
-				<string>0</string>
-				<string>10</string>
-				<string>20</string>
-				<string>30</string>
-			</array>
-			<key>validValues</key>
-			<array>
-				<real>-30.0</real>
-				<real>-20.0</real>
-				<real>-10.0</real>
-				<real>0.0</real>
-				<real>10.0</real>
-				<real>20.0</real>
-				<real>30.0</real>
-			</array>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSSwitchCell</string>
-			<key>default</key>
-			<false/>
-			<key>defaults</key>
-			<string>com.huayuarc.systempro</string>
-			<key>key</key>
-			<string>hideAppLabels</string>
-			<key>label</key>
-			<string>隐藏应用图标标签</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSGroupCell</string>
-			<key>footerText</key>
-			<string>控制 SpringBoard 全局动画速度。修改后可能需要解锁再锁屏才能看到效果。设置为"正常(1x)"时完全无性能开销。</string>
-			<key>label</key>
-			<string>动画速度</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSLinkListCell</string>
-			<key>default</key>
-			<integer>2</integer>
-			<key>defaults</key>
-			<string>com.huayuarc.systempro</string>
-			<key>detail</key>
-			<string>PSListItemsController</string>
-			<key>key</key>
-			<string>animationSpeed</string>
-			<key>label</key>
-			<string>系统动画速度</string>
-			<key>validTitles</key>
-			<array>
-				<string>极慢 (0.25x)</string>
-				<string>慢 (0.5x)</string>
-				<string>正常 (1x)</string>
-				<string>快 (2x)</string>
-				<string>极快 (4x)</string>
-			</array>
-			<key>validValues</key>
-			<array>
-				<integer>0</integer>
-				<integer>1</integer>
-				<integer>2</integer>
-				<integer>3</integer>
-				<integer>4</integer>
-			</array>
 		</dict>
 	</array>
 	<key>title</key>
