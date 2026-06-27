@@ -16,7 +16,10 @@ typedef CFDictionaryRef (*CPUthermalIOReportCreateSamplesDeltaFn)(CFDictionaryRe
 typedef int (*CPUthermalIOReportIterateFn)(CFDictionaryRef, int (^)(CFDictionaryRef));
 typedef int64_t (*CPUthermalIOReportSimpleGetIntegerValueFn)(CFDictionaryRef, int);
 typedef CFStringRef (*CPUthermalIOReportChannelGetChannelNameFn)(CFDictionaryRef);
-typedef CFStringRef (*CPUthermalIOReportSampleCopyDescriptionFn)(CFDictionaryRef);
+typedef CFStringRef (*CPUthermalIOReportChannelGetUnitLabelFn)(CFDictionaryRef);
+typedef int (*CPUthermalIOReportStateGetCountFn)(CFDictionaryRef);
+typedef CFStringRef (*CPUthermalIOReportStateGetNameForIndexFn)(CFDictionaryRef, int);
+typedef int64_t (*CPUthermalIOReportStateGetResidencyFn)(CFDictionaryRef, int);
 
 @interface CPUthermalFreqCCModuleViewController () {
     void *_ioReportHandle;
@@ -27,7 +30,10 @@ typedef CFStringRef (*CPUthermalIOReportSampleCopyDescriptionFn)(CFDictionaryRef
     CPUthermalIOReportIterateFn _ioReportIterate;
     CPUthermalIOReportSimpleGetIntegerValueFn _ioReportSimpleGetIntegerValue;
     CPUthermalIOReportChannelGetChannelNameFn _ioReportChannelGetChannelName;
-    CPUthermalIOReportSampleCopyDescriptionFn _ioReportSampleCopyDescription;
+    CPUthermalIOReportChannelGetUnitLabelFn _ioReportChannelGetUnitLabel;
+    CPUthermalIOReportStateGetCountFn _ioReportStateGetCount;
+    CPUthermalIOReportStateGetNameForIndexFn _ioReportStateGetNameForIndex;
+    CPUthermalIOReportStateGetResidencyFn _ioReportStateGetResidency;
 
     CPUthermalIOReportSubscriptionRef _clpcSubscription;
     CFMutableDictionaryRef _clpcChannels;
@@ -187,12 +193,16 @@ typedef CFStringRef (*CPUthermalIOReportSampleCopyDescriptionFn)(CFDictionaryRef
         _ioReportIterate = (CPUthermalIOReportIterateFn)dlsym(_ioReportHandle, "IOReportIterate");
         _ioReportSimpleGetIntegerValue = (CPUthermalIOReportSimpleGetIntegerValueFn)dlsym(_ioReportHandle, "IOReportSimpleGetIntegerValue");
         _ioReportChannelGetChannelName = (CPUthermalIOReportChannelGetChannelNameFn)dlsym(_ioReportHandle, "IOReportChannelGetChannelName");
-        _ioReportSampleCopyDescription = (CPUthermalIOReportSampleCopyDescriptionFn)dlsym(_ioReportHandle, "IOReportSampleCopyDescription");
+        _ioReportChannelGetUnitLabel = (CPUthermalIOReportChannelGetUnitLabelFn)dlsym(_ioReportHandle, "IOReportChannelGetUnitLabel");
+        _ioReportStateGetCount = (CPUthermalIOReportStateGetCountFn)dlsym(_ioReportHandle, "IOReportStateGetCount");
+        _ioReportStateGetNameForIndex = (CPUthermalIOReportStateGetNameForIndexFn)dlsym(_ioReportHandle, "IOReportStateGetNameForIndex");
+        _ioReportStateGetResidency = (CPUthermalIOReportStateGetResidencyFn)dlsym(_ioReportHandle, "IOReportStateGetResidency");
     }
 
     if (!_ioReportCopyChannelsInGroup || !_ioReportCreateSubscription || !_ioReportCreateSamples ||
         !_ioReportCreateSamplesDelta || !_ioReportIterate || !_ioReportSimpleGetIntegerValue ||
-        !_ioReportChannelGetChannelName || !_ioReportSampleCopyDescription) {
+        !_ioReportChannelGetChannelName || !_ioReportChannelGetUnitLabel || !_ioReportStateGetCount ||
+        !_ioReportStateGetNameForIndex || !_ioReportStateGetResidency) {
         return NO;
     }
 
@@ -325,10 +335,7 @@ typedef CFStringRef (*CPUthermalIOReportSampleCopyDescriptionFn)(CFDictionaryRef
         if (![name hasPrefix:S("PCPU")] && ![name hasPrefix:S("ECPU")]) return 0;
         if ([name isEqualToString:S("PCPM")] || [name isEqualToString:S("ECPM")]) return 0;
 
-        CFStringRef descriptionRef = _ioReportSampleCopyDescription(sample);
-        if (!descriptionRef) return 0;
-        double activeSeconds = [self activeSecondsFromDescription:(__bridge NSString *)descriptionRef];
-        CFRelease(descriptionRef);
+        double activeSeconds = [self activeSecondsFromStateSample:sample];
 
         if ([name hasPrefix:S("PCPU")]) {
             pValue += activeSeconds;
@@ -341,30 +348,45 @@ typedef CFStringRef (*CPUthermalIOReportSampleCopyDescriptionFn)(CFDictionaryRef
     if (eSeconds) *eSeconds = eValue;
 }
 
-- (double)activeSecondsFromDescription:(NSString *)description {
-    if (description.length == 0) return 0.0;
+- (double)activeSecondsFromStateSample:(CFDictionaryRef)sample {
+    int stateCount = _ioReportStateGetCount(sample);
+    if (stateCount <= 0 || stateCount > 256) return 0.0;
+
+    NSString *unitLabel = (__bridge NSString *)_ioReportChannelGetUnitLabel(sample);
+    double divisor = [self residencySecondsDivisorForUnitLabel:unitLabel];
+    if (divisor <= 0.0) return 0.0;
+
     double seconds = 0.0;
-    NSArray<NSString *> *lines = [description componentsSeparatedByCharactersInSet:[NSCharacterSet newlineCharacterSet]];
-    NSCharacterSet *whitespace = [NSCharacterSet whitespaceAndNewlineCharacterSet];
+    for (int index = 0; index < stateCount; index++) {
+        NSString *stateName = (__bridge NSString *)_ioReportStateGetNameForIndex(sample, index);
+        if ([self shouldIgnoreResidencyStateName:stateName atIndex:index]) continue;
 
-    for (NSString *line in lines) {
-        if (![line containsString:S("[")] || ![line containsString:S(" s /")]) continue;
-        if ([line containsString:S("IDLE")]) continue;
+        int64_t residency = _ioReportStateGetResidency(sample, index);
+        if (residency <= 0) continue;
 
-        NSRange secondsRange = [line rangeOfString:S(" s /")];
-        if (secondsRange.location == NSNotFound || secondsRange.location == 0) continue;
-
-        NSString *beforeSeconds = [line substringToIndex:secondsRange.location];
-        NSArray<NSString *> *parts = [beforeSeconds componentsSeparatedByCharactersInSet:whitespace];
-        for (NSInteger index = (NSInteger)parts.count - 1; index >= 0; index--) {
-            NSString *part = parts[(NSUInteger)index];
-            if (part.length == 0) continue;
-            seconds += [part doubleValue];
-            break;
-        }
+        seconds += (double)residency / divisor;
     }
 
     return seconds;
+}
+
+- (BOOL)shouldIgnoreResidencyStateName:(NSString *)stateName atIndex:(int)index {
+    if (stateName.length == 0) return index == 0;
+
+    NSString *uppercaseName = [stateName uppercaseString];
+    return [uppercaseName isEqualToString:S("IDLE")] ||
+           [uppercaseName isEqualToString:S("DOWN")] ||
+           [uppercaseName isEqualToString:S("OFF")];
+}
+
+- (double)residencySecondsDivisorForUnitLabel:(NSString *)unitLabel {
+    NSString *trimmedUnit = [unitLabel stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    if ([trimmedUnit isEqualToString:S("s")]) return 1.0;
+    if ([trimmedUnit isEqualToString:S("ms")]) return 1000.0;
+    if ([trimmedUnit isEqualToString:S("us")]) return 1000000.0;
+    if ([trimmedUnit isEqualToString:S("ns")]) return 1000000000.0;
+    if ([trimmedUnit isEqualToString:S("24Mticks")] || [trimmedUnit containsString:S("24M")]) return 24000000.0;
+    return 1000000000.0;
 }
 
 - (NSInteger)dynamicFrequencyFromIORegistry {
