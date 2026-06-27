@@ -27,12 +27,13 @@ CPUthermalPrefHook_LDFLAGS += -lroothide
 endif
 include $(THEOS_MAKE_PATH)/tweak.mk
 
-BUNDLE_NAME = CPUthermalSettings CPUthermalCC
+BUNDLE_NAME = CPUthermalSettings CPUthermalCC CPUthermalFreqCC
 
 # PreferenceBundle: 设置面板
 CPUthermalSettings_FILES = Settings/FRootListController.m
 CPUthermalSettings_INSTALL_PATH = /Library/PreferenceBundles
 CPUthermalSettings_CFLAGS = -fobjc-arc -Iinclude
+CPUthermalSettings_CODESIGN_FLAGS = -SSettings/Settings.entitlements
 CPUthermalSettings_FRAMEWORKS = UIKit Foundation
 CPUthermalSettings_PRIVATE_FRAMEWORKS = Preferences
 ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
@@ -49,22 +50,36 @@ ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
 CPUthermalCC_LDFLAGS += -lroothide
 endif
 
+# ControlCenter Bundle: CPU 真实频率显示模块
+CPUthermalFreqCC_FILES = CCModule/CPUthermalFreqCCModule.m CCModule/CPUthermalFreqCCModuleViewController.m
+CPUthermalFreqCC_CFLAGS = -fobjc-arc -Iinclude
+CPUthermalFreqCC_CODESIGN_FLAGS = -SCCModule/CPUthermalFreq.entitlements
+CPUthermalFreqCC_FRAMEWORKS = Foundation UIKit CoreFoundation IOKit QuartzCore ControlCenterUIKit
+CPUthermalFreqCC_PRIVATE_FRAMEWORKS = ControlCenterUIKit
+CPUthermalFreqCC_LDFLAGS += -lIOReport
+CPUthermalFreqCC_INSTALL_PATH = /Library/ControlCenter/Bundles/
+ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
+CPUthermalFreqCC_LDFLAGS += -lroothide
+endif
+
 include $(THEOS_MAKE_PATH)/bundle.mk
 
 # 用户空间重启工具
 TOOL_NAME = CPUthermalTool
 CPUthermalTool_FILES = Tools/CPUthermalTool.m
-CPUthermalTool_CFLAGS = -fobjc-arc
+CPUthermalTool_CFLAGS = -fobjc-arc -Iinclude
 CPUthermalTool_CODESIGN_FLAGS = -STools/CPUthermalTool.entitlements
 CPUthermalTool_INSTALL_PATH = /usr/local/bin
 include $(THEOS_MAKE_PATH)/tool.mk
 
 after-stage::
-	$(ECHO_NOTHING)mkdir -p "$(THEOS_STAGING_DIR)/Library/PreferenceLoader/Preferences" "$(THEOS_STAGING_DIR)/DEBIAN" "$(THEOS_STAGING_DIR)/Library/ControlCenter/Bundles/CPUthermalCC.bundle"$(ECHO_END)
+	$(ECHO_NOTHING)mkdir -p "$(THEOS_STAGING_DIR)/Library/PreferenceLoader/Preferences" "$(THEOS_STAGING_DIR)/DEBIAN" "$(THEOS_STAGING_DIR)/Library/ControlCenter/Bundles/CPUthermalCC.bundle" "$(THEOS_STAGING_DIR)/Library/ControlCenter/Bundles/CPUthermalFreqCC.bundle"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/entry.plist "$(THEOS_STAGING_DIR)/Library/PreferenceLoader/Preferences/CPUthermalSettings.plist"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/Info.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/CPUthermalSettings.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/Root.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/CPUthermalSettings.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/icon.png Settings/icon@2x.png Settings/icon@3x.png "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/CPUthermalSettings.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp CCModule/Info.plist "$(THEOS_STAGING_DIR)/Library/ControlCenter/Bundles/CPUthermalCC.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp CCModule/SettingsIcon.png "$(THEOS_STAGING_DIR)/Library/ControlCenter/Bundles/CPUthermalCC.bundle/"$(ECHO_END)
+	$(ECHO_NOTHING)cp CCModule/CPUthermalFreqInfo.plist "$(THEOS_STAGING_DIR)/Library/ControlCenter/Bundles/CPUthermalFreqCC.bundle/Info.plist"$(ECHO_END)
+	$(ECHO_NOTHING)cp CCModule/SettingsIcon.png "$(THEOS_STAGING_DIR)/Library/ControlCenter/Bundles/CPUthermalFreqCC.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp postinst "$(THEOS_STAGING_DIR)/DEBIAN/" && chmod 0755 "$(THEOS_STAGING_DIR)/DEBIAN/postinst"$(ECHO_END)

@@ -136,8 +136,8 @@ CPUthermalPowerModeLow  = 1
 
 static CPUthermalPowerMode g_powerMode = CPUthermalPowerModeFull;
 
-// 低功耗模式 CPU 频率范围（MHz）
-static const int64_t kLowPowerMinFrequencyMHz = 1428;
+// 低功耗模式 CPU 频率锁定值（MHz）
+static const int64_t kLowPowerMinFrequencyMHz = 2016;
 static const int64_t kLowPowerMaxFrequencyMHz = 2016;
 
 // 温度安全阀 — 超过此值不拦截任何保护
@@ -152,12 +152,15 @@ static CFAbsoluteTime g_processStartTime = 0;
 static const double kFullPowerBootGuardDuration = 5.0;
 static BOOL g_deferredRuntimeApplyScheduled = NO;
 static BOOL g_fullPowerRecoveryPulseScheduled = NO;
+static BOOL g_lowPowerApplyPulseScheduled = NO;
 
 static BOOL shouldApplyLowPowerLimit(void);
 static int lowPowerTargetValue(void);
 static void applyCurrentPowerModeToRuntime(void);
 static void applyPowerModeToRuntime(BOOL respectBootGuard);
 static void scheduleDeferredRuntimeApply(double delay);
+static void scheduleLowPowerApplyPulse(void);
+static void runLowPowerApplyPulse(int remainingPulses);
 static void scheduleFullPowerRecoveryPulse(void);
 static void runFullPowerRecoveryPulse(int remainingPulses);
 
@@ -202,7 +205,15 @@ return g_enabled && g_cpuProtection && isLowPowerMode();
 }
 
 static int lowPowerTargetValue(void) {
-return 2000;
+return (int)kLowPowerMaxFrequencyMHz;
+}
+
+static int lowPowerPowerCeilingValue(void) {
+return 40;
+}
+
+static int lowPowerPowerFloorValue(void) {
+return 0;
 }
 
 static int fullPowerTargetValue(void) {
@@ -345,7 +356,7 @@ if ([controller respondsToSelector:@selector(setMaxCPUPowerTarget:useLegacyPath:
 sendSetMaxCPUPowerTarget(controller, lowPowerTargetValue(), NO);
 }
 if ([controller respondsToSelector:@selector(setCPUPowerCeiling:fromDecisionSource:)]) {
-((void (*)(id, SEL, int, uintptr_t))objc_msgSend)(controller, @selector(setCPUPowerCeiling:fromDecisionSource:), lowPowerTargetValue(), 0);
+((void (*)(id, SEL, int, uintptr_t))objc_msgSend)(controller, @selector(setCPUPowerCeiling:fromDecisionSource:), lowPowerPowerCeilingValue(), 0);
 }
 if ([controller respondsToSelector:@selector(setCPUPowerZoneTarget:)]) {
 ((void (*)(id, SEL, int))objc_msgSend)(controller, @selector(setCPUPowerZoneTarget:), lowPowerTargetValue());
@@ -465,9 +476,9 @@ if ([g_commonProduct respondsToSelector:@selector(setCPMSMitigationsEnabled:)]) 
 if ([g_commonProduct respondsToSelector:@selector(setCPULevel:)]) {
 ((void (*)(id, SEL, int))objc_msgSend)(g_commonProduct, @selector(setCPULevel:), 1);
 }
-setCommonProductCeiling(@selector(setCPUPowerCeiling:fromDecisionSource:), 40);
-setCommonProductCeiling(@selector(setGPUPowerCeiling:fromDecisionSource:), 40);
-setCommonProductCeiling(@selector(setPackagePowerCeiling:fromDecisionSource:), 40);
+setCommonProductCeiling(@selector(setCPUPowerCeiling:fromDecisionSource:), lowPowerPowerCeilingValue());
+setCommonProductCeiling(@selector(setGPUPowerCeiling:fromDecisionSource:), lowPowerPowerCeilingValue());
+setCommonProductCeiling(@selector(setPackagePowerCeiling:fromDecisionSource:), lowPowerPowerCeilingValue());
 NSLog(@"[CPUthermal] 已主动套用低功耗 CommonProduct 状态");
 } @catch (NSException *exception) {
 NSLog(@"[CPUthermal] 套用低功耗 CommonProduct 状态失败: %@", exception);
@@ -483,6 +494,7 @@ if (!g_enabled || !g_cpuProtection) return;
 if (isLowPowerMode()) {
 applyLowPowerToCommonProduct();
 applyLowPowerLimitsToTrackedControllers();
+scheduleLowPowerApplyPulse();
 return;
 }
 if (isFullPowerMode()) {
@@ -504,6 +516,30 @@ g_deferredRuntimeApplyScheduled = YES;
 dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
 g_deferredRuntimeApplyScheduled = NO;
 applyCurrentPowerModeToRuntime();
+});
+}
+
+static void scheduleLowPowerApplyPulse(void) {
+if (g_lowPowerApplyPulseScheduled || !g_enabled || !g_cpuProtection || !isLowPowerMode()) return;
+g_lowPowerApplyPulseScheduled = YES;
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.05 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+runLowPowerApplyPulse(8);
+});
+}
+
+static void runLowPowerApplyPulse(int remainingPulses) {
+if (remainingPulses <= 0 || !g_enabled || !g_cpuProtection || !isLowPowerMode()) {
+g_lowPowerApplyPulseScheduled = NO;
+return;
+}
+applyLowPowerToCommonProduct();
+applyLowPowerLimitsToTrackedControllers();
+if (remainingPulses <= 1) {
+g_lowPowerApplyPulseScheduled = NO;
+return;
+}
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.25 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+runLowPowerApplyPulse(remainingPulses - 1);
 });
 }
 
@@ -539,15 +575,17 @@ BOOL isCPUKey = [lower containsString:S("cpu")] ||
 [lower containsString:S("processor")];
 BOOL isFrequencyKey = [lower containsString:S("freq")] ||
 [lower containsString:S("frequency")];
-BOOL isLimitKey = [lower containsString:S("min")] ||
-[lower containsString:S("max")] ||
-[lower containsString:S("limit")] ||
-[lower containsString:S("floor")] ||
-[lower containsString:S("ceiling")] ||
-[lower containsString:S("target")] ||
-[lower containsString:S("lowpower")];
-BOOL isPowerLimitKey = isCPUKey && [lower containsString:S("power")] && isLimitKey;
-return (isCPUKey && isFrequencyKey) || isPowerLimitKey;
+BOOL isLowPowerTargetKey = (isCPUKey || [lower containsString:S("package")]) &&
+[lower containsString:S("lowpower")] &&
+[lower containsString:S("target")];
+BOOL isMaxCPUPowerTargetKey = isCPUKey &&
+[lower containsString:S("max")] &&
+[lower containsString:S("power")] &&
+[lower containsString:S("target")];
+BOOL isPowerZoneTargetKey = isCPUKey &&
+[lower containsString:S("powerzone")] &&
+[lower containsString:S("target")];
+return (isCPUKey && isFrequencyKey) || isLowPowerTargetKey || isMaxCPUPowerTargetKey || isPowerZoneTargetKey;
 }
 
 static int64_t frequencyMHzFromValue(int64_t value) {
@@ -1353,9 +1391,8 @@ if (g_restoringFullPower) {
 return;
 }
 if (shouldApplyLowPowerLimit()) {
-int64_t clamped = clampLowPowerFrequencyValue(ceiling);
 rememberOriginalIntValue(self, "CPUPowerCeiling", ceiling);
-%orig((int)clamped, source);
+%orig(lowPowerPowerCeilingValue(), source);
 return;
 }
 if (shouldApplyFullCPUProtection()) {
@@ -1371,9 +1408,8 @@ if (g_restoringFullPower) {
 return;
 }
 if (shouldApplyLowPowerLimit()) {
-int64_t clamped = clampLowPowerFrequencyValue(floor);
 rememberOriginalIntValue(self, "CPUPowerFloor", floor);
-%orig((int)clamped, source);
+%orig(lowPowerPowerFloorValue(), source);
 return;
 }
 if (shouldApplyFullCPUProtection()) {

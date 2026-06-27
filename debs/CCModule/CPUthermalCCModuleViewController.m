@@ -65,19 +65,26 @@
     CPUthermalWritePrefs(prefs);
     notify_post(kCPUthermalSettingsChangedNotifC);
     notify_post(kCPUthermalPowerModeChangedNotifC);
+    [self restartThermalmonitord];
 }
 
 /// 重启 thermalmonitord 进程
 - (void)restartThermalmonitord {
-    pid_t pid;
-    char *args[] = {"killall", "-q", "thermalmonitord", NULL};
-    const char *paths[] = {"/var/jb/usr/bin/killall", "/usr/bin/killall", NULL};
-    for (int i = 0; paths[i]; i++) {
-        if ([[NSFileManager defaultManager] fileExistsAtPath:S(paths[i])]) {
-            if (posix_spawn(&pid, paths[i], NULL, NULL, args, NULL) == 0) {
-                waitpid(pid, NULL, 0);
-            }
+    pid_t pid = 0;
+    NSString *toolPath = CPUthermalToolPath();
+    if (toolPath.length > 0 && [[NSFileManager defaultManager] isExecutableFileAtPath:toolPath]) {
+        char *args[] = {"CPUthermalTool", "restart-thermalmonitord", NULL};
+        if (posix_spawn(&pid, [toolPath fileSystemRepresentation], NULL, NULL, args, NULL) == 0) {
+            waitpid(pid, NULL, 0);
             return;
+        }
+    }
+
+    NSString *killallPath = CPUthermalKillallPath();
+    if (killallPath.length > 0) {
+        char *args[] = {"killall", "-q", "thermalmonitord", NULL};
+        if (posix_spawn(&pid, [killallPath fileSystemRepresentation], NULL, NULL, args, NULL) == 0) {
+            waitpid(pid, NULL, 0);
         }
     }
 }

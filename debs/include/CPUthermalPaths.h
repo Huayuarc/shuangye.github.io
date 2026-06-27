@@ -49,6 +49,55 @@ static inline NSArray<NSString *> *CPUthermalLegacyPrefPaths(void) {
     return paths;
 }
 
+static inline NSString *CPUthermalExistingExecutablePath(const char *rootFSPath, NSArray<NSString *> *fallbackPaths) {
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    NSString *resolvedPath = CPUthermalJBRootPathForRootFSPath(rootFSPath);
+    if (resolvedPath.length > 0 && [fileManager isExecutableFileAtPath:resolvedPath]) {
+        return resolvedPath;
+    }
+
+    for (NSString *path in fallbackPaths) {
+        if (path.length > 0 && [fileManager isExecutableFileAtPath:path]) {
+            return path;
+        }
+    }
+
+    return resolvedPath;
+}
+
+static inline NSString *CPUthermalLaunchctlPath(void) {
+    return CPUthermalExistingExecutablePath("/usr/bin/launchctl", @[
+        S("/var/jb/usr/bin/launchctl"),
+        S("/var/jb/bin/launchctl"),
+        S("/usr/bin/launchctl"),
+        S("/bin/launchctl")
+    ]);
+}
+
+static inline NSString *CPUthermalKillallPath(void) {
+    return CPUthermalExistingExecutablePath("/usr/bin/killall", @[
+        S("/var/jb/usr/bin/killall"),
+        S("/var/jb/bin/killall"),
+        S("/usr/bin/killall"),
+        S("/bin/killall")
+    ]);
+}
+
+static inline NSString *CPUthermalSBReloadPath(void) {
+    return CPUthermalExistingExecutablePath("/usr/bin/sbreload", @[
+        S("/var/jb/usr/bin/sbreload"),
+        S("/var/jb/bin/sbreload"),
+        S("/usr/bin/sbreload")
+    ]);
+}
+
+static inline NSString *CPUthermalToolPath(void) {
+    return CPUthermalExistingExecutablePath("/usr/local/bin/CPUthermalTool", @[
+        S("/var/jb/usr/local/bin/CPUthermalTool"),
+        S("/usr/local/bin/CPUthermalTool")
+    ]);
+}
+
 static inline void CPUthermalEnsurePrefDirectory(void) {
     NSString *path = CPUthermalCurrentPrefPath();
     NSString *directory = [path stringByDeletingLastPathComponent];

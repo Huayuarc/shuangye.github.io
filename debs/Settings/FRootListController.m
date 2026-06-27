@@ -62,15 +62,21 @@ return S("解除温控");
 }
 
 - (void)restartThermalmonitord {
-pid_t pid;
-char *args[] = {"killall", "-q", "thermalmonitord", NULL};
-const char *paths[] = {"/var/jb/usr/bin/killall", "/usr/bin/killall", NULL};
-for (int i = 0; paths[i]; i++) {
-if ([[NSFileManager defaultManager] fileExistsAtPath:S(paths[i])]) {
-if (posix_spawn(&pid, paths[i], NULL, NULL, args, NULL) == 0) {
+pid_t pid = 0;
+NSString *toolPath = CPUthermalToolPath();
+if (toolPath.length > 0 && [[NSFileManager defaultManager] isExecutableFileAtPath:toolPath]) {
+char *args[] = {"CPUthermalTool", "restart-thermalmonitord", NULL};
+if (posix_spawn(&pid, [toolPath fileSystemRepresentation], NULL, NULL, args, NULL) == 0) {
 waitpid(pid, NULL, 0);
-}
 return;
+}
+}
+
+NSString *killallPath = CPUthermalKillallPath();
+if (killallPath.length > 0) {
+char *args[] = {"killall", "-q", "thermalmonitord", NULL};
+if (posix_spawn(&pid, [killallPath fileSystemRepresentation], NULL, NULL, args, NULL) == 0) {
+waitpid(pid, NULL, 0);
 }
 }
 }
@@ -80,6 +86,7 @@ NSMutableDictionary *prefs = [self prefs];
 prefs[S("powerMode")] = mode ?: S("fullPower");
 [self savePrefs:prefs];
 notify_post(kCPUthermalPowerModeChangedNotifC);
+[self restartThermalmonitord];
 PSSpecifier *specifier = [self specifierForID:S("powerMode")];
 specifier.name = [self powerModeLabel];
 [self reloadSpecifierID:S("powerMode") animated:YES];
@@ -133,7 +140,7 @@ return;
 - (void)showPowerModePicker {
 UIAlertController *alert = [UIAlertController
 alertControllerWithTitle:S("功率模式")
-message:S("低功耗 = 省电并限制 CPU 频率 1428–2016MHz\n解除温控 = 解除全部温控限制")
+message:S("低功耗 = 省电并锁定 CPU 频率 2016MHz\n解除温控 = 解除全部温控限制")
 preferredStyle:UIAlertControllerStyleActionSheet];
 
 NSString *currentMode = [self powerModeValue];
@@ -231,10 +238,22 @@ preferredStyle:UIAlertControllerStyleAlert];
 style:UIAlertActionStyleCancel handler:nil]];
 [alert addAction:[UIAlertAction actionWithTitle:S("确定重启")
 style:UIAlertActionStyleDestructive handler:^(UIAlertAction *action) {
-pid_t pid;
-char *args[] = {"launchctl", "reboot", "userspace", NULL};
-posix_spawn(&pid, "/var/jb/usr/bin/launchctl", NULL, NULL, args, NULL);
+pid_t pid = 0;
+NSString *toolPath = CPUthermalToolPath();
+if (toolPath.length > 0 && [[NSFileManager defaultManager] isExecutableFileAtPath:toolPath]) {
+char *args[] = {"CPUthermalTool", "userspace-reboot", NULL};
+if (posix_spawn(&pid, [toolPath fileSystemRepresentation], NULL, NULL, args, NULL) == 0) {
 waitpid(pid, NULL, 0);
+return;
+}
+}
+
+NSString *launchctlPath = CPUthermalLaunchctlPath();
+if (launchctlPath.length > 0) {
+char *args[] = {"launchctl", "reboot", "userspace", NULL};
+posix_spawn(&pid, [launchctlPath fileSystemRepresentation], NULL, NULL, args, NULL);
+waitpid(pid, NULL, 0);
+}
 }]];
 [self presentViewController:alert animated:YES completion:nil];
 }
@@ -296,7 +315,7 @@ PSSpecifier *master = [self switchSpecifier:S("启用 CPUthermal") key:S("enable
 // ===================== 第2组: 功率模式 =====================
 group = [PSSpecifier emptyGroupSpecifier];
 [group setProperty:S("功率模式") forKey:S("label")];
-[group setProperty:S("低功耗 = 省电并限制 CPU 频率 1428–2016MHz；解除温控 = 解除全部温控限制") forKey:S("footerText")];
+[group setProperty:S("低功耗 = 省电并锁定 CPU 频率 2016MHz；解除温控 = 解除全部温控限制") forKey:S("footerText")];
 [specs addObject:group];
 
 [specs addObject:[self powerModeSpecifier]];
