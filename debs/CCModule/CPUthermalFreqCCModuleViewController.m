@@ -4,6 +4,7 @@
 #import <QuartzCore/QuartzCore.h>
 #import <dlfcn.h>
 #import <math.h>
+#import <float.h>
 #import <sys/sysctl.h>
 #import <stdlib.h>
 #import <mach/mach_time.h>
@@ -20,12 +21,9 @@ static const NSInteger kECPUFreqs[] = { 600, 972, 1332, 1692, 2016 };
 static const NSInteger kPCPUFreqCount = 9;
 static const NSInteger kECPUFreqCount = 5;
 
-// 平滑参数
-static const double kSmoothingAlpha = 0.35;        // 指数平滑系数(值越小越平滑)
-static const double kMaxFrequencyJump = 600.0;     // 每秒最大容忍跳变(MHz)
+// 显示策略：控制中心展示 P-Core（大核）频率，不再展示所有核心驻留平均值。
 static const double kValidMinMHz = 100.0;
 static const double kValidMaxMHz = 3600.0;
-static const NSInteger kMinSamplesBeforeDisplay = 3;  // 至少采集N次再显示
 
 // ============================================================================
 // IOReport 函数指针类型
@@ -67,7 +65,6 @@ typedef int64_t (*IOReportStateGetResidencyFn)(CFDictionaryRef, int);
 
     // 运行时状态
     NSInteger _lastDisplayedMHz;
-    double _smoothedMHz;
     NSInteger _sampleCount;
     BOOL _hasStableReading;
 }
@@ -87,7 +84,6 @@ typedef int64_t (*IOReportStateGetResidencyFn)(CFDictionaryRef, int);
     [super viewDidLoad];
     self.title = S("CPU频率");
     self.view.backgroundColor = [UIColor clearColor];
-    _smoothedMHz = 0.0;
     _sampleCount = 0;
     _hasStableReading = NO;
     _lastDisplayedMHz = 0;
@@ -199,35 +195,16 @@ typedef int64_t (*IOReportStateGetResidencyFn)(CFDictionaryRef, int);
         return;
     }
 
-    // 指数平滑
-    if (_smoothedMHz < kValidMinMHz) {
-        _smoothedMHz = mhz;
-    } else {
-        // 离群值剔除：跳变超过阈值则丢弃
-        double delta = fabs(mhz - _smoothedMHz);
-        if (delta <= kMaxFrequencyJump || _sampleCount < 2) {
-            _smoothedMHz = kSmoothingAlpha * mhz + (1.0 - kSmoothingAlpha) * _smoothedMHz;
-        }
-        // 大幅跳变时不更新平滑值，直接丢弃这帧
-    }
-
     _sampleCount++;
-
-    // 前 N 帧不显示，积累稳定数据
-    if (_sampleCount < kMinSamplesBeforeDisplay) {
-        self.sourceLabel.text = S("WARM");
-        return;
-    }
-
     _hasStableReading = YES;
-    NSInteger displayMHz = [self snapToPState:llround(_smoothedMHz)];
+    NSInteger displayMHz = [self snapToPState:llround(mhz)];
     if (displayMHz <= 0) {
-        displayMHz = (NSInteger)llround(_smoothedMHz);
+        displayMHz = (NSInteger)llround(mhz);
     }
 
     _lastDisplayedMHz = displayMHz;
     self.frequencyLabel.text = [NSString stringWithFormat:S("%ld"), (long)displayMHz];
-    self.sourceLabel.text = S("REAL");
+    self.sourceLabel.text = S("P-CORE");
 }
 
 // ============================================================================
@@ -271,7 +248,7 @@ typedef int64_t (*IOReportStateGetResidencyFn)(CFDictionaryRef, int);
 // ============================================================================
 
 - (double)readCurrentFrequencyMHz {
-    // 第1层：IOReport P-State 驻留计算（最准确）
+    // 第1层：IOReport P-Core 最高有效 P-State（大核当前档位）
     double ioReportFreq = [self ioReportPStateFrequencyMHz];
     if (ioReportFreq >= kValidMinMHz && ioReportFreq <= kValidMaxMHz) {
         return ioReportFreq;
@@ -293,7 +270,7 @@ typedef int64_t (*IOReportStateGetResidencyFn)(CFDictionaryRef, int);
 }
 
 // ============================================================================
-#pragma mark - 第1层：IOReport P-State 驻留时间加权频率
+#pragma mark - 第1层：IOReport P-Core P-State 频率
 // ============================================================================
 
 - (BOOL)setupIOReport {
@@ -365,10 +342,28 @@ typedef int64_t (*IOReportStateGetResidencyFn)(CFDictionaryRef, int);
     }
 }
 
-/// 通过 IOReport P-State 驻留时间计算有效频率
-/// 原理: 每个核心的驻留时间分布在各个 P-State 上
-///       effective_freq = Σ(residency_i * freq_i) / Σ(residency_i)
-///       其中 freq_i 是 P-State i 对应的频率
+/// 通过 IOReport 读取 P-Core（大核）P-State。
+/// 控制中心要显示大核档位，不能把 E-Core 和空闲驻留一起做平均，
+/// 否则轻负载/桌面状态会被小核与低频驻留拖成 1000MHz 左右的动态值。
+- (double)frequencyMHzForPStateIndex:(int)idx stateName:(NSString *)stateName {
+    if (stateName.length > 0) {
+        NSCharacterSet *digits = [NSCharacterSet decimalDigitCharacterSet];
+        NSScanner *scanner = [NSScanner scannerWithString:stateName];
+        while (!scanner.isAtEnd) {
+            [scanner scanUpToCharactersFromSet:digits intoString:NULL];
+            NSInteger value = 0;
+            if ([scanner scanInteger:&value] && value >= kValidMinMHz && value <= kValidMaxMHz) {
+                return (double)value;
+            }
+        }
+    }
+
+    if (idx >= 0 && idx < kPCPUFreqCount) {
+        return (double)kPCPUFreqs[idx];
+    }
+    return (double)kPCPUFreqs[kPCPUFreqCount - 1];
+}
+
 - (double)ioReportPStateFrequencyMHz {
     if (![self setupIOReport]) return 0.0;
 
@@ -390,28 +385,22 @@ typedef int64_t (*IOReportStateGetResidencyFn)(CFDictionaryRef, int);
 
     if (!delta) return 0.0;
 
-    // 从 delta 中解析每个核心每个 P-State 的驻留时间
-    __block double totalWeightedFreq = 0.0;
-    __block double totalResidency = 0.0;
+    __block double bestPCoreFreq = 0.0;
+    __block int64_t bestPCoreResidency = 0;
 
     _ioReportIterate(delta, ^int(CFDictionaryRef sample) {
         NSString *name = (__bridge NSString *)_ioReportChannelGetChannelName(sample);
         if (!name) return 0;
 
-        // 只处理 PCPU 和 ECPU 核心状态
+        // 只处理 PCPU 大核心；ECPU 小核心会导致控制中心显示偏低。
         BOOL isPCPU = [name hasPrefix:S("PCPU")];
-        BOOL isECPU = [name hasPrefix:S("ECPU")];
-        if (!isPCPU && !isECPU) return 0;
+        if (!isPCPU) return 0;
 
-        // 跳过 PM 管理通道（PCPM / ECPM）
-        if ([name isEqualToString:S("PCPM")] || [name isEqualToString:S("ECPM")]) return 0;
+        // 跳过 PM 管理通道。
+        if ([name isEqualToString:S("PCPM")]) return 0;
 
         int stateCount = _ioReportStateGetCount(sample);
         if (stateCount <= 0 || stateCount > 256) return 0;
-
-        // 确定该核心的 P-State 频率表
-        const NSInteger *freqTable = isPCPU ? kPCPUFreqs : kECPUFreqs;
-        NSInteger freqCount = isPCPU ? kPCPUFreqCount : kECPUFreqCount;
 
         // 遍历每个 P-State 索引
         for (int idx = 0; idx < stateCount; idx++) {
@@ -435,18 +424,13 @@ typedef int64_t (*IOReportStateGetResidencyFn)(CFDictionaryRef, int);
 
             if (isIdle) continue;
 
-            // State 索引对应 P-State 频率表中的索引
-            // 限制索引范围
-            double stateFreq = 0.0;
-            if (idx >= 0 && idx < freqCount) {
-                stateFreq = (double)freqTable[idx];
-            } else {
-                // 索引超出频率表范围，使用最后已知频率
-                stateFreq = (double)freqTable[freqCount - 1];
-            }
+            double stateFreq = [self frequencyMHzForPStateIndex:idx stateName:stateName];
 
-            totalWeightedFreq += (double)residency * stateFreq;
-            totalResidency += (double)residency;
+            if (stateFreq > bestPCoreFreq ||
+                (fabs(stateFreq - bestPCoreFreq) < DBL_EPSILON && residency > bestPCoreResidency)) {
+                bestPCoreFreq = stateFreq;
+                bestPCoreResidency = residency;
+            }
         }
 
         return 0;
@@ -454,9 +438,7 @@ typedef int64_t (*IOReportStateGetResidencyFn)(CFDictionaryRef, int);
 
     CFRelease(delta);
 
-    if (totalResidency <= 0.0) return 0.0;
-
-    return totalWeightedFreq / totalResidency;
+    return bestPCoreFreq;
 }
 
 // ============================================================================
@@ -647,7 +629,6 @@ typedef int64_t (*IOReportStateGetResidencyFn)(CFDictionaryRef, int);
     // 如果已经稳定显示，不重置
     if (!_hasStableReading) {
         _sampleCount = 0;
-        _smoothedMHz = 0.0;
     }
 }
 
