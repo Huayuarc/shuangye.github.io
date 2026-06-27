@@ -915,28 +915,7 @@ static CFTimeInterval g_lastWakeTapTime = 0;
 //        懒初始化 CCRecordNoDelayHooks，hook 倒计时方法。
 // ============================================================================
 
-// NSBundle 懒加载检测 — 始终初始化
-%group NSBundleHooks
-
-%hook NSBundle
-- (BOOL)load {
-	BOOL r = %orig;
-	if (g_ccRecordNoDelay && !g_ccRecordNoDelayHooksInited &&
-		[[self bundlePath] containsString:@"ReplayKitModule.bundle"]) {
-		g_ccRecordNoDelayHooksInited = YES;
-		@try {
-			%init(CCRecordNoDelayHooks);
-		} @catch (NSException *e) {
-			NSLog(@"[Systempro] CCRecordNoDelayHooks init failed: %@", e);
-		}
-	}
-	return r;
-}
-%end
-
-%end
-
-// 录屏去延迟 Hook — 由 NSBundleHooks 懒加载初始化
+// 录屏去延迟 Hook — %group 必须定义在 %init 引用之前
 %group CCRecordNoDelayHooks
 
 %hook RPControlCenterMenuModuleViewController
@@ -944,7 +923,7 @@ static CFTimeInterval g_lastWakeTapTime = 0;
 	if (!g_ccRecordNoDelay) { %orig; return; }
 
 	// 获取 _client 实例变量
-	Ivar ivar = class_getInstanceVariable([self class], "_client");
+	Ivar ivar = class_getInstanceVariable(object_getClass(self), "_client");
 	if (!ivar) { %orig; return; }
 	id client = object_getIvar(self, ivar);
 	if (!client) { %orig; return; }
@@ -964,6 +943,32 @@ static CFTimeInterval g_lastWakeTapTime = 0;
 			((void (*)(id, SEL, id))objc_msgSend)(
 				client, @selector(startRecordingWithHandler:), nil);
 		});
+}
+%end
+
+%end
+
+// 录屏去延迟 — C 辅助函数（在 %group 外部，Logos 可正确解析 %init）
+static void initCCRecordNoDelayHooks(void) {
+	@try {
+		%init(CCRecordNoDelayHooks);
+	} @catch (NSException *e) {
+		NSLog(@"[Systempro] CCRecordNoDelayHooks init failed: %@", e);
+	}
+}
+
+// NSBundle 懒加载检测 — 始终初始化
+%group NSBundleHooks
+
+%hook NSBundle
+- (BOOL)load {
+	BOOL r = %orig;
+	if (g_ccRecordNoDelay && !g_ccRecordNoDelayHooksInited &&
+		[[self bundlePath] containsString:@"ReplayKitModule.bundle"]) {
+		g_ccRecordNoDelayHooksInited = YES;
+		initCCRecordNoDelayHooks();
+	}
+	return r;
 }
 %end
 
@@ -989,12 +994,8 @@ static void onPrefsChanged(CFNotificationCenterRef center,
 
 	// 录屏去延迟 — 运行时开启后尝试懒初始化 hook
 	if (g_ccRecordNoDelay && !g_ccRecordNoDelayHooksInited) {
-		@try {
-			%init(CCRecordNoDelayHooks);
-			g_ccRecordNoDelayHooksInited = YES;
-		} @catch (NSException *e) {
-			// ReplayKitModule 尚未加载，等待 NSBundle 检测
-		}
+		initCCRecordNoDelayHooks();
+		g_ccRecordNoDelayHooksInited = YES;
 	}
 }
 
