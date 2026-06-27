@@ -20,7 +20,7 @@ export ARCHS := arm64 arm64e
 TARGET := iphone:clang:16.5:14.0
 
 # ========== 自动检测 jbroot 路径并传入代码 ==========
-JBROOT_DIR != ls -d /var/mobile/Containers/Shared/AppGroup/.jbroot-* 2>/dev/null | head -1
+JBROOT_DIR := $(shell ls -d /var/mobile/Containers/Shared/AppGroup/.jbroot-* 2>/dev/null | head -1)
 ifneq ($(JBROOT_DIR),)
 Systempro_CFLAGS += -DJBROOT_PATH=\"$(JBROOT_DIR)\"
 LSILLSettings_CFLAGS += -DJBROOT_PATH=\"$(JBROOT_DIR)\"
@@ -28,13 +28,15 @@ endif
 # 代码中可用: @(JBROOT_PATH "/Library/xxx") 或 strcpy(buf, JBROOT_PATH);
 
 # ========== 双方案构建 ==========
-# make              → 构建 rootless (默认)
-# make SCHEME=roothide → 构建 roothide
-# make build-all    → 同时构建 rootless + roothide
+# make                        → 构建 rootless (默认)
+# make SCHEME=roothide        → 构建 roothide
+# THEOS_PACKAGE_SCHEME=roothide make  → 构建 roothide (CI 环境变量方式)
+# make build-all              → 同时构建 rootless + roothide
 
 ifeq ($(SCHEME),roothide)
 export THEOS_PACKAGE_SCHEME := roothide
-else
+else ifeq ($(THEOS_PACKAGE_SCHEME),)
+# 未通过 SCHEME 或环境变量指定时，默认 rootless
 export THEOS_PACKAGE_SCHEME := rootless
 endif
 

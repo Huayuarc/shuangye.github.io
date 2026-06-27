@@ -40,12 +40,11 @@ jobs:
           rm -f /tmp/sdk.tar.xz
           ls -la "$HOME/theos/sdks/"
 
-      - name: Build rootless
+      - name: Build rootless (arm64)
         working-directory: debs
         run: |
           set -x
           export ARCHS="arm64 arm64e"
-          export THEOS_PACKAGE_SCHEME="rootless"
           echo "=== 编译 rootless (arm64) ==="
           make clean
           make FINALPACKAGE=1 2>&1
@@ -56,22 +55,20 @@ jobs:
           mkdir -p ${{ github.workspace }}/debs-rootless
           cp packages/*.deb ${{ github.workspace }}/debs-rootless/ 2>/dev/null || echo "无 rootless deb"
 
-      - name: Build roothide
+      - name: Build roothide (arm64e)
+        continue-on-error: true
         working-directory: debs
         run: |
           set -x
           export ARCHS="arm64 arm64e"
-          export THEOS_PACKAGE_SCHEME="roothide"
-          # 验证 roothide 模块齐全
           echo "=== 检查 roothide vendor 文件 ==="
-          ls -la "$THEOS/vendor/include/roothide.h" 2>/dev/null || echo "MISSING: vendor/include/roothide.h"
-          ls -la "$THEOS/vendor/include/roothide/" 2>/dev/null || echo "MISSING: vendor/include/roothide/"
-          ls -la "$THEOS/vendor/mod/roothide/" 2>/dev/null || echo "MISSING: vendor/mod/roothide/"
-          ls -la "$THEOS/vendor/lib/libroothide.tbd" 2>/dev/null || echo "MISSING: vendor/lib/libroothide.tbd"
+          ls -la "$THEOS/vendor/include/roothide.h" 2>/dev/null || { echo "MISSING: roothide vendor 不存在，跳过 roothide 构建"; exit 0; }
+          ls -la "$THEOS/vendor/mod/roothide/" 2>/dev/null || { echo "MISSING: roothide mod 不存在，跳过 roothide 构建"; exit 0; }
+          ls -la "$THEOS/vendor/lib/libroothide.tbd" 2>/dev/null || { echo "MISSING: libroothide.tbd 不存在，跳过 roothide 构建"; exit 0; }
           echo "=== 编译 roothide (arm64e) ==="
           make clean
-          make FINALPACKAGE=1 2>&1
-          make package FINALPACKAGE=1 2>&1
+          make SCHEME=roothide FINALPACKAGE=1 2>&1
+          make SCHEME=roothide package FINALPACKAGE=1 2>&1
           echo "=== roothide 构建产物 ==="
           ls -la packages/*.deb 2>/dev/null
           # 保存 roothide deb 到临时目录
@@ -101,8 +98,8 @@ jobs:
           if git diff --quiet --cached; then
             echo "无新 deb 需要提交"
           else
-            deb_name=$(ls packages/*.deb 2>/dev/null | head -1 | xargs -I{} basename {} .deb | sed 's/_[0-9].*//')
-            [ -z "$deb_name" ] && deb_name="tweak"
-            git commit -m "chore: 自动构建 ${deb_name} [ci skip]"
+            deb_list=$(ls packages/*.deb 2>/dev/null | xargs -I{} basename {} | tr '\n' ' ')
+            echo "提交 debs: $deb_list"
+            git commit -m "chore: 自动构建 deb 包 [ci skip]"
             git push
           fi
