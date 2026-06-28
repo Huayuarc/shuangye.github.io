@@ -1,824 +1,1689 @@
-#import <UIKit/UIKit.h>
-#import <notify.h>
+#import <Foundation/Foundation.h>
 #import <dlfcn.h>
-#import <spawn.h>
-#import <unistd.h>
-#import <BluetoothManager/BluetoothManager.h>
+#import <notify.h>
+#import <limits.h>
+#import <stdint.h>
+#import <string.h>
+#import <objc/message.h>
 #import <objc/runtime.h>
+#include <CPUthermalPaths.h>
+#import <IOKit/IOKitLib.h>
 
 // ============================================================================
-// 常量
+// CPUthermal — 温控插件（完全版）
+//
+// 双防护层设计:
+//   第1层 (IOKit): 拦截传感器温度读取、降频操作、属性写入、Darwin 通知广播
+//   第2层 (ObjC):  钩住 thermalmonitord 内部类决策方法，阻止热缓解动作
+//
+// 冲突避免原则:
+//   - 传感器读数拦截只走 IOKit，不走 ObjC
+//   - 不 hook putDeviceInThermalSimulationMode: (CPUthermal 调用方)
+//   - 所有新增 hook 有独立开关
+//   - 保留紧急热保护安全阀 (75°C+ 不拦截)
+//
+// 注意: 禁止使用 @"" ObjC 字符串常量（roothide 重映射会破坏 __cfstring）
+// 所有字符串通过 C 字符串 + stringWithUTF8String: 动态创建
 // ============================================================================
-static NSString *const kPrefPath = @"/var/mobile/Library/Preferences/com.huayuarc.systempro.plist";
 
-static NSString *const kEnabledKey               = @"enabled";
-static NSString *const kBlockModeKey             = @"blockMode";
-static NSString *const kDisableAppLibraryKey     = @"disableAppLibrary";
-static NSString *const kDisableSignatureCheckKey = @"disableSignatureCheck";
-static NSString *const kTransparentDockKey       = @"transparentDock";
-static NSString *const kDisableFlashlightKey     = @"disableFlashlight";
-static NSString *const kDisableCameraKey         = @"disableCamera";
-static NSString *const kDisableLockScreenCameraKey = @"disableLockScreenCamera";
-static NSString *const kDisableScreenshotDetectionKey = @"disableScreenshotDetection";
-static NSString *const kDisableCameraShutterSoundKey  = @"disableCameraShutterSound";
-static NSString *const kAutoDismissFaceIDKey          = @"autoDismissFaceID";
-static NSString *const kDisableLockSoundKey           = @"disableLockSound";
-static NSString *const kRemoveUnlockDelayKey          = @"removeUnlockDelay";
-static NSString *const kInCallUnlockedKey             = @"inCallUnlocked";
-static NSString *const kRightToLeftAppOpenKey         = @"rightToLeftAppOpen";
-static NSString *const kAppOpenAnimationDirectionKey = @"appOpenAnimationDirection";
-static NSString *const kDisconnectWiFiBTKey  = @"disconnectWiFiBT";
-static NSString *const kLowPowerOnLockKey   = @"lowPowerOnLock";
-static NSString *const kLockWhenFaceDownKey = @"lockWhenFaceDown";
+// ============================================================================
+// ObjC 类声明（thermalmonitord 内部类，class-dump 获取）
+// ============================================================================
+@interface CommonProduct : NSObject
+- (id)initProduct:(id)arg1;
+- (void)putDeviceInThermalSimulationMode:(id)arg1;
+- (void)tryTakeAction;
+- (void)simulateLightThermalPressure;
+- (void)updatePowerzoneTelemetry;
+- (void)setCPMSMitigationsEnabled:(BOOL)enabled;
+- (void)setCPULevel:(int)level;
+- (void)setCPUPowerCeiling:(int)ceiling fromDecisionSource:(id)source;
+- (void)setGPUPowerCeiling:(int)ceiling fromDecisionSource:(id)source;
+- (void)setPackagePowerCeiling:(int)ceiling fromDecisionSource:(id)source;
+- (void)setThermalState:(id)state;
+@end
 
-// ===== Cyanide 移植功能键 =====
-static NSString *const kDisableIconFlyInKey = @"disableIconFlyIn";
-static NSString *const kZeroWakeAnimationKey = @"zeroWakeAnimation";
-static NSString *const kCCRecordNoDelayKey  = @"ccRecordNoDelay";
+@interface HidSensors : NSObject
++ (id)sharedInstance;
+- (void)handleTemperatureEvent:(int)arg1 service:(id)arg2;
+@end
 
-static NSString *const kNotifyPrefsChanged = @"com.huayuarc.systempro.prefschanged";
-static NSString *const kNotifyRespring     = @"com.huayuarc.systempro.respring";
+// ============================================================================
+// 新增: 1.dylib 分析发现的额外类声明
+// ============================================================================
+@interface ThermalManager : NSObject
+- (id)initWithComponentControllers:(id)components hotspotControllers:(id)hotspots decisionTreeTable:(id)table;
+- (void)evaluateDecisionTree;
+- (id)findComponent:(id)component;
+- (void)actionComponentControl;
+- (void)readReleaseRateForAllComponents;
+- (float)getReleaseRateForComponent:(id)component;
+- (int)getPotentialForcedThermalLevel:(id)component;
+- (int)getPotentialForcedThermalPressureLevel;
+- (void)updateThermalPressureLevelNotification:(id)notification shouldForceThermalPressure:(BOOL)force;
+- (void)updateThermalNotification:(id)notification;
+- (BOOL)shouldEnforceLightThermalPressure;
+- (void)setCPMSMitigationState:(int)state;
+@end
 
-// blockMode 值
-typedef NS_ENUM(NSInteger, LSBlockMode) {
-	LSBlockModeLowPower = 0,  // 低电模式
-	LSBlockModeSilent   = 1,  // 静音模式
-	LSBlockModeAlways   = 2,  // 始终不亮
+@interface ThermalControl : NSObject
+- (float)calculateControlEffort:(id)trigger trigger:(id)arg2;
+- (id)findCC:(id)component;
+- (float)dieTempFilteredMaxAverage;
+- (float)getHighestSkinTemp;
+- (float)thermalSensorValuesMaxFromIndexSet:(id)indexSet;
+- (void)copyDieTempSensorIndexSetForFourthChar:(char)c sensors:(id)sensors;
+- (BOOL)powerSaveActive;
+- (void)setPowerSaveActive:(BOOL)active;
+- (void)setPowerSaveToken:(id)token;
+- (id)initForFastLoop:(BOOL)fastLoop noDisplay:(BOOL)noDisplay powerSaveParams:(id)saveParams powerZoneParams:(id)zoneParams;
+- (id)initWithParams:(id)params;
+- (void)updatePowerParameters:(id)params;
+@end
+
+@interface ApplePPMCPU : NSObject
+- (void)setCPULevel:(int)level;
+- (void)updateCPU;
+@end
+
+@interface MitigationController : NSObject
+- (id)initForFastLoop:(BOOL)fastLoop noDisplay:(BOOL)noDisplay powerSaveParams:(id)saveParams powerZoneParams:(id)zoneParams;
+- (void)updateCPU;
+- (void)updateGPU;
+- (void)updatePackage;
+- (void)setCPULowPowerTarget:(int)target;
+- (void)setPackageLowPowerTarget;
+- (void)setMaxCPUPowerTarget:(int)target useLegacyPath:(BOOL)legacy setProperty:(uintptr_t)property;
+- (void)setCPUPowerCeiling:(int)ceiling fromDecisionSource:(uintptr_t)source;
+- (void)setCPUPowerFloor:(int)floor fromDecisionSource:(uintptr_t)source;
+- (void)setCPUPowerZoneTarget:(int)target;
+- (BOOL)powerSaveActive;
+- (void)setPowerSaveActive:(BOOL)active;
+- (void)setPowerSaveToken:(int)token;
+@end
+
+@interface ThermalDecisionTable : NSObject
+- (id)initDecisionTable:(id)table;
+@end
+
+@interface PIDController : NSObject
+- (id)initPIDWith:(id)params;
+@end
+
+@interface HotspotController : NSObject
+- (id)initWithParams:(id)params aggdController:(id)aggd;
+@end
+
+@interface CommonAggdController : NSObject
+- (id)initWithParams:(id)params product:(id)product;
+@end
+
+// ============================================================================
+// 配置
+// ============================================================================
+static BOOL g_enabled               = YES; // 总开关（默认开启）
+static BOOL g_cpuProtection         = YES; // CPU 性能保护(降频/决策树/控制力度/配置表)
+static BOOL g_brightnessProtection  = YES; // 屏幕亮度保护(降亮度/背光配置)
+static BOOL g_thermalStateProtection= YES; // 热状态封锁(Nominal/热压力/强制级别)
+static BOOL g_blockHidEvents        = YES; // 阻止 HID 温度事件
+static BOOL g_keepCPSMAlive         = NO;  // 保留 CPMS 紧急保护(安全阀) 默认关闭
+static BOOL g_suppressThermalNotifications = YES; // 屏蔽高温通知(Darwin/ObjC)
+
+typedef enum {
+CPUthermalPowerModeFull = 0,
+CPUthermalPowerModeLow  = 1
+} CPUthermalPowerMode;
+
+static CPUthermalPowerMode g_powerMode = CPUthermalPowerModeFull;
+
+// 低功耗模式 CPU 频率锁定值（MHz）
+static const int64_t kLowPowerMinFrequencyMHz = 2016;
+static const int64_t kLowPowerMaxFrequencyMHz = 2016;
+
+// 温度安全阀 — 超过此值不拦截任何保护
+static const int64_t kSafetyTempThreshold = 75000;  // 75°C (毫摄氏度)
+
+static CommonProduct *g_commonProduct = nil;
+static NSMutableArray *g_mitigationControllers = nil;
+static BOOL g_restoringFullPower = NO;
+static BOOL g_applyingLowPower = NO;
+static NSMutableDictionary *g_originalControllerValues = nil;
+static CFAbsoluteTime g_processStartTime = 0;
+static const double kFullPowerBootGuardDuration = 5.0;
+static BOOL g_deferredRuntimeApplyScheduled = NO;
+static BOOL g_fullPowerRecoveryPulseScheduled = NO;
+static BOOL g_lowPowerApplyPulseScheduled = NO;
+
+static BOOL shouldApplyLowPowerLimit(void);
+static int lowPowerTargetValue(void);
+static void applyCurrentPowerModeToRuntime(void);
+static void applyPowerModeToRuntime(BOOL respectBootGuard);
+static void scheduleDeferredRuntimeApply(double delay);
+static void scheduleLowPowerApplyPulse(void);
+static void runLowPowerApplyPulse(int remainingPulses);
+static void scheduleFullPowerRecoveryPulse(void);
+static void runFullPowerRecoveryPulse(int remainingPulses);
+
+static NSString *controllerKey(id controller, const char *name) {
+return [NSString stringWithFormat:S("%p:%s"), controller, name];
+}
+
+static void rememberOriginalIntValue(id controller, const char *name, int value) {
+if (!controller || g_restoringFullPower || g_applyingLowPower || !shouldApplyLowPowerLimit()) return;
+if (value <= lowPowerTargetValue()) return;
+if (!g_originalControllerValues) g_originalControllerValues = [NSMutableDictionary dictionary];
+NSString *key = controllerKey(controller, name);
+if (!key || [g_originalControllerValues objectForKey:key]) return;
+[g_originalControllerValues setObject:[NSNumber numberWithInt:value] forKey:key];
+}
+
+static int rememberedOriginalIntValue(id controller, const char *name, int fallback) {
+NSNumber *value = [g_originalControllerValues objectForKey:controllerKey(controller, name)];
+return value ? [value intValue] : fallback;
+}
+
+static BOOL isLowPowerMode(void) {
+return g_powerMode == CPUthermalPowerModeLow;
+}
+
+static BOOL isFullPowerMode(void) {
+return g_powerMode == CPUthermalPowerModeFull;
+}
+
+static BOOL fullPowerBootGuardActive(void) {
+if (!isFullPowerMode()) return NO;
+if (g_processStartTime <= 0) return NO;
+return (CFAbsoluteTimeGetCurrent() - g_processStartTime) < kFullPowerBootGuardDuration;
+}
+
+static BOOL shouldApplyFullCPUProtection(void) {
+return g_enabled && g_cpuProtection && isFullPowerMode() && !fullPowerBootGuardActive();
+}
+
+static BOOL shouldApplyLowPowerLimit(void) {
+return g_enabled && g_cpuProtection && isLowPowerMode();
+}
+
+static int lowPowerTargetValue(void) {
+return (int)kLowPowerMaxFrequencyMHz;
+}
+
+static int lowPowerPowerCeilingValue(void) {
+return 40;
+}
+
+static int lowPowerPowerFloorValue(void) {
+return 0;
+}
+
+static int fullPowerTargetValue(void) {
+return 100;
+}
+
+static int fullPowerFrequencyValue(void) {
+return INT_MAX;
+}
+
+static int fullPowerPercentValue(void) {
+return 100;
+}
+
+static CFStringRef cpuMaxPowerPropertyName(void) {
+static CFStringRef propertyName = NULL;
+static dispatch_once_t once;
+dispatch_once(&once, ^{
+propertyName = CFStringCreateWithCString(kCFAllocatorDefault, "CPUMaxPower", kCFStringEncodingUTF8);
+});
+return propertyName;
+}
+
+static BOOL methodEncodingContains(id object, SEL selector, const char *needle) {
+if (!object || !selector || !needle) return NO;
+Method method = class_getInstanceMethod(object_getClass(object), selector);
+if (!method) return NO;
+const char *types = method_getTypeEncoding(method);
+return types && strstr(types, needle) != NULL;
+}
+
+static BOOL methodArgumentTypeIsObject(id object, SEL selector, unsigned int index) {
+if (!object || !selector) return NO;
+Method method = class_getInstanceMethod(object_getClass(object), selector);
+if (!method) return NO;
+char type[32] = {0};
+method_getArgumentType(method, index, type, sizeof(type));
+return type[0] == '@';
+}
+
+static void sendSetPowerSaveToken(id controller, int token) {
+if (!controller || ![controller respondsToSelector:@selector(setPowerSaveToken:)]) return;
+if (methodArgumentTypeIsObject(controller, @selector(setPowerSaveToken:), 2)) {
+id tokenObject = token ? [NSNumber numberWithInt:token] : nil;
+((void (*)(id, SEL, id))objc_msgSend)(controller, @selector(setPowerSaveToken:), tokenObject);
+return;
+}
+((void (*)(id, SEL, int))objc_msgSend)(controller, @selector(setPowerSaveToken:), token);
+}
+
+static void trackPowerController(id controller) {
+if (!controller) return;
+if (!g_mitigationControllers) g_mitigationControllers = [NSMutableArray array];
+if (![g_mitigationControllers containsObject:controller]) {
+[g_mitigationControllers addObject:controller];
+}
+}
+
+static BOOL setMaxCPUPowerTargetUsesCFString(id controller) {
+return methodEncodingContains(controller, @selector(setMaxCPUPowerTarget:useLegacyPath:setProperty:), "^{__CFString=}");
+}
+
+static uintptr_t setMaxCPUPowerPropertyArgument(id controller) {
+return setMaxCPUPowerTargetUsesCFString(controller)
+? (uintptr_t)cpuMaxPowerPropertyName()
+: (uintptr_t)YES;
+}
+
+static uintptr_t normalizedSetMaxCPUPowerPropertyArgument(id controller, uintptr_t property) {
+if (setMaxCPUPowerTargetUsesCFString(controller) && property < 4096) {
+return (uintptr_t)cpuMaxPowerPropertyName();
+}
+return property;
+}
+
+static void sendSetMaxCPUPowerTarget(id controller, int target, BOOL legacy) {
+if (!controller || ![controller respondsToSelector:@selector(setMaxCPUPowerTarget:useLegacyPath:setProperty:)]) return;
+((void (*)(id, SEL, int, BOOL, uintptr_t))objc_msgSend)(controller,
+@selector(setMaxCPUPowerTarget:useLegacyPath:setProperty:),
+target, legacy, setMaxCPUPowerPropertyArgument(controller));
+}
+
+static int intIvarValue(id object, const char *name, int fallback) {
+if (!object || !name) return fallback;
+Class cls = object_getClass(object);
+while (cls) {
+Ivar ivar = class_getInstanceVariable(cls, name);
+if (ivar) {
+ptrdiff_t offset = ivar_getOffset(ivar);
+uint8_t *bytes = (uint8_t *)(__bridge void *)object;
+return *(int *)(bytes + offset);
+}
+cls = class_getSuperclass(cls);
+}
+return fallback;
+}
+
+static int fullPowerTargetForController(id controller) {
+int remembered = rememberedOriginalIntValue(controller, "MaxCPUPowerTarget", 0);
+if (remembered > lowPowerTargetValue()) return remembered;
+
+int maxPower = intIvarValue(controller, "_maxCPUPower", 0);
+if (maxPower > lowPowerTargetValue()) return maxPower;
+
+int realTarget = intIvarValue(controller, "_currentRealCPUPowerTarget", 0);
+if (realTarget > lowPowerTargetValue()) return realTarget;
+
+return fullPowerFrequencyValue();
+}
+
+static int fullPowerCeilingForController(id controller) {
+int remembered = rememberedOriginalIntValue(controller, "CPUPowerCeiling", fullPowerTargetValue());
+return remembered > lowPowerTargetValue() ? remembered : fullPowerTargetValue();
+}
+
+static int fullPowerFloorForController(id controller) {
+return rememberedOriginalIntValue(controller, "CPUPowerFloor", 0);
+}
+
+static int fullPowerZoneTargetForController(id controller) {
+int remembered = rememberedOriginalIntValue(controller, "CPUPowerZoneTarget", 0);
+if (remembered > lowPowerTargetValue()) return remembered;
+return fullPowerTargetForController(controller);
+}
+
+static void applyLowPowerLimitToController(id controller) {
+if (!controller || !shouldApplyLowPowerLimit()) return;
+@try {
+g_applyingLowPower = YES;
+if ([controller respondsToSelector:@selector(setPowerSaveActive:)]) {
+((void (*)(id, SEL, BOOL))objc_msgSend)(controller, @selector(setPowerSaveActive:), YES);
+}
+if ([controller respondsToSelector:@selector(setPowerSaveToken:)]) {
+sendSetPowerSaveToken(controller, 1);
+}
+if ([controller respondsToSelector:@selector(setCPULowPowerTarget:)]) {
+((void (*)(id, SEL, int))objc_msgSend)(controller, @selector(setCPULowPowerTarget:), lowPowerTargetValue());
+}
+if ([controller respondsToSelector:@selector(setMaxCPUPowerTarget:useLegacyPath:setProperty:)]) {
+sendSetMaxCPUPowerTarget(controller, lowPowerTargetValue(), NO);
+}
+if ([controller respondsToSelector:@selector(setCPUPowerCeiling:fromDecisionSource:)]) {
+((void (*)(id, SEL, int, uintptr_t))objc_msgSend)(controller, @selector(setCPUPowerCeiling:fromDecisionSource:), lowPowerPowerCeilingValue(), 0);
+}
+if ([controller respondsToSelector:@selector(setCPUPowerZoneTarget:)]) {
+((void (*)(id, SEL, int))objc_msgSend)(controller, @selector(setCPUPowerZoneTarget:), lowPowerTargetValue());
+}
+if ([controller respondsToSelector:@selector(setPackageLowPowerTarget)]) {
+((void (*)(id, SEL))objc_msgSend)(controller, @selector(setPackageLowPowerTarget));
+}
+if ([controller respondsToSelector:@selector(updateCPU)]) {
+((void (*)(id, SEL))objc_msgSend)(controller, @selector(updateCPU));
+}
+if ([controller respondsToSelector:@selector(updatePackage)]) {
+((void (*)(id, SEL))objc_msgSend)(controller, @selector(updatePackage));
+}
+NSLog(@"[CPUthermal] 已主动下发低功耗 CPU 限制: %lld-%lldMHz controller:%@", kLowPowerMinFrequencyMHz, kLowPowerMaxFrequencyMHz, controller);
+} @catch (NSException *exception) {
+NSLog(@"[CPUthermal] 下发低功耗 CPU 限制失败: %@", exception);
+} @finally {
+g_applyingLowPower = NO;
+}
+}
+
+static void applyLowPowerLimitsToTrackedControllers(void) {
+if (!shouldApplyLowPowerLimit()) return;
+@autoreleasepool {
+NSArray *controllers = [g_mitigationControllers copy];
+for (id controller in controllers) {
+applyLowPowerLimitToController(controller);
+}
+}
+}
+
+static void restoreFullPowerToController(id controller) {
+if (!controller || !g_enabled || !g_cpuProtection || !isFullPowerMode()) return;
+@try {
+g_restoringFullPower = YES;
+if ([controller respondsToSelector:@selector(setPowerSaveActive:)]) {
+((void (*)(id, SEL, BOOL))objc_msgSend)(controller, @selector(setPowerSaveActive:), NO);
+}
+if ([controller respondsToSelector:@selector(setPowerSaveToken:)]) {
+sendSetPowerSaveToken(controller, 0);
+}
+if ([controller respondsToSelector:@selector(setCPULowPowerTarget:)]) {
+((void (*)(id, SEL, int))objc_msgSend)(controller, @selector(setCPULowPowerTarget:), fullPowerPercentValue());
+}
+if ([controller respondsToSelector:@selector(setMaxCPUPowerTarget:useLegacyPath:setProperty:)]) {
+sendSetMaxCPUPowerTarget(controller, fullPowerTargetForController(controller), NO);
+}
+if ([controller respondsToSelector:@selector(setCPUPowerCeiling:fromDecisionSource:)]) {
+((void (*)(id, SEL, int, uintptr_t))objc_msgSend)(controller, @selector(setCPUPowerCeiling:fromDecisionSource:), fullPowerCeilingForController(controller), 0);
+}
+if ([controller respondsToSelector:@selector(setCPUPowerFloor:fromDecisionSource:)]) {
+((void (*)(id, SEL, int, uintptr_t))objc_msgSend)(controller, @selector(setCPUPowerFloor:fromDecisionSource:), fullPowerFloorForController(controller), 0);
+}
+if ([controller respondsToSelector:@selector(setCPUPowerZoneTarget:)]) {
+((void (*)(id, SEL, int))objc_msgSend)(controller, @selector(setCPUPowerZoneTarget:), fullPowerZoneTargetForController(controller));
+}
+if ([controller respondsToSelector:@selector(updateCPU)]) {
+((void (*)(id, SEL))objc_msgSend)(controller, @selector(updateCPU));
+}
+if ([controller respondsToSelector:@selector(updatePackage)]) {
+((void (*)(id, SEL))objc_msgSend)(controller, @selector(updatePackage));
+}
+NSLog(@"[CPUthermal] 已主动恢复解除温控 CPU 上限 controller:%@", controller);
+} @catch (NSException *exception) {
+NSLog(@"[CPUthermal] 恢复解除温控 CPU 上限失败: %@", exception);
+} @finally {
+g_restoringFullPower = NO;
+}
+}
+
+static void restoreFullPowerToTrackedControllers(void) {
+if (!g_enabled || !g_cpuProtection || !isFullPowerMode()) return;
+@autoreleasepool {
+NSArray *controllers = [g_mitigationControllers copy];
+for (id controller in controllers) {
+restoreFullPowerToController(controller);
+}
+[g_originalControllerValues removeAllObjects];
+}
+}
+
+static void setCommonProductCeiling(SEL selector, int ceiling) {
+if (!g_commonProduct || ![g_commonProduct respondsToSelector:selector]) return;
+((void (*)(id, SEL, int, id))objc_msgSend)(g_commonProduct, selector, ceiling, S("CPUthermal"));
+}
+
+static void applyFullPowerToCommonProduct(void) {
+if (!g_commonProduct || !g_enabled || !g_cpuProtection || !isFullPowerMode()) return;
+@try {
+g_restoringFullPower = YES;
+if ([g_commonProduct respondsToSelector:@selector(setCPMSMitigationsEnabled:)] && !g_keepCPSMAlive) {
+((void (*)(id, SEL, BOOL))objc_msgSend)(g_commonProduct, @selector(setCPMSMitigationsEnabled:), NO);
+}
+if ([g_commonProduct respondsToSelector:@selector(setCPULevel:)]) {
+((void (*)(id, SEL, int))objc_msgSend)(g_commonProduct, @selector(setCPULevel:), 0);
+}
+setCommonProductCeiling(@selector(setCPUPowerCeiling:fromDecisionSource:), 0);
+setCommonProductCeiling(@selector(setGPUPowerCeiling:fromDecisionSource:), 0);
+setCommonProductCeiling(@selector(setPackagePowerCeiling:fromDecisionSource:), 0);
+if ([g_commonProduct respondsToSelector:@selector(setThermalState:)]) {
+((void (*)(id, SEL, id))objc_msgSend)(g_commonProduct, @selector(setThermalState:), [NSNumber numberWithInt:0]);
+}
+NSLog(@"[CPUthermal] 已主动套用解除温控 CommonProduct 状态");
+} @catch (NSException *exception) {
+NSLog(@"[CPUthermal] 套用解除温控 CommonProduct 状态失败: %@", exception);
+} @finally {
+g_restoringFullPower = NO;
+}
+}
+
+static void applyLowPowerToCommonProduct(void) {
+if (!g_commonProduct || !shouldApplyLowPowerLimit()) return;
+@try {
+if ([g_commonProduct respondsToSelector:@selector(setCPMSMitigationsEnabled:)]) {
+((void (*)(id, SEL, BOOL))objc_msgSend)(g_commonProduct, @selector(setCPMSMitigationsEnabled:), YES);
+}
+if ([g_commonProduct respondsToSelector:@selector(setCPULevel:)]) {
+((void (*)(id, SEL, int))objc_msgSend)(g_commonProduct, @selector(setCPULevel:), 1);
+}
+setCommonProductCeiling(@selector(setCPUPowerCeiling:fromDecisionSource:), lowPowerPowerCeilingValue());
+setCommonProductCeiling(@selector(setGPUPowerCeiling:fromDecisionSource:), lowPowerPowerCeilingValue());
+setCommonProductCeiling(@selector(setPackagePowerCeiling:fromDecisionSource:), lowPowerPowerCeilingValue());
+NSLog(@"[CPUthermal] 已主动套用低功耗 CommonProduct 状态");
+} @catch (NSException *exception) {
+NSLog(@"[CPUthermal] 套用低功耗 CommonProduct 状态失败: %@", exception);
+}
+}
+
+static void applyCurrentPowerModeToRuntime(void) {
+applyPowerModeToRuntime(YES);
+}
+
+static void applyPowerModeToRuntime(BOOL respectBootGuard) {
+if (!g_enabled || !g_cpuProtection) return;
+if (isLowPowerMode()) {
+applyLowPowerToCommonProduct();
+applyLowPowerLimitsToTrackedControllers();
+scheduleLowPowerApplyPulse();
+return;
+}
+if (isFullPowerMode()) {
+if (respectBootGuard && fullPowerBootGuardActive()) {
+double elapsed = CFAbsoluteTimeGetCurrent() - g_processStartTime;
+double remaining = kFullPowerBootGuardDuration - elapsed;
+scheduleDeferredRuntimeApply(MAX(remaining, 0.1) + 0.1);
+return;
+}
+applyFullPowerToCommonProduct();
+restoreFullPowerToTrackedControllers();
+scheduleFullPowerRecoveryPulse();
+}
+}
+
+static void scheduleDeferredRuntimeApply(double delay) {
+if (g_deferredRuntimeApplyScheduled) return;
+g_deferredRuntimeApplyScheduled = YES;
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+g_deferredRuntimeApplyScheduled = NO;
+applyCurrentPowerModeToRuntime();
+});
+}
+
+static void scheduleLowPowerApplyPulse(void) {
+if (g_lowPowerApplyPulseScheduled || !g_enabled || !g_cpuProtection || !isLowPowerMode()) return;
+g_lowPowerApplyPulseScheduled = YES;
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.05 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+runLowPowerApplyPulse(8);
+});
+}
+
+static void runLowPowerApplyPulse(int remainingPulses) {
+if (remainingPulses <= 0 || !g_enabled || !g_cpuProtection || !isLowPowerMode()) {
+g_lowPowerApplyPulseScheduled = NO;
+return;
+}
+applyLowPowerToCommonProduct();
+applyLowPowerLimitsToTrackedControllers();
+if (remainingPulses <= 1) {
+g_lowPowerApplyPulseScheduled = NO;
+return;
+}
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.25 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+runLowPowerApplyPulse(remainingPulses - 1);
+});
+}
+
+static void scheduleFullPowerRecoveryPulse(void) {
+if (g_fullPowerRecoveryPulseScheduled || !g_enabled || !g_cpuProtection || !isFullPowerMode()) return;
+g_fullPowerRecoveryPulseScheduled = YES;
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.15 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+runFullPowerRecoveryPulse(4);
+});
+}
+
+static void runFullPowerRecoveryPulse(int remainingPulses) {
+if (remainingPulses <= 0 || !g_enabled || !g_cpuProtection || !isFullPowerMode()) {
+g_fullPowerRecoveryPulseScheduled = NO;
+return;
+}
+applyFullPowerToCommonProduct();
+restoreFullPowerToTrackedControllers();
+if (remainingPulses <= 1) {
+g_fullPowerRecoveryPulseScheduled = NO;
+return;
+}
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.25 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+runFullPowerRecoveryPulse(remainingPulses - 1);
+});
+}
+
+static BOOL keyMatchesLowPowerLimit(NSString *key) {
+if (!key) return NO;
+NSString *lower = [key lowercaseString];
+BOOL isCPUKey = [lower containsString:S("cpu")] ||
+[lower containsString:S("ppm")] ||
+[lower containsString:S("processor")];
+BOOL isFrequencyKey = [lower containsString:S("freq")] ||
+[lower containsString:S("frequency")];
+BOOL isLowPowerTargetKey = (isCPUKey || [lower containsString:S("package")]) &&
+[lower containsString:S("lowpower")] &&
+[lower containsString:S("target")];
+BOOL isMaxCPUPowerTargetKey = isCPUKey &&
+[lower containsString:S("max")] &&
+[lower containsString:S("power")] &&
+[lower containsString:S("target")];
+BOOL isPowerZoneTargetKey = isCPUKey &&
+[lower containsString:S("powerzone")] &&
+[lower containsString:S("target")];
+return (isCPUKey && isFrequencyKey) || isLowPowerTargetKey || isMaxCPUPowerTargetKey || isPowerZoneTargetKey;
+}
+
+static int64_t frequencyMHzFromValue(int64_t value) {
+if (value >= 1000000000LL) return value / 1000000LL;
+if (value >= 1000000LL) return value / 1000LL;
+return value;
+}
+
+static int64_t frequencyValueFromMHz(int64_t mhz, int64_t originalValue) {
+if (originalValue >= 1000000000LL) return mhz * 1000000LL;
+if (originalValue >= 1000000LL) return mhz * 1000LL;
+return mhz;
+}
+
+static int64_t clampLowPowerFrequencyValue(int64_t value) {
+int64_t mhz = frequencyMHzFromValue(value);
+if (mhz < kLowPowerMinFrequencyMHz) mhz = kLowPowerMinFrequencyMHz;
+if (mhz > kLowPowerMaxFrequencyMHz) mhz = kLowPowerMaxFrequencyMHz;
+return frequencyValueFromMHz(mhz, value);
+}
+
+static CFTypeRef copyLowPowerFrequencyValueForKey(NSString *key, CFTypeRef originalValue) {
+if (!keyMatchesLowPowerLimit(key)) return NULL;
+NSString *lower = [key lowercaseString];
+BOOL isMinKey = [key localizedCaseInsensitiveContainsString:S("min")] ||
+[key localizedCaseInsensitiveContainsString:S("floor")];
+BOOL isFrequencyKey = [lower containsString:S("freq")] ||
+[lower containsString:S("frequency")];
+
+int64_t original = kLowPowerMaxFrequencyMHz;
+if (originalValue && CFGetTypeID(originalValue) == CFNumberGetTypeID()) {
+CFNumberGetValue((CFNumberRef)originalValue, kCFNumberSInt64Type, &original);
+} else if (isMinKey && isFrequencyKey) {
+original = kLowPowerMinFrequencyMHz;
+}
+
+int64_t replacement = isMinKey && isFrequencyKey
+? frequencyValueFromMHz(kLowPowerMinFrequencyMHz, original)
+: clampLowPowerFrequencyValue(original);
+return CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &replacement);
+}
+
+static NSNumber *lowPowerNumberForKey(NSString *key, NSNumber *originalNumber) {
+if (!keyMatchesLowPowerLimit(key)) return nil;
+NSString *lower = [key lowercaseString];
+BOOL isMinKey = [key localizedCaseInsensitiveContainsString:S("min")] ||
+[key localizedCaseInsensitiveContainsString:S("floor")];
+BOOL isFrequencyKey = [lower containsString:S("freq")] ||
+[lower containsString:S("frequency")];
+
+int64_t original = originalNumber ? [originalNumber longLongValue] : kLowPowerMaxFrequencyMHz;
+int64_t replacement = (isMinKey && isFrequencyKey)
+? frequencyValueFromMHz(kLowPowerMinFrequencyMHz, original)
+: clampLowPowerFrequencyValue(original);
+return [NSNumber numberWithLongLong:replacement];
+}
+
+static id patchedLowPowerConfigObject(id object, NSString *keyHint) {
+if ([object isKindOfClass:[NSNumber class]]) {
+NSNumber *patched = lowPowerNumberForKey(keyHint, (NSNumber *)object);
+return patched ?: object;
+}
+
+if ([object isKindOfClass:[NSArray class]]) {
+NSArray *array = (NSArray *)object;
+NSMutableArray *patchedArray = [NSMutableArray arrayWithCapacity:array.count];
+for (id item in array) {
+[patchedArray addObject:patchedLowPowerConfigObject(item, keyHint) ?: item];
+}
+return patchedArray;
+}
+
+if ([object isKindOfClass:[NSDictionary class]]) {
+NSMutableDictionary *patchedDict = [(NSDictionary *)object mutableCopy];
+[(NSDictionary *)object enumerateKeysAndObjectsUsingBlock:^(id key, id value, BOOL *stop) {
+NSString *childKey = [key isKindOfClass:[NSString class]] ? (NSString *)key : keyHint;
+if (keyHint && childKey) {
+childKey = [NSString stringWithFormat:S("%@.%@"), keyHint, childKey];
+}
+id patchedValue = patchedLowPowerConfigObject(value, childKey);
+if (patchedValue) patchedDict[key] = patchedValue;
+}];
+return patchedDict;
+}
+
+return object;
+}
+
+static BOOL isThermalNotificationName(NSString *name) {
+if (!name) return NO;
+NSString *lower = [name lowercaseString];
+return [lower containsString:S("thermalstate")] ||
+[lower containsString:S("thermal-level")] ||
+[lower containsString:S("osthermal")] ||
+[lower containsString:S("kosthermalnotification")] ||
+([lower containsString:S("thermal")] &&
+([lower containsString:S("high")] ||
+[lower containsString:S("pressure")] ||
+[lower containsString:S("warning")] ||
+[lower containsString:S("notification")]));
+}
+
+static NSDictionary *readPrefsDictionary(void) {
+return CPUthermalReadPrefs();
+}
+
+static void loadPrefs(void) {
+@autoreleasepool {
+NSDictionary *d = readPrefsDictionary();
+if (!d) return;
+g_enabled               = [d[S("enabled")] ?: [NSNumber numberWithBool:YES] boolValue];
+g_cpuProtection         = [d[S("cpuProtection")] ?: [NSNumber numberWithBool:YES] boolValue];
+g_brightnessProtection  = [d[S("brightnessProtection")] ?: [NSNumber numberWithBool:YES] boolValue];
+g_thermalStateProtection= [d[S("thermalStateProtection")] ?: [NSNumber numberWithBool:YES] boolValue];
+g_blockHidEvents        = [d[S("blockHidEvents")] ?: [NSNumber numberWithBool:YES] boolValue];
+g_keepCPSMAlive         = [d[S("keepCPMSAlive")] ?: [NSNumber numberWithBool:NO] boolValue];
+g_suppressThermalNotifications = [d[S("suppressThermalNotifications")] ?: [NSNumber numberWithBool:YES] boolValue];
+
+NSString *mode = d[S("powerMode")] ?: S("fullPower");
+g_powerMode = [mode isEqualToString:S("lowPower")] ? CPUthermalPowerModeLow : CPUthermalPowerModeFull;
+}
+}
+
+// ============================================================================
+// 热管理 IOKit 服务名
+// ============================================================================
+static const char *g_hotServices[] = {
+"AppleSPU", "AppleSPU.original",
+"AppleARMPlatform",
+"pmu", "ApplePMGR",
+NULL
 };
 
-// 动画方向值
-typedef NS_ENUM(NSInteger, AppOpenAnimationDirection) {
-	AppOpenAnimationDirectionDisabled = 0,    // 默认动画
-	AppOpenAnimationDirectionRightToLeft = 1, // 从右向左
-	AppOpenAnimationDirectionLeftToRight = 2, // 从左向右
-	AppOpenAnimationDirectionTopToBottom = 3, // 从上向下
-	AppOpenAnimationDirectionBottomToTop = 4, // 从下向上
-};
+#define SELECTOR_IS_TEMP(s)        ((s) >= 0x10 && (s) <= 0x1F)
+#define SELECTOR_IS_MITIGATION(s)  (((s) >= 0x40 && (s) <= 0x5F) || (s) == 0x30 || (s) == 0x31)
+#define SELECTOR_IS_CRITICAL(s)    ((s) >= 0x60 && (s) <= 0x6F)  // 紧急保护 — 不拦截
 
 // ============================================================================
-// 全局缓存
+// connection 追踪
 // ============================================================================
-static BOOL      g_enabled                 = NO;
-static LSBlockMode g_blockMode             = LSBlockModeAlways;
-static BOOL      g_isRingerSilent          = NO;
-static BOOL      g_disableAppLibrary       = NO;
-static BOOL      g_disableSignatureCheck   = NO;
-static BOOL      g_transparentDock         = NO;
-static BOOL      g_disableFlashlight       = NO;
-static BOOL      g_disableCamera           = NO;
-static BOOL      g_disableLockScreenCamera = NO;
-static BOOL      g_disableScreenshotDetection = NO;
-static BOOL      g_disableCameraShutterSound  = NO;
-static BOOL      g_autoDismissFaceID          = NO;
-static BOOL      g_disableLockSound           = NO;
-static BOOL      g_removeUnlockDelay          = NO;
-static BOOL      g_inCallUnlocked             = NO;
-static AppOpenAnimationDirection g_appOpenAnimationDirection = AppOpenAnimationDirectionDisabled;
-static BOOL      g_disconnectWiFiBT           = NO;
-static BOOL      g_lowPowerOnLock             = NO;
-static BOOL      g_lockWhenFaceDown           = NO;
-// 锁屏自动低电 — 记录锁屏前低电模式状态
-static BOOL      g_isLPMOnBeforeLock          = NO;
+#define MAX_CONN 64
 
-// ===== Cyanide 移植功能全局变量 =====
-static BOOL      g_disableIconFlyIn    = NO;
-static BOOL      g_zeroWakeAnimation   = NO;
+typedef struct {
+io_connect_t conn;
+BOOL         isThermal;
+} ConnEntry;
 
-// ===== 录屏去延迟 =====
-static BOOL      g_ccRecordNoDelay               = NO;
-static BOOL      g_ccRecordNoDelayHooksInited    = NO;
+static ConnEntry g_conns[MAX_CONN];
+static int g_connCount = 0;
 
-// ============================================================================
-// 配置读写 — 内存缓存（避免热路径 I/O）
-// ============================================================================
-static void reloadConfiguration(void) {
-	@autoreleasepool {
-		NSDictionary *prefs = [NSDictionary dictionaryWithContentsOfFile:kPrefPath];
-		g_enabled           = [prefs[kEnabledKey] boolValue];
-		g_blockMode         = (LSBlockMode)[prefs[kBlockModeKey] integerValue];
-		g_disableAppLibrary = [prefs[kDisableAppLibraryKey] boolValue];
-		g_disableSignatureCheck   = [prefs[kDisableSignatureCheckKey] boolValue];
-		g_transparentDock         = [prefs[kTransparentDockKey] boolValue];
-		g_disableFlashlight       = [prefs[kDisableFlashlightKey] boolValue];
-		g_disableCamera           = [prefs[kDisableCameraKey] boolValue];
-		g_disableLockScreenCamera = [prefs[kDisableLockScreenCameraKey] boolValue];
-		g_disableScreenshotDetection = [prefs[kDisableScreenshotDetectionKey] boolValue];
-		g_disableCameraShutterSound  = [prefs[kDisableCameraShutterSoundKey] boolValue];
-		g_autoDismissFaceID          = [prefs[kAutoDismissFaceIDKey] boolValue];
-		g_disableLockSound           = [prefs[kDisableLockSoundKey] boolValue];
-		g_removeUnlockDelay          = [prefs[kRemoveUnlockDelayKey] boolValue];
-		g_inCallUnlocked             = [prefs[kInCallUnlockedKey] boolValue];
+static void trackConnection(io_connect_t conn, BOOL thermal) {
+if (g_connCount >= MAX_CONN) return;
+g_conns[g_connCount].conn     = conn;
+g_conns[g_connCount].isThermal = thermal;
+g_connCount++;
+}
 
-		id directionVal = prefs[kAppOpenAnimationDirectionKey];
-		if (directionVal) {
-			g_appOpenAnimationDirection = (AppOpenAnimationDirection)[directionVal integerValue];
-		} else {
-			// 兼容老版本 boolean 键
-			BOOL oldVal = [prefs[kRightToLeftAppOpenKey] boolValue];
-			g_appOpenAnimationDirection = oldVal ? AppOpenAnimationDirectionRightToLeft : AppOpenAnimationDirectionDisabled;
-		}
+static BOOL isThermalConnection(io_connect_t conn) {
+for (int i = 0; i < g_connCount; i++) {
+if (g_conns[i].conn == conn) return g_conns[i].isThermal;
+}
+return NO;
+}
 
-		g_disconnectWiFiBT           = [prefs[kDisconnectWiFiBTKey] boolValue];
-		g_lowPowerOnLock             = [prefs[kLowPowerOnLockKey] boolValue];
-		g_lockWhenFaceDown           = [prefs[kLockWhenFaceDownKey] boolValue];
-
-		// ===== Cyanide 移植功能 =====
-		g_disableIconFlyIn    = [prefs[kDisableIconFlyInKey] boolValue];
-		g_zeroWakeAnimation   = [prefs[kZeroWakeAnimationKey] boolValue];
-		g_ccRecordNoDelay     = [prefs[kCCRecordNoDelayKey] boolValue];
-
-		// 兜底：确保枚举值不越界
-		// 兜底：确保枚举值不越界
-		if (g_blockMode != LSBlockModeLowPower &&
-			g_blockMode != LSBlockModeSilent &&
-			g_blockMode != LSBlockModeAlways) {
-			g_blockMode = LSBlockModeAlways;
-		}
-	}
+static BOOL serviceIsThermal(io_service_t service) {
+io_name_t name;
+if (IORegistryEntryGetName(service, name) != KERN_SUCCESS) return NO;
+for (int i = 0; g_hotServices[i]; i++) {
+if (strcmp(name, g_hotServices[i]) == 0) return YES;
+}
+return NO;
 }
 
 // ============================================================================
-// 判断是否应阻止亮屏
+// 温度安全阀检查
 // ============================================================================
-static BOOL shouldBlock(void) {
-	if (!g_enabled) return NO;
+// thermalmonitord 内部判定"高温"的阈值通常在 45°C-65°C 之间
+// 我们设置 75°C 作为硬性安全阀 — 超过此温度不拦截任何保护动作
+// 这样即使插件出 bug 导致温度失控，硬件仍能获得保护
+static BOOL isTemperatureAboveSafetyCeiling(void) {
+// 如果关闭了安全阀或者没有启用，直接返回 NO
+if (!g_keepCPSMAlive) return NO;
 
-	switch (g_blockMode) {
-		case LSBlockModeAlways:
-			return YES;
-		case LSBlockModeLowPower:
-			return [NSProcessInfo processInfo].isLowPowerModeEnabled;
-		case LSBlockModeSilent:
-			return g_isRingerSilent;
-	}
-	return NO;
+// 通过 IOKit 读取实际温度 — 跳过拦截
+// 如果读不到，保守返回 NO（不过度保护）
+CFMutableDictionaryRef matching = IOServiceMatching("AppleARMPlatform");
+if (!matching) return NO;
+
+io_service_t service = IOServiceGetMatchingService(kIOMasterPortDefault, matching);
+if (!service) return NO;
+
+CFTypeRef temp = IORegistryEntryCreateCFProperty(service, CFSTR("temperature"), kCFAllocatorDefault, 0);
+IOObjectRelease(service);
+
+if (!temp) return NO;
+
+int64_t tempVal = 0;
+if (CFNumberGetValue((CFNumberRef)temp, kCFNumberSInt64Type, &tempVal)) {
+CFRelease(temp);
+return tempVal >= kSafetyTempThreshold;
 }
 
-// ============================================================================
-// ===== Logos Hooks// ============================================================================
-// ===== Logos Hooks =====
-// ============================================================================
-
-%group MainHooks
-
-%hook SBNCScreenController
-- (bool)canTurnOnScreenForNotificationRequest:(id)arg1 {
-	if (!shouldBlock()) return %orig;
-	return 0;
+CFRelease(temp);
+return NO;
 }
-- (void)_turnOnScreen {
-	if (!shouldBlock()) { %orig; return; }
-}
-%end
-
-%hook SBLockScreenNotificationListController
-- (void)_turnOnScreen {
-	if (!shouldBlock()) { %orig; return; }
-}
-%end
-
-// 禁用主屏幕 App 资源库
-%hook SBIconController
-- (bool)isAppLibraryAllowed {
-	if (g_disableAppLibrary) return 0;
-	return %orig;
-}
-- (bool)isAppLibrarySupported {
-	if (g_disableAppLibrary) return 0;
-	return %orig;
-}
-%end
 
 // ============================================================================
-// 透明 Dock 背景
+// IOKit 层钩子
 // ============================================================================
-%hook SBDockView
-- (void)setBackgroundAlpha:(double)arg1 {
-	if (g_transparentDock) {
-		%orig(0);
-	} else {
-		%orig;
-	}
+
+// --- IOServiceOpen — 追踪 thermal connection ---
+%hookf(kern_return_t, IOServiceOpen, io_service_t service, task_t task, uint32_t type, io_connect_t *connect) {
+kern_return_t ret = %orig;
+if (ret == KERN_SUCCESS) {
+trackConnection(*connect, serviceIsThermal(service));
 }
-%end
-
-// ============================================================================
-// 禁用锁屏快捷操作（手电筒/相机）
-// ============================================================================
-%hook CSQuickActionsViewController
-- (bool)hasFlashlight {
-	if (g_disableFlashlight) return 0;
-	return %orig;
-}
-- (bool)hasCamera {
-	if (g_disableCamera) return 0;
-	return %orig;
-}
-%end
-
-// ============================================================================
-// 禁用锁屏相机按钮
-// ============================================================================
-%hook SpringBoard
-- (bool)lockScreenCameraSupported {
-	if (g_disableLockScreenCamera) return 0;
-	return %orig;
-}
-%end
-
-// ============================================================================
-// 屏蔽屏幕截图录制检测 — 阻止系统检测截图/录屏状态
-// ============================================================================
-%hook UIDidTakeScreenshotAction
-- (long long)UIActionType {
-	if (g_disableScreenshotDetection) return 0;
-	return %orig;
-}
-%end
-
-%hook UIScreen
-- (bool)isCaptured {
-	if (g_disableScreenshotDetection) return 0;
-	return %orig;
-}
-%end
-
-%end
-
-// ============================================================================
-// 禁用签名验证（独立 group，仅在类存在时初始化）
-// ============================================================================
-%group SignatureHooks
-
-%hook FBSSignatureValidationService
-- (unsigned long long)trustStateForApplication:(id)arg1 {
-	if (g_disableSignatureCheck) return 8;
-	return %orig;
-}
-%end
-
-%end
-
-// ============================================================================
-// 禁用相机快门声（独立 group，仅在类存在时初始化）
-// ============================================================================
-%group CameraShutterHooks
-
-%hook AVCaptureIrisStillImageSettings
-- (unsigned long)shutterSound {
-	if (g_disableCameraShutterSound) return 0;
-	return %orig;
-}
-%end
-
-%hook AVCapturePhotoSettings
-- (void)setShutterSound:(unsigned int)arg1 {
-	if (g_disableCameraShutterSound) {
-		arg1 = 0;
-	}
-	%orig;
-}
-- (unsigned int)shutterSound {
-	if (g_disableCameraShutterSound) return 0;
-	return %orig;
-}
-%end
-
-%end
-
-// ============================================================================
-// 额外功能 — 面容ID / 锁屏声音 / 解锁动画 / 通话 / 文件夹功能
-// ============================================================================
-%group ExtraHooks
-
-#pragma mark - 自动解锁面容ID
-%hook CSLockScreenSettings
-- (bool)autoDismissUnlockedLockScreen {
-    if (!g_autoDismissFaceID) return %orig;
-    return 1;
-}
-%end
-
-#pragma mark - 关闭锁屏/解锁声音
-%hook SBLockScreenManager
-- (bool)shouldPlayLockSound {
-    if (!g_disableLockSound) return %orig;
-    return 0;
-}
-%end
-
-#pragma mark - 移除滑动解锁动画延迟
-%hook SBLockScreenView
-- (void)_startAnimatingSlideToUnlockWithDelay:(double)arg1 {
-    if (!g_removeUnlockDelay) { %orig; return; }
-    arg1 = 0;
-    %orig;
-}
-%end
-
-#pragma mark - 锁屏来电拒接按钮
-
-%hook PHInCallUIUtilities
-- (bool)isSpringBoardLocked {
-    if (!g_inCallUnlocked) return %orig;
-    return 0;
-}
-%end
-
-%end
-
-// ============================================================================
-// 开关 K1：应用打开动画方向 — 修改 App Switcher 图标锚点位置
-// ============================================================================
-%group FluidSwitcherHooks
-
-%hook SBFluidSwitcherViewController
-
-// 将图标 frame 的 x/y 原点设到屏幕边缘，使打开动画从相应方向划入
-- (CGRect)_iconImageFrameForIconView:(id)iconView {
-	CGRect frame = %orig;
-	if (g_appOpenAnimationDirection != AppOpenAnimationDirectionDisabled) {
-		CGSize screenSize = [UIScreen mainScreen].bounds.size;
-		CGFloat screenW = screenSize.width;
-		CGFloat screenH = screenSize.height;
-		switch (g_appOpenAnimationDirection) {
-			case AppOpenAnimationDirectionRightToLeft:
-				frame.origin.x = screenW - frame.size.width;
-				break;
-			case AppOpenAnimationDirectionLeftToRight:
-				frame.origin.x = 0;
-				break;
-			case AppOpenAnimationDirectionTopToBottom:
-				frame.origin.y = 0;
-				break;
-			case AppOpenAnimationDirectionBottomToTop:
-				frame.origin.y = screenH - frame.size.height;
-				break;
-			default:
-				break;
-		}
-	}
-	return frame;
+return ret;
 }
 
-// 调整图标视图获取，传递 nil 让系统重新计算布局，从而使用我们修改后的 frame 锚点
-- (id)_iconViewForDisplayItem:(id)displayItem isVisible:(BOOL *)isVisible {
-	if (g_appOpenAnimationDirection != AppOpenAnimationDirectionDisabled) {
-		// 置空 displayItem 触发从自定义锚点位置重建动画
-		return %orig(nil, isVisible);
-	}
-	return %orig(displayItem, isVisible);
+// --- IOConnectCallMethod — 拦截温度读取 + 降频操作 ---
+%hookf(kern_return_t, IOConnectCallMethod, mach_port_t connection, uint32_t selector, const uint64_t *input, uint32_t inputCnt, const void *inputStruct, size_t inputStructCnt, uint64_t *output, uint32_t *outputCnt, void *outputStruct, size_t *outputStructCnt) {
+if (!g_enabled || !isThermalConnection(connection)) {
+return %orig;
+}
+
+if (g_restoringFullPower) {
+return %orig;
+}
+
+// 紧急保护 — 任何情况都不拦截 (安全阀)
+if (SELECTOR_IS_CRITICAL(selector)) {
+return %orig;
+}
+
+// 超过 75°C 时放行所有保护（安全阀生效）
+if (isTemperatureAboveSafetyCeiling()) {
+return %orig;
+}
+
+if (g_thermalStateProtection && SELECTOR_IS_TEMP(selector)) {
+if (output && outputCnt && *outputCnt > 0) {
+for (uint32_t i = 0; i < MIN(*outputCnt, 4); i++) {
+output[i] = 36000;  // 36°C — 永远显示正常温度
+}
+}
+return KERN_SUCCESS;
+}
+if (shouldApplyFullCPUProtection() && SELECTOR_IS_MITIGATION(selector)) {
+// 注意: 不拦截 0x60-0x6F 紧急保护
+return KERN_SUCCESS;
+}
+return %orig;
+}
+
+// --- IOServiceSetProperty — 阻止写降频/降亮度属性 ---
+static kern_return_t (*orig_IOServiceSetProperty)(io_service_t, CFStringRef, CFTypeRef) = NULL;
+
+static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringRef key, CFTypeRef value) {
+if (!g_enabled) {
+return orig_IOServiceSetProperty(service, key, value);
+}
+
+// 安全阀: 超过阈值不拦截
+if (isTemperatureAboveSafetyCeiling()) {
+return orig_IOServiceSetProperty(service, key, value);
+}
+
+NSString *ks = (__bridge NSString *)key;
+if (g_cpuProtection) {
+if (g_restoringFullPower) {
+return orig_IOServiceSetProperty(service, key, value);
+}
+static NSArray *cpuKeys;
+static dispatch_once_t once;
+dispatch_once(&once, ^{
+// 用 C 字符串创建数组，避免 __cfstring
+cpuKeys = @[S("cpu"), S("CPU"), S("freq"), S("Freq"), S("frequency"), S("performance"), S("throttle"), S("mitigation"), S("speed"), S("limit")];
+});
+for (NSString *k in cpuKeys) {
+if ([ks containsString:k]) {
+if (isFullPowerMode()) return KERN_SUCCESS;
+if (shouldApplyLowPowerLimit()) {
+CFTypeRef replacement = copyLowPowerFrequencyValueForKey(ks, value);
+if (replacement) {
+kern_return_t ret = orig_IOServiceSetProperty(service, key, replacement);
+CFRelease(replacement);
+return ret;
+}
+}
+break;
+}
+}
+}
+if (g_brightnessProtection) {
+static NSArray *brightKeys;
+static dispatch_once_t once2;
+dispatch_once(&once2, ^{
+brightKeys = @[S("brightness"), S("Brightness"), S("backlight"), S("Backlight")];
+});
+for (NSString *k in brightKeys) {
+if ([ks containsString:k]) return KERN_SUCCESS;
+}
+}
+return orig_IOServiceSetProperty(service, key, value);
+}
+
+// --- IORegistryEntryCreateCFProperty — 返回正常值 ---
+%hookf(CFTypeRef, IORegistryEntryCreateCFProperty, io_registry_entry_t entry, CFStringRef key, CFAllocatorRef allocator, IOOptionBits options) {
+if (!g_enabled || !g_thermalStateProtection) return %orig;
+
+// 安全阀
+if (isTemperatureAboveSafetyCeiling()) return %orig;
+
+NSString *ks = (__bridge NSString *)key;
+if ([ks localizedCaseInsensitiveContainsString:S("temperature")] ||
+[ks localizedCaseInsensitiveContainsString:S("thermal-level")] ||
+[ks localizedCaseInsensitiveContainsString:S("hot-level")] ||
+[ks localizedCaseInsensitiveContainsString:S("thermalstate")]) {
+int zero = 0;
+return CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &zero);
+}
+if ([ks localizedCaseInsensitiveContainsString:S("freq")] ||
+[ks localizedCaseInsensitiveContainsString:S("speed")]) {
+if (shouldApplyLowPowerLimit()) {
+BOOL isMinKey = [ks localizedCaseInsensitiveContainsString:S("min")];
+int64_t lowPowerValue = isMinKey ? kLowPowerMinFrequencyMHz : kLowPowerMaxFrequencyMHz;
+return CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &lowPowerValue);
+}
+int max = INT_MAX;
+return CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &max);
+}
+if ([ks localizedCaseInsensitiveContainsString:S("brightness")] ||
+[ks localizedCaseInsensitiveContainsString:S("backlight")]) {
+float one = 1.0;
+return CFNumberCreate(kCFAllocatorDefault, kCFNumberFloatType, &one);
+}
+return %orig;
+}
+
+// --- notify_post — 拦截高温广播 ---
+%hookf(uint32_t, notify_post, const char *name) {
+if (g_enabled && g_suppressThermalNotifications && name) {
+// 安全阀: 只有在温度正常时才拦截
+if (!isTemperatureAboveSafetyCeiling()) {
+// 动态创建 NSString 避免 roothide __cfstring 损坏
+NSString *ns = [NSString stringWithUTF8String:name];
+if (isThermalNotificationName(ns)) {
+return NOTIFY_STATUS_OK;
+}
+}
+}
+return %orig;
+}
+
+// ============================================================================
+// ObjC 类钩子（第1层: CommonProduct / HidSensors — 已有）
+// ============================================================================
+
+// --- CommonProduct: thermalmonitord 核心热管理对象 ---
+%hook CommonProduct
+
+- (id)initProduct:(id)arg1 {
+id res = %orig;
+if (g_enabled) {
+g_commonProduct = self;
+[self putDeviceInThermalSimulationMode:S("nominal")];
+applyCurrentPowerModeToRuntime();
+NSLog(@"[CPUthermal] CommonProduct init, 已重置热状态为 nominal, 功率模式:%@", isLowPowerMode() ? S("低功耗") : S("解除温控"));
+}
+return res;
+}
+
+- (void)tryTakeAction {
+if (shouldApplyFullCPUProtection()) {
+// 阻止所有热缓解动作
+return;
+}
+%orig;
+}
+
+- (void)simulateLightThermalPressure {
+if (shouldApplyFullCPUProtection()) {
+return;
+}
+%orig;
+}
+
+- (void)updatePowerzoneTelemetry {
+if (shouldApplyFullCPUProtection()) {
+return;
+}
+%orig;
 }
 
 %end
 
-%end
+// --- HidSensors: HID 温度事件处理 ---
+%hook HidSensors
 
-// ============================================================================
-// 彻关 Wi-Fi / 蓝牙（从控制中心点击后彻底关闭，不只暂时断开）
-// ============================================================================
-
-@interface BluetoothManager (Addition)
-@property (assign) BOOL ignoreAirplaneModeCheck;
-@end
-
-@interface WFWiFiStateMonitor : NSObject
-@end
-
-@interface WFControlCenterStateMonitor : WFWiFiStateMonitor
-@end
-
-@interface WFControlCenterStateMonitor (Addition)
-@property (assign) BOOL forceAirplaneMode;
-@end
-
-// ============================================================================
-// 锁屏自动低电量 — 私有类声明
-// ============================================================================
-
-@interface _CDBatterySaver : NSObject
-+(id)batterySaver;
--(BOOL)setPowerMode:(long long)arg1 error:(id *)arg2;
-@end
-
-@interface SBCoverSheetPresentationManager : NSObject
-+(id)sharedInstance;
--(BOOL)hasBeenDismissedSinceKeybagLock;
-@end
-
-@interface SBCoverSheetPrimarySlidingViewController : UIViewController
-@end
-
-// SBLockScreenManager 前向声明（ExtraHooks 中有 %hook，这里给 LowPowerOnLock 用）
-@interface SBLockScreenManager : NSObject
-+(instancetype)sharedInstance;
--(BOOL)isUILocked;
-@end
-
-// SpringBoard 前向声明
-@interface SpringBoard : UIApplication
-+(id)sharedApplication;
--(void)_simulateLockButtonPress;
-@end
-
-// Cyanide 移植 — SBFloatingDockController 私有方法声明
-@interface SBFloatingDockController : UIViewController
--(void)_setHomeAffordanceHidden:(BOOL)hidden;
--(void)setWantsHomeGestureHidden:(BOOL)hidden;
-@end
-
-// 自定义动画速度 — 私有类声明
-@interface SBIconAnimationController : NSObject
--(double)animationDuration;
-@end
-
-@interface SBCoverSheetAnimationController : NSObject
--(double)animationDuration;
-@end
-
-@interface SBUIAnimationController : NSObject
--(double)animationDuration;
-@end
-
-@interface SBFolderController : UIViewController
--(double)animationDuration;
-@end
-
-%group DisconnectWiFiBT
-
-%hook BluetoothManager
-
-- (void)bluetoothStateActionWithCompletion:(id)completion {
-	if (!g_disconnectWiFiBT) { %orig; return; }
-	BOOL shouldTurnOff = [[self valueForKey:@"_state"] intValue] == 3;
-	if (shouldTurnOff) [self setValue:@(99) forKey:@"_state"];
-	%orig;
-	if (shouldTurnOff) {
-		[self setValue:@(1) forKey:@"_state"];
-		[self setPowered:NO];
-		[self postNotification:@"BluetoothStateChangedNotification"];
-	}
+- (void)handleTemperatureEvent:(int)arg1 service:(id)arg2 {
+if (g_enabled && g_blockHidEvents) {
+return;
+}
+%orig;
 }
 
 %end
 
-%hook WFControlCenterStateMonitor
+// ============================================================================
+// ObjC 类钩子（第2层: ThermalManager 决策层 — 新增自 1.dylib 分析）
+//
+// 冲突避免说明:
+//   - 传感器读数 getHighestSkinTemp/dieTempFilteredMaxAverage/thermalSensorValuesMaxFromIndexSet
+//     不在此处 hook (IOKit 层已拦截)
+//   - putDeviceInThermalSimulationMode: 不 hook (CPUthermal 自已调用会递归)
+//   - setCPMSMitigationState: 不 hook (IOKit 层已拦截 selector 0x40-0x5F)
+//   - setHiPFeatureEnabled/setPackageLowPowerTarget: 不 hook (IOKit 层已拦截)
+// ============================================================================
 
-%property (assign) BOOL forceAirplaneMode;
+// --- ThermalManager: hook 决策树和热压力升级 ---
+%hook ThermalManager
 
-- (BOOL)_airplaneModeEnabled {
-	if (!g_disconnectWiFiBT) return %orig;
-	return self.forceAirplaneMode ? YES : %orig;
+// 决策树评估 — 这是 thermalmonitord 判断"要不要降频"的核心
+- (void)evaluateDecisionTree {
+if (shouldApplyFullCPUProtection()) {
+// 安全阀: 超过 75°C 不阻断
+if (!isTemperatureAboveSafetyCeiling()) {
+NSLog(@"[CPUthermal] 阻止决策树评估 (evaluateDecisionTree)");
+return;
+}
+}
+%orig;
 }
 
-- (void)performAction:(id)completion {
-	if (!g_disconnectWiFiBT) { %orig; return; }
-	self.forceAirplaneMode = YES;
-	%orig;
-	self.forceAirplaneMode = NO;
+// 热压力升级通知 — 阻止 thermalmonitord 升级热压力级别
+- (void)updateThermalPressureLevelNotification:(id)notification shouldForceThermalPressure:(BOOL)force {
+if (g_enabled && g_thermalStateProtection) {
+// 安全阀
+if (!isTemperatureAboveSafetyCeiling()) {
+NSLog(@"[CPUthermal] 阻止热压力升级: %@ force:%d", notification, force);
+// 仍然调用原方法但传 NO — 不强制
+%orig(notification, NO);
+return;
+}
+}
+%orig;
+}
+
+// 热通知 — 可选择性阻断
+- (void)updateThermalNotification:(id)notification {
+if (g_enabled && g_suppressThermalNotifications) {
+if (!isTemperatureAboveSafetyCeiling()) {
+NSLog(@"[CPUthermal] 阻止热通知: %@", notification);
+return;
+}
+}
+%orig;
+}
+
+// 是否应执行轻度热压力 — 可阻止
+- (BOOL)shouldEnforceLightThermalPressure {
+if (g_enabled && g_thermalStateProtection) {
+if (!isTemperatureAboveSafetyCeiling()) {
+NSLog(@"[CPUthermal] 阻止 enforceLightThermalPressure");
+return NO;
+}
+}
+return %orig;
+}
+
+// 获取组件释放速率 — 可以降低不放 0
+- (float)getReleaseRateForComponent:(id)component {
+if (shouldApplyFullCPUProtection()) {
+if (!isTemperatureAboveSafetyCeiling()) {
+float rate = %orig(component);
+// 软化: 降低 50% 但保留基础释放能力
+if (rate > 0.5) {
+rate = rate * 0.5;
+}
+NSLog(@"[CPUthermal] 软化释放速率: %@ -> %.2f", component, rate);
+return rate;
+}
+}
+return %orig(component);
+}
+
+// 获取强制热级别 — 返回最低级
+- (int)getPotentialForcedThermalLevel:(id)component {
+if (g_enabled && g_thermalStateProtection) {
+if (!isTemperatureAboveSafetyCeiling()) {
+NSLog(@"[CPUthermal] 覆盖强制热级别: %@ -> 0 (nominal)", component);
+return 0; // kThermalLevelNominal
+}
+}
+return %orig(component);
+}
+
+// 获取强制热压力级别 — 返回最低
+- (int)getPotentialForcedThermalPressureLevel {
+if (g_enabled && g_thermalStateProtection) {
+if (!isTemperatureAboveSafetyCeiling()) {
+NSLog(@"[CPUthermal] 覆盖强制热压力级别 -> 0");
+return 0;
+}
+}
+return %orig;
+}
+
+// 散热/电池服务建议 — 关闭时返回 nil 屏蔽系统散热提示
+// (适配自 fuckThermal 逆向还原分析)
+- (id)getBatteryServiceSuggestion:(id)suggestion {
+id result = %orig(suggestion);
+if (g_enabled && g_suppressThermalNotifications) {
+if (!isTemperatureAboveSafetyCeiling()) {
+NSLog(@"[CPUthermal] 拦截 ThermalManager 散热建议");
+return nil;
+}
+}
+return result;
 }
 
 %end
 
-%end
+// --- ThermalControl: hook 控制力度计算 ---
+%hook ThermalControl
 
-// ============================================================================
-// 锁屏自动低电量 — 锁屏时自动开启低电模式，解锁后恢复
-// ============================================================================
-%group LowPowerOnLock
-
-%hook SBSleepWakeHardwareButtonInteraction
--(void)_playLockSound {
-	%orig;
-	if (!g_lowPowerOnLock) return;
-	if ([[%c(SBLockScreenManager) sharedInstance] isUILocked]) return;
-
-	if ([[NSProcessInfo processInfo] isLowPowerModeEnabled]) {
-		g_isLPMOnBeforeLock = YES;
-	} else {
-		[[%c(_CDBatterySaver) batterySaver] setPowerMode:1 error:nil];
-		g_isLPMOnBeforeLock = NO;
-	}
+- (id)initForFastLoop:(BOOL)fastLoop noDisplay:(BOOL)noDisplay powerSaveParams:(id)saveParams powerZoneParams:(id)zoneParams {
+id res = %orig(fastLoop, noDisplay, saveParams, zoneParams);
+if (res) {
+trackPowerController(res);
+applyCurrentPowerModeToRuntime();
 }
-%end
-
-%hook SBCoverSheetPrimarySlidingViewController
--(void)viewWillDisappear:(BOOL)arg1 {
-	%orig;
-	if (!g_lowPowerOnLock) return;
-	if ([[%c(SBCoverSheetPresentationManager) sharedInstance] hasBeenDismissedSinceKeybagLock]) return;
-
-	if (!g_isLPMOnBeforeLock) {
-		[[%c(_CDBatterySaver) batterySaver] setPowerMode:0 error:nil];
-	}
+return res;
 }
-%end
 
-%end
+- (id)initWithParams:(id)params {
+id res = %orig(params);
+if (res) {
+trackPowerController(res);
+applyCurrentPowerModeToRuntime();
+}
+return res;
+}
 
-// ============================================================================
-// 设备朝下自动锁屏 — 口袋检测状态变为 3（屏幕朝下）时模拟锁屏键
-// ============================================================================
-%group FaceDownLock
+- (BOOL)powerSaveActive {
+if (g_restoringFullPower) {
+return %orig;
+}
+if (shouldApplyLowPowerLimit()) {
+return YES;
+}
+if (shouldApplyFullCPUProtection()) {
+return NO;
+}
+return %orig;
+}
 
-%hook SBIdleTimerGlobalStateMonitor
-- (void)pocketStateMonitor:(id)arg1 pocketStateDidChangeFrom:(long long)arg2 to:(long long)arg3 {
-	%orig;
-	if (!g_lockWhenFaceDown) return;
-	if (arg3 == 3) {
-		[[%c(SpringBoard) sharedApplication] _simulateLockButtonPress];
-	}
+- (void)setPowerSaveActive:(BOOL)active {
+if (g_restoringFullPower) {
+%orig(active);
+return;
 }
-%end
+if (shouldApplyLowPowerLimit()) {
+%orig(YES);
+return;
+}
+if (shouldApplyFullCPUProtection()) {
+%orig(NO);
+return;
+}
+%orig;
+}
 
-%end
+- (void)setPowerSaveToken:(id)token {
+if (g_restoringFullPower) {
+%orig(token);
+return;
+}
+if (shouldApplyLowPowerLimit()) {
+%orig([NSNumber numberWithInt:1]);
+return;
+}
+if (shouldApplyFullCPUProtection()) {
+%orig(nil);
+return;
+}
+%orig;
+}
 
-// ============================================================================
-// ===== Cyanide 移植功能 Group =====
-// ============================================================================
+// 计算控制力度 — 这是 throttle 量的核心
+// soften 模式下减半但不归零，保留基础调节能力
+- (float)calculateControlEffort:(id)trigger trigger:(id)arg2 {
+if (shouldApplyFullCPUProtection()) {
+if (!isTemperatureAboveSafetyCeiling()) {
+float effort = %orig(trigger, arg2);
+float newEffort = effort * 0.5;  // 减半，不归零
+if (newEffort < 0 && effort > 0) newEffort = 0;  // 保护负值
+NSLog(@"[CPUthermal] 软化控制力度: %.2f -> %.2f", effort, newEffort);
+return newEffort;
+}
+}
+return %orig(trigger, arg2);
+}
 
-// ============================================================================
-// 2. Disable Icon Fly-In — 禁用锁屏图标飞入动画
-// 移植自 Cyanide: tweaks/darksword_tweaks.m → darksword_tweak_disable_icon_fly_in_in_session
-// ============================================================================
-%group IconFlyInHooks
+// actionComponentControl — 组件控制动作
+- (void)actionComponentControl {
+if (shouldApplyFullCPUProtection()) {
+if (!isTemperatureAboveSafetyCeiling()) {
+NSLog(@"[CPUthermal] 阻止 actionComponentControl");
+return;
+}
+}
+%orig;
+}
 
-%hook SBCoverSheetPresentationManager
-- (double)_iconFlyInTension {
-	if (g_disableIconFlyIn) return 1000000.0;
-	return %orig;
+// readReleaseRateForAllComponents — 全组件释放速率
+- (void)readReleaseRateForAllComponents {
+if (shouldApplyFullCPUProtection()) {
+if (!isTemperatureAboveSafetyCeiling()) {
+NSLog(@"[CPUthermal] 阻止 readReleaseRateForAllComponents");
+return;
 }
-- (double)_iconFlyInFriction {
-	if (g_disableIconFlyIn) return 1000000.0;
-	return %orig;
 }
-- (double)_iconFlyInInteractiveResponseMin {
-	if (g_disableIconFlyIn) return 0.0001;
-	return %orig;
+%orig;
 }
-- (double)_iconFlyInInteractiveResponseMax {
-	if (g_disableIconFlyIn) return 0.0001;
-	return %orig;
-}
-- (double)_iconFlyInInteractiveDampingRatioMin {
-	if (g_disableIconFlyIn) return 1.0;
-	return %orig;
-}
-- (double)_iconFlyInInteractiveDampingRatioMax {
-	if (g_disableIconFlyIn) return 1.0;
-	return %orig;
-}
-%end
 
-%end
-
-// ============================================================================
-// 3. Zero Wake Animation — 零唤醒动画（瞬间解锁）
-// 移植自 Cyanide: tweaks/darksword_tweaks.m → darksword_tweak_zero_wake_animation_in_session
-// ============================================================================
-%group ZeroWakeHooks
-
-%hook SBScreenWakeAnimationController
-- (double)_backlightFadeDuration {
-	if (g_zeroWakeAnimation) return 0.0;
-	return %orig;
-}
-- (double)speedMultiplierForWake {
-	if (g_zeroWakeAnimation) return 1000.0;
-	return %orig;
-}
-- (double)_speedMultiplierForLiftToWake {
-	if (g_zeroWakeAnimation) return 1000.0;
-	return %orig;
-}
-%end
-
-// 辅助: 让解锁后的回弹动画也消失 — hook SBIconController 动画速度
-%hook SBIconController
-- (double)maxScrollDuration {
-	if (g_zeroWakeAnimation) return 0.0;
-	return %orig;
-}
-%end
 
 %end
 
-// ============================================================================
-// 录屏去延迟// ============================================================================
-// 录屏去延迟 — Hook ReplayKit 控制中心模块跳过 3 秒倒计时
-// 移植自 CCRecordNoDelay by LaYii
-// 原理: NSBundle -load 检测 ReplayKitModule.bundle 加载后，
-//        懒初始化 CCRecordNoDelayHooks，hook 倒计时方法。
-// ============================================================================
+// --- ApplePPMCPU: 低功耗时限制 CPU P-state 档位 ---
+%hook ApplePPMCPU
 
-// 录屏去延迟 Hook — %group 必须定义在 %init 引用之前
-%group CCRecordNoDelayHooks
-
-%hook RPControlCenterMenuModuleViewController
-- (void)transitionToCountdownState {
-	if (!g_ccRecordNoDelay) { %orig; return; }
-
-	// 获取 _client 实例变量
-	Ivar ivar = class_getInstanceVariable(object_getClass(self), "_client");
-	if (!ivar) { %orig; return; }
-	id client = object_getIvar(self, ivar);
-	if (!client) { %orig; return; }
-
-	// 关闭控制中心（无动画）
-	Class ccCls = objc_getClass("SBControlCenterController");
-	if (ccCls) {
-		id cc = ((id (*)(Class, SEL))objc_msgSend)(ccCls, @selector(sharedInstance));
-		if (cc) {
-			((void (*)(id, SEL, BOOL))objc_msgSend)(cc, @selector(dismissAnimated:), NO);
-		}
-	}
-
-	// 延迟 100ms 后直接开始录制，跳过倒计时
-	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 100 * NSEC_PER_MSEC),
-		dispatch_get_main_queue(), ^{
-			((void (*)(id, SEL, id))objc_msgSend)(
-				client, @selector(startRecordingWithHandler:), nil);
-		});
+- (void)setCPULevel:(int)level {
+if (g_restoringFullPower) {
+%orig(level);
+return;
 }
-%end
+if (shouldApplyLowPowerLimit()) {
+int lowPowerLevel = level;
+if (lowPowerLevel < 0) lowPowerLevel = 0;
+if (lowPowerLevel > 2) lowPowerLevel = 2;
+%orig(lowPowerLevel);
+return;
+}
+if (shouldApplyFullCPUProtection()) {
+%orig(0);
+return;
+}
+%orig;
+}
+
+- (void)updateCPU {
+if (g_restoringFullPower) {
+%orig;
+return;
+}
+if (shouldApplyFullCPUProtection()) {
+return;
+}
+%orig;
+}
 
 %end
 
-// 录屏去延迟 — C 辅助函数（在 %group 外部，Logos 可正确解析 %init）
-static void initCCRecordNoDelayHooks(void) {
-	@try {
-		%init(CCRecordNoDelayHooks);
-	} @catch (NSException *e) {
-		NSLog(@"[Systempro] CCRecordNoDelayHooks init failed: %@", e);
-	}
+// --- MitigationController: 功率目标控制 ---
+%hook MitigationController
+
+- (id)initForFastLoop:(BOOL)fastLoop noDisplay:(BOOL)noDisplay powerSaveParams:(id)saveParams powerZoneParams:(id)zoneParams {
+id res = %orig(fastLoop, noDisplay, saveParams, zoneParams);
+if (res) {
+trackPowerController(res);
+applyCurrentPowerModeToRuntime();
+}
+return res;
 }
 
-// NSBundle 懒加载检测 — 始终初始化
-%group NSBundleHooks
-
-%hook NSBundle
-- (BOOL)load {
-	BOOL r = %orig;
-	if (g_ccRecordNoDelay && !g_ccRecordNoDelayHooksInited &&
-		[[self bundlePath] containsString:@"ReplayKitModule.bundle"]) {
-		g_ccRecordNoDelayHooksInited = YES;
-		initCCRecordNoDelayHooks();
-	}
-	return r;
+- (BOOL)powerSaveActive {
+if (g_restoringFullPower) {
+return %orig;
 }
+if (shouldApplyLowPowerLimit()) {
+return YES;
+}
+if (shouldApplyFullCPUProtection()) {
+return NO;
+}
+return %orig;
+}
+
+- (void)setPowerSaveActive:(BOOL)active {
+if (g_restoringFullPower) {
+%orig(active);
+return;
+}
+if (shouldApplyLowPowerLimit()) {
+%orig(YES);
+return;
+}
+if (shouldApplyFullCPUProtection()) {
+%orig(NO);
+return;
+}
+%orig;
+}
+
+- (void)setPowerSaveToken:(int)token {
+if (g_restoringFullPower) {
+%orig(token);
+return;
+}
+if (shouldApplyLowPowerLimit()) {
+%orig(1);
+return;
+}
+if (shouldApplyFullCPUProtection()) {
+%orig(0);
+return;
+}
+%orig;
+}
+
+- (void)updateCPU {
+if (g_restoringFullPower) {
+%orig;
+return;
+}
+if (shouldApplyFullCPUProtection()) {
+return;
+}
+%orig;
+}
+
+- (void)updateGPU {
+if (g_restoringFullPower) {
+%orig;
+return;
+}
+if (shouldApplyFullCPUProtection()) {
+return;
+}
+%orig;
+}
+
+- (void)updatePackage {
+if (g_restoringFullPower) {
+%orig;
+return;
+}
+if (shouldApplyFullCPUProtection()) {
+return;
+}
+%orig;
+}
+
+- (void)setCPULowPowerTarget:(int)target {
+if (g_restoringFullPower) {
+%orig(target);
+return;
+}
+if (shouldApplyLowPowerLimit()) {
+%orig(lowPowerTargetValue());
+return;
+}
+if (shouldApplyFullCPUProtection()) {
+return;
+}
+%orig;
+}
+
+- (void)setPackageLowPowerTarget {
+if (g_restoringFullPower) {
+%orig;
+return;
+}
+if (shouldApplyFullCPUProtection()) {
+return;
+}
+%orig;
+}
+
+- (void)setMaxCPUPowerTarget:(int)target useLegacyPath:(BOOL)legacy setProperty:(uintptr_t)property {
+uintptr_t propertyArg = normalizedSetMaxCPUPowerPropertyArgument(self, property);
+if (g_restoringFullPower) {
+%orig(target, legacy, propertyArg);
+return;
+}
+if (shouldApplyLowPowerLimit()) {
+int64_t clamped = clampLowPowerFrequencyValue(target);
+rememberOriginalIntValue(self, "MaxCPUPowerTarget", target);
+%orig((int)clamped, legacy, propertyArg);
+return;
+}
+if (shouldApplyFullCPUProtection()) {
+%orig(fullPowerTargetForController(self), legacy, propertyArg);
+return;
+}
+%orig;
+}
+
+- (void)setCPUPowerCeiling:(int)ceiling fromDecisionSource:(uintptr_t)source {
+if (g_restoringFullPower) {
+%orig(ceiling, source);
+return;
+}
+if (shouldApplyLowPowerLimit()) {
+rememberOriginalIntValue(self, "CPUPowerCeiling", ceiling);
+%orig(lowPowerPowerCeilingValue(), source);
+return;
+}
+if (shouldApplyFullCPUProtection()) {
+%orig(fullPowerCeilingForController(self), source);
+return;
+}
+%orig;
+}
+
+- (void)setCPUPowerFloor:(int)floor fromDecisionSource:(uintptr_t)source {
+if (g_restoringFullPower) {
+%orig(floor, source);
+return;
+}
+if (shouldApplyLowPowerLimit()) {
+rememberOriginalIntValue(self, "CPUPowerFloor", floor);
+%orig(lowPowerPowerFloorValue(), source);
+return;
+}
+if (shouldApplyFullCPUProtection()) {
+%orig(fullPowerFloorForController(self), source);
+return;
+}
+%orig;
+}
+
+- (void)setCPUPowerZoneTarget:(int)target {
+if (g_restoringFullPower) {
+%orig(target);
+return;
+}
+if (shouldApplyLowPowerLimit()) {
+int64_t clamped = clampLowPowerFrequencyValue(target);
+rememberOriginalIntValue(self, "CPUPowerZoneTarget", target);
+%orig((int)clamped);
+return;
+}
+if (shouldApplyFullCPUProtection()) {
+%orig(fullPowerZoneTargetForController(self));
+return;
+}
+%orig;
+}
+
 %end
 
+// ============================================================================
+// C 函数钩子: _getConfigurationFor → ___New_getConfigurationFor___
+//
+// 在 thermalmonitord 初始化时，会调用 _getConfigurationFor(NSString*)
+// 来获取热配置字典。通过返回修改后的配置，可以影响所有热管理参数。
+// ============================================================================
+
+// 原函数类型: NSDictionary* _getConfigurationFor(NSString *key)
+static NSDictionary* (*orig_getConfigurationFor)(NSString *key) = NULL;
+
+static NSDictionary* new_getConfigurationFor(NSString *key) {
+NSDictionary *config = orig_getConfigurationFor(key);
+if (!g_enabled || !g_cpuProtection || !config) return config;
+
+// 安全阀
+if (isTemperatureAboveSafetyCeiling()) return config;
+
+@autoreleasepool {
+NSMutableDictionary *modified = [config mutableCopy];
+if (!modified) return config;
+
+if (isLowPowerMode()) {
+NSDictionary *patched = patchedLowPowerConfigObject(modified, key);
+NSMutableDictionary *lowPowerConfig = [patched mutableCopy];
+NSMutableDictionary *powerSaveParams = [[lowPowerConfig objectForKey:S("powerSaveParams")] mutableCopy];
+if (powerSaveParams) {
+[powerSaveParams setObject:[NSNumber numberWithInt:lowPowerTargetValue()] forKey:S("PackageLowPowerTarget")];
+[powerSaveParams setObject:[NSNumber numberWithInt:lowPowerTargetValue()] forKey:S("CPULowPowerTarget")];
+[lowPowerConfig setObject:powerSaveParams forKey:S("powerSaveParams")];
+}
+NSLog(@"[CPUthermal] 已应用低功耗配置: %@ target:%d (%lld-%lldMHz)", key, lowPowerTargetValue(), kLowPowerMinFrequencyMHz, kLowPowerMaxFrequencyMHz);
+return [lowPowerConfig copy];
+}
+
+// 修改系统热配置
+// 增大所有热等级的触发阈值（延迟触发）
+static NSArray *tempThresholdKeys;
+static dispatch_once_t once;
+dispatch_once(&once, ^{
+// 用 C 字符串创建数组，避免 __cfstring
+tempThresholdKeys = @[
+S("thermalThresholds"),
+S("dieTemperatureThresholds"),
+S("skinTemperatureThresholds"),
+S("componentTemperatureThresholds"),
+S("hotTemperatureThresholds")
+];
+});
+
+for (NSString *tk in tempThresholdKeys) {
+id thresholds = modified[tk];
+if ([thresholds isKindOfClass:[NSArray class]]) {
+NSMutableArray *newThresholds = [NSMutableArray array];
+for (NSNumber *val in (NSArray *)thresholds) {
+// 将每个阈值提高 5°C (5000 毫摄氏度)
+int64_t raised = [val longLongValue] + 5000;
+[newThresholds addObject:@(raised)];
+}
+modified[tk] = newThresholds;
+} else if ([thresholds isKindOfClass:[NSDictionary class]]) {
+NSMutableDictionary *newDict = [NSMutableDictionary dictionary];
+[(NSDictionary *)thresholds enumerateKeysAndObjectsUsingBlock:^(id k, id v, BOOL *stop) {
+if ([v isKindOfClass:[NSNumber class]]) {
+int64_t raised = [v longLongValue] + 5000;
+newDict[k] = @(raised);
+} else {
+newDict[k] = v;
+}
+}];
+modified[tk] = newDict;
+}
+}
+
+NSLog(@"[CPUthermal] 已修改热配置表: %@", key);
+return [modified copy];
+}
+}
+
+// ============================================================================
+// 热配置 plist 修补（适配自 insulation 的 IDictHepler）
+// ============================================================================
+static void patchThermalPlistDict(NSMutableDictionary *dict) {
+if (!g_enabled || !g_brightnessProtection) return;
+
+// 用 C 字符串 key 动态创建，避免 __cfstring
+NSMutableDictionary *backlight = [[dict objectForKey:S("backlightComponentControl")] mutableCopy];
+if (!backlight) return;
+
+// 锁定背光亮度数组 — 所有 thermal 级别亮度一致（不降亮度）
+NSMutableArray *brightnessArr = [[backlight objectForKey:S("BacklightBrightness")] mutableCopy];
+if (brightnessArr.count > 1) {
+id first = brightnessArr[0];
+for (NSUInteger i = 1; i < brightnessArr.count; i++) {
+brightnessArr[i] = first;
+}
+backlight[S("BacklightBrightness")] = brightnessArr;
+}
+
+// 锁定背光功耗数组
+NSMutableArray *powerArr = [[backlight objectForKey:S("BacklightPower")] mutableCopy];
+if (powerArr.count > 1) {
+id first = powerArr[0];
+for (NSUInteger i = 1; i < powerArr.count; i++) {
+powerArr[i] = first;
+}
+backlight[S("BacklightPower")] = powerArr;
+}
+
+// 禁用 CPMS（CPU/GPU 电源管理子系统）
+// 注: 如果 g_keepCPSMAlive 为 YES，不关闭 CPMS
+if (!g_keepCPSMAlive) {
+backlight[S("expectsCPMSSupport")] = @0;
+}
+
+dict[S("backlightComponentControl")] = backlight;
+
+// 来自 Insulation 逆向配置键：禁用口袋阳光/暴晒相关触发，避免背光被阳光热策略拉低。
+dict[S("thermalDisablePocketSunlightEnabled")] = @YES;
+dict[S("sunlightOverridePersistentlyEnabled")] = @YES;
+dict[S("OSThermalNotificationPersistentlyEnabled")] = @NO;
+dict[S("engageBehaviorPersistentlyEnabled")] = @NO;
+dict[S("needsPushingTSFDtoDisplayDriver")] = @NO;
+dict[S("displayBrightnessMitigation")] = @NO;
+dict[S("displayMitigation")] = @NO;
+dict[S("shouldEnforceThermalPressure")] = @NO;
+dict[S("shouldEnforceLightThermalPressure")] = @NO;
+dict[S("hipPersistentlyEnabled")] = @NO;
+}
+
+// --- NSDictionary: 拦截 thermal plist 加载并修补 ---
+// 注意: hook 系统类有风险，仅在亮度保护开启时实际执行
+%hook NSDictionary
+
++ (id)dictionaryWithContentsOfFile:(id)path {
+id res = %orig;
+if (g_enabled && g_brightnessProtection && [path isKindOfClass:[NSString class]]) {
+NSString *pathStr = (NSString *)path;
+if ([pathStr containsString:S("/System/Library/ThermalMonitor/")]) {
+// 安全阀
+if (!isTemperatureAboveSafetyCeiling()) {
+NSMutableDictionary *patched = [res mutableCopy];
+if (patched) {
+patchThermalPlistDict(patched);
+NSLog(@"[CPUthermal] 已修补热配置 plist: %@", [pathStr lastPathComponent]);
+return patched;
+}
+}
+}
+}
+return res;
+}
+
 %end
 
 // ============================================================================
-// ===== CFNotification 回调 =====
+// Puppet 事件（由 Preferences 面板触发 — 模拟热级别切换）
 // ============================================================================
-
-static void onPrefsChanged(CFNotificationCenterRef center,
-						   void *observer,
-						   CFNotificationName name,
-						   const void *object,
-						   CFDictionaryRef userInfo) {
-	reloadConfiguration();
-
-	// 录屏去延迟 — 运行时开启后尝试懒初始化 hook
-	if (g_ccRecordNoDelay && !g_ccRecordNoDelayHooksInited) {
-		initCCRecordNoDelayHooks();
-		g_ccRecordNoDelayHooksInited = YES;
-	}
+static void executePuppetEvent(void) {
+if (!g_commonProduct) return;
+@autoreleasepool {
+NSDictionary *prefs = readPrefsDictionary();
+NSString *level = prefs[S("thermalPuppetValue")] ?: S("nominal");
+[g_commonProduct putDeviceInThermalSimulationMode:level];
+NSLog(@"[CPUthermal] Puppet 事件: 热模式设为 %@", level);
+}
 }
 
-static volatile bool g_isRespringing = false;
-
-static const char *LSExecutablePath(const char *jbrootRelativePath, const char *rootlessPath, const char *rootfulPath) {
-	char *(*jbrootFunction)(const char *) = (char *(*)(const char *))dlsym(RTLD_DEFAULT, "jbroot");
-	const char *resolvedPath = jbrootFunction ? jbrootFunction(jbrootRelativePath) : NULL;
-	if (resolvedPath && access(resolvedPath, X_OK) == 0) return resolvedPath;
-	if (rootlessPath && access(rootlessPath, X_OK) == 0) return rootlessPath;
-	if (rootfulPath && access(rootfulPath, X_OK) == 0) return rootfulPath;
-	return NULL;
+static void onPuppetEvent(CFNotificationCenterRef center, void *observer, CFNotificationName name, const void *object, CFDictionaryRef userInfo) {
+executePuppetEvent();
 }
 
-static BOOL LSLaunchExecutable(const char *executablePath, char *const arguments[]) {
-	if (!executablePath) return NO;
-	pid_t processID = 0;
-	return posix_spawn(&processID, executablePath, NULL, NULL, arguments, NULL) == 0;
+static void onPowerModeChanged(CFNotificationCenterRef center, void *observer, CFNotificationName name, const void *object, CFDictionaryRef userInfo) {
+loadPrefs();
+applyPowerModeToRuntime(NO);
+NSLog(@"[CPUthermal] 功率模式已切换: %@", isLowPowerMode() ? S("低功耗") : S("解除温控"));
 }
 
-static BOOL LSPerformRespring(void) {
-	char *const sbreloadArguments[] = {(char *)"sbreload", NULL};
-	const char *sbreloadPath = LSExecutablePath("/usr/bin/sbreload", "/var/jb/usr/bin/sbreload", "/usr/bin/sbreload");
-	if (LSLaunchExecutable(sbreloadPath, sbreloadArguments)) return YES;
-
-	char *const killallArguments[] = {(char *)"killall", (char *)"-9", (char *)"SpringBoard", NULL};
-	const char *killallPath = LSExecutablePath("/usr/bin/killall", "/var/jb/usr/bin/killall", "/usr/bin/killall");
-	return LSLaunchExecutable(killallPath, killallArguments);
+static void onSettingsChanged(CFNotificationCenterRef center, void *observer, CFNotificationName name, const void *object, CFDictionaryRef userInfo) {
+loadPrefs();
+if (g_enabled) {
+applyPowerModeToRuntime(NO);
 }
-
-static void onRespring(CFNotificationCenterRef center,
-					   void *observer,
-					   CFNotificationName name,
-					   const void *object,
-					   CFDictionaryRef userInfo) {
-	if (g_isRespringing) return;
-	g_isRespringing = true;
-
-	dispatch_async(dispatch_get_main_queue(), ^{
-		if (!LSPerformRespring()) {
-			g_isRespringing = false;
-		}
-	});
+NSLog(@"[CPUthermal] 设置已重载 enabled:%d CPU:%d 亮度:%d 热状态:%d HID:%d 通知:%d",
+g_enabled, g_cpuProtection, g_brightnessProtection, g_thermalStateProtection,
+g_blockHidEvents, g_suppressThermalNotifications);
 }
 
 // ============================================================================
-// ===== %ctor — 构造函数 =====
+// %ctor — 构造函数（配置仅在进程启动时加载一次）
 // ============================================================================
-
 %ctor {
-	@autoreleasepool {
-		reloadConfiguration();
+@autoreleasepool {
+g_processStartTime = CFAbsoluteTimeGetCurrent();
+loadPrefs();
+if (!g_enabled) {
+NSLog(@"[CPUthermal] 配置关闭，跳过加载");
+return;
+}
 
-		// NSBundle 懒加载检测 — 用于 ReplayKit 等动态加载模块的 hook
-		%init(NSBundleHooks);
+// 确保 IOKit 已加载
+void *iokit = dlopen("/System/Library/Frameworks/IOKit.framework/IOKit", RTLD_NOW | RTLD_GLOBAL);
+if (iokit) {
+kern_return_t (*ptr)(io_service_t, CFStringRef, CFTypeRef) = (kern_return_t (*)(io_service_t, CFStringRef, CFTypeRef))dlsym(iokit, "IOServiceSetProperty");
+if (ptr) {
+MSHookFunction((void *)ptr, (void *)hooked_IOServiceSetProperty, (void **)&orig_IOServiceSetProperty);
+NSLog(@"[CPUthermal] IOServiceSetProperty hook 已安装");
+} else {
+NSLog(@"[CPUthermal] 警告: 未找到 IOServiceSetProperty");
+}
+}
 
-		// 核心功能 — 类必然存在
-		%init(MainHooks);
+// _getConfigurationFor — C 函数钩子
+void *monitor = dlopen("/System/Library/PrivateFrameworks/DeviceMonitor.framework/DeviceMonitor", RTLD_NOW | RTLD_GLOBAL);
+if (monitor) {
+void *getConfig = dlsym(monitor, "_getConfigurationFor");
+if (getConfig) {
+MSHookFunction(getConfig, (void *)new_getConfigurationFor, (void **)&orig_getConfigurationFor);
+NSLog(@"[CPUthermal] _getConfigurationFor hook 已安装");
+} else {
+NSLog(@"[CPUthermal] 未找到 _getConfigurationFor (非致命)");
+}
+} else {
+NSLog(@"[CPUthermal] 未找到 DeviceMonitor.framework (非致命)");
+}
 
-		// 签名验证 hook — FBSSignatureValidationService 仅 iOS 14+ 存在
-		if (NSClassFromString(@"FBSSignatureValidationService")) {
-			%init(SignatureHooks);
-		}
+NSLog(@"[CPUthermal] 温控防护已激活 — 安全阀:%d°C CPU性能:%d 亮度:%d 热状态:%d HID:%d CPMS:%d",
+(int)(kSafetyTempThreshold / 1000),
+g_cpuProtection, g_brightnessProtection, g_thermalStateProtection,
+g_blockHidEvents, g_keepCPSMAlive);
 
-		// 相机快门 hook — 部分设备/版本可能缺少特定类
-		if (NSClassFromString(@"AVCaptureIrisStillImageSettings")) {
-			%init(CameraShutterHooks);
-		}
+// 注意: 配置仅在进程启动时加载一次
+// 修改设置后需重启 thermalmonitord 才生效
 
-		// 额外功能 — 所有类在 iOS 16 上应都存在
-		%init(ExtraHooks);
-
-		// Fluid Switcher 动画 — SBFluidSwitcherViewController 在 iOS 16 上存在
-		if (NSClassFromString(@"SBFluidSwitcherViewController")) {
-			%init(FluidSwitcherHooks);
-		}
-
-		// 彻关 Wi-Fi/蓝牙 — 预加载私有框架
-		dlopen("/System/Library/PrivateFrameworks/BluetoothManager.framework/BluetoothManager", RTLD_NOW);
-		dlopen("/System/Library/PrivateFrameworks/WiFiKit.framework/WiFiKit", RTLD_NOW);
-		if (NSClassFromString(@"BluetoothManager") && NSClassFromString(@"WFControlCenterStateMonitor")) {
-			%init(DisconnectWiFiBT);
-		}
-
-		// 锁屏自动低电量 — 类在 iOS 16 上存在
-		if (NSClassFromString(@"SBSleepWakeHardwareButtonInteraction")) {
-			%init(LowPowerOnLock);
-		}
-
-		// 设备朝下自动锁屏 — SBIdleTimerGlobalStateMonitor 类在 iOS 16 上存在
-		if (NSClassFromString(@"SBIdleTimerGlobalStateMonitor")) {
-			%init(FaceDownLock);
-		}
-
-		// ===== Cyanide 移植功能初始化 =====
-
-		// 禁用图标飞入动画 — SBCoverSheetPresentationManager iOS 16 上存在
-		if (NSClassFromString(@"SBCoverSheetPresentationManager")) {
-			%init(IconFlyInHooks);
-		}
-
-		// 零唤醒动画 — SBScreenWakeAnimationController iOS 16 上存在
-		if (NSClassFromString(@"SBScreenWakeAnimationController")) {
-			%init(ZeroWakeHooks);
-		}
-
-		// 监听静音开关状态变化		// 监听静音开关状态变化
-		int ringerToken = 0;
-		notify_register_dispatch("com.apple.springboard.ringerState",
-			&ringerToken,
-			dispatch_get_main_queue(),
-			^(int t) {
-				uint64_t state = 1;
-				notify_get_state(t, &state);
-				g_isRingerSilent = (state == 0);
-			});
-
-		// 初始读取静音状态
-		{
-			uint64_t state = 1;
-			notify_get_state(ringerToken, &state);
-			g_isRingerSilent = (state == 0);
-		}
-
-		// 注册配置变更和注销通知
-		CFNotificationCenterRef c = CFNotificationCenterGetDarwinNotifyCenter();
-		if (!c) return;
-
-		CFNotificationCenterAddObserver(c, NULL, onPrefsChanged,
-			(__bridge CFStringRef)kNotifyPrefsChanged, NULL,
-			CFNotificationSuspensionBehaviorDeliverImmediately);
-
-		CFNotificationCenterAddObserver(c, NULL, onRespring,
-			(__bridge CFStringRef)kNotifyRespring, NULL,
-			CFNotificationSuspensionBehaviorDeliverImmediately);
+// 模拟热级别监听（独立功能，不影响配置重载）
+CFNotificationCenterRef c = CFNotificationCenterGetDarwinNotifyCenter();
+if (c) {
+	CFNotificationCenterAddObserver(c, NULL, onPuppetEvent,
+	(__bridge CFStringRef)S("com.huayuarc.CPUthermal.puppet"),
+	NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+	CFNotificationCenterAddObserver(c, NULL, onSettingsChanged,
+	(__bridge CFStringRef)S(kCPUthermalSettingsChangedNotifC),
+	NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+	CFNotificationCenterAddObserver(c, NULL, onPowerModeChanged,
+	(__bridge CFStringRef)S(kCPUthermalPowerModeChangedNotifC),
+	NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 	}
+}
 }
