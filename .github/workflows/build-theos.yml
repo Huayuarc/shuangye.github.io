@@ -23,10 +23,15 @@ jobs:
         run: |
           set -x
           rm -rf "$HOME/theos"
-          git clone --recursive https://github.com/roothide/theos.git "$HOME/theos"
+          git clone --recursive --branch master https://github.com/roothide/theos.git "$HOME/theos"
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
           cd "$HOME/theos"
-          git submodule update --init --recursive || true
+          git submodule update --init --recursive 2>&1
+          echo "=== 验证 roothide vendor ==="
+          ls -la vendor/include/roothide.h
+          ls -la vendor/mod/roothide/
+          ls -la vendor/lib/libroothide.tbd
+          echo "=== vendor 验证完毕 ==="
           cd "$OLDPWD"
           brew install ldid 2>/dev/null || true
           mkdir -p "$HOME/theos/sdks"
