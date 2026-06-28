@@ -96,8 +96,8 @@ jobs:
             echo "=== 编译 [$proj] roothide (arm64e) ==="
             pushd "$proj" >/dev/null
             make clean 2>/dev/null || true
-            make SCHEME=roothide FINALPACKAGE=1 2>&1
-            make SCHEME=roothide package FINALPACKAGE=1 2>&1
+            make THEOS_PACKAGE_SCHEME=roothide FINALPACKAGE=1 2>&1
+            make THEOS_PACKAGE_SCHEME=roothide package FINALPACKAGE=1 2>&1
             mkdir -p "${{ github.workspace }}/debs-roothide/$proj"
             cp packages/*.deb "${{ github.workspace }}/debs-roothide/$proj/" 2>/dev/null || true
             popd >/dev/null
