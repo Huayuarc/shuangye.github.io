@@ -8,23 +8,25 @@
 #import <sys/sysctl.h>
 #import <stdlib.h>
 #import <mach/mach_time.h>
-
-#define S(str) [NSString stringWithUTF8String:(str)]
+#import <CPUthermalPaths.h>
 
 // ============================================================================
-// A15 (iPhone 13 Pro) P-State 频率表 (MHz)
-// P-cores (Avalanche):  索引 0..8
-// E-cores (Blizzard):   索引 0..4
+// 基准 P-State 频率表 (MHz)
 // ============================================================================
-static const NSInteger kPCPUFreqs[] = { 600, 972, 1332, 1692, 2052, 2412, 2772, 3132, 3240 };
-static const NSInteger kECPUFreqs[] = { 600, 972, 1332, 1692, 2016 };
-static const NSInteger kPCPUFreqCount = 9;
-static const NSInteger kECPUFreqCount = 5;
+static const NSInteger kBasePCPUFreqs[] = { 600, 972, 1332, 1692, 2052, 2412, 2772, 3132, 3240 };
+static const NSInteger kBaseECPUFreqs[] = { 600, 972, 1332, 1692, 2016 };
+static const NSInteger kBasePCPUFreqCount = 9;
+static const NSInteger kBaseECPUFreqCount = 5;
+static const NSInteger kBasePCPUMaxMHz = 3240;
+static const NSInteger kLowPowerLockMHz = 2016;
 
 // 显示策略：控制中心展示 P-Core（大核）频率，不再展示所有核心驻留平均值。
 static const double kValidMinMHz = 100.0;
-static const double kValidMaxMHz = 3600.0;
+static const double kValidMaxMHz = 4200.0;
 static const CGFloat kCompactFrequencyFontScale = 0.90;
+static const NSInteger kTransientLowJumpThresholdMHz = 1200;
+static const NSInteger kTransientHighReferenceMHz = 1800;
+static const NSInteger kTransientLowJumpConfirmSamples = 3;
 
 // ============================================================================
 // IOReport 函数指针类型
@@ -67,6 +69,11 @@ typedef int64_t (*IOReportStateGetResidencyFn)(CFDictionaryRef, int);
     // 运行时状态
     NSInteger _lastDisplayedMHz;
     NSInteger _sampleCount;
+    NSInteger _deviceMaxPCoreMHz;
+    NSInteger _pendingDisplayedMHz;
+    NSInteger _pendingDisplayRepeatCount;
+    NSArray<NSNumber *> *_pCoreFrequencies;
+    NSArray<NSNumber *> *_eCoreFrequencies;
     BOOL _hasStableReading;
 }
 @property (nonatomic, strong) UIView *contentView;
@@ -98,12 +105,15 @@ typedef int64_t (*IOReportStateGetResidencyFn)(CFDictionaryRef, int);
         [self setShouldProvideOwnPlatter:NO];
     }
 
-    _sampleCount = 0;
-    _hasStableReading = NO;
-    _lastDisplayedMHz = 0;
-    [self setupViews];
-    [self refreshFrequency];
-}
+	    _sampleCount = 0;
+	    _hasStableReading = NO;
+	    _lastDisplayedMHz = 0;
+	    _pendingDisplayedMHz = 0;
+	    _pendingDisplayRepeatCount = 0;
+	    _deviceMaxPCoreMHz = [self deviceMaxPCoreMHz];
+	    [self setupViews];
+	    [self refreshFrequency];
+	}
 
 - (void)viewDidLayoutSubviews {
     [super viewDidLayoutSubviews];
@@ -146,7 +156,7 @@ typedef int64_t (*IOReportStateGetResidencyFn)(CFDictionaryRef, int);
     self.frequencyLabel.textColor = [UIColor colorWithRed:1.0 green:0.49 blue:0.12 alpha:1.0];
     self.frequencyLabel.adjustsFontSizeToFitWidth = YES;
     self.frequencyLabel.minimumScaleFactor = 0.70;
-    self.frequencyLabel.text = S("----");
+    self.frequencyLabel.text = S("0");
     [contentView addSubview:self.frequencyLabel];
 
     [NSLayoutConstraint activateConstraints:@[
@@ -192,6 +202,151 @@ typedef int64_t (*IOReportStateGetResidencyFn)(CFDictionaryRef, int);
 }
 
 // ============================================================================
+#pragma mark - 设备频率表
+// ============================================================================
+
+- (NSString *)hardwareIdentifier {
+    char machine[256] = {0};
+    size_t size = sizeof(machine);
+    if (sysctlbyname("hw.machine", machine, &size, NULL, 0) == 0 && machine[0] != '\0') {
+        return S(machine);
+    }
+    return S("");
+}
+
+- (BOOL)isTargetDevice {
+    NSString *hardware = [self hardwareIdentifier];
+    return [hardware isEqualToString:S("iPhone14,7")] ||
+           [hardware isEqualToString:S("iPhone14,8")] ||
+           [hardware isEqualToString:S("iPhone15,2")] ||
+           [hardware isEqualToString:S("iPhone15,3")] ||
+           [hardware isEqualToString:S("iPhone15,4")] ||
+           [hardware isEqualToString:S("iPhone15,5")] ||
+           [hardware isEqualToString:S("iPhone16,1")] ||
+           [hardware isEqualToString:S("iPhone16,2")];
+}
+
+- (NSInteger)sysctlMaxFrequencyMHz {
+    int64_t value = 0;
+    size_t size = sizeof(value);
+    if (sysctlbyname("hw.cpufrequency_max", &value, &size, NULL, 0) != 0) {
+        return 0;
+    }
+
+    NSInteger mhz = (NSInteger)llround([self rawValueToMHz:value]);
+    if (mhz < kValidMinMHz || mhz > kValidMaxMHz) {
+        return 0;
+    }
+    return mhz;
+}
+
+- (NSInteger)deviceMaxPCoreMHz {
+    if (_deviceMaxPCoreMHz > 0) {
+        return _deviceMaxPCoreMHz;
+    }
+
+    NSString *hardware = [self hardwareIdentifier];
+    if ([hardware isEqualToString:S("iPhone16,1")] ||
+        [hardware isEqualToString:S("iPhone16,2")]) {
+        _deviceMaxPCoreMHz = 3780;
+    } else if ([hardware isEqualToString:S("iPhone15,2")] ||
+               [hardware isEqualToString:S("iPhone15,3")] ||
+               [hardware isEqualToString:S("iPhone15,4")] ||
+               [hardware isEqualToString:S("iPhone15,5")]) {
+        _deviceMaxPCoreMHz = 3460;
+    } else if ([hardware isEqualToString:S("iPhone14,7")] ||
+               [hardware isEqualToString:S("iPhone14,8")]) {
+        _deviceMaxPCoreMHz = kBasePCPUMaxMHz;
+    } else {
+        NSInteger sysctlMax = [self sysctlMaxFrequencyMHz];
+        _deviceMaxPCoreMHz = (sysctlMax > 0) ? sysctlMax : kBasePCPUMaxMHz;
+    }
+
+    return _deviceMaxPCoreMHz;
+}
+
+- (NSArray<NSNumber *> *)pCoreFrequencies {
+    if (_pCoreFrequencies) {
+        return _pCoreFrequencies;
+    }
+
+    NSInteger maxPCoreMHz = [self deviceMaxPCoreMHz];
+    NSMutableArray<NSNumber *> *frequencies = [NSMutableArray arrayWithCapacity:kBasePCPUFreqCount];
+    for (NSInteger i = 0; i < kBasePCPUFreqCount; i++) {
+        NSInteger frequency = kBasePCPUFreqs[i];
+        if (i == kBasePCPUFreqCount - 1) {
+            frequency = maxPCoreMHz;
+        }
+        [frequencies addObject:@(frequency)];
+    }
+    _pCoreFrequencies = [frequencies copy];
+    return _pCoreFrequencies;
+}
+
+- (NSArray<NSNumber *> *)eCoreFrequencies {
+    if (_eCoreFrequencies) {
+        return _eCoreFrequencies;
+    }
+
+    NSMutableArray<NSNumber *> *frequencies = [NSMutableArray arrayWithCapacity:kBaseECPUFreqCount];
+    for (NSInteger i = 0; i < kBaseECPUFreqCount; i++) {
+        [frequencies addObject:@(kBaseECPUFreqs[i])];
+    }
+    _eCoreFrequencies = [frequencies copy];
+    return _eCoreFrequencies;
+}
+
+- (BOOL)isLowPowerModeActive {
+    NSDictionary *prefs = CPUthermalReadPrefs();
+    NSString *mode = prefs[S("powerMode")];
+    return [mode isKindOfClass:[NSString class]] && [mode isEqualToString:S("lowPower")];
+}
+
+- (NSInteger)stableDisplayMHzForReading:(NSInteger)displayMHz {
+    if (displayMHz <= 0) {
+        return 0;
+    }
+
+    NSInteger maxPCoreMHz = [self deviceMaxPCoreMHz];
+    if (maxPCoreMHz > 0 && displayMHz > maxPCoreMHz) {
+        displayMHz = maxPCoreMHz;
+    }
+
+    if ([self isLowPowerModeActive] && displayMHz < kLowPowerLockMHz) {
+        displayMHz = kLowPowerLockMHz;
+    }
+
+    if (_lastDisplayedMHz <= 0 || displayMHz >= kLowPowerLockMHz) {
+        _pendingDisplayedMHz = 0;
+        _pendingDisplayRepeatCount = 0;
+        return displayMHz;
+    }
+
+    BOOL isTransientLowJump = (displayMHz <= kTransientLowJumpThresholdMHz &&
+                               _lastDisplayedMHz >= kTransientHighReferenceMHz);
+    if (!isTransientLowJump) {
+        _pendingDisplayedMHz = 0;
+        _pendingDisplayRepeatCount = 0;
+        return displayMHz;
+    }
+
+    if (_pendingDisplayedMHz == displayMHz) {
+        _pendingDisplayRepeatCount++;
+    } else {
+        _pendingDisplayedMHz = displayMHz;
+        _pendingDisplayRepeatCount = 1;
+    }
+
+    if (_pendingDisplayRepeatCount < kTransientLowJumpConfirmSamples) {
+        return _lastDisplayedMHz;
+    }
+
+    _pendingDisplayedMHz = 0;
+    _pendingDisplayRepeatCount = 0;
+    return displayMHz;
+}
+
+// ============================================================================
 #pragma mark - 频率读取主入口
 // ============================================================================
 
@@ -208,13 +363,17 @@ typedef int64_t (*IOReportStateGetResidencyFn)(CFDictionaryRef, int);
 
     _sampleCount++;
     _hasStableReading = YES;
-    NSInteger displayMHz = [self snapToPState:llround(mhz)];
-    if (displayMHz <= 0) {
-        displayMHz = (NSInteger)llround(mhz);
-    }
+	    NSInteger displayMHz = [self snapToPState:llround(mhz)];
+	    if (displayMHz <= 0) {
+	        displayMHz = (NSInteger)llround(mhz);
+	    }
+	    displayMHz = [self stableDisplayMHzForReading:displayMHz];
+	    if (displayMHz <= 0) {
+	        return;
+	    }
 
-    _lastDisplayedMHz = displayMHz;
-    self.frequencyLabel.text = [NSString stringWithFormat:S("%ld"), (long)displayMHz];
+	    _lastDisplayedMHz = displayMHz;
+	    self.frequencyLabel.text = [NSString stringWithFormat:S("%ld"), (long)displayMHz];
 }
 
 // ============================================================================
@@ -229,8 +388,8 @@ typedef int64_t (*IOReportStateGetResidencyFn)(CFDictionaryRef, int);
     NSInteger bestDelta = NSIntegerMax;
 
     // 先尝试 P-core 频率表（高频段）
-    for (NSInteger i = 0; i < kPCPUFreqCount; i++) {
-        NSInteger state = kPCPUFreqs[i];
+    for (NSNumber *stateNumber in [self pCoreFrequencies]) {
+        NSInteger state = [stateNumber integerValue];
         NSInteger delta = labs(mhz - state);
         NSInteger tolerance = MAX(60, (NSInteger)llround((double)state * 0.06));
         if (delta <= tolerance && delta < bestDelta) {
@@ -240,8 +399,8 @@ typedef int64_t (*IOReportStateGetResidencyFn)(CFDictionaryRef, int);
     }
 
     // 再尝试 E-core 频率表（低频段）
-    for (NSInteger i = 0; i < kECPUFreqCount; i++) {
-        NSInteger state = kECPUFreqs[i];
+    for (NSNumber *stateNumber in [self eCoreFrequencies]) {
+        NSInteger state = [stateNumber integerValue];
         NSInteger delta = labs(mhz - state);
         NSInteger tolerance = MAX(60, (NSInteger)llround((double)state * 0.06));
         if (delta <= tolerance && delta < bestDelta) {
@@ -368,10 +527,11 @@ typedef int64_t (*IOReportStateGetResidencyFn)(CFDictionaryRef, int);
         }
     }
 
-    if (idx >= 0 && idx < kPCPUFreqCount) {
-        return (double)kPCPUFreqs[idx];
+    NSArray<NSNumber *> *pCoreFrequencies = [self pCoreFrequencies];
+    if (idx >= 0 && idx < (int)pCoreFrequencies.count) {
+        return (double)[pCoreFrequencies[(NSUInteger)idx] integerValue];
     }
-    return (double)kPCPUFreqs[kPCPUFreqCount - 1];
+    return (double)[[pCoreFrequencies lastObject] integerValue];
 }
 
 - (double)ioReportPStateFrequencyMHz {
