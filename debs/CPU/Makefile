@@ -82,3 +82,4 @@ after-stage::
 	$(ECHO_NOTHING)cp CCModule/CPUthermalFreqInfo.plist "$(THEOS_STAGING_DIR)/Library/ControlCenter/Bundles/CPUthermalFreqCC.bundle/Info.plist"$(ECHO_END)
 	$(ECHO_NOTHING)cp CCModule/SettingsIcon.png "$(THEOS_STAGING_DIR)/Library/ControlCenter/Bundles/CPUthermalFreqCC.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp postinst "$(THEOS_STAGING_DIR)/DEBIAN/" && chmod 0755 "$(THEOS_STAGING_DIR)/DEBIAN/postinst"$(ECHO_END)
+
