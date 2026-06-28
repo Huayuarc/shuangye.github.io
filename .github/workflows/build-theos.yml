@@ -23,16 +23,12 @@ jobs:
         run: |
           set -x
           rm -rf "$HOME/theos"
-          # 使用 roothide/theos 分支，提供 vendor 中的 roothide 模块和 libroothide.tbd
           git clone --recursive https://github.com/roothide/theos.git "$HOME/theos"
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
-          # 确保 vendor 子模块完整
           cd "$HOME/theos"
           git submodule update --init --recursive || true
           cd "$OLDPWD"
-          # ldid: 签名必需
           brew install ldid 2>/dev/null || true
-          # 下载 Theos SDK
           mkdir -p "$HOME/theos/sdks"
           curl -fsSL -o /tmp/sdk.tar.xz \
             "https://github.com/theos/sdks/releases/download/master-146e41f/iPhoneOS16.5.sdk.tar.xz"
@@ -45,15 +41,28 @@ jobs:
         run: |
           set -x
           export ARCHS="arm64 arm64e"
-          echo "=== 编译 rootless (arm64) ==="
-          make clean
-          make FINALPACKAGE=1 2>&1
-          make package FINALPACKAGE=1 2>&1
-          echo "=== rootless 构建产物 ==="
-          ls -la packages/*.deb 2>/dev/null
-          # 保存 rootless deb 到临时目录
-          mkdir -p ${{ github.workspace }}/debs-rootless
-          cp packages/*.deb ${{ github.workspace }}/debs-rootless/ 2>/dev/null || echo "无 rootless deb"
+          mkdir -p "${{ github.workspace }}/debs-rootless"
+
+          shopt -s nullglob
+          for proj in */; do
+            proj="${proj%/}"
+            mf="${proj}/Makefile"
+            [ -f "$mf" ] || continue
+            grep -qE "(TWEAK_NAME|TOOL_NAME|APPLICATION_NAME)" "$mf" 2>/dev/null || continue
+
+            echo ""
+            echo "=== 编译 [$proj] rootless (arm64) ==="
+            pushd "$proj" >/dev/null
+            make clean 2>/dev/null || true
+            make FINALPACKAGE=1 2>&1
+            make package FINALPACKAGE=1 2>&1
+            mkdir -p "${{ github.workspace }}/debs-rootless/$proj"
+            cp packages/*.deb "${{ github.workspace }}/debs-rootless/$proj/" 2>/dev/null || true
+            popd >/dev/null
+          done
+
+          rootless_count=$(ls "${{ github.workspace }}/debs-rootless/"*/ 2>/dev/null | wc -l)
+          echo "rootless 项目数: $rootless_count"
 
       - name: Build roothide (arm64e)
         continue-on-error: true
@@ -61,33 +70,49 @@ jobs:
         run: |
           set -x
           export ARCHS="arm64 arm64e"
-          echo "=== 检查 roothide vendor 文件 ==="
-          ls -la "$THEOS/vendor/include/roothide.h" 2>/dev/null || { echo "MISSING: roothide vendor 不存在，跳过 roothide 构建"; exit 0; }
-          ls -la "$THEOS/vendor/mod/roothide/" 2>/dev/null || { echo "MISSING: roothide mod 不存在，跳过 roothide 构建"; exit 0; }
-          ls -la "$THEOS/vendor/lib/libroothide.tbd" 2>/dev/null || { echo "MISSING: libroothide.tbd 不存在，跳过 roothide 构建"; exit 0; }
-          echo "=== 编译 roothide (arm64e) ==="
-          make clean
-          make SCHEME=roothide FINALPACKAGE=1 2>&1
-          make SCHEME=roothide package FINALPACKAGE=1 2>&1
-          echo "=== roothide 构建产物 ==="
-          ls -la packages/*.deb 2>/dev/null
-          # 保存 roothide deb 到临时目录
-          mkdir -p ${{ github.workspace }}/debs-roothide
-          cp packages/*.deb ${{ github.workspace }}/debs-roothide/ 2>/dev/null || echo "无 roothide deb"
+
+          echo "=== 检查 roothide vendor ==="
+          ls -la "$THEOS/vendor/include/roothide.h" 2>/dev/null || { echo "跳过 roothide"; exit 0; }
+          ls -la "$THEOS/vendor/mod/roothide/" 2>/dev/null || { echo "跳过 roothide"; exit 0; }
+          ls -la "$THEOS/vendor/lib/libroothide.tbd" 2>/dev/null || { echo "跳过 roothide"; exit 0; }
+
+          mkdir -p "${{ github.workspace }}/debs-roothide"
+
+          shopt -s nullglob
+          for proj in */; do
+            proj="${proj%/}"
+            mf="${proj}/Makefile"
+            [ -f "$mf" ] || continue
+            grep -qE "(TWEAK_NAME|TOOL_NAME|APPLICATION_NAME)" "$mf" 2>/dev/null || continue
+
+            echo ""
+            echo "=== 编译 [$proj] roothide (arm64e) ==="
+            pushd "$proj" >/dev/null
+            make clean 2>/dev/null || true
+            make SCHEME=roothide FINALPACKAGE=1 2>&1
+            make SCHEME=roothide package FINALPACKAGE=1 2>&1
+            mkdir -p "${{ github.workspace }}/debs-roothide/$proj"
+            cp packages/*.deb "${{ github.workspace }}/debs-roothide/$proj/" 2>/dev/null || true
+            popd >/dev/null
+          done
+
+          roothide_count=$(ls "${{ github.workspace }}/debs-roothide/"*/ 2>/dev/null | wc -l)
+          echo "roothide 项目数: $roothide_count"
 
       - name: Collect debs
         if: always()
         run: |
           set -x
-          mkdir -p ${{ github.workspace }}/packages
+          mkdir -p "${{ github.workspace }}/packages"
+
           echo "=== rootless debs ==="
-          ls -la ${{ github.workspace }}/debs-rootless/ 2>/dev/null || echo "无"
-          cp ${{ github.workspace }}/debs-rootless/*.deb ${{ github.workspace }}/packages/ 2>/dev/null || true
+          find "${{ github.workspace }}/debs-rootless" -name "*.deb" -exec cp {} "${{ github.workspace }}/packages/" \; 2>/dev/null || echo "无 rootless debs"
+
           echo "=== roothide debs ==="
-          ls -la ${{ github.workspace }}/debs-roothide/ 2>/dev/null || echo "无"
-          cp ${{ github.workspace }}/debs-roothide/*.deb ${{ github.workspace }}/packages/ 2>/dev/null || true
-          echo "=== 汇总产物 ==="
-          ls -la ${{ github.workspace }}/packages/
+          find "${{ github.workspace }}/debs-roothide" -name "*.deb" -exec cp {} "${{ github.workspace }}/packages/" \; 2>/dev/null || echo "无 roothide debs"
+
+          echo "=== 汇总 ==="
+          ls -la "${{ github.workspace }}/packages/" || echo "packages 为空"
 
       - name: Commit and push debs
         if: always()

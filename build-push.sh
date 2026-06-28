@@ -1,6 +1,7 @@
 #!/var/jb/usr/bin/bash
 #==========================================
-# build-push.sh — 推送 Theos 项目源码到 GitHub Actions 编译
+# build-push.sh — 推送源码/deb 到 GitHub Actions 编译
+# 支援 debs/*/ 多項目子目錄結構
 # 用法: 在 Filza 中点击执行，或终端直接运行
 #==========================================
 
@@ -37,10 +38,11 @@ echo ""
 
 DEBS_DIR="$SCRIPT_DIR/debs"
 [ -d "$DEBS_DIR" ] || { echo "[错误] debs/ 目录不存在!"; exit 1; }
+
 cd "$DEBS_DIR"
 
 # 先计算总步骤
-TOTAL=7
+TOTAL=8
 
 step "处理 git safe.directory"
 log "正在检查仓库权限..."
@@ -60,43 +62,88 @@ else
     log "继续执行后续步骤..."
 fi
 
-step "判断项目类型"
-HAS_THEOS=""
-if [ -f "Makefile" ] && grep -qE "(TWEAK_NAME|TOOL_NAME|APPLICATION_NAME|SUBPROJECTS)" Makefile 2>/dev/null; then
-    HAS_THEOS="yes"
-    echo "  检测到 Theos 项目"
-fi
+step "扫描项目"
+# 扫描子目录中的 Theos 项目
+THEOS_PROJECTS=()
+THEOS_DIRS=()
+for dir in */; do
+    dir="${dir%/}"
+    mf="$DEBS_DIR/$dir/Makefile"
+    if [ -f "$mf" ] && grep -qE "(TWEAK_NAME|TOOL_NAME|APPLICATION_NAME|SUBPROJECTS)" "$mf" 2>/dev/null; then
+        THEOS_PROJECTS+=("$dir")
+        THEOS_DIRS+=("$dir")
+    fi
+done
 
-HAS_DEB=$(ls *.deb 2>/dev/null | head -1)
+# 扫描根目录的 .deb 文件
+DEB_FILES=()
+for f in *.deb; do
+    [ -f "$f" ] && DEB_FILES+=("$f")
+done
 
-if [ -z "$HAS_DEB" ] && [ -z "$HAS_THEOS" ]; then
-    echo "[错误] debs/ 为空，请放入 .deb 文件或 Theos 项目源码"
-    exit 1
-fi
-echo "  完成"
+HAS_THEOS=${#THEOS_PROJECTS[@]}
+HAS_DEB=${#DEB_FILES[@]}
 
-step "显示项目信息"
-PROJ_NAME=""
-if [ -n "$HAS_THEOS" ]; then
-    PROJ_NAME=$(grep "^TWEAK_NAME" Makefile | head -1 | awk '{print $3}')
-    [ -z "$PROJ_NAME" ] && PROJ_NAME=$(grep "^SUBPROJECTS" Makefile | head -1 | awk '{print $3}')
-    [ -z "$PROJ_NAME" ] && PROJ_NAME="$(basename "$DEBS_DIR")"
-    VERSION=$(grep "^Version:" control 2>/dev/null | awk '{print $2}') || VERSION="?"
-
-    echo "  Theos 项目: $PROJ_NAME v$VERSION"
-    echo "  推送到 GitHub Actions 编译"
-    echo ""
-
-    # 清理构建缓存
-    echo "  清理构建缓存..."
-    rm -rf .theos/ .swiftpm/ 2>/dev/null || true
-    echo "  缓存已清理"
-else
-    echo "  推送 ${HAS_DEB} 个 deb:"
-    for f in *.deb; do
-        echo "    • $(basename "$f") ($(du -h "$f" | cut -f1))"
+echo ""
+if [ "$HAS_THEOS" -gt 0 ]; then
+    echo "  发现 $HAS_THEOS 个 Theos 项目:"
+    for p in "${THEOS_PROJECTS[@]}"; do
+        name=$(grep "^TWEAK_NAME" "$DEBS_DIR/$p/Makefile" | head -1 | awk '{print $3}')
+        ver=$(grep "^Version:" "$DEBS_DIR/$p/control" 2>/dev/null | awk '{print $2}')
+        echo "    📦 $p (${name:-?} v${ver:-?})"
     done
 fi
+if [ "$HAS_DEB" -gt 0 ]; then
+    echo "  发现 $HAS_DEB 个 .deb 文件:"
+    for f in "${DEB_FILES[@]}"; do
+        echo "    📄 $f ($(du -h "$f" | cut -f1))"
+    done
+fi
+
+if [ "$HAS_THEOS" -eq 0 ] && [ "$HAS_DEB" -eq 0 ]; then
+    echo "[错误] debs/ 为空或结构异常"
+    echo "  请放入:"
+    echo "    • Theos 项目子目录: debs/YourTweak/Makefile"
+    echo "    • .deb 文件: debs/your-tweak.deb"
+    exit 1
+fi
+
+step "版本信息"
+if [ "$HAS_THEOS" -gt 0 ]; then
+    echo "  ┌─ 项目详情 ──────────────────────────────"
+    for p in "${THEOS_PROJECTS[@]}"; do
+        name=$(grep "^TWEAK_NAME\|^TOOL_NAME\|^APPLICATION_NAME" "$DEBS_DIR/$p/Makefile" | head -1 | awk '{print $3}')
+        ver=$(grep "^Version:" "$DEBS_DIR/$p/control" 2>/dev/null | awk '{print $2}')
+        arch=$(grep "^Architecture:" "$DEBS_DIR/$p/control" 2>/dev/null | awk '{print $2}')
+        echo "  ├ $p"
+        echo "  │  ├ Name: ${name:-?}"
+        echo "  │  ├ Version: ${ver:-?}"
+        echo "  │  ├ Architecture: ${arch:-iphoneos-arm}"
+        twk=$(grep "^TWEAK_NAME\|^TOOL_NAME" "$DEBS_DIR/$p/Makefile" 2>/dev/null | head -3 | awk '{print $3}' | tr '\n' ' ')
+        echo "  │  └ Targets: $twk"
+        echo "  │"
+    done
+    echo "  └──────────────────────────────────────────"
+    echo ""
+    echo "  推送到 GitHub Actions 编译"
+else
+    echo "  ${DEB_FILES[*]}"
+    echo ""
+    echo "  推送到 GitHub"
+fi
+
+step "清理构建缓存"
+CLEAN_COUNT=0
+for p in "${THEOS_PROJECTS[@]}"; do
+    PDIR="$DEBS_DIR/$p"
+    CLEANED=0
+    [ -d "$PDIR/.theos" ] && rm -rf "$PDIR/.theos/" && CLEANED=1
+    [ -d "$PDIR/.swiftpm" ] && rm -rf "$PDIR/.swiftpm/" && CLEANED=1
+    [ -d "$PDIR/packages" ] && rm -rf "$PDIR/packages/" && CLEANED=1
+    [ "$CLEANED" -eq 1 ] && echo "  ✓ $p 缓存已清理" && ((CLEAN_COUNT++))
+done
+[ "$CLEAN_COUNT" -eq 0 ] && echo "  无缓存需要清理"
+echo ""
 
 cd "$SCRIPT_DIR"
 
@@ -108,7 +155,7 @@ fi
 echo "  Git 仓库正常"
 
 step "检查是否有变更"
-if git diff --quiet && git diff --cached --quiet && [ -z "$(git ls-files --others --exclude-standard -- debs/)" ]; then
+if git diff --quiet && git diff --cached --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]; then
     echo "[提示] 没有新的变更需要提交"
     exit 0
 fi
@@ -116,16 +163,36 @@ echo "  检测到有未提交的变更"
 
 step "提交变更"
 COMMIT_MSG=""
-if [ -n "$HAS_THEOS" ]; then
-    COMMIT_MSG="chore: 推送 $PROJ_NAME 源码（CI 编译）"
-else
-    DEB_NAMES=$(ls "$DEBS_DIR"/*.deb 2>/dev/null | xargs -I{} basename {} | tr '\n' ', ' | sed 's/, $//')
+if [ "$HAS_THEOS" -gt 0 ] && [ "$HAS_DEB" -eq 0 ]; then
+    # 只有源码项目
+    PROJ_LIST=""
+    for p in "${THEOS_PROJECTS[@]}"; do
+        name=$(grep "^TWEAK_NAME\|^TOOL_NAME" "$DEBS_DIR/$p/Makefile" | head -1 | awk '{print $3}')
+        PROJ_LIST="${PROJ_LIST}${name:-$p} "
+    done
+    COMMIT_MSG="chore: 推送源码 - ${PROJ_LIST}(CI 编译)"
+elif [ "$HAS_DEB" -gt 0 ] && [ "$HAS_THEOS" -eq 0 ]; then
+    # 只有 .deb 文件
+    DEB_NAMES=""
+    for f in "${DEB_FILES[@]}"; do
+        DEB_NAMES="${DEB_NAMES}$f "
+    done
     COMMIT_MSG="chore: 推送 deb - ${DEB_NAMES}"
+else
+    # 混合模式
+    PARTS=""
+    for p in "${THEOS_PROJECTS[@]}"; do
+        PARTS="${PARTS}[$p] "
+    done
+    for f in "${DEB_FILES[@]}"; do
+        PARTS="${PARTS}$f "
+    done
+    COMMIT_MSG="chore: 推送 - ${PARTS}"
 fi
 
 echo "  提交信息: $COMMIT_MSG"
 echo "  执行 git add..."
-git add -A debs/
+git add -A
 echo "  执行 git commit..."
 if git commit -m "$COMMIT_MSG"; then
     echo "  提交成功"

@@ -9,7 +9,15 @@ vendor/
 # SSH 密钥（本地推送用，不上传）
 .ssh/
 
-# Theos 构建临时文件
+# Theos 构建临时文件（适用于所有子目录层级）
 .theos/
+.swiftpm/
+*.o
+*.d
 
-# Theos 构建缓存（每项目内 .gitignore 已处理）
+# 项目级构建产物（debs/*/packages/ 是 Theos make package 输出）
+debs/*/packages/
+
+# 系统文件
+.DS_Store
+Thumbs.db
