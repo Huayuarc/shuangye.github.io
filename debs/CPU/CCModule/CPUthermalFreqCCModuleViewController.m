@@ -24,6 +24,7 @@ static const NSInteger kECPUFreqCount = 5;
 // 显示策略：控制中心展示 P-Core（大核）频率，不再展示所有核心驻留平均值。
 static const double kValidMinMHz = 100.0;
 static const double kValidMaxMHz = 3600.0;
+static const CGFloat kCompactFrequencyFontScale = 0.90;
 
 // ============================================================================
 // IOReport 函数指针类型
@@ -70,8 +71,6 @@ typedef int64_t (*IOReportStateGetResidencyFn)(CFDictionaryRef, int);
 }
 @property (nonatomic, strong) UIView *contentView;
 @property (nonatomic, strong) UILabel *frequencyLabel;
-@property (nonatomic, strong) UILabel *unitLabel;
-@property (nonatomic, strong) UILabel *sourceLabel;
 @property (nonatomic, strong) NSTimer *refreshTimer;
 @end
 
@@ -85,6 +84,20 @@ typedef int64_t (*IOReportStateGetResidencyFn)(CFDictionaryRef, int);
     [super viewDidLoad];
     self.title = S("CPU频率");
     self.view.backgroundColor = [UIColor clearColor];
+
+    if ([self respondsToSelector:@selector(setUseTrailingCheckmarkLayout:)]) {
+        [self setUseTrailingCheckmarkLayout:NO];
+    }
+    if ([self respondsToSelector:@selector(setUseTallLayout:)]) {
+        [self setUseTallLayout:NO];
+    }
+    if ([self respondsToSelector:@selector(setHideGlyphInHeader:)]) {
+        [self setHideGlyphInHeader:NO];
+    }
+    if ([self respondsToSelector:@selector(setShouldProvideOwnPlatter:)]) {
+        [self setShouldProvideOwnPlatter:NO];
+    }
+
     _sampleCount = 0;
     _hasStableReading = NO;
     _lastDisplayedMHz = 0;
@@ -121,7 +134,7 @@ typedef int64_t (*IOReportStateGetResidencyFn)(CFDictionaryRef, int);
     UIView *contentView = [[UIView alloc] initWithFrame:CGRectZero];
     self.contentView = contentView;
     contentView.translatesAutoresizingMaskIntoConstraints = NO;
-    contentView.backgroundColor = [UIColor colorWithWhite:0.08 alpha:0.36];
+    contentView.backgroundColor = [UIColor clearColor];
     contentView.layer.cornerCurve = kCACornerCurveContinuous;
     contentView.clipsToBounds = YES;
     [self.view addSubview:contentView];
@@ -129,28 +142,12 @@ typedef int64_t (*IOReportStateGetResidencyFn)(CFDictionaryRef, int);
     self.frequencyLabel = [[UILabel alloc] initWithFrame:CGRectZero];
     self.frequencyLabel.translatesAutoresizingMaskIntoConstraints = NO;
     self.frequencyLabel.textAlignment = NSTextAlignmentCenter;
-    self.frequencyLabel.font = [UIFont monospacedDigitSystemFontOfSize:25.0 weight:UIFontWeightHeavy];
+    self.frequencyLabel.font = [UIFont monospacedDigitSystemFontOfSize:22.5 weight:UIFontWeightHeavy];
     self.frequencyLabel.textColor = [UIColor colorWithRed:1.0 green:0.49 blue:0.12 alpha:1.0];
     self.frequencyLabel.adjustsFontSizeToFitWidth = YES;
-    self.frequencyLabel.minimumScaleFactor = 0.55;
+    self.frequencyLabel.minimumScaleFactor = 0.70;
     self.frequencyLabel.text = S("----");
     [contentView addSubview:self.frequencyLabel];
-
-    self.unitLabel = [[UILabel alloc] initWithFrame:CGRectZero];
-    self.unitLabel.translatesAutoresizingMaskIntoConstraints = NO;
-    self.unitLabel.textAlignment = NSTextAlignmentCenter;
-    self.unitLabel.font = [UIFont monospacedDigitSystemFontOfSize:9.0 weight:UIFontWeightSemibold];
-    self.unitLabel.textColor = [UIColor colorWithWhite:1.0 alpha:0.72];
-    self.unitLabel.text = S("MHz");
-    [contentView addSubview:self.unitLabel];
-
-    self.sourceLabel = [[UILabel alloc] initWithFrame:CGRectZero];
-    self.sourceLabel.translatesAutoresizingMaskIntoConstraints = NO;
-    self.sourceLabel.textAlignment = NSTextAlignmentCenter;
-    self.sourceLabel.font = [UIFont systemFontOfSize:7.0 weight:UIFontWeightMedium];
-    self.sourceLabel.textColor = [UIColor colorWithWhite:1.0 alpha:0.42];
-    self.sourceLabel.text = S("CPU");
-    [contentView addSubview:self.sourceLabel];
 
     [NSLayoutConstraint activateConstraints:@[
         [contentView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
@@ -160,13 +157,7 @@ typedef int64_t (*IOReportStateGetResidencyFn)(CFDictionaryRef, int);
 
         [self.frequencyLabel.leadingAnchor constraintEqualToAnchor:contentView.leadingAnchor constant:4.0],
         [self.frequencyLabel.trailingAnchor constraintEqualToAnchor:contentView.trailingAnchor constant:-4.0],
-        [self.frequencyLabel.centerYAnchor constraintEqualToAnchor:contentView.centerYAnchor constant:-4.0],
-
-        [self.unitLabel.topAnchor constraintEqualToAnchor:self.frequencyLabel.bottomAnchor constant:-2.0],
-        [self.unitLabel.centerXAnchor constraintEqualToAnchor:contentView.centerXAnchor],
-
-        [self.sourceLabel.topAnchor constraintEqualToAnchor:self.unitLabel.bottomAnchor constant:1.0],
-        [self.sourceLabel.centerXAnchor constraintEqualToAnchor:contentView.centerXAnchor]
+        [self.frequencyLabel.centerYAnchor constraintEqualToAnchor:contentView.centerYAnchor]
     ]];
 
     [self updateCompactLayout];
@@ -178,15 +169,11 @@ typedef int64_t (*IOReportStateGetResidencyFn)(CFDictionaryRef, int);
         return;
     }
 
-    self.contentView.layer.cornerRadius = side * 0.5;
+    self.contentView.layer.cornerRadius = MIN(22.0, MAX(16.0, side * 0.3125));
 
-    CGFloat frequencySize = MAX(15.0, MIN(25.0, side * 0.36));
-    CGFloat unitSize = MAX(7.0, MIN(9.0, side * 0.13));
-    CGFloat sourceSize = MAX(6.0, MIN(7.0, side * 0.10));
+    CGFloat frequencySize = MAX(13.5, MIN(22.5, side * 0.36 * kCompactFrequencyFontScale));
 
     self.frequencyLabel.font = [UIFont monospacedDigitSystemFontOfSize:frequencySize weight:UIFontWeightHeavy];
-    self.unitLabel.font = [UIFont monospacedDigitSystemFontOfSize:unitSize weight:UIFontWeightSemibold];
-    self.sourceLabel.font = [UIFont systemFontOfSize:sourceSize weight:UIFontWeightMedium];
 }
 
 - (void)startTimer {
@@ -215,7 +202,6 @@ typedef int64_t (*IOReportStateGetResidencyFn)(CFDictionaryRef, int);
         // 无效值：显示最后有效值（如果有）
         if (_lastDisplayedMHz > 0) {
             self.frequencyLabel.text = [NSString stringWithFormat:S("%ld"), (long)_lastDisplayedMHz];
-            self.sourceLabel.text = S("HOLD");
         }
         return;
     }
@@ -229,7 +215,6 @@ typedef int64_t (*IOReportStateGetResidencyFn)(CFDictionaryRef, int);
 
     _lastDisplayedMHz = displayMHz;
     self.frequencyLabel.text = [NSString stringWithFormat:S("%ld"), (long)displayMHz];
-    self.sourceLabel.text = S("P-CORE");
 }
 
 // ============================================================================
@@ -628,11 +613,11 @@ typedef int64_t (*IOReportStateGetResidencyFn)(CFDictionaryRef, int);
 // ============================================================================
 
 - (CGFloat)preferredExpandedContentHeight {
-    return 64.0;
+    return 214.0;
 }
 
 - (CGFloat)preferredExpandedContentWidth {
-    return 64.0;
+    return 280.0;
 }
 
 - (BOOL)providesOwnPlatter {
