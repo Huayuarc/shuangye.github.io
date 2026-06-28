@@ -71,19 +71,21 @@ jobs:
           set -x
           export ARCHS="arm64 arm64e"
 
-          echo "=== 检查 roothide vendor ==="
-          ls -la "$THEOS/vendor/include/roothide.h" 2>/dev/null || { echo "跳过 roothide"; exit 0; }
-          ls -la "$THEOS/vendor/mod/roothide/" 2>/dev/null || { echo "跳过 roothide"; exit 0; }
-          ls -la "$THEOS/vendor/lib/libroothide.tbd" 2>/dev/null || { echo "跳过 roothide"; exit 0; }
+          echo "=== 检查 THEOS roothide vendor ==="
+          ls -la "$THEOS/vendor/include/roothide.h" 2>/dev/null && echo "roothide.h 存在"
+          ls -la "$THEOS/vendor/mod/roothide/" 2>/dev/null && echo "roothide mod 存在"
+          ls -la "$THEOS/vendor/lib/libroothide.tbd" 2>/dev/null && echo "libroothide.tbd 存在"
 
           mkdir -p "${{ github.workspace }}/debs-roothide"
 
           shopt -s nullglob
+          ANY=0
           for proj in */; do
             proj="${proj%/}"
             mf="${proj}/Makefile"
             [ -f "$mf" ] || continue
             grep -qE "(TWEAK_NAME|TOOL_NAME|APPLICATION_NAME)" "$mf" 2>/dev/null || continue
+            ANY=1
 
             echo ""
             echo "=== 编译 [$proj] roothide (arm64e) ==="
@@ -96,8 +98,10 @@ jobs:
             popd >/dev/null
           done
 
-          roothide_count=$(ls "${{ github.workspace }}/debs-roothide/"*/ 2>/dev/null | wc -l)
-          echo "roothide 项目数: $roothide_count"
+          roothide_count=$(find "${{ github.workspace }}/debs-roothide" -name "*.deb" 2>/dev/null | wc -l)
+          echo "roothide deb 数量: $roothide_count"
+          [ "$ANY" -eq 0 ] && echo "未找到 Theos 项目"
+          [ "$roothide_count" -eq 0 ] && echo "⚠ roothide 未产出 deb（可能 vendor 不支持）"
 
       - name: Collect debs
         if: always()
