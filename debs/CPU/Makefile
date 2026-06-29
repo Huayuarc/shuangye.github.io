@@ -6,6 +6,18 @@ INSTALL_TARGET_PROCESSES = thermalmonitord
 # 注意: postinst 也在 configure 阶段 killall thermalmonitord。
 # INSTALL_TARGET_PROCESSES 作为 make install 时的兜底（包管理器安装靠 postinst）
 export ARCHS = arm64 arm64e
+# ========== 双方案构建 ==========
+# make                        → 构建 rootless (默认)
+# make SCHEME=roothide        → 构建 roothide
+# THEOS_PACKAGE_SCHEME=roothide make  → 构建 roothide (CI 环境变量方式)
+# make build-all              → 同时构建 rootless + roothide
+
+ifeq ($(SCHEME),roothide)
+export THEOS_PACKAGE_SCHEME := roothide
+else ifeq ($(THEOS_PACKAGE_SCHEME),)
+# 未通过 SCHEME 或环境变量指定时，默认 rootless
+export THEOS_PACKAGE_SCHEME := rootless
+endif
 
 TWEAK_NAME = CPUthermal CPUthermalPrefHook
 

@@ -153,9 +153,11 @@ static const double kFullPowerBootGuardDuration = 5.0;
 static BOOL g_deferredRuntimeApplyScheduled = NO;
 static BOOL g_fullPowerRecoveryPulseScheduled = NO;
 static BOOL g_lowPowerApplyPulseScheduled = NO;
+static BOOL g_wakeRuntimeApplyScheduled = NO;
 
 static BOOL shouldApplyLowPowerLimit(void);
 static int lowPowerTargetValue(void);
+static void loadPrefs(void);
 static void applyCurrentPowerModeToRuntime(void);
 static void applyPowerModeToRuntime(BOOL respectBootGuard);
 static void scheduleDeferredRuntimeApply(double delay);
@@ -163,6 +165,8 @@ static void scheduleLowPowerApplyPulse(void);
 static void runLowPowerApplyPulse(int remainingPulses);
 static void scheduleFullPowerRecoveryPulse(void);
 static void runFullPowerRecoveryPulse(int remainingPulses);
+static void scheduleWakeRuntimeApply(void);
+static void runWakeRuntimeApplyPulse(int remainingPulses);
 
 static NSString *controllerKey(id controller, const char *name) {
 return [NSString stringWithFormat:S("%p:%s"), controller, name];
@@ -564,6 +568,30 @@ return;
 }
 dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.25 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
 runFullPowerRecoveryPulse(remainingPulses - 1);
+});
+}
+
+static void scheduleWakeRuntimeApply(void) {
+if (g_wakeRuntimeApplyScheduled || !g_enabled || !g_cpuProtection) return;
+g_wakeRuntimeApplyScheduled = YES;
+dispatch_async(dispatch_get_main_queue(), ^{
+runWakeRuntimeApplyPulse(8);
+});
+}
+
+static void runWakeRuntimeApplyPulse(int remainingPulses) {
+if (remainingPulses <= 0 || !g_enabled || !g_cpuProtection) {
+g_wakeRuntimeApplyScheduled = NO;
+return;
+}
+loadPrefs();
+applyPowerModeToRuntime(NO);
+if (remainingPulses <= 1) {
+g_wakeRuntimeApplyScheduled = NO;
+return;
+}
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.75 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+runWakeRuntimeApplyPulse(remainingPulses - 1);
 });
 }
 
@@ -1626,6 +1654,14 @@ g_enabled, g_cpuProtection, g_brightnessProtection, g_thermalStateProtection,
 g_blockHidEvents, g_suppressThermalNotifications);
 }
 
+static void onWakeRuntimeEvent(CFNotificationCenterRef center, void *observer, CFNotificationName name, const void *object, CFDictionaryRef userInfo) {
+loadPrefs();
+if (g_enabled) {
+scheduleWakeRuntimeApply();
+}
+NSLog(S("[CPUthermal] 收到唤醒/亮屏事件，准备恢复当前功率模式"));
+}
+
 // ============================================================================
 // %ctor — 构造函数（配置仅在进程启动时加载一次）
 // ============================================================================
@@ -1683,6 +1719,18 @@ if (c) {
 	NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 	CFNotificationCenterAddObserver(c, NULL, onPowerModeChanged,
 	(__bridge CFStringRef)S(kCPUthermalPowerModeChangedNotifC),
+	NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+	CFNotificationCenterAddObserver(c, NULL, onWakeRuntimeEvent,
+	(__bridge CFStringRef)S("com.apple.springboard.hasFinishedUnblankingScreen"),
+	NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+	CFNotificationCenterAddObserver(c, NULL, onWakeRuntimeEvent,
+	(__bridge CFStringRef)S("com.apple.springboard.lockstate"),
+	NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+	CFNotificationCenterAddObserver(c, NULL, onWakeRuntimeEvent,
+	(__bridge CFStringRef)S("com.apple.iokit.hid.displayStatus"),
+	NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+	CFNotificationCenterAddObserver(c, NULL, onWakeRuntimeEvent,
+	(__bridge CFStringRef)S("com.apple.system.awake"),
 	NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 	}
 }
