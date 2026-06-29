@@ -157,7 +157,7 @@
 //==============================================================================
 
 - (BOOL)shouldBeginTransitionToExpandedContentModule {
-    return NO;
+    return YES;
 }
 
 - (void)willTransitionToExpandedContentMode:(BOOL)animated {
@@ -179,7 +179,7 @@
 }
 
 - (BOOL)_toggleModuleExpanded {
-    return NO;
+    return YES;
 }
 
 //==============================================================================
