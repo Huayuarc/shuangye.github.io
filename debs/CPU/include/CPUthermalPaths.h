@@ -5,6 +5,7 @@
 #include <roothide.h>
 #include <dispatch/dispatch.h>
 #include <spawn.h>
+#include <sys/sysctl.h>
 #include <sys/wait.h>
 
 #define S(str) [NSString stringWithUTF8String:(str)]
@@ -13,9 +14,63 @@ static const char *kCPUthermalPrefRootFSPathC = "/var/mobile/Library/Preferences
 static const char *kCPUthermalOldJBPrefRelativePathC = "Library/Preferences/com.huayuarc.CPUthermal.plist";
 static const char *kCPUthermalSettingsChangedNotifC = "com.huayuarc.CPUthermal/settingsChanged";
 static const char *kCPUthermalPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeChanged";
+static const NSInteger kCPUthermalDefaultMaxPCoreFrequencyMHz = 3240;
 
 static inline NSString *CPUthermalStringFromCPath(const char *path) {
     return path ? [NSString stringWithUTF8String:path] : nil;
+}
+
+static inline NSString *CPUthermalHardwareIdentifier(void) {
+    char machine[256] = {0};
+    size_t size = sizeof(machine);
+    if (sysctlbyname("hw.machine", machine, &size, NULL, 0) == 0 && machine[0] != '\0') {
+        return S(machine);
+    }
+    return S("");
+}
+
+static inline NSInteger CPUthermalNativeMaxPCoreFrequencyMHzForHardware(NSString *hardware) {
+    if (hardware.length == 0) {
+        return 0;
+    }
+
+    // 型号.txt: hardwareModel -> 性能大核最高主频(MHz)
+    if ([hardware isEqualToString:S("iPhone12,1")] ||
+        [hardware isEqualToString:S("iPhone12,3")] ||
+        [hardware isEqualToString:S("iPhone12,5")]) {
+        return 2650;
+    }
+    if ([hardware isEqualToString:S("iPhone13,1")] ||
+        [hardware isEqualToString:S("iPhone13,2")] ||
+        [hardware isEqualToString:S("iPhone13,3")] ||
+        [hardware isEqualToString:S("iPhone13,4")]) {
+        return 3090;
+    }
+    if ([hardware isEqualToString:S("iPhone14,2")] ||
+        [hardware isEqualToString:S("iPhone14,3")] ||
+        [hardware isEqualToString:S("iPhone14,4")] ||
+        [hardware isEqualToString:S("iPhone14,5")] ||
+        [hardware isEqualToString:S("iPhone14,7")] ||
+        [hardware isEqualToString:S("iPhone14,8")]) {
+        return 3230;
+    }
+    if ([hardware isEqualToString:S("iPhone15,2")] ||
+        [hardware isEqualToString:S("iPhone15,3")] ||
+        [hardware isEqualToString:S("iPhone15,4")] ||
+        [hardware isEqualToString:S("iPhone15,5")]) {
+        return 3460;
+    }
+    if ([hardware isEqualToString:S("iPhone16,1")] ||
+        [hardware isEqualToString:S("iPhone16,2")]) {
+        return 3780;
+    }
+
+    return 0;
+}
+
+static inline NSInteger CPUthermalNativeMaxPCoreFrequencyMHz(void) {
+    NSInteger frequency = CPUthermalNativeMaxPCoreFrequencyMHzForHardware(CPUthermalHardwareIdentifier());
+    return frequency > 0 ? frequency : kCPUthermalDefaultMaxPCoreFrequencyMHz;
 }
 
 static inline NSString *CPUthermalJBRootPathForRootFSPath(const char *path) {

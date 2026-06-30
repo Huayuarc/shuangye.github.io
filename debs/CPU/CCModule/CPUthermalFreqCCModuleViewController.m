@@ -17,7 +17,6 @@ static const NSInteger kBasePCPUFreqs[] = { 600, 972, 1332, 1692, 2052, 2412, 27
 static const NSInteger kBaseECPUFreqs[] = { 600, 972, 1332, 1692, 2016 };
 static const NSInteger kBasePCPUFreqCount = 9;
 static const NSInteger kBaseECPUFreqCount = 5;
-static const NSInteger kBasePCPUMaxMHz = 3240;
 static const NSInteger kLowPowerLockMHz = 2016;
 
 // 显示策略：控制中心展示 P-Core（大核）频率，不再展示所有核心驻留平均值。
@@ -206,24 +205,11 @@ typedef int64_t (*IOReportStateGetResidencyFn)(CFDictionaryRef, int);
 // ============================================================================
 
 - (NSString *)hardwareIdentifier {
-    char machine[256] = {0};
-    size_t size = sizeof(machine);
-    if (sysctlbyname("hw.machine", machine, &size, NULL, 0) == 0 && machine[0] != '\0') {
-        return S(machine);
-    }
-    return S("");
+    return CPUthermalHardwareIdentifier();
 }
 
 - (BOOL)isTargetDevice {
-    NSString *hardware = [self hardwareIdentifier];
-    return [hardware isEqualToString:S("iPhone14,7")] ||
-           [hardware isEqualToString:S("iPhone14,8")] ||
-           [hardware isEqualToString:S("iPhone15,2")] ||
-           [hardware isEqualToString:S("iPhone15,3")] ||
-           [hardware isEqualToString:S("iPhone15,4")] ||
-           [hardware isEqualToString:S("iPhone15,5")] ||
-           [hardware isEqualToString:S("iPhone16,1")] ||
-           [hardware isEqualToString:S("iPhone16,2")];
+    return CPUthermalNativeMaxPCoreFrequencyMHzForHardware([self hardwareIdentifier]) > 0;
 }
 
 - (NSInteger)sysctlMaxFrequencyMHz {
@@ -245,21 +231,12 @@ typedef int64_t (*IOReportStateGetResidencyFn)(CFDictionaryRef, int);
         return _deviceMaxPCoreMHz;
     }
 
-    NSString *hardware = [self hardwareIdentifier];
-    if ([hardware isEqualToString:S("iPhone16,1")] ||
-        [hardware isEqualToString:S("iPhone16,2")]) {
-        _deviceMaxPCoreMHz = 3780;
-    } else if ([hardware isEqualToString:S("iPhone15,2")] ||
-               [hardware isEqualToString:S("iPhone15,3")] ||
-               [hardware isEqualToString:S("iPhone15,4")] ||
-               [hardware isEqualToString:S("iPhone15,5")]) {
-        _deviceMaxPCoreMHz = 3460;
-    } else if ([hardware isEqualToString:S("iPhone14,7")] ||
-               [hardware isEqualToString:S("iPhone14,8")]) {
-        _deviceMaxPCoreMHz = kBasePCPUMaxMHz;
+    NSInteger nativeMax = CPUthermalNativeMaxPCoreFrequencyMHzForHardware([self hardwareIdentifier]);
+    if (nativeMax > 0) {
+        _deviceMaxPCoreMHz = nativeMax;
     } else {
         NSInteger sysctlMax = [self sysctlMaxFrequencyMHz];
-        _deviceMaxPCoreMHz = (sysctlMax > 0) ? sysctlMax : kBasePCPUMaxMHz;
+        _deviceMaxPCoreMHz = (sysctlMax > 0) ? sysctlMax : kCPUthermalDefaultMaxPCoreFrequencyMHz;
     }
 
     return _deviceMaxPCoreMHz;

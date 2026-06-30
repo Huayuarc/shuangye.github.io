@@ -225,7 +225,7 @@ return 100;
 }
 
 static int fullPowerFrequencyValue(void) {
-return INT_MAX;
+return (int)CPUthermalNativeMaxPCoreFrequencyMHz();
 }
 
 static int fullPowerPercentValue(void) {
@@ -942,8 +942,8 @@ BOOL isMinKey = [ks localizedCaseInsensitiveContainsString:S("min")];
 int64_t lowPowerValue = isMinKey ? kLowPowerMinFrequencyMHz : kLowPowerMaxFrequencyMHz;
 return CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &lowPowerValue);
 }
-int max = INT_MAX;
-return CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &max);
+int64_t max = CPUthermalNativeMaxPCoreFrequencyMHz();
+return CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &max);
 }
 if ([ks localizedCaseInsensitiveContainsString:S("brightness")] ||
 [ks localizedCaseInsensitiveContainsString:S("backlight")]) {
