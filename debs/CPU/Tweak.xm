@@ -131,7 +131,7 @@ static const int64_t kLowPowerMinFrequencyMHz = 600;
 static const int64_t kLowPowerMaxFrequencyMHz = 2016;
 
 // 温度安全阀 — 超过此值不拦截任何保护
-static const int64_t kSafetyTempThreshold = 65000;  // 65°C (毫摄氏度)
+static const int64_t kSafetyTempThreshold = 70000;  // 70°C (毫摄氏度)
 
 static CommonProduct *g_commonProduct = nil;
 static NSMutableArray *g_mitigationControllers = nil;
@@ -967,22 +967,27 @@ return res;
 
 - (void)tryTakeAction {
 if (shouldApplyFullCPUProtection()) {
-// 阻止所有热缓解动作
+if (!isTemperatureAboveSafetyCeiling()) {
 return;
+}
 }
 %orig;
 }
 
 - (void)simulateLightThermalPressure {
 if (shouldApplyFullCPUProtection()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 return;
+}
 }
 %orig;
 }
 
 - (void)updatePowerzoneTelemetry {
 if (shouldApplyFullCPUProtection()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 return;
+}
 }
 %orig;
 }
@@ -1083,10 +1088,16 @@ if (g_restoringFullPower) {
 return %orig;
 }
 if (shouldApplyLowPowerLimit()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 return YES;
 }
+return %orig;
+}
 if (shouldApplyFullCPUProtection()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 return NO;
+}
+return %orig;
 }
 return %orig;
 }
@@ -1097,11 +1108,19 @@ if (g_restoringFullPower) {
 return;
 }
 if (shouldApplyLowPowerLimit()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 %orig(YES);
 return;
 }
+%orig(active);
+return;
+}
 if (shouldApplyFullCPUProtection()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 %orig(NO);
+return;
+}
+%orig(active);
 return;
 }
 %orig;
@@ -1113,11 +1132,19 @@ if (g_restoringFullPower) {
 return;
 }
 if (shouldApplyLowPowerLimit()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 %orig([NSNumber numberWithInt:1]);
 return;
 }
+%orig(token);
+return;
+}
 if (shouldApplyFullCPUProtection()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 %orig(nil);
+return;
+}
+%orig(token);
 return;
 }
 %orig;
@@ -1172,14 +1199,22 @@ if (g_restoringFullPower) {
 return;
 }
 if (shouldApplyLowPowerLimit()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 int lowPowerLevel = level;
 if (lowPowerLevel < 0) lowPowerLevel = 0;
 if (lowPowerLevel > 2) lowPowerLevel = 2;
 %orig(lowPowerLevel);
 return;
 }
+%orig(level);
+return;
+}
 if (shouldApplyFullCPUProtection()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 %orig(0);
+return;
+}
+%orig(level);
 return;
 }
 %orig;
@@ -1191,7 +1226,9 @@ if (g_restoringFullPower) {
 return;
 }
 if (shouldApplyFullCPUProtection()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 return;
+}
 }
 %orig;
 }
@@ -1215,10 +1252,16 @@ if (g_restoringFullPower) {
 return %orig;
 }
 if (shouldApplyLowPowerLimit()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 return YES;
 }
+return %orig;
+}
 if (shouldApplyFullCPUProtection()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 return NO;
+}
+return %orig;
 }
 return %orig;
 }
@@ -1229,11 +1272,19 @@ if (g_restoringFullPower) {
 return;
 }
 if (shouldApplyLowPowerLimit()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 %orig(YES);
 return;
 }
+%orig(active);
+return;
+}
 if (shouldApplyFullCPUProtection()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 %orig(NO);
+return;
+}
+%orig(active);
 return;
 }
 %orig;
@@ -1245,11 +1296,19 @@ if (g_restoringFullPower) {
 return;
 }
 if (shouldApplyLowPowerLimit()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 %orig(1);
 return;
 }
+%orig(token);
+return;
+}
 if (shouldApplyFullCPUProtection()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 %orig(0);
+return;
+}
+%orig(token);
 return;
 }
 %orig;
@@ -1261,7 +1320,9 @@ if (g_restoringFullPower) {
 return;
 }
 if (shouldApplyFullCPUProtection()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 return;
+}
 }
 %orig;
 }
@@ -1272,7 +1333,9 @@ if (g_restoringFullPower) {
 return;
 }
 if (shouldApplyFullCPUProtection()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 return;
+}
 }
 %orig;
 }
@@ -1283,7 +1346,9 @@ if (g_restoringFullPower) {
 return;
 }
 if (shouldApplyFullCPUProtection()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 return;
+}
 }
 %orig;
 }
@@ -1294,10 +1359,18 @@ if (g_restoringFullPower) {
 return;
 }
 if (shouldApplyLowPowerLimit()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 %orig(lowPowerTargetValue());
 return;
 }
+%orig(target);
+return;
+}
 if (shouldApplyFullCPUProtection()) {
+if (!isTemperatureAboveSafetyCeiling()) {
+return;
+}
+%orig(target);
 return;
 }
 %orig;
@@ -1309,7 +1382,9 @@ if (g_restoringFullPower) {
 return;
 }
 if (shouldApplyFullCPUProtection()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 return;
+}
 }
 %orig;
 }
@@ -1321,13 +1396,21 @@ if (g_restoringFullPower) {
 return;
 }
 if (shouldApplyLowPowerLimit()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 int64_t clamped = clampLowPowerFrequencyValue(target);
 rememberOriginalIntValue(self, "MaxCPUPowerTarget", target);
 %orig((int)clamped, legacy, propertyArg);
 return;
 }
+%orig(target, legacy, propertyArg);
+return;
+}
 if (shouldApplyFullCPUProtection()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 %orig(fullPowerTargetForController(self), legacy, propertyArg);
+return;
+}
+%orig(target, legacy, propertyArg);
 return;
 }
 %orig;
@@ -1339,12 +1422,20 @@ if (g_restoringFullPower) {
 return;
 }
 if (shouldApplyLowPowerLimit()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 rememberOriginalIntValue(self, "CPUPowerCeiling", ceiling);
 %orig(lowPowerPowerCeilingValue(), source);
 return;
 }
+%orig(ceiling, source);
+return;
+}
 if (shouldApplyFullCPUProtection()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 %orig(fullPowerCeilingForController(self), source);
+return;
+}
+%orig(ceiling, source);
 return;
 }
 %orig;
@@ -1356,12 +1447,20 @@ if (g_restoringFullPower) {
 return;
 }
 if (shouldApplyLowPowerLimit()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 rememberOriginalIntValue(self, "CPUPowerFloor", floor);
 %orig(lowPowerPowerFloorValue(), source);
 return;
 }
+%orig(floor, source);
+return;
+}
 if (shouldApplyFullCPUProtection()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 %orig(fullPowerFloorForController(self), source);
+return;
+}
+%orig(floor, source);
 return;
 }
 %orig;
@@ -1373,13 +1472,21 @@ if (g_restoringFullPower) {
 return;
 }
 if (shouldApplyLowPowerLimit()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 int64_t clamped = clampLowPowerFrequencyValue(target);
 rememberOriginalIntValue(self, "CPUPowerZoneTarget", target);
 %orig((int)clamped);
 return;
 }
+%orig(target);
+return;
+}
 if (shouldApplyFullCPUProtection()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 %orig(fullPowerZoneTargetForController(self));
+return;
+}
+%orig(target);
 return;
 }
 %orig;
@@ -1466,39 +1573,8 @@ return [modified copy];
 }
 
 // ============================================================================
-// 热配置 plist 修补（适配自 insulation 的 IDictHepler）
+// 热配置 plist 修补（已废弃 — 防降亮度改由 IOServiceSetProperty 动态拦截）
 // ============================================================================
-static void patchThermalPlistDict(NSMutableDictionary *dict) {
-if (!g_enabled || !g_brightnessProtection) return;
-
-// 不再永久改写 ThermalMonitor 配置表。
-// 防降亮度改由 IOServiceSetProperty 在 65°C 安全阀以下动态拦截，超温立即放行系统保护。
-}
-
-// --- NSDictionary: 拦截 thermal plist 加载并修补 ---
-// 注意: hook 系统类有风险，仅在亮度保护开启时实际执行
-%hook NSDictionary
-
-+ (id)dictionaryWithContentsOfFile:(id)path {
-id res = %orig;
-if (g_enabled && g_brightnessProtection && [path isKindOfClass:[NSString class]]) {
-NSString *pathStr = (NSString *)path;
-if ([pathStr containsString:S("/System/Library/ThermalMonitor/")]) {
-// 安全阀
-if (!isTemperatureAboveSafetyCeiling()) {
-NSMutableDictionary *patched = [res mutableCopy];
-if (patched) {
-patchThermalPlistDict(patched);
-NSLog(@"[CPUthermal] 已修补热配置 plist: %@", [pathStr lastPathComponent]);
-return patched;
-}
-}
-}
-}
-return res;
-}
-
-%end
 
 // ============================================================================
 // Puppet 事件（由 Preferences 面板触发 — 模拟热级别切换）

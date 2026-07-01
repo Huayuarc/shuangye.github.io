@@ -14,7 +14,7 @@ static const char *kCPUthermalPrefRootFSPathC = "/var/mobile/Library/Preferences
 static const char *kCPUthermalOldJBPrefRelativePathC = "Library/Preferences/com.huayuarc.CPUthermal.plist";
 static const char *kCPUthermalSettingsChangedNotifC = "com.huayuarc.CPUthermal/settingsChanged";
 static const char *kCPUthermalPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeChanged";
-static const NSInteger kCPUthermalDefaultMaxPCoreFrequencyMHz = 3240;
+static const NSInteger kCPUthermalDefaultMaxPCoreFrequencyMHz = 3780;
 
 static inline NSString *CPUthermalStringFromCPath(const char *path) {
     return path ? [NSString stringWithUTF8String:path] : nil;
@@ -35,6 +35,24 @@ static inline NSInteger CPUthermalNativeMaxPCoreFrequencyMHzForHardware(NSString
     }
 
     // 型号.txt: hardwareModel -> 性能大核最高主频(MHz)
+
+    // iPhone 8 / 8 Plus / X (A11) 2390MHz
+    if ([hardware isEqualToString:S("iPhone10,1")] ||
+        [hardware isEqualToString:S("iPhone10,2")] ||
+        [hardware isEqualToString:S("iPhone10,3")] ||
+        [hardware isEqualToString:S("iPhone10,6")]) {
+        return 2390;
+    }
+
+    // iPhone XS / XS Max / XR (A12) 2490MHz
+    if ([hardware isEqualToString:S("iPhone11,2")] ||
+        [hardware isEqualToString:S("iPhone11,4")] ||
+        [hardware isEqualToString:S("iPhone11,6")] ||
+        [hardware isEqualToString:S("iPhone11,8")]) {
+        return 2490;
+    }
+
+    // iPhone 11 / 11 Pro / 11 Pro Max (A13) 2650MHz
     if ([hardware isEqualToString:S("iPhone12,1")] ||
         [hardware isEqualToString:S("iPhone12,3")] ||
         [hardware isEqualToString:S("iPhone12,5")]) {

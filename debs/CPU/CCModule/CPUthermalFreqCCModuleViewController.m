@@ -13,9 +13,9 @@
 // ============================================================================
 // 基准 P-State 频率表 (MHz)
 // ============================================================================
-static const NSInteger kBasePCPUFreqs[] = { 600, 972, 1332, 1692, 2052, 2412, 2772, 3132, 3240 };
+static const NSInteger kBasePCPUFreqs[] = { 600, 972, 1332, 1692, 2052, 2412, 2772, 3000, 3132, 3456, 3780 };
 static const NSInteger kBaseECPUFreqs[] = { 600, 972, 1332, 1692, 2016 };
-static const NSInteger kBasePCPUFreqCount = 9;
+static const NSInteger kBasePCPUFreqCount = 11;
 static const NSInteger kBaseECPUFreqCount = 5;
 static const NSInteger kLowPowerCeilingMHz = 2016;
 
