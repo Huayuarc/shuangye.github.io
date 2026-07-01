@@ -9,6 +9,8 @@
 #include <sys/wait.h>
 #include <errno.h>
 
+extern char **environ;
+
 #define S(str) [NSString stringWithUTF8String:(str)]
 
 static const char *kCPUthermalPrefRootFSPathC = "/var/mobile/Library/Preferences/com.huayuarc.CPUthermal.plist";
