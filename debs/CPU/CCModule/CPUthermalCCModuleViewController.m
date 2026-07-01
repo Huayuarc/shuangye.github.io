@@ -53,7 +53,7 @@
     if ([mode isKindOfClass:[NSString class]] && [mode length] > 0) {
         return mode;
     }
-    return S("fullPower"); // 默认解除温控
+    return S("fullPower"); // 默认防温控
 }
 
 /// 写入功率模式并发送通知
@@ -81,13 +81,13 @@
     self = [super init];
     if (self) {
         _modeValues = @[S("lowPower"), S("fullPower")];
-        _modeTitles = @[S("低功耗"), S("解除温控")];
+        _modeTitles = @[S("低功耗"), S("防温控")];
 
         // 读取当前设置的模式
         NSString *currentMode = [self currentPowerMode];
         _selectedIndex = [_modeValues indexOfObject:currentMode];
         if (_selectedIndex == NSNotFound) {
-            _selectedIndex = 1; // 默认选中"解除温控"
+            _selectedIndex = 1; // 默认选中"防温控"
         }
     }
     return self;

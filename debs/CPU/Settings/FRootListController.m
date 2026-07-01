@@ -58,7 +58,7 @@ return S("fullPower");
 
 - (NSString *)powerModeTitle:(NSString *)mode {
 if ([mode isEqualToString:S("lowPower")]) return S("低功耗");
-return S("解除温控");
+return S("防温控");
 }
 
 - (void)restartThermalmonitord {
@@ -87,13 +87,16 @@ prefs[key] = value;
 - (id)readPreferenceValue:(PSSpecifier *)spec {
 NSString *key = [spec propertyForKey:S("key")];
 if (!key) return nil;
-// CPU性能保护/亮度保护/热状态封锁/HID事件 默认开启
+// 默认保留系统安全通路，避免异常发热、黑屏和不可恢复降亮度。
 id val = [self prefs][key];
 if (val) return val;
 if ([key isEqualToString:S("keepCPMSAlive")]) {
-return [NSNumber numberWithBool:NO]; // CPMS 默认关闭
+return [NSNumber numberWithBool:YES];
 }
-return [NSNumber numberWithBool:YES]; // 其余保护默认开启
+if ([key isEqualToString:S("thermalStateProtection")] || [key isEqualToString:S("blockHidEvents")] || [key isEqualToString:S("suppressThermalNotifications")]) {
+return [NSNumber numberWithBool:NO];
+}
+return [NSNumber numberWithBool:YES];
 }
 
 - (id)readPowerModeValue:(PSSpecifier *)spec {
@@ -124,7 +127,7 @@ return;
 - (void)showPowerModePicker {
 UIAlertController *alert = [UIAlertController
 alertControllerWithTitle:S("功率模式")
-message:S("低功耗 = 省电并锁定 CPU 频率 2016MHz\n解除温控 = 解除全部温控限制")
+message:S("低功耗 = 限制 CPU 最高 2016MHz，不抬高待机频率\n防温控 = 减少降频/降亮度，保留系统安全保护")
 preferredStyle:UIAlertControllerStyleActionSheet];
 
 NSString *currentMode = [self powerModeValue];
@@ -132,7 +135,7 @@ UIAlertAction *low = [UIAlertAction actionWithTitle:S("低功耗")
 style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
 [self savePowerMode:S("lowPower")];
 }];
-UIAlertAction *full = [UIAlertAction actionWithTitle:S("解除温控")
+UIAlertAction *full = [UIAlertAction actionWithTitle:S("防温控")
 style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
 [self savePowerMode:S("fullPower")];
 }];
@@ -299,7 +302,7 @@ PSSpecifier *master = [self switchSpecifier:S("启用 CPUthermal") key:S("enable
 // ===================== 第2组: 功率模式 =====================
 group = [PSSpecifier emptyGroupSpecifier];
 [group setProperty:S("功率模式") forKey:S("label")];
-[group setProperty:S("低功耗 = 省电并锁定 CPU 频率 2016MHz；解除温控 = 解除全部温控限制") forKey:S("footerText")];
+[group setProperty:S("低功耗只限制最高频率，不再强制锁 2016MHz；防温控会减少降频/降亮度，但保留系统过热保护。") forKey:S("footerText")];
 [specs addObject:group];
 
 [specs addObject:[self powerModeSpecifier]];
@@ -307,7 +310,7 @@ group = [PSSpecifier emptyGroupSpecifier];
 // ===================== 第3组: 核心保护（整合） =====================
 group = [PSSpecifier emptyGroupSpecifier];
 [group setProperty:S("核心保护") forKey:S("label")];
-[group setProperty:S("开启即生效，关闭则对应保护失效") forKey:S("footerText")];
+[group setProperty:S("建议保持默认：CPU/亮度保护开启，热状态封锁和 HID 拦截默认关闭，避免误判温度。") forKey:S("footerText")];
 [specs addObject:group];
 
 [specs addObject:[self switchSpecifier:S("CPU 性能保护") key:S("cpuProtection")]];
@@ -319,7 +322,7 @@ group = [PSSpecifier emptyGroupSpecifier];
 // ===================== 第4组: 高级 =====================
 group = [PSSpecifier emptyGroupSpecifier];
 [group setProperty:S("高级") forKey:S("label")];
-[group setProperty:S("保留 CPMS 紧急保护安全阀，温度超过 75°C 时放行所有保护") forKey:S("footerText")];
+[group setProperty:S("强烈建议开启：温度超过 65°C 或读温失败时放行系统温控，防止异常发热和自动黑屏。") forKey:S("footerText")];
 [specs addObject:group];
 
 [specs addObject:[self switchSpecifier:S("保留 CPMS 紧急保护") key:S("keepCPMSAlive")]];

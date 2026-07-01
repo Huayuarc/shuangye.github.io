@@ -17,7 +17,7 @@ static const NSInteger kBasePCPUFreqs[] = { 600, 972, 1332, 1692, 2052, 2412, 27
 static const NSInteger kBaseECPUFreqs[] = { 600, 972, 1332, 1692, 2016 };
 static const NSInteger kBasePCPUFreqCount = 9;
 static const NSInteger kBaseECPUFreqCount = 5;
-static const NSInteger kLowPowerLockMHz = 2016;
+static const NSInteger kLowPowerCeilingMHz = 2016;
 
 // 显示策略：控制中心展示 P-Core（大核）频率，不再展示所有核心驻留平均值。
 static const double kValidMinMHz = 100.0;
@@ -289,11 +289,11 @@ typedef int64_t (*IOReportStateGetResidencyFn)(CFDictionaryRef, int);
         displayMHz = maxPCoreMHz;
     }
 
-    if ([self isLowPowerModeActive] && displayMHz < kLowPowerLockMHz) {
-        displayMHz = kLowPowerLockMHz;
+    if ([self isLowPowerModeActive] && displayMHz > kLowPowerCeilingMHz) {
+        displayMHz = kLowPowerCeilingMHz;
     }
 
-    if (_lastDisplayedMHz <= 0 || displayMHz >= kLowPowerLockMHz) {
+    if (_lastDisplayedMHz <= 0 || displayMHz >= kLowPowerCeilingMHz) {
         _pendingDisplayedMHz = 0;
         _pendingDisplayRepeatCount = 0;
         return displayMHz;

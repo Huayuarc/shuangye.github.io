@@ -46,7 +46,7 @@ static void loadPrefs(void) {
             id enabledVal = [d objectForKey:S("enabled")];
             id suppressVal = [d objectForKey:S("suppressThermalNotifications")];
             BOOL enabled = enabledVal ? [enabledVal boolValue] : YES;
-            BOOL suppress = suppressVal ? [suppressVal boolValue] : YES;
+            BOOL suppress = suppressVal ? [suppressVal boolValue] : NO;
             gEnabled = enabled && suppress;
         } else {
             gEnabled = NO;

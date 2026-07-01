@@ -9,7 +9,7 @@ NS_ASSUME_NONNULL_BEGIN
 /// 模式值数组 (@[@"lowPower", @"fullPower"])
 @property (nonatomic, copy) NSArray<NSString *> *modeValues;
 
-/// 模式标题数组 (@[@"低功耗", @"解除温控"])
+/// 模式标题数组 (@[@"低功耗", @"防温控"])
 @property (nonatomic, copy) NSArray<NSString *> *modeTitles;
 
 /// 当前选中的模式索引
