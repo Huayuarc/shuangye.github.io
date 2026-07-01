@@ -7,6 +7,7 @@
 #include <spawn.h>
 #include <sys/sysctl.h>
 #include <sys/wait.h>
+#include <errno.h>
 
 #define S(str) [NSString stringWithUTF8String:(str)]
 
@@ -15,6 +16,10 @@ static const char *kCPUthermalOldJBPrefRelativePathC = "Library/Preferences/com.
 static const char *kCPUthermalSettingsChangedNotifC = "com.huayuarc.CPUthermal/settingsChanged";
 static const char *kCPUthermalPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeChanged";
 static const NSInteger kCPUthermalDefaultMaxPCoreFrequencyMHz = 3780;
+
+static inline NSFileManager *sharedFM(void) {
+    return [NSFileManager defaultManager];
+}
 
 static inline NSString *CPUthermalStringFromCPath(const char *path) {
     return path ? [NSString stringWithUTF8String:path] : nil;
@@ -33,8 +38,6 @@ static inline NSInteger CPUthermalNativeMaxPCoreFrequencyMHzForHardware(NSString
     if (hardware.length == 0) {
         return 0;
     }
-
-    // 型号.txt: hardwareModel -> 性能大核最高主频(MHz)
 
     // iPhone 8 / 8 Plus / X (A11) 2390MHz
     if ([hardware isEqualToString:S("iPhone10,1")] ||
@@ -58,12 +61,16 @@ static inline NSInteger CPUthermalNativeMaxPCoreFrequencyMHzForHardware(NSString
         [hardware isEqualToString:S("iPhone12,5")]) {
         return 2650;
     }
+
+    // iPhone 12 / 12 mini / 12 Pro / 12 Pro Max (A14) 3090MHz
     if ([hardware isEqualToString:S("iPhone13,1")] ||
         [hardware isEqualToString:S("iPhone13,2")] ||
         [hardware isEqualToString:S("iPhone13,3")] ||
         [hardware isEqualToString:S("iPhone13,4")]) {
         return 3090;
     }
+
+    // iPhone13全系、iPhone14 / 14 Plus (A15) 3230MHz
     if ([hardware isEqualToString:S("iPhone14,2")] ||
         [hardware isEqualToString:S("iPhone14,3")] ||
         [hardware isEqualToString:S("iPhone14,4")] ||
@@ -72,12 +79,16 @@ static inline NSInteger CPUthermalNativeMaxPCoreFrequencyMHzForHardware(NSString
         [hardware isEqualToString:S("iPhone14,8")]) {
         return 3230;
     }
+
+    // iPhone14 Pro/ProMax、iPhone15 / 15 Plus (A16) 3460MHz
     if ([hardware isEqualToString:S("iPhone15,2")] ||
         [hardware isEqualToString:S("iPhone15,3")] ||
         [hardware isEqualToString:S("iPhone15,4")] ||
         [hardware isEqualToString:S("iPhone15,5")]) {
         return 3460;
     }
+
+    // iPhone15 Pro / Pro Max (A17 Pro) 3780MHz
     if ([hardware isEqualToString:S("iPhone16,1")] ||
         [hardware isEqualToString:S("iPhone16,2")]) {
         return 3780;
@@ -88,7 +99,17 @@ static inline NSInteger CPUthermalNativeMaxPCoreFrequencyMHzForHardware(NSString
 
 static inline NSInteger CPUthermalNativeMaxPCoreFrequencyMHz(void) {
     NSInteger frequency = CPUthermalNativeMaxPCoreFrequencyMHzForHardware(CPUthermalHardwareIdentifier());
-    return frequency > 0 ? frequency : kCPUthermalDefaultMaxPCoreFrequencyMHz;
+    if (frequency > 0) {
+        return frequency;
+    }
+
+    // 未知设备仅打印一次警告日志
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        NSLog(@"CPUthermal: Unknown hardware '%@', falling back to default max frequency %ld MHz",
+              CPUthermalHardwareIdentifier(), (long)kCPUthermalDefaultMaxPCoreFrequencyMHz);
+    });
+    return kCPUthermalDefaultMaxPCoreFrequencyMHz;
 }
 
 static inline NSString *CPUthermalJBRootPathForRootFSPath(const char *path) {
@@ -104,8 +125,7 @@ static inline NSString *CPUthermalCurrentPrefPath(void) {
 }
 
 static inline NSString *CPUthermalOldJBRootPrefPath(void) {
-    NSFileManager *fileManager = [NSFileManager defaultManager];
-    NSString *resolvedJBRoot = [fileManager destinationOfSymbolicLinkAtPath:S("/var/jb") error:nil];
+    NSString *resolvedJBRoot = [sharedFM() destinationOfSymbolicLinkAtPath:S("/var/jb") error:nil];
     if (resolvedJBRoot.length > 0) {
         return [resolvedJBRoot stringByAppendingPathComponent:S(kCPUthermalOldJBPrefRelativePathC)];
     }
@@ -126,19 +146,17 @@ static inline NSArray<NSString *> *CPUthermalLegacyPrefPaths(void) {
 }
 
 static inline NSString *CPUthermalExistingExecutablePath(const char *rootFSPath, NSArray<NSString *> *fallbackPaths) {
-    NSFileManager *fileManager = [NSFileManager defaultManager];
     NSString *resolvedPath = CPUthermalJBRootPathForRootFSPath(rootFSPath);
-    if (resolvedPath.length > 0 && [fileManager isExecutableFileAtPath:resolvedPath]) {
+    if (resolvedPath.length > 0 && [sharedFM() isExecutableFileAtPath:resolvedPath]) {
         return resolvedPath;
     }
 
     for (NSString *path in fallbackPaths) {
-        if (path.length > 0 && [fileManager isExecutableFileAtPath:path]) {
+        if (path.length > 0 && [sharedFM() isExecutableFileAtPath:path]) {
             return path;
         }
     }
-
-    return resolvedPath;
+    return nil;
 }
 
 static inline NSString *CPUthermalLaunchctlPath(void) {
@@ -174,35 +192,34 @@ static inline NSString *CPUthermalToolPath(void) {
     ]);
 }
 
+/// 后台分离执行命令，补充environ修复无根PATH缺失
 static inline void CPUthermalSpawnDetached(NSString *path, char *const args[]) {
-    if (path.length == 0) {
-        return;
-    }
+    if (!path || path.length == 0) return;
 
     pid_t pid = 0;
-    if (posix_spawn(&pid, [path fileSystemRepresentation], NULL, NULL, args, NULL) == 0) {
+    int ret = posix_spawn(&pid, path.fileSystemRepresentation, NULL, NULL, args, environ);
+    if (ret == 0) {
         dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
             waitpid(pid, NULL, 0);
         });
     }
 }
 
+/// 同步阻塞执行命令，补充系统环境变量
 static inline BOOL CPUthermalRunAndWait(NSString *path, char *const args[]) {
-    if (path.length == 0) {
-        return NO;
-    }
+    if (!path || path.length == 0) return NO;
 
     pid_t pid = 0;
-    if (posix_spawn(&pid, [path fileSystemRepresentation], NULL, NULL, args, NULL) != 0) {
-        return NO;
-    }
+    int ret = posix_spawn(&pid, path.fileSystemRepresentation, NULL, NULL, args, environ);
+    if (ret != 0) return NO;
+
     waitpid(pid, NULL, 0);
     return YES;
 }
 
 static inline void CPUthermalRestartThermalmonitordNow(void) {
     NSString *toolPath = CPUthermalToolPath();
-    if (toolPath.length > 0 && [[NSFileManager defaultManager] isExecutableFileAtPath:toolPath]) {
+    if (toolPath.length > 0 && [sharedFM() isExecutableFileAtPath:toolPath]) {
         char *args[] = {(char *)"CPUthermalTool", (char *)"restart-thermalmonitord", NULL};
         if (CPUthermalRunAndWait(toolPath, args)) {
             return;
@@ -218,7 +235,7 @@ static inline void CPUthermalRestartThermalmonitordNow(void) {
 
 static inline void CPUthermalRestartThermalmonitordSoon(void) {
     NSString *toolPath = CPUthermalToolPath();
-    if (toolPath.length > 0 && [[NSFileManager defaultManager] isExecutableFileAtPath:toolPath]) {
+    if (toolPath.length > 0 && [sharedFM() isExecutableFileAtPath:toolPath]) {
         char *args[] = {(char *)"CPUthermalTool", (char *)"restart-thermalmonitord-delayed", NULL};
         CPUthermalSpawnDetached(toolPath, args);
         return;
@@ -226,7 +243,8 @@ static inline void CPUthermalRestartThermalmonitordSoon(void) {
 
     NSString *killallPath = CPUthermalKillallPath();
     if (killallPath.length > 0) {
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)),
+                       dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
             CPUthermalRestartThermalmonitordNow();
         });
     }
@@ -234,34 +252,31 @@ static inline void CPUthermalRestartThermalmonitordSoon(void) {
 
 static inline void CPUthermalEnsurePrefDirectory(void) {
     NSString *path = CPUthermalCurrentPrefPath();
+    if (!path) return;
     NSString *directory = [path stringByDeletingLastPathComponent];
-    [[NSFileManager defaultManager] createDirectoryAtPath:directory
-                              withIntermediateDirectories:YES
-                                               attributes:nil
-                                                    error:nil];
+    [sharedFM() createDirectoryAtPath:directory
+              withIntermediateDirectories:YES
+                               attributes:nil
+                                    error:nil];
 }
 
 static inline NSMutableDictionary *CPUthermalReadMutablePrefs(void) {
     NSString *path = CPUthermalCurrentPrefPath();
+    if (!path) return nil;
     NSMutableDictionary *prefs = [NSMutableDictionary dictionaryWithContentsOfFile:path];
     if (prefs) {
         return prefs;
     }
 
-    NSFileManager *fileManager = [NSFileManager defaultManager];
     for (NSString *legacyPath in CPUthermalLegacyPrefPaths()) {
-        if ([legacyPath isEqualToString:path]) {
-            continue;
-        }
+        if ([legacyPath isEqualToString:path]) continue;
         NSDictionary *legacyPrefs = [NSDictionary dictionaryWithContentsOfFile:legacyPath];
-        if (!legacyPrefs) {
-            continue;
-        }
+        if (!legacyPrefs) continue;
 
         prefs = [legacyPrefs mutableCopy];
         CPUthermalEnsurePrefDirectory();
         if ([prefs writeToFile:path atomically:YES]) {
-            [fileManager removeItemAtPath:legacyPath error:nil];
+            [sharedFM() removeItemAtPath:legacyPath error:nil];
         }
         return prefs;
     }
@@ -274,22 +289,20 @@ static inline NSDictionary *CPUthermalReadPrefs(void) {
 }
 
 static inline BOOL CPUthermalWritePrefs(NSDictionary *prefs) {
-    if (!prefs) {
-        return NO;
-    }
-
+    if (!prefs) return NO;
     NSString *path = CPUthermalCurrentPrefPath();
+    if (!path) return NO;
+
     CPUthermalEnsurePrefDirectory();
     BOOL ok = [prefs writeToFile:path atomically:YES];
     if (ok) {
-        NSFileManager *fileManager = [NSFileManager defaultManager];
         for (NSString *legacyPath in CPUthermalLegacyPrefPaths()) {
             if (![legacyPath isEqualToString:path]) {
-                [fileManager removeItemAtPath:legacyPath error:nil];
+                [sharedFM() removeItemAtPath:legacyPath error:nil];
             }
         }
     }
     return ok;
 }
 
-#endif
+#endif // CPUTHERMAL_PATHS_H

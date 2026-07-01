@@ -111,19 +111,20 @@
 
 // ============================================================================
 // 配置
+// volatile 保证跨线程可见性 — IOKit hook 来自任意线程，而 loadPrefs 走主线程
 // ============================================================================
-static BOOL g_enabled               = YES; // 总开关（默认开启）
-static BOOL g_cpuProtection         = YES; // CPU 性能保护(降频/决策树/控制力度/配置表)
-static BOOL g_brightnessProtection  = YES; // 屏幕亮度保护(降亮度/背光配置)
-static BOOL g_keepCPSMAlive         = YES; // 保留 CPMS 紧急保护(安全阀) 默认开启
-static BOOL g_suppressThermalNotifications = NO;  // 默认不屏蔽高温通知
+static volatile BOOL g_enabled               = YES; // 总开关（默认开启）
+static volatile BOOL g_cpuProtection         = YES; // CPU 性能保护(降频/决策树/控制力度/配置表)
+static volatile BOOL g_brightnessProtection  = YES; // 屏幕亮度保护(降亮度/背光配置)
+static volatile BOOL g_keepCPSMAlive         = YES; // 保留 CPMS 紧急保护(安全阀) 默认开启
+static volatile BOOL g_suppressThermalNotifications = NO;  // 默认不屏蔽高温通知
 
 typedef enum {
 CPUthermalPowerModeFull = 0,
 CPUthermalPowerModeLow  = 1
 } CPUthermalPowerMode;
 
-static CPUthermalPowerMode g_powerMode = CPUthermalPowerModeFull;
+static volatile CPUthermalPowerMode g_powerMode = CPUthermalPowerModeFull;
 
 // 低功耗模式 CPU 频率限制（MHz）
 // 只限制上限，不强制抬高最低频，避免轻负载锁 2016MHz 导致发热。
@@ -135,16 +136,21 @@ static const int64_t kSafetyTempThreshold = 70000;  // 70°C (毫摄氏度)
 
 static CommonProduct *g_commonProduct = nil;
 static NSMutableArray *g_mitigationControllers = nil;
-static BOOL g_restoringFullPower = NO;
-static BOOL g_applyingLowPower = NO;
+static volatile BOOL g_restoringFullPower = NO;
+static volatile BOOL g_applyingLowPower = NO;
 static NSMutableDictionary *g_originalControllerValues = nil;
 static CFAbsoluteTime g_processStartTime = 0;
 static const double kFullPowerBootGuardDuration = 5.0;
-static BOOL g_deferredRuntimeApplyScheduled = NO;
-static BOOL g_fullPowerRecoveryPulseScheduled = NO;
-static BOOL g_lowPowerApplyPulseScheduled = NO;
-static BOOL g_wakeRuntimeApplyScheduled = NO;
-static BOOL g_readingSafetyTemperature = NO;
+static volatile BOOL g_deferredRuntimeApplyScheduled = NO;
+static volatile BOOL g_fullPowerRecoveryPulseScheduled = NO;
+static volatile BOOL g_lowPowerApplyPulseScheduled = NO;
+static volatile BOOL g_wakeRuntimeApplyScheduled = NO;
+static volatile BOOL g_readingSafetyTemperature = NO;
+
+// 温度缓存 — 避免在 IOKit hook 路径中反复调用 IOKit 导致递归
+static volatile int64_t g_cachedTemperature = 0;
+static volatile CFAbsoluteTime g_cachedTemperatureTime = 0;
+static const CFAbsoluteTime kTempCacheDuration = 1.5;  // 缓存有效期 1.5 秒
 
 static BOOL shouldApplyLowPowerLimit(void);
 static int lowPowerTargetValue(void);
@@ -153,11 +159,11 @@ static void applyCurrentPowerModeToRuntime(void);
 static void applyPowerModeToRuntime(BOOL respectBootGuard);
 static void scheduleDeferredRuntimeApply(double delay);
 static void scheduleLowPowerApplyPulse(void);
-static void runLowPowerApplyPulse(int remainingPulses);
+static void runLowPowerApplyPulse(int remainingPulses, double delay);
 static void scheduleFullPowerRecoveryPulse(void);
-static void runFullPowerRecoveryPulse(int remainingPulses);
+static void runFullPowerRecoveryPulse(int remainingPulses, double delay);
 static void scheduleWakeRuntimeApply(void);
-static void runWakeRuntimeApplyPulse(int remainingPulses);
+static void runWakeRuntimeApplyPulse(int remainingPulses, double delay);
 
 static NSString *controllerKey(id controller, const char *name) {
 return [NSString stringWithFormat:S("%p:%s"), controller, name];
@@ -514,15 +520,17 @@ applyCurrentPowerModeToRuntime();
 });
 }
 
+static void runLowPowerApplyPulse(int remainingPulses, double delay);
+
 static void scheduleLowPowerApplyPulse(void) {
 if (g_lowPowerApplyPulseScheduled || !g_enabled || !g_cpuProtection || !isLowPowerMode()) return;
 g_lowPowerApplyPulseScheduled = YES;
 dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.05 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-runLowPowerApplyPulse(8);
+runLowPowerApplyPulse(8, 0.1);
 });
 }
 
-static void runLowPowerApplyPulse(int remainingPulses) {
+static void runLowPowerApplyPulse(int remainingPulses, double delay) {
 if (remainingPulses <= 0 || !g_enabled || !g_cpuProtection || !isLowPowerMode()) {
 g_lowPowerApplyPulseScheduled = NO;
 return;
@@ -533,20 +541,24 @@ if (remainingPulses <= 1) {
 g_lowPowerApplyPulseScheduled = NO;
 return;
 }
-dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.25 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-runLowPowerApplyPulse(remainingPulses - 1);
+// 指数退避：每次间隔 ×1.5，上限 1 秒
+double nextDelay = MIN(delay * 1.5, 1.0);
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+runLowPowerApplyPulse(remainingPulses - 1, nextDelay);
 });
 }
+
+static void runFullPowerRecoveryPulse(int remainingPulses, double delay);
 
 static void scheduleFullPowerRecoveryPulse(void) {
 if (g_fullPowerRecoveryPulseScheduled || !g_enabled || !g_cpuProtection || !isFullPowerMode()) return;
 g_fullPowerRecoveryPulseScheduled = YES;
 dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.15 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-runFullPowerRecoveryPulse(4);
+runFullPowerRecoveryPulse(4, 0.15);
 });
 }
 
-static void runFullPowerRecoveryPulse(int remainingPulses) {
+static void runFullPowerRecoveryPulse(int remainingPulses, double delay) {
 if (remainingPulses <= 0 || !g_enabled || !g_cpuProtection || !isFullPowerMode()) {
 g_fullPowerRecoveryPulseScheduled = NO;
 return;
@@ -557,20 +569,23 @@ if (remainingPulses <= 1) {
 g_fullPowerRecoveryPulseScheduled = NO;
 return;
 }
-dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.25 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-runFullPowerRecoveryPulse(remainingPulses - 1);
+double nextDelay = MIN(delay * 1.5, 1.0);
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+runFullPowerRecoveryPulse(remainingPulses - 1, nextDelay);
 });
 }
+
+static void runWakeRuntimeApplyPulse(int remainingPulses, double delay);
 
 static void scheduleWakeRuntimeApply(void) {
 if (g_wakeRuntimeApplyScheduled || !g_enabled || !g_cpuProtection) return;
 g_wakeRuntimeApplyScheduled = YES;
 dispatch_async(dispatch_get_main_queue(), ^{
-runWakeRuntimeApplyPulse(8);
+runWakeRuntimeApplyPulse(8, 0.3);
 });
 }
 
-static void runWakeRuntimeApplyPulse(int remainingPulses) {
+static void runWakeRuntimeApplyPulse(int remainingPulses, double delay) {
 if (remainingPulses <= 0 || !g_enabled || !g_cpuProtection) {
 g_wakeRuntimeApplyScheduled = NO;
 return;
@@ -581,8 +596,9 @@ if (remainingPulses <= 1) {
 g_wakeRuntimeApplyScheduled = NO;
 return;
 }
-dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.75 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-runWakeRuntimeApplyPulse(remainingPulses - 1);
+double nextDelay = MIN(delay * 1.4, 1.0);
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+runWakeRuntimeApplyPulse(remainingPulses - 1, nextDelay);
 });
 }
 
@@ -813,7 +829,17 @@ return NO;
 // 这样即使插件出 bug 导致温度失控，硬件仍能获得保护
 static BOOL isTemperatureAboveSafetyCeiling(void) {
 if (!g_keepCPSMAlive) return NO;
-if (g_readingSafetyTemperature) return NO;
+
+// 缓存命中：直接返回缓存结果，避免 IOKit 递归调用
+CFAbsoluteTime now = CFAbsoluteTimeGetCurrent();
+if (g_cachedTemperatureTime > 0 && (now - g_cachedTemperatureTime) < kTempCacheDuration) {
+return g_cachedTemperature >= kSafetyTempThreshold;
+}
+
+// 重入保护：使用上次缓存值（如有），否则保守返回超温
+if (g_readingSafetyTemperature) {
+return g_cachedTemperatureTime > 0 ? (g_cachedTemperature >= kSafetyTempThreshold) : YES;
+}
 
 BOOL above = YES;
 g_readingSafetyTemperature = YES;
@@ -821,12 +847,14 @@ g_readingSafetyTemperature = YES;
 CFMutableDictionaryRef matching = IOServiceMatching("AppleARMPlatform");
 if (!matching) {
 g_readingSafetyTemperature = NO;
+g_cachedTemperatureTime = 0; // 读温失败，使缓存失效
 return above;
 }
 
 io_service_t service = IOServiceGetMatchingService(kIOMasterPortDefault, matching);
 if (!service) {
 g_readingSafetyTemperature = NO;
+g_cachedTemperatureTime = 0;
 return above;
 }
 
@@ -838,7 +866,11 @@ IOObjectRelease(service);
 if (temp && CFGetTypeID(temp) == CFNumberGetTypeID()) {
 int64_t tempVal = 0;
 if (CFNumberGetValue((CFNumberRef)temp, kCFNumberSInt64Type, &tempVal)) {
+g_cachedTemperature = tempVal;
+g_cachedTemperatureTime = now;
 above = tempVal >= kSafetyTempThreshold;
+} else {
+g_cachedTemperatureTime = 0; // 解析失败，使缓存失效
 }
 }
 if (temp) CFRelease(temp);

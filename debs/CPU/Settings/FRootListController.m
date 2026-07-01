@@ -6,6 +6,7 @@
 #import <notify.h>
 #import <dlfcn.h>
 #import <CPUthermalPaths.h>
+#import <crt_externs.h>
 
 // ============================================================
 // 注意: 禁止使用 @"" ObjC 字符串常量
@@ -229,7 +230,7 @@ pid_t pid = 0;
 NSString *toolPath = CPUthermalToolPath();
 if (toolPath.length > 0 && [[NSFileManager defaultManager] isExecutableFileAtPath:toolPath]) {
 char *args[] = {"CPUthermalTool", "userspace-reboot", NULL};
-if (posix_spawn(&pid, [toolPath fileSystemRepresentation], NULL, NULL, args, NULL) == 0) {
+if (posix_spawn(&pid, [toolPath fileSystemRepresentation], NULL, NULL, args, *_NSGetEnviron()) == 0) {
 waitpid(pid, NULL, 0);
 return;
 }
@@ -238,7 +239,7 @@ return;
 NSString *launchctlPath = CPUthermalLaunchctlPath();
 if (launchctlPath.length > 0) {
 char *args[] = {"launchctl", "reboot", "userspace", NULL};
-posix_spawn(&pid, [launchctlPath fileSystemRepresentation], NULL, NULL, args, NULL);
+posix_spawn(&pid, [launchctlPath fileSystemRepresentation], NULL, NULL, args, *_NSGetEnviron());
 waitpid(pid, NULL, 0);
 }
 }]];
@@ -320,7 +321,7 @@ group = [PSSpecifier emptyGroupSpecifier];
 // ===================== 第4组: 高级 =====================
 group = [PSSpecifier emptyGroupSpecifier];
 [group setProperty:S("高级") forKey:S("label")];
-[group setProperty:S("强烈建议开启：温度超过 65°C 或读温失败时放行系统温控，防止异常发热和自动黑屏。") forKey:S("footerText")];
+[group setProperty:S("强烈建议开启：温度超过 70°C 或读温失败时放行系统温控，防止异常发热和自动黑屏。") forKey:S("footerText")];
 [specs addObject:group];
 
 [specs addObject:[self switchSpecifier:S("保留 CPMS 紧急保护") key:S("keepCPMSAlive")]];
