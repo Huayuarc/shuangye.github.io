@@ -43,11 +43,6 @@
 - (void)setThermalState:(id)state;
 @end
 
-@interface HidSensors : NSObject
-+ (id)sharedInstance;
-- (void)handleTemperatureEvent:(int)arg1 service:(id)arg2;
-@end
-
 // ============================================================================
 // 新增: 1.dylib 分析发现的额外类声明
 // ============================================================================
@@ -58,11 +53,7 @@
 - (void)actionComponentControl;
 - (void)readReleaseRateForAllComponents;
 - (float)getReleaseRateForComponent:(id)component;
-- (int)getPotentialForcedThermalLevel:(id)component;
-- (int)getPotentialForcedThermalPressureLevel;
-- (void)updateThermalPressureLevelNotification:(id)notification shouldForceThermalPressure:(BOOL)force;
 - (void)updateThermalNotification:(id)notification;
-- (BOOL)shouldEnforceLightThermalPressure;
 - (void)setCPMSMitigationState:(int)state;
 @end
 
@@ -124,8 +115,6 @@
 static BOOL g_enabled               = YES; // 总开关（默认开启）
 static BOOL g_cpuProtection         = YES; // CPU 性能保护(降频/决策树/控制力度/配置表)
 static BOOL g_brightnessProtection  = YES; // 屏幕亮度保护(降亮度/背光配置)
-static BOOL g_thermalStateProtection= NO;  // 热状态封锁默认关闭，避免伪造温度导致误判
-static BOOL g_blockHidEvents        = NO;  // HID 温度事件默认放行，保留真实温度链路
 static BOOL g_keepCPSMAlive         = YES; // 保留 CPMS 紧急保护(安全阀) 默认开启
 static BOOL g_suppressThermalNotifications = NO;  // 默认不屏蔽高温通知
 
@@ -758,8 +747,6 @@ if (!d) return;
 g_enabled               = [d[S("enabled")] ?: [NSNumber numberWithBool:YES] boolValue];
 g_cpuProtection         = [d[S("cpuProtection")] ?: [NSNumber numberWithBool:YES] boolValue];
 g_brightnessProtection  = [d[S("brightnessProtection")] ?: [NSNumber numberWithBool:YES] boolValue];
-g_thermalStateProtection= [d[S("thermalStateProtection")] ?: [NSNumber numberWithBool:NO] boolValue];
-g_blockHidEvents        = [d[S("blockHidEvents")] ?: [NSNumber numberWithBool:NO] boolValue];
 g_keepCPSMAlive         = [d[S("keepCPMSAlive")] ?: [NSNumber numberWithBool:YES] boolValue];
 g_suppressThermalNotifications = [d[S("suppressThermalNotifications")] ?: [NSNumber numberWithBool:NO] boolValue];
 
@@ -893,14 +880,6 @@ if (isTemperatureAboveSafetyCeiling()) {
 return %orig;
 }
 
-if (g_thermalStateProtection && SELECTOR_IS_TEMP(selector)) {
-if (output && outputCnt && *outputCnt > 0) {
-for (uint32_t i = 0; i < MIN(*outputCnt, 4); i++) {
-output[i] = 36000;  // 36°C — 仅高级热状态封锁开启时使用
-}
-}
-return KERN_SUCCESS;
-}
 if (shouldApplyFullCPUProtection() && SELECTOR_IS_MITIGATION(selector)) {
 // 注意: 不拦截 0x60-0x6F 紧急保护
 return KERN_SUCCESS;
@@ -951,35 +930,6 @@ if (g_brightnessProtection && shouldBlockBrightnessProperty(ks, value)) {
 return KERN_SUCCESS;
 }
 return orig_IOServiceSetProperty(service, key, value);
-}
-
-// --- IORegistryEntryCreateCFProperty — 返回正常值 ---
-%hookf(CFTypeRef, IORegistryEntryCreateCFProperty, io_registry_entry_t entry, CFStringRef key, CFAllocatorRef allocator, IOOptionBits options) {
-if (g_readingSafetyTemperature) return %orig;
-if (!g_enabled || !g_thermalStateProtection) return %orig;
-
-// 安全阀
-if (isTemperatureAboveSafetyCeiling()) return %orig;
-
-NSString *ks = (__bridge NSString *)key;
-if ([ks localizedCaseInsensitiveContainsString:S("temperature")] ||
-[ks localizedCaseInsensitiveContainsString:S("thermal-level")] ||
-[ks localizedCaseInsensitiveContainsString:S("hot-level")] ||
-[ks localizedCaseInsensitiveContainsString:S("thermalstate")]) {
-int zero = 0;
-return CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &zero);
-}
-if ([ks localizedCaseInsensitiveContainsString:S("freq")] ||
-[ks localizedCaseInsensitiveContainsString:S("speed")]) {
-if (shouldApplyLowPowerLimit()) {
-BOOL isMinKey = [ks localizedCaseInsensitiveContainsString:S("min")];
-int64_t lowPowerValue = isMinKey ? kLowPowerMinFrequencyMHz : kLowPowerMaxFrequencyMHz;
-return CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &lowPowerValue);
-}
-int64_t max = CPUthermalNativeMaxPCoreFrequencyMHz();
-return CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &max);
-}
-return %orig;
 }
 
 // --- notify_post — 拦截高温广播 ---
@@ -1039,18 +989,6 @@ return;
 
 %end
 
-// --- HidSensors: HID 温度事件处理 ---
-%hook HidSensors
-
-- (void)handleTemperatureEvent:(int)arg1 service:(id)arg2 {
-if (g_enabled && g_blockHidEvents && !isTemperatureAboveSafetyCeiling()) {
-return;
-}
-%orig;
-}
-
-%end
-
 // ============================================================================
 // ObjC 类钩子（第2层: ThermalManager 决策层 — 新增自 1.dylib 分析）
 //
@@ -1077,20 +1015,6 @@ return;
 %orig;
 }
 
-// 热压力升级通知 — 阻止 thermalmonitord 升级热压力级别
-- (void)updateThermalPressureLevelNotification:(id)notification shouldForceThermalPressure:(BOOL)force {
-if (g_enabled && g_thermalStateProtection) {
-// 安全阀
-if (!isTemperatureAboveSafetyCeiling()) {
-NSLog(@"[CPUthermal] 阻止热压力升级: %@ force:%d", notification, force);
-// 仍然调用原方法但传 NO — 不强制
-%orig(notification, NO);
-return;
-}
-}
-%orig;
-}
-
 // 热通知 — 可选择性阻断
 - (void)updateThermalNotification:(id)notification {
 if (g_enabled && g_suppressThermalNotifications) {
@@ -1100,17 +1024,6 @@ return;
 }
 }
 %orig;
-}
-
-// 是否应执行轻度热压力 — 可阻止
-- (BOOL)shouldEnforceLightThermalPressure {
-if (g_enabled && g_thermalStateProtection) {
-if (!isTemperatureAboveSafetyCeiling()) {
-NSLog(@"[CPUthermal] 阻止 enforceLightThermalPressure");
-return NO;
-}
-}
-return %orig;
 }
 
 // 获取组件释放速率 — 可以降低不放 0
@@ -1127,28 +1040,6 @@ return rate;
 }
 }
 return %orig(component);
-}
-
-// 获取强制热级别 — 返回最低级
-- (int)getPotentialForcedThermalLevel:(id)component {
-if (g_enabled && g_thermalStateProtection) {
-if (!isTemperatureAboveSafetyCeiling()) {
-NSLog(@"[CPUthermal] 覆盖强制热级别: %@ -> 0 (nominal)", component);
-return 0; // kThermalLevelNominal
-}
-}
-return %orig(component);
-}
-
-// 获取强制热压力级别 — 返回最低
-- (int)getPotentialForcedThermalPressureLevel {
-if (g_enabled && g_thermalStateProtection) {
-if (!isTemperatureAboveSafetyCeiling()) {
-NSLog(@"[CPUthermal] 覆盖强制热压力级别 -> 0");
-return 0;
-}
-}
-return %orig;
 }
 
 // 散热/电池服务建议 — 关闭时返回 nil 屏蔽系统散热提示
@@ -1637,9 +1528,8 @@ loadPrefs();
 if (g_enabled) {
 applyPowerModeToRuntime(NO);
 }
-NSLog(@"[CPUthermal] 设置已重载 enabled:%d CPU:%d 亮度:%d 热状态:%d HID:%d 通知:%d",
-g_enabled, g_cpuProtection, g_brightnessProtection, g_thermalStateProtection,
-g_blockHidEvents, g_suppressThermalNotifications);
+NSLog(@"[CPUthermal] 设置已重载 enabled:%d CPU:%d 亮度:%d 通知:%d",
+g_enabled, g_cpuProtection, g_brightnessProtection, g_suppressThermalNotifications);
 }
 
 static void onWakeRuntimeEvent(CFNotificationCenterRef center, void *observer, CFNotificationName name, const void *object, CFDictionaryRef userInfo) {
@@ -1688,10 +1578,10 @@ NSLog(@"[CPUthermal] 未找到 _getConfigurationFor (非致命)");
 NSLog(@"[CPUthermal] 未找到 DeviceMonitor.framework (非致命)");
 }
 
-NSLog(@"[CPUthermal] 温控防护已激活 — 安全阀:%d°C CPU性能:%d 亮度:%d 热状态:%d HID:%d CPMS:%d",
+NSLog(@"[CPUthermal] 温控防护已激活 — 安全阀:%d°C CPU性能:%d 亮度:%d 通知:%d CPMS:%d",
 (int)(kSafetyTempThreshold / 1000),
-g_cpuProtection, g_brightnessProtection, g_thermalStateProtection,
-g_blockHidEvents, g_keepCPSMAlive);
+g_cpuProtection, g_brightnessProtection,
+g_suppressThermalNotifications, g_keepCPSMAlive);
 
 // 注意: 配置仅在进程启动时加载一次
 // 修改设置后需重启 thermalmonitord 才生效

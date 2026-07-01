@@ -93,7 +93,7 @@ if (val) return val;
 if ([key isEqualToString:S("keepCPMSAlive")]) {
 return [NSNumber numberWithBool:YES];
 }
-if ([key isEqualToString:S("thermalStateProtection")] || [key isEqualToString:S("blockHidEvents")] || [key isEqualToString:S("suppressThermalNotifications")]) {
+if ([key isEqualToString:S("suppressThermalNotifications")]) {
 return [NSNumber numberWithBool:NO];
 }
 return [NSNumber numberWithBool:YES];
@@ -310,14 +310,12 @@ group = [PSSpecifier emptyGroupSpecifier];
 // ===================== 第3组: 核心保护（整合） =====================
 group = [PSSpecifier emptyGroupSpecifier];
 [group setProperty:S("核心保护") forKey:S("label")];
-[group setProperty:S("建议保持默认：CPU/亮度保护开启，热状态封锁和 HID 拦截默认关闭，避免误判温度。") forKey:S("footerText")];
+[group setProperty:S("建议保持默认：CPU/亮度保护开启，避免误判温度。") forKey:S("footerText")];
 [specs addObject:group];
 
 [specs addObject:[self switchSpecifier:S("CPU 性能保护") key:S("cpuProtection")]];
 [specs addObject:[self switchSpecifier:S("屏幕亮度保护") key:S("brightnessProtection")]];
 [specs addObject:[self switchSpecifier:S("屏蔽高温通知") key:S("suppressThermalNotifications")]];
-[specs addObject:[self switchSpecifier:S("热状态封锁") key:S("thermalStateProtection")]];
-[specs addObject:[self switchSpecifier:S("阻止 HID 温度事件") key:S("blockHidEvents")]];
 
 // ===================== 第4组: 高级 =====================
 group = [PSSpecifier emptyGroupSpecifier];
