@@ -1,0 +1,535 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>items</key>
+	<array>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>General</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.huayuarc.xinji.heaven</string>
+			<key>key</key>
+			<string>enabled</string>
+			<key>label</key>
+			<string>Enable Heaven</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.xinji.heaven</string>
+			<key>key</key>
+			<string>spoofingEnabled</string>
+			<key>label</key>
+			<string>Enable Spoofing</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.huayuarc.xinji.heaven</string>
+			<key>key</key>
+			<string>enableAntiDebug</string>
+			<key>label</key>
+			<string>Anti-Debug</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Device Spoofing</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>defaults</key>
+			<string>com.huayuarc.xinji.heaven</string>
+			<key>key</key>
+			<string>spoofedDeviceName</string>
+			<key>label</key>
+			<string>Device Name</string>
+			<key>placeholder</key>
+			<string>Leave empty for default</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>defaults</key>
+			<string>com.huayuarc.xinji.heaven</string>
+			<key>key</key>
+			<string>spoofedModel</string>
+			<key>label</key>
+			<string>Model (e.g. iPhone15,4)</string>
+			<key>placeholder</key>
+			<string>e.g. iPhone16,1</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>defaults</key>
+			<string>com.huayuarc.xinji.heaven</string>
+			<key>key</key>
+			<string>spoofedSystemVersion</string>
+			<key>label</key>
+			<string>iOS Version</string>
+			<key>placeholder</key>
+			<string>e.g. 17.0</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>defaults</key>
+			<string>com.huayuarc.xinji.heaven</string>
+			<key>key</key>
+			<string>spoofedIDFA</string>
+			<key>label</key>
+			<string>IDFA</string>
+			<key>placeholder</key>
+			<string>XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>defaults</key>
+			<string>com.huayuarc.xinji.heaven</string>
+			<key>key</key>
+			<string>spoofedIDFV</string>
+			<key>label</key>
+			<string>IDFV</string>
+			<key>placeholder</key>
+			<string>XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>defaults</key>
+			<string>com.huayuarc.xinji.heaven</string>
+			<key>key</key>
+			<string>spoofedCarrier</string>
+			<key>label</key>
+			<string>Carrier Name</string>
+			<key>placeholder</key>
+			<string>e.g. China Mobile</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>defaults</key>
+			<string>com.huayuarc.xinji.heaven</string>
+			<key>key</key>
+			<string>spoofedBSSID</string>
+			<key>keyboardType</key>
+			<string>UIKeyboardTypeASCIICapable</string>
+			<key>label</key>
+			<string>Wi-Fi BSSID</string>
+			<key>placeholder</key>
+			<string>XX:XX:XX:XX:XX:XX</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>defaults</key>
+			<string>com.huayuarc.xinji.heaven</string>
+			<key>key</key>
+			<string>spoofedSSID</string>
+			<key>label</key>
+			<string>Wi-Fi SSID</string>
+			<key>placeholder</key>
+			<string>e.g. HomeWiFi</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>defaults</key>
+			<string>com.huayuarc.xinji.heaven</string>
+			<key>key</key>
+			<string>spoofedMAC</string>
+			<key>label</key>
+			<string>MAC Address</string>
+			<key>placeholder</key>
+			<string>XX:XX:XX:XX:XX:XX</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>defaults</key>
+			<string>com.huayuarc.xinji.heaven</string>
+			<key>key</key>
+			<string>spoofedInternalIP</string>
+			<key>label</key>
+			<string>Internal IP</string>
+			<key>placeholder</key>
+			<string>e.g. 192.168.1.100</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>defaults</key>
+			<string>com.huayuarc.xinji.heaven</string>
+			<key>key</key>
+			<string>spoofedUA</string>
+			<key>label</key>
+			<string>User-Agent</string>
+			<key>placeholder</key>
+			<string>Custom User-Agent string</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Location Spoofing</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>defaults</key>
+			<string>com.huayuarc.xinji.heaven</string>
+			<key>key</key>
+			<string>spoofedLatitude</string>
+			<key>keyboardType</key>
+			<string>UIKeyboardTypeDecimalPad</string>
+			<key>label</key>
+			<string>Latitude</string>
+			<key>placeholder</key>
+			<string>e.g. 39.9042</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>defaults</key>
+			<string>com.huayuarc.xinji.heaven</string>
+			<key>key</key>
+			<string>spoofedLongitude</string>
+			<key>keyboardType</key>
+			<string>UIKeyboardTypeDecimalPad</string>
+			<key>label</key>
+			<string>Longitude</string>
+			<key>placeholder</key>
+			<string>e.g. 116.4074</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Hardware Spoofing</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>defaults</key>
+			<string>com.huayuarc.xinji.heaven</string>
+			<key>key</key>
+			<string>spoofedSerial</string>
+			<key>label</key>
+			<string>Serial Number</string>
+			<key>placeholder</key>
+			<string>e.g. F2LFXXXXXX</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>defaults</key>
+			<string>com.huayuarc.xinji.heaven</string>
+			<key>key</key>
+			<string>spoofedIMEI</string>
+			<key>label</key>
+			<string>IMEI</string>
+			<key>placeholder</key>
+			<string>15-digit IMEI</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>defaults</key>
+			<string>com.huayuarc.xinji.heaven</string>
+			<key>key</key>
+			<string>spoofedMEID</string>
+			<key>label</key>
+			<string>MEID</string>
+			<key>placeholder</key>
+			<string>14-digit MEID</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>defaults</key>
+			<string>com.huayuarc.xinji.heaven</string>
+			<key>key</key>
+			<string>spoofedUDID</string>
+			<key>label</key>
+			<string>UDID</string>
+			<key>placeholder</key>
+			<string>40-character UDID</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>defaults</key>
+			<string>com.huayuarc.xinji.heaven</string>
+			<key>key</key>
+			<string>spoofedECID</string>
+			<key>label</key>
+			<string>ECID</string>
+			<key>placeholder</key>
+			<string>16-character hex ECID</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>defaults</key>
+			<string>com.huayuarc.xinji.heaven</string>
+			<key>key</key>
+			<string>spoofedBTAddress</string>
+			<key>label</key>
+			<string>Bluetooth Address</string>
+			<key>placeholder</key>
+			<string>XX:XX:XX:XX:XX:XX</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>defaults</key>
+			<string>com.huayuarc.xinji.heaven</string>
+			<key>key</key>
+			<string>spoofedBuild</string>
+			<key>label</key>
+			<string>Build Version</string>
+			<key>placeholder</key>
+			<string>e.g. 20A362</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>defaults</key>
+			<string>com.huayuarc.xinji.heaven</string>
+			<key>key</key>
+			<string>spoofedCPUArch</string>
+			<key>label</key>
+			<string>CPU Architecture</string>
+			<key>placeholder</key>
+			<string>arm64 / arm64e</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>defaults</key>
+			<string>com.huayuarc.xinji.heaven</string>
+			<key>key</key>
+			<string>spoofedCPUFreq</string>
+			<key>keyboardType</key>
+			<string>UIKeyboardTypeNumberPad</string>
+			<key>label</key>
+			<string>CPU Frequency (MHz)</string>
+			<key>placeholder</key>
+			<string>e.g. 3200</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>defaults</key>
+			<string>com.huayuarc.xinji.heaven</string>
+			<key>key</key>
+			<string>spoofedBatteryHealth</string>
+			<key>keyboardType</key>
+			<string>UIKeyboardTypeNumberPad</string>
+			<key>label</key>
+			<string>Battery Health (%)</string>
+			<key>placeholder</key>
+			<string>e.g. 85</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>defaults</key>
+			<string>com.huayuarc.xinji.heaven</string>
+			<key>key</key>
+			<string>spoofedBrightness</string>
+			<key>keyboardType</key>
+			<string>UIKeyboardTypeDecimalPad</string>
+			<key>label</key>
+			<string>Screen Brightness (0.0-1.0)</string>
+			<key>placeholder</key>
+			<string>e.g. 0.8</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>defaults</key>
+			<string>com.huayuarc.xinji.heaven</string>
+			<key>key</key>
+			<string>spoofedScreenWidth</string>
+			<key>keyboardType</key>
+			<string>UIKeyboardTypeNumberPad</string>
+			<key>label</key>
+			<string>Screen Width (px)</string>
+			<key>placeholder</key>
+			<string>e.g. 1170</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>defaults</key>
+			<string>com.huayuarc.xinji.heaven</string>
+			<key>key</key>
+			<string>spoofedScreenHeight</string>
+			<key>keyboardType</key>
+			<string>UIKeyboardTypeNumberPad</string>
+			<key>label</key>
+			<string>Screen Height (px)</string>
+			<key>placeholder</key>
+			<string>e.g. 2532</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Profiles</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>actionGenerateNewProfile</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Generate New Profile</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>actionViewCurrentProfile</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>View Current Profile</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>actionProfileManager</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Profile Manager</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>actionBackupManager</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Backup Manager</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>actionSnapshotManager</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Snapshot Manager</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Cleanup Tools</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>actionCleanAll</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Clean All Data</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>actionCleanAppleID</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Clear Apple ID Keychain</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>actionCleanAppStore</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Clear App Store Keychain</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>actionAdvancedCleanup</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Advanced Cleanup</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Information</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>actionShowDeviceInfo</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Show Real Device Info</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>actionSelectApp</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Select App</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>actionResetToDefault</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Reset to Default</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Support</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>actionOpenFeedback</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Send Feedback</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>actionRespring</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Respring</string>
+		</dict>
+	</array>
+	<key>title</key>
+	<string>Heaven</string>
+</dict>
+</plist>
