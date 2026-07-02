@@ -36,7 +36,7 @@ HeavenPrefs_CFLAGS = -fobjc-arc -I.
 HeavenPrefs_FRAMEWORKS = UIKit Foundation
 HeavenPrefs_PRIVATE_FRAMEWORKS = Preferences
 HeavenPrefs_INSTALL_PATH = /Library/PreferenceBundles
-HeavenPrefs_RESOURCE_FILES = Root.plist entry.plist icon.png icon@2x.png icon@3x.png HeavenLogo.png
+HeavenPrefs_RESOURCE_FILES = Root.plist entry.plist HeavenPrefs.plist icon.png icon@2x.png icon@3x.png HeavenLogo.png
 
 include $(THEOS_MAKE_PATH)/bundle.mk
 
