@@ -8,6 +8,7 @@
 #import <objc/runtime.h>
 #include <CPUthermalPaths.h>
 #import <IOKit/IOKitLib.h>
+#include <os/lock.h>
 
 // ============================================================================
 // CPUthermal — 温控插件（完全版）
@@ -145,7 +146,10 @@ static volatile BOOL g_deferredRuntimeApplyScheduled = NO;
 static volatile BOOL g_fullPowerRecoveryPulseScheduled = NO;
 static volatile BOOL g_lowPowerApplyPulseScheduled = NO;
 static volatile BOOL g_wakeRuntimeApplyScheduled = NO;
-static volatile BOOL g_readingSafetyTemperature = NO;
+
+// 温度缓存锁 — 保护 g_cachedTemperature / g_cachedTemperatureTime
+// 取代 fragile volatile BOOL g_readingSafetyTemperature
+static os_unfair_lock g_tempCacheLock = OS_UNFAIR_LOCK_INIT;
 
 // 温度缓存 — 避免在 IOKit hook 路径中反复调用 IOKit 导致递归
 static volatile int64_t g_cachedTemperature = 0;
@@ -822,61 +826,92 @@ return NO;
 }
 
 // ============================================================================
-// 温度安全阀检查
+// 温度安全阀检查（线程安全版）
 // ============================================================================
 // thermalmonitord 内部判定"高温"的阈值通常在 45°C-65°C 之间
 // 我们设置 65°C 作为硬性安全阀 — 超过此温度不拦截任何保护动作
 // 这样即使插件出 bug 导致温度失控，硬件仍能获得保护
+//
+// 线程安全设计:
+//   - os_unfair_lock 保护缓存读写
+//   - 读温出错时保守返回超温（放行系统保护）
+//   - 支持多组温度传感器 fallback
+// ============================================================================
+
+// 尝试从指定 IOKit 服务读取温度值。成功返回 YES 并设置 tempVal。
+// 线程安全：调用者需持 g_tempCacheLock
+static BOOL readTemperatureFromService(const char *serviceName, const char *propertyName, int64_t *tempVal) {
+if (!serviceName || !propertyName || !tempVal) return NO;
+CFMutableDictionaryRef matching = IOServiceMatching(serviceName);
+if (!matching) return NO;
+io_service_t service = IOServiceGetMatchingService(kIOMasterPortDefault, matching);
+if (!service) return NO;
+CFStringRef key = CFStringCreateWithCString(kCFAllocatorDefault, propertyName, kCFStringEncodingUTF8);
+CFTypeRef temp = key ? IORegistryEntryCreateCFProperty(service, key, kCFAllocatorDefault, 0) : NULL;
+if (key) CFRelease(key);
+IOObjectRelease(service);
+if (!temp) return NO;
+BOOL ok = NO;
+if (CFGetTypeID(temp) == CFNumberGetTypeID()) {
+int64_t val = 0;
+if (CFNumberGetValue((CFNumberRef)temp, kCFNumberSInt64Type, &val)) {
+*tempVal = val;
+ok = YES;
+}
+}
+CFRelease(temp);
+return ok;
+}
+
 static BOOL isTemperatureAboveSafetyCeiling(void) {
 if (!g_keepCPSMAlive) return NO;
 
-// 缓存命中：直接返回缓存结果，避免 IOKit 递归调用
 CFAbsoluteTime now = CFAbsoluteTimeGetCurrent();
+
+// 快速路径：缓存命中（无锁读，cache line 上的 volatile 保证可见性）
 if (g_cachedTemperatureTime > 0 && (now - g_cachedTemperatureTime) < kTempCacheDuration) {
 return g_cachedTemperature >= kSafetyTempThreshold;
 }
 
-// 重入保护：使用上次缓存值（如有），否则保守返回超温
-if (g_readingSafetyTemperature) {
-return g_cachedTemperatureTime > 0 ? (g_cachedTemperature >= kSafetyTempThreshold) : YES;
+// 加锁读温
+os_unfair_lock_lock(&g_tempCacheLock);
+
+// 二次检查（在等待锁期间，其他线程可能已更新缓存）
+if (g_cachedTemperatureTime > 0 && (now - g_cachedTemperatureTime) < kTempCacheDuration) {
+int64_t cached = g_cachedTemperature;
+os_unfair_lock_unlock(&g_tempCacheLock);
+return cached >= kSafetyTempThreshold;
 }
 
-BOOL above = YES;
-g_readingSafetyTemperature = YES;
-
-CFMutableDictionaryRef matching = IOServiceMatching("AppleARMPlatform");
-if (!matching) {
-g_readingSafetyTemperature = NO;
-g_cachedTemperatureTime = 0; // 读温失败，使缓存失效
-return above;
-}
-
-io_service_t service = IOServiceGetMatchingService(kIOMasterPortDefault, matching);
-if (!service) {
-g_readingSafetyTemperature = NO;
-g_cachedTemperatureTime = 0;
-return above;
-}
-
-CFStringRef tempKey = CFStringCreateWithCString(kCFAllocatorDefault, "temperature", kCFStringEncodingUTF8);
-CFTypeRef temp = tempKey ? IORegistryEntryCreateCFProperty(service, tempKey, kCFAllocatorDefault, 0) : NULL;
-if (tempKey) CFRelease(tempKey);
-IOObjectRelease(service);
-
-if (temp && CFGetTypeID(temp) == CFNumberGetTypeID()) {
+// 实际读温
 int64_t tempVal = 0;
-if (CFNumberGetValue((CFNumberRef)temp, kCFNumberSInt64Type, &tempVal)) {
+BOOL readOK = NO;
+
+// 主路径: AppleARMPlatform
+readOK = readTemperatureFromService("AppleARMPlatform", "temperature", &tempVal);
+
+// Fallback 1: AppleSPU
+if (!readOK) {
+readOK = readTemperatureFromService("AppleSPU", "temperature", &tempVal);
+}
+
+// Fallback 2: pmu
+if (!readOK) {
+readOK = readTemperatureFromService("pmu", "temperature", &tempVal);
+}
+
+if (readOK) {
 g_cachedTemperature = tempVal;
 g_cachedTemperatureTime = now;
-above = tempVal >= kSafetyTempThreshold;
 } else {
-g_cachedTemperatureTime = 0; // 解析失败，使缓存失效
+// 所有传感器读温都失败 — 使缓存失效，保守返回超温
+g_cachedTemperatureTime = 0;
 }
-}
-if (temp) CFRelease(temp);
 
-g_readingSafetyTemperature = NO;
-return above;
+os_unfair_lock_unlock(&g_tempCacheLock);
+
+if (!readOK) return YES;  // 读温失败 → 保守返回超温，放行系统保护
+return tempVal >= kSafetyTempThreshold;
 }
 
 // ============================================================================
@@ -885,15 +920,21 @@ return above;
 
 // --- IOServiceOpen — 追踪 thermal connection ---
 %hookf(kern_return_t, IOServiceOpen, io_service_t service, task_t task, uint32_t type, io_connect_t *connect) {
+@try {
 kern_return_t ret = %orig;
 if (ret == KERN_SUCCESS) {
 trackConnection(*connect, serviceIsThermal(service));
 }
 return ret;
+} @catch (NSException *e) {
+NSLog(@"[CPUthermal] IOServiceOpen 异常: %@", e);
+return %orig;
+}
 }
 
 // --- IOConnectCallMethod — 拦截温度读取 + 降频操作 ---
 %hookf(kern_return_t, IOConnectCallMethod, mach_port_t connection, uint32_t selector, const uint64_t *input, uint32_t inputCnt, const void *inputStruct, size_t inputStructCnt, uint64_t *output, uint32_t *outputCnt, void *outputStruct, size_t *outputStructCnt) {
+@try {
 if (!g_enabled || !isThermalConnection(connection)) {
 return %orig;
 }
@@ -917,12 +958,17 @@ if (shouldApplyFullCPUProtection() && SELECTOR_IS_MITIGATION(selector)) {
 return KERN_SUCCESS;
 }
 return %orig;
+} @catch (NSException *e) {
+NSLog(@"[CPUthermal] IOConnectCallMethod 异常: %@", e);
+return %orig;
+}
 }
 
 // --- IOServiceSetProperty — 阻止写降频/降亮度属性 ---
 static kern_return_t (*orig_IOServiceSetProperty)(io_service_t, CFStringRef, CFTypeRef) = NULL;
 
 static kern_return_t hooked_IOServiceSetProperty(io_service_t service, CFStringRef key, CFTypeRef value) {
+@try {
 if (!g_enabled) {
 return orig_IOServiceSetProperty(service, key, value);
 }
@@ -962,10 +1008,15 @@ if (g_brightnessProtection && shouldBlockBrightnessProperty(ks, value)) {
 return KERN_SUCCESS;
 }
 return orig_IOServiceSetProperty(service, key, value);
+} @catch (NSException *e) {
+NSLog(@"[CPUthermal] IOServiceSetProperty 异常: %@", e);
+return orig_IOServiceSetProperty(service, key, value);
+}
 }
 
 // --- notify_post — 拦截高温广播 ---
 %hookf(uint32_t, notify_post, const char *name) {
+@try {
 if (g_enabled && g_suppressThermalNotifications && name) {
 // 安全阀: 只有在温度正常时才拦截
 if (!isTemperatureAboveSafetyCeiling()) {
@@ -977,6 +1028,10 @@ return NOTIFY_STATUS_OK;
 }
 }
 return %orig;
+} @catch (NSException *e) {
+NSLog(@"[CPUthermal] notify_post 异常: %@", e);
+return %orig;
+}
 }
 
 // ============================================================================
@@ -1537,6 +1592,7 @@ return;
 static NSDictionary* (*orig_getConfigurationFor)(NSString *key) = NULL;
 
 static NSDictionary* new_getConfigurationFor(NSString *key) {
+@try {
 NSDictionary *config = orig_getConfigurationFor(key);
 if (!g_enabled || !g_cpuProtection || !config) return config;
 
@@ -1601,6 +1657,10 @@ modified[tk] = newDict;
 
 NSLog(@"[CPUthermal] 已修改热配置表: %@", key);
 return [modified copy];
+}
+} @catch (NSException *e) {
+NSLog(@"[CPUthermal] _getConfigurationFor 异常: %@", e);
+return orig_getConfigurationFor(key);
 }
 }
 

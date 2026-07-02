@@ -8,20 +8,6 @@ case "$1" in
         # 配置完成（安装或升级），杀死 thermalmonitord
         # launchd 会自动重启，加载新的 tweak
         killall -q thermalmonitord 2>/dev/null || true
-
-        # 等待最多 3 秒确认进程已重启
-        for i in 1 2 3; do
-            if pgrep -q thermalmonitord 2>/dev/null; then
-                logger -p notice -t CPUthermal "thermalmonitord 已重启 (pid $(pgrep thermalmonitord))"
-                break
-            fi
-            sleep 1
-        done
-
-        # 3 秒后仍未检测到进程：记录警告但不阻止安装完成
-        if ! pgrep -q thermalmonitord 2>/dev/null; then
-            logger -p warn -t CPUthermal "thermalmonitord 未能自动重启，请手动 killall thermalmonitord 或重启设备"
-        fi
         ;;
     abort-upgrade|abort-remove|abort-deconfigure)
         # 这些阶段不做任何操作
