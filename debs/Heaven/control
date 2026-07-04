@@ -1,0 +1,13 @@
+Package: com.abc3.vip.heaven
+Version: 1.0.1
+Priority: optional
+Section: Tweaks
+Maintainer: 倔强的石头 <478066693@qq.com>
+Depends: mobilesubstrate (>= 0.9.5000), preferenceloader, firmware (>= 14.0)
+Architecture: iphoneos-arm
+Installed-Size: 528
+Name: Heaven
+Description: Heaven[新机测试]
+Author: 倔强的石头 <478066693@qq.com>
+Sponsor: 倔强的石头 <478066693@qq.com>
+Icon: file:///Applications/Cydia.app/Sections/System.png

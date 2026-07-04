@@ -81,31 +81,71 @@ for f in *.deb; do
     [ -f "$f" ] && DEB_FILES+=("$f")
 done
 
-HAS_THEOS=${#THEOS_PROJECTS[@]}
-HAS_DEB=${#DEB_FILES[@]}
-
 echo ""
-if [ "$HAS_THEOS" -gt 0 ]; then
-    echo "  发现 $HAS_THEOS 个 Theos 项目:"
+if [ "${#THEOS_PROJECTS[@]}" -gt 0 ]; then
+    echo "  发现 ${#THEOS_PROJECTS[@]} 个 Theos 项目:"
     for p in "${THEOS_PROJECTS[@]}"; do
         name=$(grep "^TWEAK_NAME" "$DEBS_DIR/$p/Makefile" | head -1 | awk '{print $3}')
         ver=$(grep "^Version:" "$DEBS_DIR/$p/control" 2>/dev/null | awk '{print $2}')
         echo "    📦 $p (${name:-?} v${ver:-?})"
     done
 fi
-if [ "$HAS_DEB" -gt 0 ]; then
-    echo "  发现 $HAS_DEB 个 .deb 文件:"
+if [ "${#DEB_FILES[@]}" -gt 0 ]; then
+    echo "  发现 ${#DEB_FILES[@]} 个 .deb 文件:"
     for f in "${DEB_FILES[@]}"; do
         echo "    📄 $f ($(du -h "$f" | cut -f1))"
     done
 fi
 
-if [ "$HAS_THEOS" -eq 0 ] && [ "$HAS_DEB" -eq 0 ]; then
+if [ "${#THEOS_PROJECTS[@]}" -eq 0 ] && [ "${#DEB_FILES[@]}" -eq 0 ]; then
     echo "[错误] debs/ 为空或结构异常"
     echo "  请放入:"
     echo "    • Theos 项目子目录: debs/YourTweak/Makefile"
     echo "    • .deb 文件: debs/your-tweak.deb"
     exit 1
+fi
+
+cd "$SCRIPT_DIR"
+
+step "检查 git 仓库"
+if [ ! -d ".git" ]; then
+    echo "[错误] 不是 Git 仓库，请先 git init"
+    exit 1
+fi
+echo "  Git 仓库正常"
+
+step "检测有变更的项目"
+# 逐个检查每个项目是否有未提交变更
+CHANGED_PROJECTS=()
+for p in "${THEOS_PROJECTS[@]}"; do
+    PDIR="debs/$p"
+    if ! git diff --quiet "$PDIR" 2>/dev/null || \
+       ! git diff --cached --quiet "$PDIR" 2>/dev/null || \
+       [ -n "$(git ls-files --others --exclude-standard "$PDIR")" ]; then
+        CHANGED_PROJECTS+=("$p")
+    fi
+done
+THEOS_PROJECTS=("${CHANGED_PROJECTS[@]}")
+HAS_THEOS=${#THEOS_PROJECTS[@]}
+HAS_DEB=${#DEB_FILES[@]}
+
+if [ "$HAS_THEOS" -eq 0 ] && [ "$HAS_DEB" -eq 0 ]; then
+    echo "  [提示] 没有项目有变更，无需推送"
+    exit 0
+fi
+
+echo ""
+if [ "$HAS_THEOS" -gt 0 ]; then
+    echo "  有变更的 Theos 项目:"
+    for p in "${THEOS_PROJECTS[@]}"; do
+        echo "    📦 $p"
+    done
+fi
+if [ "$HAS_DEB" -gt 0 ]; then
+    echo "  待推送的 .deb 文件:"
+    for f in "${DEB_FILES[@]}"; do
+        echo "    📄 $f"
+    done
 fi
 
 step "版本信息"
@@ -145,22 +185,6 @@ done
 [ "$CLEAN_COUNT" -eq 0 ] && echo "  无缓存需要清理"
 echo ""
 
-cd "$SCRIPT_DIR"
-
-step "检查 git 仓库"
-if [ ! -d ".git" ]; then
-    echo "[错误] 不是 Git 仓库，请先 git init"
-    exit 1
-fi
-echo "  Git 仓库正常"
-
-step "检查是否有变更"
-if git diff --quiet && git diff --cached --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]; then
-    echo "[提示] 没有新的变更需要提交"
-    exit 0
-fi
-echo "  检测到有未提交的变更"
-
 step "提交变更"
 COMMIT_MSG=""
 if [ "$HAS_THEOS" -gt 0 ] && [ "$HAS_DEB" -eq 0 ]; then
@@ -192,7 +216,15 @@ fi
 
 echo "  提交信息: $COMMIT_MSG"
 echo "  执行 git add..."
-git add -A
+# 只添加有变更的项目目录，不 git add -A
+for p in "${THEOS_PROJECTS[@]}"; do
+    git add "debs/$p"
+    echo "    ✓ added debs/$p"
+done
+for f in "${DEB_FILES[@]}"; do
+    git add "debs/$f"
+    echo "    ✓ added debs/$f"
+done
 echo "  执行 git commit..."
 if git commit -m "$COMMIT_MSG"; then
     echo "  提交成功"

@@ -1,0 +1,84 @@
+Incident Identifier: C52DAAAE-6236-4B5C-8AEC-333AD8DC7547
+CrashReporter Key:   ae032756ab3a809186c73d3202cf9035219e9e14
+Hardware Model:      iPhone14,2
+Process:             logd [45080]
+Path:                /usr/libexec/logd
+Identifier:          logd
+Version:             ???
+Code Type:           ARM-64 (Native)
+Role:                Unspecified
+Parent Process:      launchd [1]
+Coalition:           com.apple.logd [3562]
+
+Date/Time:           2026-07-02 18:21:18.5970 +0800
+Launch Time:         2026-07-02 06:11:38.6945 +0800
+OS Version:          iPhone OS 16.1.2 (20B110)
+Release Type:        User
+Baseband Version:    2.12.02
+Report Version:      104
+
+Exception Type:  EXC_BAD_ACCESS (SIGSEGV)
+Exception Subtype: KERN_INVALID_ADDRESS at 0x0000000000000028
+Exception Codes: 0x0000000000000001, 0x0000000000000028
+VM Region Info: 0x28 is not in any region.  Bytes before following region: 68719476696
+      REGION TYPE                 START - END      [ VSIZE] PRT/MAX SHRMOD  REGION DETAIL
+      UNUSED SPACE AT START
+--->  
+      commpage (reserved)     1000000000-7000000000 [384.0G] ---/--- SM=NUL  ...(unallocated)
+Termination Reason: SIGNAL 11 Segmentation fault: 11
+Terminating Process: exc handler [45080]
+
+Triggered by Thread:  1
+
+Thread 0:
+0   libsystem_kernel.dylib        	       0x1f889da58 __sigsuspend_nocancel + 8
+1   libdispatch.dylib             	       0x1c3281774 _dispatch_sigsuspend + 48
+2   libdispatch.dylib             	       0x1c3281744 _dispatch_sig_thread + 60
+
+Thread 1 name:   Dispatch queue: cache_delete.listener.com.apple.logd.cachedelete
+Thread 1 Crashed:
+0   logd                          	       0x100f81914 0x100f60000 + 137492
+1   logd                          	       0x100f81878 0x100f60000 + 137336
+2   logd                          	       0x100f81878 0x100f60000 + 137336
+3   logd                          	       0x100f81d44 0x100f60000 + 138564
+4   logd                          	       0x100f776f0 0x100f60000 + 95984
+5   CacheDelete                   	       0x1d84c13d4 __62-[CacheDeleteServiceListener servicePeriodic:info:replyBlock:]_block_invoke + 108
+6   libdispatch.dylib             	       0x1c327d114 _dispatch_block_async_invoke2 + 148
+7   libdispatch.dylib             	       0x1c326dfdc _dispatch_client_callout + 20
+8   libdispatch.dylib             	       0x1c3275694 _dispatch_lane_serial_drain + 672
+9   libdispatch.dylib             	       0x1c3276214 _dispatch_lane_invoke + 436
+10  libdispatch.dylib             	       0x1c3280e10 _dispatch_workloop_worker_thread + 652
+11  libsystem_pthread.dylib       	       0x208cf7df8 _pthread_wqthread + 288
+12  libsystem_pthread.dylib       	       0x208cf7b98 start_wqthread + 8
+
+Thread 2:
+0   libsystem_pthread.dylib       	       0x208cf7b90 start_wqthread + 0
+
+Thread 3:
+0   libsystem_pthread.dylib       	       0x208cf7b90 start_wqthread + 0
+
+Thread 4:
+0   libsystem_pthread.dylib       	       0x208cf7b90 start_wqthread + 0
+
+
+Thread 1 crashed with ARM Thread State (64-bit):
+    x0: 0x0000000000000000   x1: 0x0000000000000003   x2: 0x00000005e8b363c0   x3: 0x0000000000000001
+    x4: 0x0000000042320155   x5: 0x00000005e8b36390   x6: 0x0000000000000004   x7: 0xffffffff01375400
+    x8: 0x0000000000000000   x9: 0x0000000000044133  x10: 0x0000000042320155  x11: 0x0000000042220155
+   x12: 0x0000000042220155  x13: 0x0000000042320155  x14: 0x00000000ffffffff  x15: 0x0000000042200155
+   x16: 0x0000000000000323  x17: 0x0000000042200155  x18: 0x0000000000000000  x19: 0x0000000000000000
+   x20: 0x18be71d8d576abf0  x21: 0x00000005e8b32100  x22: 0x18be23444427abf0  x23: 0x00000005e894d2a0
+   x24: 0x0000000000000000  x25: 0x000000016efb2250  x26: 0x0000000000000134  x27: 0x0000000000000000
+   x28: 0x0000000100f8e000   fp: 0x000000016efb20a0   lr: 0x22081c0100f81878
+    sp: 0x000000016efb2090   pc: 0x0000000100f81914 cpsr: 0x60001000
+   far: 0x0000000000000028  esr: 0x92000006 (Data Abort) byte read Translation fault
+
+Binary Images:
+       0x1f8895000 -        0x1f88cbffb libsystem_kernel.dylib arm64e  <ff27fc8f90ba3332ab7ac5bc2d9ca7b1> /usr/lib/system/libsystem_kernel.dylib
+       0x1c326a000 -        0x1c32b0fff libdispatch.dylib arm64e  <fea36690a0003c55b7009120b05aa69b> /usr/lib/system/libdispatch.dylib
+       0x100f60000 -        0x100f87fff logd arm64e  <1c8f73c55f3d35f8a76fef49a32c9fb2> /usr/libexec/logd
+       0x1d8494000 -        0x1d84d8fff CacheDelete arm64e  <8e02357088693fd28e31beb0d82cef0a> /System/Library/PrivateFrameworks/CacheDelete.framework/CacheDelete
+       0x208cf7000 -        0x208d02fff libsystem_pthread.dylib arm64e  <1aa3a4b6f9e730568c8b4e4dd81312a4> /usr/lib/system/libsystem_pthread.dylib
+               0x0 - 0xffffffffffffffff ??? unknown-arch  <00000000000000000000000000000000> ???
+
+EOF
