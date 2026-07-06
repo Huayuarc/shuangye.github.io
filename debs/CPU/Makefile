@@ -12,12 +12,15 @@ export ARCHS = arm64 arm64e
 # make SCHEME=roothide        → 构建 roothide
 # THEOS_PACKAGE_SCHEME=roothide make  → 构建 roothide (CI 环境变量方式)
 # make build-all              → 同时构建 rootless + roothide
+#
+# 注意: roothide 分支的 Theos 在 common.mk 中会将 THEOS_PACKAGE_SCHEME
+# 修改为 roothide 默认值，所以必须在 include 之后重新检查 SCHEME 变量
 
 ifeq ($(SCHEME),roothide)
 export THEOS_PACKAGE_SCHEME := roothide
-else ifeq ($(THEOS_PACKAGE_SCHEME),)
-# 未通过 SCHEME 或环境变量指定时，默认 rootless
-export THEOS_PACKAGE_SCHEME := rootless
+else
+# 未通过 SCHEME=roothide 明确指定时，统一为 rootless
+override export THEOS_PACKAGE_SCHEME := rootless
 endif
 
 COMMON_SWIFT_FILES = Shared/CPUthermalShared.swift
