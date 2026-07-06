@@ -1,6 +1,4 @@
 import Foundation
-import IOKit
-import ObjectiveC
 
 // ============================================================================
 // CPUthermal — 温控插件（完全版 Swift 移植）
@@ -12,21 +10,6 @@ import ObjectiveC
 // 安全阀: 超过 65°C 或读温失败时放行所有系统保护
 // ============================================================================
 
-// MARK: - IOKit 类型别名
-
-private typealias io_name_t = (CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar,
-                                CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar,
-                                CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar,
-                                CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar,
-                                CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar,
-                                CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar,
-                                CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar,
-                                CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar,
-                                CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar,
-                                CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar,
-                                CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar,
-                                CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar,
-                                CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar)
 private let KERN_SUCCESS: kern_return_t = 0
 private let NOTIFY_STATUS_OK: UInt32 = 0
 private let RTLD_DEFAULT = UnsafeMutableRawPointer(bitPattern: -2)
@@ -94,28 +77,10 @@ private func isThermalConnection(_ conn: io_connect_t) -> Bool {
 }
 
 private func serviceIsThermal(_ service: io_service_t) -> Bool {
-    var name = io_name_t(0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                         0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                         0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                         0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                         0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                         0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                         0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                         0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                         0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                         0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                         0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                         0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                         0, 0, 0, 0, 0, 0, 0, 0)
-    let _ = withUnsafeMutablePointer(to: &name) { ptr in
-        ptr.withMemoryRebound(to: CChar.self, capacity: 128) { buf in
-            IORegistryEntryGetName(service, buf)
-        }
-    }
+    var nameBuffer = [CChar](repeating: 0, count: 128)
+    guard IORegistryEntryGetName(service, &nameBuffer) == KERN_SUCCESS else { return false }
+    let nameStr = String(cString: nameBuffer)
     let hotServices: [String] = ["AppleSPU", "AppleSPU.original", "AppleARMPlatform", "pmu", "ApplePMGR"]
-    let nameStr = withUnsafePointer(to: &name) { ptr in
-        ptr.withMemoryRebound(to: CChar.self, capacity: 128) { String(cString: $0) }
-    }
     return hotServices.contains(nameStr)
 }
 
@@ -258,8 +223,8 @@ private func fullPowerZoneTargetForController(_ controller: AnyObject) -> Int {
 // MARK: - 温度安全阀检查
 
 private func readTemperatureFromService(_ serviceName: UnsafePointer<CChar>, _ propertyName: UnsafePointer<CChar>) -> Int64? {
-    guard let matching = IOServiceMatching(serviceName) else { return nil }
-    let service = IOServiceGetMatchingService(kIOMasterPortDefault, matching)
+    guard let matching = IOServiceNameMatching(serviceName) else { return nil }
+    let service = IOServiceGetMatchingService(kIOMasterPortDefault, matching.takeRetainedValue())
     guard service != 0 else { return nil }
     defer { IOObjectRelease(service) }
     guard let key = CFStringCreateWithCString(kCFAllocatorDefault, propertyName, kCFStringEncodingUTF8) else { return nil }
@@ -452,17 +417,10 @@ private func applyLowPowerLimitToController(_ controller: AnyObject) {
     }
     let setMaxPowerSel = NSSelectorFromString("setMaxCPUPowerTarget:useLegacyPath:setProperty:")
     if controller.responds(to: setMaxPowerSel) {
-        let target = lowPowerTargetValue()
-        let legacy: ObjCBool = false
-        let prop = setMaxCPUPowerPropertyArgument(controller)
-        // 使用 objc_msgSend 直接调用
-        let objc_msgSend_stret = unsafeBitCast(
-            CFArrayCreate,
-            to: (@convention(c) (AnyObject, Selector, Int, Bool, UnsafeMutableRawPointer) -> Void).self
-        )
-        // 简化: 通过 perform 或 ObjC 桥接
-        _ = controller.perform(NSSelectorFromString("setMaxCPUPowerTarget:useLegacyPath:setProperty:"),
-                               with: target, with: legacy, with: prop)
+        typealias SetMaxPowerFunc = @convention(c) (AnyObject, Selector, Int, Bool, UnsafeMutableRawPointer) -> Void
+        let imp = class_getMethodImplementation(type(of: controller) as! AnyClass, setMaxPowerSel)
+        let f = unsafeBitCast(imp, to: SetMaxPowerFunc.self)
+        f(controller, setMaxPowerSel, lowPowerTargetValue(), false, setMaxCPUPowerPropertyArgument(controller))
     }
 
     NSLog("CPUthermal 已主动下发低功耗 CPU 限制: \(kLowPowerMinFrequencyMHz)-\(kLowPowerMaxFrequencyMHz)MHz controller:\(controller)")
@@ -1401,25 +1359,25 @@ private let _initialize: Void = {
     let c = CFNotificationCenterGetDarwinNotifyCenter()
     if let center = c {
         CFNotificationCenterAddObserver(center, nil, onPuppetEvent,
-            "com.huayuarc.CPUthermal.puppet" as CFString, nil,
+            CFStringCreateWithCString(kCFAllocatorDefault, "com.huayuarc.CPUthermal.puppet", kCFStringEncodingUTF8), nil,
             .deliverImmediately)
         CFNotificationCenterAddObserver(center, nil, onSettingsChanged,
-            "com.huayuarc.CPUthermal/settingsChanged" as CFString, nil,
+            CFStringCreateWithCString(kCFAllocatorDefault, "com.huayuarc.CPUthermal/settingsChanged", kCFStringEncodingUTF8), nil,
             .deliverImmediately)
         CFNotificationCenterAddObserver(center, nil, onPowerModeChanged,
-            "com.huayuarc.CPUthermal/powerModeChanged" as CFString, nil,
+            CFStringCreateWithCString(kCFAllocatorDefault, "com.huayuarc.CPUthermal/powerModeChanged", kCFStringEncodingUTF8), nil,
             .deliverImmediately)
         CFNotificationCenterAddObserver(center, nil, onWakeRuntime,
-            "com.apple.springboard.hasFinishedUnblankingScreen" as CFString, nil,
+            CFStringCreateWithCString(kCFAllocatorDefault, "com.apple.springboard.hasFinishedUnblankingScreen", kCFStringEncodingUTF8), nil,
             .deliverImmediately)
         CFNotificationCenterAddObserver(center, nil, onWakeRuntime,
-            "com.apple.springboard.lockstate" as CFString, nil,
+            CFStringCreateWithCString(kCFAllocatorDefault, "com.apple.springboard.lockstate", kCFStringEncodingUTF8), nil,
             .deliverImmediately)
         CFNotificationCenterAddObserver(center, nil, onWakeRuntime,
-            "com.apple.iokit.hid.displayStatus" as CFString, nil,
+            CFStringCreateWithCString(kCFAllocatorDefault, "com.apple.iokit.hid.displayStatus", kCFStringEncodingUTF8), nil,
             .deliverImmediately)
         CFNotificationCenterAddObserver(center, nil, onWakeRuntime,
-            "com.apple.system.awake" as CFString, nil,
+            CFStringCreateWithCString(kCFAllocatorDefault, "com.apple.system.awake", kCFStringEncodingUTF8), nil,
             .deliverImmediately)
     }
 

@@ -81,7 +81,7 @@ private let _initialize: Void = {
     CFNotificationCenterAddObserver(
         CFNotificationCenterGetLocalCenter(),
         nil, onBundleDidLoad,
-        "NSBundleDidLoadNotification" as CFString, nil,
+        CFStringCreateWithCString(kCFAllocatorDefault, "NSBundleDidLoadNotification", kCFStringEncodingUTF8), nil,
         .deliverImmediately
     )
 
@@ -89,7 +89,7 @@ private let _initialize: Void = {
     CFNotificationCenterAddObserver(
         CFNotificationCenterGetDarwinNotifyCenter(),
         nil, onSettingsChanged,
-        "com.huayuarc.CPUthermal/settingsChanged" as CFString, nil,
+        CFStringCreateWithCString(kCFAllocatorDefault, "com.huayuarc.CPUthermal/settingsChanged", kCFStringEncodingUTF8), nil,
         .deliverImmediately
     )
 
