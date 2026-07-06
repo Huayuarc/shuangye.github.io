@@ -1,0 +1,1 @@
+#import "../Shared/CPUthermalSwiftBridge.h"

@@ -1,7 +1,7 @@
 export THEOS ?= /var/mobile/theos
 export PATH := $(THEOS)/bin:$(PATH)
 export TARGET = iphone:clang:16.5:15.0
-THEOS_PACKAGE_SCHEME = rootless
+export THEOS_PACKAGE_SCHEME ?= rootless
 include $(THEOS)/makefiles/common.mk
 INSTALL_TARGET_PROCESSES = thermalmonitord
 # 注意: postinst 也在 configure 阶段 killall thermalmonitord。
@@ -19,6 +19,9 @@ else ifeq ($(THEOS_PACKAGE_SCHEME),)
 # 未通过 SCHEME 或环境变量指定时，默认 rootless
 export THEOS_PACKAGE_SCHEME := rootless
 endif
+
+COMMON_SWIFT_FILES = Shared/CPUthermalShared.swift
+COMMON_BRIDGE_FILES = Shared/CPUthermalSwiftBridge.m
 
 TWEAK_NAME = CPUthermal CPUthermalPrefHook
 
@@ -41,8 +44,9 @@ include $(THEOS_MAKE_PATH)/tweak.mk
 
 BUNDLE_NAME = CPUthermalSettings CPUthermalCC CPUthermalFreqCC
 
-# PreferenceBundle: 设置面板
-CPUthermalSettings_FILES = Settings/FRootListController.m
+# PreferenceBundle: 设置面板 (Swift)
+CPUthermalSettings_FILES = Settings/FRootListController.swift $(COMMON_SWIFT_FILES) $(COMMON_BRIDGE_FILES)
+CPUthermalSettings_SWIFT_BRIDGING_HEADER = Settings/CPUthermalSettings-Bridging-Header.h
 CPUthermalSettings_INSTALL_PATH = /Library/PreferenceBundles
 CPUthermalSettings_CFLAGS = -fobjc-arc -Iinclude
 CPUthermalSettings_CODESIGN_FLAGS = -SSettings/Settings.entitlements
@@ -52,9 +56,10 @@ ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
 CPUthermalSettings_LDFLAGS += -lroothide
 endif
 
-# ControlCenter Bundle: 控制中心模块
-CPUthermalCC_FILES = CCModule/CPUthermalCCModule.m CCModule/CPUthermalCCModuleViewController.m
-CPUthermalCC_CFLAGS = -fobjc-arc -Iinclude
+# ControlCenter Bundle: 控制中心模块 (Swift)
+CPUthermalCC_FILES = CCModule/CPUthermalCCModule.swift CCModule/CPUthermalCCModuleViewController.swift $(COMMON_SWIFT_FILES) $(COMMON_BRIDGE_FILES)
+CPUthermalCC_SWIFT_BRIDGING_HEADER = CCModule/CPUthermalCC-Bridging-Header.h
+CPUthermalCC_CFLAGS = -fobjc-arc -Iinclude -ICCModule
 CPUthermalCC_FRAMEWORKS = Foundation UIKit ControlCenterUIKit
 CPUthermalCC_PRIVATE_FRAMEWORKS = ControlCenterUIKit
 CPUthermalCC_INSTALL_PATH = /Library/ControlCenter/Bundles/
@@ -62,9 +67,10 @@ ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
 CPUthermalCC_LDFLAGS += -lroothide
 endif
 
-# ControlCenter Bundle: CPU 真实频率显示模块
-CPUthermalFreqCC_FILES = CCModule/CPUthermalFreqCCModule.m CCModule/CPUthermalFreqCCModuleViewController.m
-CPUthermalFreqCC_CFLAGS = -fobjc-arc -Iinclude
+# ControlCenter Bundle: CPU 真实频率显示模块 (Swift)
+CPUthermalFreqCC_FILES = CCModule/CPUthermalFreqCCModule.swift CCModule/CPUthermalFreqCCModuleViewController.swift $(COMMON_SWIFT_FILES) $(COMMON_BRIDGE_FILES)
+CPUthermalFreqCC_SWIFT_BRIDGING_HEADER = CCModule/CPUthermalFreqCC-Bridging-Header.h
+CPUthermalFreqCC_CFLAGS = -fobjc-arc -Iinclude -ICCModule
 CPUthermalFreqCC_CODESIGN_FLAGS = -SCCModule/CPUthermalFreq.entitlements
 CPUthermalFreqCC_FRAMEWORKS = Foundation UIKit CoreFoundation IOKit QuartzCore ControlCenterUIKit
 CPUthermalFreqCC_PRIVATE_FRAMEWORKS = ControlCenterUIKit
@@ -75,9 +81,10 @@ endif
 
 include $(THEOS_MAKE_PATH)/bundle.mk
 
-# 用户空间重启工具
+# 用户空间重启工具 (Swift)
 TOOL_NAME = CPUthermalTool
-CPUthermalTool_FILES = Tools/CPUthermalTool.m
+CPUthermalTool_FILES = Tools/main.swift $(COMMON_SWIFT_FILES) $(COMMON_BRIDGE_FILES)
+CPUthermalTool_SWIFT_BRIDGING_HEADER = Tools/CPUthermalTool-Bridging-Header.h
 CPUthermalTool_CFLAGS = -fobjc-arc -Iinclude
 CPUthermalTool_CODESIGN_FLAGS = -STools/CPUthermalTool.entitlements
 CPUthermalTool_INSTALL_PATH = /usr/local/bin
@@ -94,4 +101,3 @@ after-stage::
 	$(ECHO_NOTHING)cp CCModule/CPUthermalFreqInfo.plist "$(THEOS_STAGING_DIR)/Library/ControlCenter/Bundles/CPUthermalFreqCC.bundle/Info.plist"$(ECHO_END)
 	$(ECHO_NOTHING)cp CCModule/SettingsIcon.png "$(THEOS_STAGING_DIR)/Library/ControlCenter/Bundles/CPUthermalFreqCC.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp postinst "$(THEOS_STAGING_DIR)/DEBIAN/" && chmod 0755 "$(THEOS_STAGING_DIR)/DEBIAN/postinst"$(ECHO_END)
-

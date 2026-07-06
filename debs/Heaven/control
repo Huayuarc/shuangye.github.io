@@ -5,7 +5,6 @@ Section: Tweaks
 Maintainer: 倔强的石头 <478066693@qq.com>
 Depends: mobilesubstrate (>= 0.9.5000), preferenceloader, firmware (>= 14.0)
 Architecture: iphoneos-arm
-Installed-Size: 528
 Name: Heaven
 Description: Heaven[新机测试]
 Author: 倔强的石头 <478066693@qq.com>
