@@ -51,6 +51,7 @@ jobs:
           set -x
           export ARCHS="arm64 arm64e"
           mkdir -p "${{ github.workspace }}/debs-rootless"
+          LOGFILE="${{ github.workspace }}/build-rootless.log"
 
           shopt -s nullglob
           for proj in */; do
@@ -63,7 +64,13 @@ jobs:
             echo "=== 编译 [$proj] rootless (arm64) ==="
             pushd "$proj" >/dev/null
             make clean 2>/dev/null || true
-            make FINALPACKAGE=1 2>&1
+            set +e
+            make FINALPACKAGE=1 > "$LOGFILE" 2>&1
+            RC=$?
+            echo "make exit code: $RC"
+            tail -200 "$LOGFILE"
+            [ "$RC" -eq 0 ] || exit "$RC"
+            set -e
             make package FINALPACKAGE=1 2>&1
             mkdir -p "${{ github.workspace }}/debs-rootless/$proj"
             cp packages/*.deb "${{ github.workspace }}/debs-rootless/$proj/" 2>/dev/null || true
@@ -72,6 +79,13 @@ jobs:
 
           rootless_count=$(ls "${{ github.workspace }}/debs-rootless/"*/ 2>/dev/null | wc -l)
           echo "rootless 项目数: $rootless_count"
+
+      - name: Upload build logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: build-*.log
 
       - name: Build roothide (arm64e)
         continue-on-error: true
