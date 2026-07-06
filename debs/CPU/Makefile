@@ -25,15 +25,18 @@ COMMON_BRIDGE_FILES = Shared/CPUthermalSwiftBridge.m
 
 TWEAK_NAME = CPUthermal CPUthermalPrefHook
 
-CPUthermal_FILES = Tweak.xm
+CPUthermal_FILES = Tweak.swift
+CPUthermal_SWIFT_BRIDGING_HEADER = Tweak-Bridging-Header.h
 CPUthermal_CFLAGS = -fobjc-arc -Iinclude -Wno-deprecated-declarations -DTHEOS_INSIDE
-CPUthermal_FRAMEWORKS = Foundation UIKit CoreFoundation IOKit
+CPUthermal_FRAMEWORKS = Foundation CoreFoundation IOKit
+CPUthermal_LDFLAGS = -lsubstrate
 ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
 CPUthermal_LDFLAGS += -lroothide
 endif
 
 # ThermalManager hook (Preferences 中的散热建议拦截)
-CPUthermalPrefHook_FILES = Tweak_PrefHook.xm
+CPUthermalPrefHook_FILES = TweakPrefHook.swift
+CPUthermalPrefHook_SWIFT_BRIDGING_HEADER = TweakPrefHook-Bridging-Header.h
 CPUthermalPrefHook_CFLAGS = -fobjc-arc -Iinclude -Wno-deprecated-declarations
 CPUthermalPrefHook_FRAMEWORKS = Foundation CoreFoundation
 CPUthermalPrefHook_LDFLAGS = -lsubstrate -lc++
@@ -101,3 +104,12 @@ after-stage::
 	$(ECHO_NOTHING)cp CCModule/CPUthermalFreqInfo.plist "$(THEOS_STAGING_DIR)/Library/ControlCenter/Bundles/CPUthermalFreqCC.bundle/Info.plist"$(ECHO_END)
 	$(ECHO_NOTHING)cp CCModule/SettingsIcon.png "$(THEOS_STAGING_DIR)/Library/ControlCenter/Bundles/CPUthermalFreqCC.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp postinst "$(THEOS_STAGING_DIR)/DEBIAN/" && chmod 0755 "$(THEOS_STAGING_DIR)/DEBIAN/postinst"$(ECHO_END)
+
+# ========== 构建辅助 ==========
+# 一键构建 rootless + roothide 两种方案
+# 用法: make build-all
+build-all:
+	$(MAKE) SCHEME=rootless package
+	$(MAKE) SCHEME=roothide package
+
+.PHONY: build-all

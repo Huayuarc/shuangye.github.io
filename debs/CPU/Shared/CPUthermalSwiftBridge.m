@@ -12,3 +12,7 @@ NSString *CPUthermalSwiftJBRootPathForRootFSPath(NSString *path) {
 NSInteger CPUthermalSwiftNativeMaxPCoreFrequencyMHz(void) {
     return CPUthermalNativeMaxPCoreFrequencyMHz();
 }
+
+NSDictionary *CPUthermalSwiftReadPrefs(void) {
+    return CPUthermalReadPrefs();
+}

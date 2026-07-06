@@ -10,5 +10,6 @@ NS_ASSUME_NONNULL_BEGIN
 
 NSString *CPUthermalSwiftJBRootPathForRootFSPath(NSString *path);
 NSInteger CPUthermalSwiftNativeMaxPCoreFrequencyMHz(void);
+NSDictionary *CPUthermalSwiftReadPrefs(void);
 
 NS_ASSUME_NONNULL_END
