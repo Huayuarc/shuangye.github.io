@@ -22,6 +22,10 @@ jobs:
       - name: Setup Theos (roothide fork)
         run: |
           set -x
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+          swift --version
+          command -v swift-build || xcrun --find swift-build
           rm -rf "$HOME/theos"
           git clone --recursive --branch master https://github.com/roothide/theos.git "$HOME/theos"
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
@@ -33,7 +37,7 @@ jobs:
           ls -la vendor/lib/libroothide.tbd
           echo "=== vendor 验证完毕 ==="
           cd "$OLDPWD"
-          brew install ldid 2>/dev/null || true
+          brew install ldid dpkg 2>/dev/null || true
           mkdir -p "$HOME/theos/sdks"
           curl -fsSL -o /tmp/sdk.tar.xz \
             "https://github.com/theos/sdks/releases/download/master-146e41f/iPhoneOS16.5.sdk.tar.xz"
