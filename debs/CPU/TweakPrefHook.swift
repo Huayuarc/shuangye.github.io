@@ -16,7 +16,7 @@ private var gEnabled = false
 // MARK: - 偏好设置读取
 
 private func loadPrefs() {
-    guard let d = CPUthermalSwiftReadPrefs() else { gEnabled = false; return }
+    guard let d = CPUthermalSwiftReadPrefs() as NSDictionary? else { gEnabled = false; return }
     let enabled = (d["enabled"] as? NSNumber)?.boolValue ?? true
     let suppress = (d["suppressThermalNotifications"] as? NSNumber)?.boolValue ?? false
     gEnabled = enabled && suppress
@@ -26,14 +26,14 @@ private func loadPrefs() {
 
 private var origGetBatteryServiceSuggestionIMP: IMP?
 
-private let newGetBatteryServiceSuggestionBlock: @convention(block) (AnyObject, AnyObject?) -> AnyObject? = { self, suggestion in
+private let newGetBatteryServiceSuggestionBlock: @convention(block) (AnyObject, AnyObject?) -> AnyObject? = { blockSelf, suggestion in
     if gEnabled {
         NSLog("[CPUthermalPrefHook] block ThermalManager suggestion")
         return nil
     }
     guard let orig = origGetBatteryServiceSuggestionIMP else { return nil }
     typealias OrigFunc = @convention(c) (AnyObject, Selector, AnyObject?) -> AnyObject?
-    return unsafeBitCast(orig, to: OrigFunc.self)(self, NSSelectorFromString("getBatteryServiceSuggestion:"), suggestion)
+    return unsafeBitCast(orig, to: OrigFunc.self)(blockSelf, NSSelectorFromString("getBatteryServiceSuggestion:"), suggestion)
 }
 
 // MARK: - 安装 Hook
@@ -66,7 +66,8 @@ private let onSettingsChanged: CFNotificationCallback = { _, _, _, _, _ in
 }
 
 private let onBundleDidLoad: CFNotificationCallback = { _, _, name, object, _ in
-    guard let bundle = object as? Bundle else { return }
+    guard let ptr = object else { return }
+    let bundle = Unmanaged<AnyObject>.fromOpaque(ptr).takeUnretainedValue() as! Bundle
     if bundle.bundleIdentifier == "com.apple.Preferences" {
         hookThermalManager()
     }
@@ -81,7 +82,7 @@ private let _initialize: Void = {
     CFNotificationCenterAddObserver(
         CFNotificationCenterGetLocalCenter(),
         nil, onBundleDidLoad,
-        CFStringCreateWithCString(kCFAllocatorDefault, "NSBundleDidLoadNotification", kCFStringEncodingUTF8), nil,
+        CFStringCreateWithCString(kCFAllocatorDefault, "NSBundleDidLoadNotification", CFStringBuiltInEncodings.UTF8.rawValue), nil,
         .deliverImmediately
     )
 
@@ -89,7 +90,7 @@ private let _initialize: Void = {
     CFNotificationCenterAddObserver(
         CFNotificationCenterGetDarwinNotifyCenter(),
         nil, onSettingsChanged,
-        CFStringCreateWithCString(kCFAllocatorDefault, "com.huayuarc.CPUthermal/settingsChanged", kCFStringEncodingUTF8), nil,
+        CFStringCreateWithCString(kCFAllocatorDefault, "com.huayuarc.CPUthermal/settingsChanged", CFStringBuiltInEncodings.UTF8.rawValue), nil,
         .deliverImmediately
     )
 
