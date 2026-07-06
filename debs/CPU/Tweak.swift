@@ -15,6 +15,10 @@ private let NOTIFY_STATUS_OK: UInt32 = 0
 private let RTLD_DEFAULT = UnsafeMutableRawPointer(bitPattern: -2)
 private let RTLD_NOW = Int32(2)
 
+// thermalmonitord 是守护进程，可能没有主 runloop
+// 使用专用串行队列替代 DispatchQueue.main
+private let g_tweakQueue = DispatchQueue(label: "com.huayuarc.cputhermal.tweak", qos: .default)
+
 // MARK: - 配置与全局状态
 
 private var g_enabled: Bool = true
@@ -679,7 +683,7 @@ private var g_hooksInstalled = false
 private func scheduleDeferredRuntimeApply(_ delay: Double) {
     guard !g_deferredRuntimeApplyScheduled else { return }
     g_deferredRuntimeApplyScheduled = true
-    DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+    g_tweakQueue.asyncAfter(deadline: .now() + delay) {
         g_deferredRuntimeApplyScheduled = false
         applyCurrentPowerModeToRuntime()
     }
@@ -688,7 +692,7 @@ private func scheduleDeferredRuntimeApply(_ delay: Double) {
 private func scheduleLowPowerApplyPulse() {
     guard !g_lowPowerApplyPulseScheduled, g_enabled, g_cpuProtection, isLowPowerMode else { return }
     g_lowPowerApplyPulseScheduled = true
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+    g_tweakQueue.asyncAfter(deadline: .now() + 0.05) {
         runLowPowerApplyPulse(remaining: 8, delay: 0.1)
     }
 }
@@ -704,7 +708,7 @@ private func runLowPowerApplyPulse(remaining: Int, delay: Double) {
         return
     }
     let nextDelay = min(delay * 1.5, 1.0)
-    DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+    g_tweakQueue.asyncAfter(deadline: .now() + delay) {
         runLowPowerApplyPulse(remaining: remaining - 1, delay: nextDelay)
     }
 }
@@ -712,7 +716,7 @@ private func runLowPowerApplyPulse(remaining: Int, delay: Double) {
 private func scheduleFullPowerRecoveryPulse() {
     guard !g_fullPowerRecoveryPulseScheduled, g_enabled, g_cpuProtection, isFullPowerMode else { return }
     g_fullPowerRecoveryPulseScheduled = true
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+    g_tweakQueue.asyncAfter(deadline: .now() + 0.15) {
         runFullPowerRecoveryPulse(remaining: 4, delay: 0.15)
     }
 }
@@ -728,7 +732,7 @@ private func runFullPowerRecoveryPulse(remaining: Int, delay: Double) {
         return
     }
     let nextDelay = min(delay * 1.5, 1.0)
-    DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+    g_tweakQueue.asyncAfter(deadline: .now() + delay) {
         runFullPowerRecoveryPulse(remaining: remaining - 1, delay: nextDelay)
     }
 }
@@ -736,7 +740,7 @@ private func runFullPowerRecoveryPulse(remaining: Int, delay: Double) {
 private func scheduleWakeRuntimeApply() {
     guard !g_wakeRuntimeApplyScheduled, g_enabled, g_cpuProtection else { return }
     g_wakeRuntimeApplyScheduled = true
-    DispatchQueue.main.async {
+    g_tweakQueue.async {
         runWakeRuntimeApplyPulse(remaining: 8, delay: 0.3)
     }
 }
@@ -753,7 +757,7 @@ private func runWakeRuntimeApplyPulse(remaining: Int, delay: Double) {
         return
     }
     let nextDelay = min(delay * 1.4, 1.0)
-    DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+    g_tweakQueue.asyncAfter(deadline: .now() + delay) {
         runWakeRuntimeApplyPulse(remaining: remaining - 1, delay: nextDelay)
     }
 }
@@ -796,13 +800,29 @@ private let onWakeRuntime: CFNotificationCallback = { _, _, _, _, _ in
 
 // MARK: - ObjC Hook 实现 (MSHookMessageEx)
 
-private let thermalManagerClass: AnyClass = objc_getClass("ThermalManager") as! AnyClass
-private let commonProductClass: AnyClass = objc_getClass("CommonProduct") as! AnyClass
-private let thermalControlClass: AnyClass = objc_getClass("ThermalControl") as! AnyClass
-private let ApplePPMCPUClass: AnyClass = objc_getClass("ApplePPMCPU") as! AnyClass
-private let mitigationControllerClass: AnyClass = objc_getClass("MitigationController") as! AnyClass
+private var thermalManagerClass: AnyClass?
+private var commonProductClass: AnyClass?
+private var thermalControlClass: AnyClass?
+private var ApplePPMCPUClass: AnyClass?
+private var mitigationControllerClass: AnyClass?
 
 private func installObjCHooks() {
+    // 延迟查找类引用：thermalmonitord 启动时类尚未加载
+    thermalManagerClass = objc_getClass("ThermalManager") as? AnyClass
+    commonProductClass = objc_getClass("CommonProduct") as? AnyClass
+    thermalControlClass = objc_getClass("ThermalControl") as? AnyClass
+    ApplePPMCPUClass = objc_getClass("ApplePPMCPU") as? AnyClass
+    mitigationControllerClass = objc_getClass("MitigationController") as? AnyClass
+
+    guard thermalManagerClass != nil,
+          commonProductClass != nil,
+          thermalControlClass != nil,
+          ApplePPMCPUClass != nil,
+          mitigationControllerClass != nil else {
+        NSLog("CPUthermal 警告: 未找到热管理类，跳过 ObjC 钩子安装")
+        return
+    }
+
     installInitProductHook()
     installTryTakeActionHook()
     installSimulateLightThermalPressureHook()
@@ -816,7 +836,7 @@ private func installObjCHooks() {
 // MARK: CommonProduct Hooks
 private func installInitProductHook() {
     let sel = NSSelectorFromString("initProduct:")
-    let cls: AnyClass = commonProductClass
+    let cls: AnyClass = commonProductClass!
     let method = class_getInstanceMethod(cls, sel)!
     let origIMP = method_getImplementation(method)
     let block: @convention(block) (AnyObject, AnyObject?) -> AnyObject? = { blockSelf, arg1 in
@@ -836,71 +856,75 @@ private func installInitProductHook() {
 
 private func installTryTakeActionHook() {
     let sel = NSSelectorFromString("tryTakeAction")
-    let method = class_getInstanceMethod(commonProductClass, sel)!
+    let cls: AnyClass = commonProductClass!
+    let method = class_getInstanceMethod(cls, sel)!
     let origIMP = method_getImplementation(method)
     let block: @convention(block) (AnyObject) -> Void = { blockSelf in
         if shouldApplyFullCPUProtection(), !isTemperatureAboveSafetyCeiling() { return }
         typealias OrigFunc = @convention(c) (AnyObject, Selector) -> Void
         unsafeBitCast(origIMP, to: OrigFunc.self)(blockSelf, sel)
     }
-    MSHookMessageEx(commonProductClass, sel, imp_implementationWithBlock(unsafeBitCast(block, to: AnyObject.self)), nil)
+    MSHookMessageEx(cls, sel, imp_implementationWithBlock(unsafeBitCast(block, to: AnyObject.self)), nil)
 }
 
 private func installSimulateLightThermalPressureHook() {
     let sel = NSSelectorFromString("simulateLightThermalPressure")
-    let method = class_getInstanceMethod(commonProductClass, sel)!
+    let cls: AnyClass = commonProductClass!
+    let method = class_getInstanceMethod(cls, sel)!
     let origIMP = method_getImplementation(method)
     let block: @convention(block) (AnyObject) -> Void = { blockSelf in
         if shouldApplyFullCPUProtection(), !isTemperatureAboveSafetyCeiling() { return }
         typealias OrigFunc = @convention(c) (AnyObject, Selector) -> Void
         unsafeBitCast(origIMP, to: OrigFunc.self)(blockSelf, sel)
     }
-    MSHookMessageEx(commonProductClass, sel, imp_implementationWithBlock(unsafeBitCast(block, to: AnyObject.self)), nil)
+    MSHookMessageEx(cls, sel, imp_implementationWithBlock(unsafeBitCast(block, to: AnyObject.self)), nil)
 }
 
 private func installUpdatePowerzoneTelemetryHook() {
     let sel = NSSelectorFromString("updatePowerzoneTelemetry")
-    let method = class_getInstanceMethod(commonProductClass, sel)!
+    let cls: AnyClass = commonProductClass!
+    let method = class_getInstanceMethod(cls, sel)!
     let origIMP = method_getImplementation(method)
     let block: @convention(block) (AnyObject) -> Void = { blockSelf in
         if shouldApplyFullCPUProtection(), !isTemperatureAboveSafetyCeiling() { return }
         typealias OrigFunc = @convention(c) (AnyObject, Selector) -> Void
         unsafeBitCast(origIMP, to: OrigFunc.self)(blockSelf, sel)
     }
-    MSHookMessageEx(commonProductClass, sel, imp_implementationWithBlock(unsafeBitCast(block, to: AnyObject.self)), nil)
+    MSHookMessageEx(cls, sel, imp_implementationWithBlock(unsafeBitCast(block, to: AnyObject.self)), nil)
 }
 
 // MARK: ThermalManager Hooks
 private func installThermalManagerHooks() {
+    let cls = thermalManagerClass!
     // evaluateDecisionTree
-    installHook(cls: thermalManagerClass, sel: NSSelectorFromString("evaluateDecisionTree")) { blockSelf in
+    installHook(cls: cls, sel: NSSelectorFromString("evaluateDecisionTree")) { blockSelf in
         if shouldApplyFullCPUProtection(), !isTemperatureAboveSafetyCeiling() {
             NSLog("CPUthermal 阻止决策树评估 (evaluateDecisionTree)")
             return
         }
-        callOrigVoid(cls: thermalManagerClass, sel: NSSelectorFromString("evaluateDecisionTree"), self: blockSelf)
+        callOrigVoid(cls: cls, sel: NSSelectorFromString("evaluateDecisionTree"), self: blockSelf)
     }
     // updateThermalNotification:
-    installHookWithArg(cls: thermalManagerClass, sel: NSSelectorFromString("updateThermalNotification:")) { blockSelf, arg in
+    installHookWithArg(cls: cls, sel: NSSelectorFromString("updateThermalNotification:")) { blockSelf, arg in
         if g_enabled, g_suppressThermalNotifications, !isTemperatureAboveSafetyCeiling() {
             NSLog("CPUthermal 阻止热通知: \(String(describing: arg))")
             return
         }
-        callOrigVoidWithArg(cls: thermalManagerClass, sel: NSSelectorFromString("updateThermalNotification:"), self: blockSelf, arg: arg)
+        callOrigVoidWithArg(cls: cls, sel: NSSelectorFromString("updateThermalNotification:"), self: blockSelf, arg: arg)
     }
     // getReleaseRateForComponent:
-    installHookWithArgReturn(cls: thermalManagerClass, sel: NSSelectorFromString("getReleaseRateForComponent:")) { blockSelf, arg in
+    installHookWithArgReturn(cls: cls, sel: NSSelectorFromString("getReleaseRateForComponent:")) { blockSelf, arg in
         if shouldApplyFullCPUProtection(), !isTemperatureAboveSafetyCeiling() {
-            let rate = callOrigFloatWithArg(cls: thermalManagerClass, sel: NSSelectorFromString("getReleaseRateForComponent:"), self: blockSelf, arg: arg)
+            let rate = callOrigFloatWithArg(cls: cls, sel: NSSelectorFromString("getReleaseRateForComponent:"), self: blockSelf, arg: arg)
             let newRate = rate > 0.5 ? rate * 0.5 : rate
             NSLog("CPUthermal 软化释放速率: \(String(describing: arg)) -> \(newRate)")
             return newRate
         }
-        return callOrigFloatWithArg(cls: thermalManagerClass, sel: NSSelectorFromString("getReleaseRateForComponent:"), self: blockSelf, arg: arg)
+        return callOrigFloatWithArg(cls: cls, sel: NSSelectorFromString("getReleaseRateForComponent:"), self: blockSelf, arg: arg)
     }
     // getBatteryServiceSuggestion:
-    installHookWithArgReturnId(cls: thermalManagerClass, sel: NSSelectorFromString("getBatteryServiceSuggestion:")) { blockSelf, arg in
-        let result = callOrigIdWithArg(cls: thermalManagerClass, sel: NSSelectorFromString("getBatteryServiceSuggestion:"), self: blockSelf, arg: arg)
+    installHookWithArgReturnId(cls: cls, sel: NSSelectorFromString("getBatteryServiceSuggestion:")) { blockSelf, arg in
+        let result = callOrigIdWithArg(cls: cls, sel: NSSelectorFromString("getBatteryServiceSuggestion:"), self: blockSelf, arg: arg)
         if g_enabled, g_suppressThermalNotifications, !isTemperatureAboveSafetyCeiling() {
             NSLog("CPUthermal 拦截 ThermalManager 散热建议")
             return nil
@@ -911,9 +935,10 @@ private func installThermalManagerHooks() {
 
 // MARK: ThermalControl Hooks
 private func installThermalControlHooks() {
+    let cls = thermalControlClass!
     // initForFastLoop:noDisplay:powerSaveParams:powerZoneParams:
     let sel = NSSelectorFromString("initForFastLoop:noDisplay:powerSaveParams:powerZoneParams:")
-    let method = class_getInstanceMethod(thermalControlClass, sel)!
+    let method = class_getInstanceMethod(cls, sel)!
     let origIMP = method_getImplementation(method)
     let block: @convention(block) (AnyObject, Bool, Bool, AnyObject?, AnyObject?) -> AnyObject? = { blockSelf, fast, noDisplay, saveParams, zoneParams in
         typealias OrigFunc = @convention(c) (AnyObject, Selector, Bool, Bool, AnyObject?, AnyObject?) -> AnyObject?
@@ -924,11 +949,11 @@ private func installThermalControlHooks() {
         }
         return result
     }
-    MSHookMessageEx(thermalControlClass, sel, imp_implementationWithBlock(unsafeBitCast(block, to: AnyObject.self)), nil)
+    MSHookMessageEx(cls, sel, imp_implementationWithBlock(unsafeBitCast(block, to: AnyObject.self)), nil)
 
     // initWithParams:
     let sel2 = NSSelectorFromString("initWithParams:")
-    let method2 = class_getInstanceMethod(thermalControlClass, sel2)!
+    let method2 = class_getInstanceMethod(cls, sel2)!
     let origIMP2 = method_getImplementation(method2)
     let block2: @convention(block) (AnyObject, AnyObject?) -> AnyObject? = { blockSelf, params in
         typealias OrigFunc = @convention(c) (AnyObject, Selector, AnyObject?) -> AnyObject?
@@ -939,32 +964,33 @@ private func installThermalControlHooks() {
         }
         return result
     }
-    MSHookMessageEx(thermalControlClass, sel2, imp_implementationWithBlock(unsafeBitCast(block2, to: AnyObject.self)), nil)
+    MSHookMessageEx(cls, sel2, imp_implementationWithBlock(unsafeBitCast(block2, to: AnyObject.self)), nil)
 
     // powerSaveActive
-    installPowerSaveActiveHook(cls: thermalControlClass)
+    installPowerSaveActiveHook(cls: cls)
 
     // setPowerSaveActive:
-    installSetPowerSaveActiveHook(cls: thermalControlClass)
+    installSetPowerSaveActiveHook(cls: cls)
 
     // setPowerSaveToken:
-    installSetPowerSaveTokenHook(cls: thermalControlClass)
+    installSetPowerSaveTokenHook(cls: cls)
 
     // calculateControlEffort:trigger:
-    installCalculateControlEffortHook(cls: thermalControlClass)
+    installCalculateControlEffortHook(cls: cls)
 
     // actionComponentControl
-    installActionComponentControlHook(cls: thermalControlClass)
+    installActionComponentControlHook(cls: cls)
 
     // readReleaseRateForAllComponents
-    installReadReleaseRateForAllComponentsHook(cls: thermalControlClass)
+    installReadReleaseRateForAllComponentsHook(cls: cls)
 }
 
 // MARK: ApplePPMCPU Hooks
 private func installApplePPMCPUHooks() {
+    let cls = ApplePPMCPUClass!
     // setCPULevel:
     let sel = NSSelectorFromString("setCPULevel:")
-    let method = class_getInstanceMethod(ApplePPMCPUClass, sel)!
+    let method = class_getInstanceMethod(cls, sel)!
     let origIMP = method_getImplementation(method)
     let block: @convention(block) (AnyObject, Int) -> Void = { blockSelf, level in
         typealias OrigFunc = @convention(c) (AnyObject, Selector, Int) -> Void
@@ -983,11 +1009,11 @@ private func installApplePPMCPUHooks() {
         }
         unsafeBitCast(origIMP, to: OrigFunc.self)(blockSelf, sel, level)
     }
-    MSHookMessageEx(ApplePPMCPUClass, sel, imp_implementationWithBlock(unsafeBitCast(block, to: AnyObject.self)), nil)
+    MSHookMessageEx(cls, sel, imp_implementationWithBlock(unsafeBitCast(block, to: AnyObject.self)), nil)
 
     // updateCPU
     let sel2 = NSSelectorFromString("updateCPU")
-    let method2 = class_getInstanceMethod(ApplePPMCPUClass, sel2)!
+    let method2 = class_getInstanceMethod(cls, sel2)!
     let origIMP2 = method_getImplementation(method2)
     let block2: @convention(block) (AnyObject) -> Void = { blockSelf in
         if g_restoringFullPower {
@@ -999,14 +1025,15 @@ private func installApplePPMCPUHooks() {
         typealias OrigFunc = @convention(c) (AnyObject, Selector) -> Void
         unsafeBitCast(origIMP2, to: OrigFunc.self)(blockSelf, sel2)
     }
-    MSHookMessageEx(ApplePPMCPUClass, sel2, imp_implementationWithBlock(unsafeBitCast(block2, to: AnyObject.self)), nil)
+    MSHookMessageEx(cls, sel2, imp_implementationWithBlock(unsafeBitCast(block2, to: AnyObject.self)), nil)
 }
 
 // MARK: MitigationController Hooks
 private func installMitigationControllerHooks() {
+    let cls = mitigationControllerClass!
     // initForFastLoop:noDisplay:powerSaveParams:powerZoneParams:
     let sel = NSSelectorFromString("initForFastLoop:noDisplay:powerSaveParams:powerZoneParams:")
-    let method = class_getInstanceMethod(mitigationControllerClass, sel)!
+    let method = class_getInstanceMethod(cls, sel)!
     let origIMP = method_getImplementation(method)
     let block: @convention(block) (AnyObject, Bool, Bool, AnyObject?, AnyObject?) -> AnyObject? = { blockSelf, fast, noDisplay, saveParams, zoneParams in
         typealias OrigFunc = @convention(c) (AnyObject, Selector, Bool, Bool, AnyObject?, AnyObject?) -> AnyObject?
@@ -1017,26 +1044,26 @@ private func installMitigationControllerHooks() {
         }
         return result
     }
-    MSHookMessageEx(mitigationControllerClass, sel, imp_implementationWithBlock(unsafeBitCast(block, to: AnyObject.self)), nil)
+    MSHookMessageEx(cls, sel, imp_implementationWithBlock(unsafeBitCast(block, to: AnyObject.self)), nil)
 
     // powerSaveActive / setPowerSaveActive: / setPowerSaveToken:
-    installPowerSaveActiveHook(cls: mitigationControllerClass)
-    installSetPowerSaveActiveHook(cls: mitigationControllerClass)
-    installSetPowerSaveTokenHook(cls: mitigationControllerClass)
+    installPowerSaveActiveHook(cls: cls)
+    installSetPowerSaveActiveHook(cls: cls)
+    installSetPowerSaveTokenHook(cls: cls)
 
     // updateCPU
-    installVoidUpdateHook(cls: mitigationControllerClass, sel: NSSelectorFromString("updateCPU"))
+    installVoidUpdateHook(cls: cls, sel: NSSelectorFromString("updateCPU"))
     // updateGPU
-    installVoidUpdateHook(cls: mitigationControllerClass, sel: NSSelectorFromString("updateGPU"))
+    installVoidUpdateHook(cls: cls, sel: NSSelectorFromString("updateGPU"))
     // updatePackage
-    installVoidUpdateHook(cls: mitigationControllerClass, sel: NSSelectorFromString("updatePackage"))
+    installVoidUpdateHook(cls: cls, sel: NSSelectorFromString("updatePackage"))
 
     // setCPULowPowerTarget:
     installSetCPULowPowerTargetHook()
 
     // setPackageLowPowerTarget
     let sel6 = NSSelectorFromString("setPackageLowPowerTarget")
-    let method6 = class_getInstanceMethod(mitigationControllerClass, sel6)!
+    let method6 = class_getInstanceMethod(cls, sel6)!
     let origIMP6 = method_getImplementation(method6)
     let block6: @convention(block) (AnyObject) -> Void = { blockSelf in
         typealias OrigFunc = @convention(c) (AnyObject, Selector) -> Void
@@ -1047,7 +1074,7 @@ private func installMitigationControllerHooks() {
         if shouldApplyFullCPUProtection(), !isTemperatureAboveSafetyCeiling() { return }
         unsafeBitCast(origIMP6, to: OrigFunc.self)(blockSelf, sel6)
     }
-    MSHookMessageEx(mitigationControllerClass, sel6, imp_implementationWithBlock(unsafeBitCast(block6, to: AnyObject.self)), nil)
+    MSHookMessageEx(cls, sel6, imp_implementationWithBlock(unsafeBitCast(block6, to: AnyObject.self)), nil)
 
     // setMaxCPUPowerTarget:useLegacyPath:setProperty:
     installSetMaxCPUPowerTargetHook()
@@ -1238,8 +1265,9 @@ private func installVoidUpdateHook(cls: AnyClass, sel: Selector) {
 // MARK: - MitigationController 专用钩子
 
 private func installSetCPULowPowerTargetHook() {
+    let cls = mitigationControllerClass!
     let sel = NSSelectorFromString("setCPULowPowerTarget:")
-    let method = class_getInstanceMethod(mitigationControllerClass, sel)!
+    let method = class_getInstanceMethod(cls, sel)!
     let origIMP = method_getImplementation(method)
     let block: @convention(block) (AnyObject, Int) -> Void = { blockSelf, target in
         typealias OrigFunc = @convention(c) (AnyObject, Selector, Int) -> Void
@@ -1248,12 +1276,13 @@ private func installSetCPULowPowerTargetHook() {
         if shouldApplyFullCPUProtection(), !isTemperatureAboveSafetyCeiling() { return }
         unsafeBitCast(origIMP, to: OrigFunc.self)(blockSelf, sel, target)
     }
-    MSHookMessageEx(mitigationControllerClass, sel, imp_implementationWithBlock(unsafeBitCast(block, to: AnyObject.self)), nil)
+    MSHookMessageEx(cls, sel, imp_implementationWithBlock(unsafeBitCast(block, to: AnyObject.self)), nil)
 }
 
 private func installSetMaxCPUPowerTargetHook() {
+    let cls = mitigationControllerClass!
     let sel = NSSelectorFromString("setMaxCPUPowerTarget:useLegacyPath:setProperty:")
-    let method = class_getInstanceMethod(mitigationControllerClass, sel)!
+    let method = class_getInstanceMethod(cls, sel)!
     let origIMP = method_getImplementation(method)
     let block: @convention(block) (AnyObject, Int, Bool, UnsafeMutableRawPointer) -> Void = { blockSelf, target, legacy, property in
         typealias OrigFunc = @convention(c) (AnyObject, Selector, Int, Bool, UnsafeMutableRawPointer) -> Void
@@ -1271,12 +1300,13 @@ private func installSetMaxCPUPowerTargetHook() {
         }
         unsafeBitCast(origIMP, to: OrigFunc.self)(blockSelf, sel, target, legacy, propArg)
     }
-    MSHookMessageEx(mitigationControllerClass, sel, imp_implementationWithBlock(unsafeBitCast(block, to: AnyObject.self)), nil)
+    MSHookMessageEx(cls, sel, imp_implementationWithBlock(unsafeBitCast(block, to: AnyObject.self)), nil)
 }
 
 private func installSetCPUPowerCeilingHook() {
+    let cls = mitigationControllerClass!
     let sel = NSSelectorFromString("setCPUPowerCeiling:fromDecisionSource:")
-    let method = class_getInstanceMethod(mitigationControllerClass, sel)!
+    let method = class_getInstanceMethod(cls, sel)!
     let origIMP = method_getImplementation(method)
     let block: @convention(block) (AnyObject, Int, UnsafeMutableRawPointer) -> Void = { blockSelf, ceiling, source in
         typealias OrigFunc = @convention(c) (AnyObject, Selector, Int, UnsafeMutableRawPointer) -> Void
@@ -1292,12 +1322,13 @@ private func installSetCPUPowerCeilingHook() {
         }
         unsafeBitCast(origIMP, to: OrigFunc.self)(blockSelf, sel, ceiling, source)
     }
-    MSHookMessageEx(mitigationControllerClass, sel, imp_implementationWithBlock(unsafeBitCast(block, to: AnyObject.self)), nil)
+    MSHookMessageEx(cls, sel, imp_implementationWithBlock(unsafeBitCast(block, to: AnyObject.self)), nil)
 }
 
 private func installSetCPUPowerFloorHook() {
+    let cls = mitigationControllerClass!
     let sel = NSSelectorFromString("setCPUPowerFloor:fromDecisionSource:")
-    let method = class_getInstanceMethod(mitigationControllerClass, sel)!
+    let method = class_getInstanceMethod(cls, sel)!
     let origIMP = method_getImplementation(method)
     let block: @convention(block) (AnyObject, Int, UnsafeMutableRawPointer) -> Void = { blockSelf, floor, source in
         typealias OrigFunc = @convention(c) (AnyObject, Selector, Int, UnsafeMutableRawPointer) -> Void
@@ -1313,12 +1344,13 @@ private func installSetCPUPowerFloorHook() {
         }
         unsafeBitCast(origIMP, to: OrigFunc.self)(blockSelf, sel, floor, source)
     }
-    MSHookMessageEx(mitigationControllerClass, sel, imp_implementationWithBlock(unsafeBitCast(block, to: AnyObject.self)), nil)
+    MSHookMessageEx(cls, sel, imp_implementationWithBlock(unsafeBitCast(block, to: AnyObject.self)), nil)
 }
 
 private func installSetCPUPowerZoneTargetHook() {
+    let cls = mitigationControllerClass!
     let sel = NSSelectorFromString("setCPUPowerZoneTarget:")
-    let method = class_getInstanceMethod(mitigationControllerClass, sel)!
+    let method = class_getInstanceMethod(cls, sel)!
     let origIMP = method_getImplementation(method)
     let block: @convention(block) (AnyObject, Int) -> Void = { blockSelf, target in
         typealias OrigFunc = @convention(c) (AnyObject, Selector, Int) -> Void
@@ -1335,7 +1367,7 @@ private func installSetCPUPowerZoneTargetHook() {
         }
         unsafeBitCast(origIMP, to: OrigFunc.self)(blockSelf, sel, target)
     }
-    MSHookMessageEx(mitigationControllerClass, sel, imp_implementationWithBlock(unsafeBitCast(block, to: AnyObject.self)), nil)
+    MSHookMessageEx(cls, sel, imp_implementationWithBlock(unsafeBitCast(block, to: AnyObject.self)), nil)
 }
 
 // MARK: - 初始化 (constructor)
@@ -1375,7 +1407,7 @@ private let _initialize: Void = {
     }
 
     // 延迟安装 C 函数钩子
-    DispatchQueue.global(qos: .default).asyncAfter(deadline: .now() + 1.0) {
+    g_tweakQueue.asyncAfter(deadline: .now() + 1.0) {
         guard !g_hooksInstalled else { return }
         g_hooksInstalled = true
         installCFunctionHooks()

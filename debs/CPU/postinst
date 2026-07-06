@@ -2,18 +2,21 @@
 
 # CPUthermal postinst
 # 安装/升级完成后重启 thermalmonitord 使 tweak 生效
-#
-# 注意: 延迟 2 秒 killall 避免 launchd 重启-崩溃循环
-# 给 thermalmonitord 足够时间完成基础初始化再加载 tweak
 
 case "$1" in
     configure)
-        # 配置完成（安装或升级），延迟杀死 thermalmonitord
-        # 2 秒延迟确保 tweak 的 C 函数钩子在 thermalmonitord 稳定后安装
-        nohup bash -c "sleep 2; killall -q thermalmonitord 2>/dev/null || true" >/dev/null 2>&1 &
+        # 延迟 2 秒后重启 thermalmonitord，确保:
+        # 1) thermalmonitord 完成基础初始化
+        # 2) 各类 ObjC 热管理类已加载
+        # 3) tweak 的延迟钩子安装（1 秒后）在安全时机执行
+        nohup bash -c '
+            sleep 2
+            killall -q thermalmonitord 2>/dev/null || \
+            /var/jb/usr/bin/killall -q thermalmonitord 2>/dev/null || \
+            /usr/bin/killall -q thermalmonitord 2>/dev/null || true
+        ' >/dev/null 2>&1 &
         ;;
     abort-upgrade|abort-remove|abort-deconfigure)
-        # 这些阶段不做任何操作
         ;;
 esac
 
