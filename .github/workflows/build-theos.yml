@@ -52,6 +52,7 @@ jobs:
           export ARCHS="arm64 arm64e"
           mkdir -p "${{ github.workspace }}/debs-rootless"
           LOGFILE="${{ github.workspace }}/build-rootless.log"
+          PKGLOGFILE="${{ github.workspace }}/build-rootless-pkg.log"
 
           shopt -s nullglob
           for proj in */; do
@@ -70,8 +71,12 @@ jobs:
             echo "make exit code: $RC"
             tail -200 "$LOGFILE"
             [ "$RC" -eq 0 ] || exit "$RC"
-            set -e
-            make package FINALPACKAGE=1 2>&1
+            set +e
+            make package FINALPACKAGE=1 > "$PKGLOGFILE" 2>&1
+            PKG_RC=$?
+            echo "make package exit code: $PKG_RC"
+            tail -100 "$PKGLOGFILE"
+            [ "$PKG_RC" -eq 0 ] || exit "$PKG_RC"
             mkdir -p "${{ github.workspace }}/debs-rootless/$proj"
             cp packages/*.deb "${{ github.workspace }}/debs-rootless/$proj/" 2>/dev/null || true
             popd >/dev/null

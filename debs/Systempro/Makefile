@@ -35,9 +35,10 @@ endif
 
 ifeq ($(SCHEME),roothide)
 export THEOS_PACKAGE_SCHEME := roothide
-else ifeq ($(THEOS_PACKAGE_SCHEME),)
-# 未通过 SCHEME 或环境变量指定时，默认 rootless
-export THEOS_PACKAGE_SCHEME := rootless
+else
+# 未通过 SCHEME=roothide 明确指定时，强制 rootless
+# 使用 override 防止 CI 上 roothide Theos 分支的 common.mk 默认值覆盖
+override export THEOS_PACKAGE_SCHEME := rootless
 endif
 
 include $(THEOS)/makefiles/common.mk
