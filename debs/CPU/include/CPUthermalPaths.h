@@ -115,12 +115,9 @@ static inline NSInteger CPUthermalNativeMaxPCoreFrequencyMHz(void) {
 }
 
 static inline NSString *CPUthermalJBRootPathForRootFSPath(const char *path) {
-#if defined(THEOS_PACKAGE_SCHEME_ROOTHIDE)
+#if defined(THEOS_PACKAGE_SCHEME_ROOTHIDE) || defined(THEOS_PACKAGE_INSTALL_PREFIX)
     return CPUthermalStringFromCPath(jbroot(path));
 #else
-    // Rootless (Dopamine): path 已经是真实路径，无需加前缀
-    // 注意: THEOS_PACKAGE_INSTALL_PREFIX=/var/jb 在 rootless 下也会定义，
-    // 但对 /var/mobile/... 等路径加 /var/jb 前缀是错误的
     return CPUthermalStringFromCPath(path);
 #endif
 }
