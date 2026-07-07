@@ -28,9 +28,17 @@
         </dict>
         <dict>
             <key>cell</key>
-            <string>PSGroupCell</string>
+            <string>PSSwitchCell</string>
+            <key>defaults</key>
+            <string>com.platykor.tenprefs</string>
             <key>label</key>
-            <string>Turn the Flashlight into a stroboscopic light effect</string>
+            <string>Launch a Morse S.O.S with the Flashlight</string>
+            <key>key</key>
+            <string>morseEnabled</string>
+            <key>default</key>
+            <true/>
+            <key>PostNotification</key>
+            <string>com.platykor.tenprefs.prefschanged</string>
             <key>icon</key>
             <string>2.png</string>
             <key>height</key>
@@ -38,9 +46,35 @@
         </dict>
         <dict>
             <key>cell</key>
-            <string>PSGroupCell</string>
+            <string>PSSwitchCell</string>
+            <key>defaults</key>
+            <string>com.platykor.tenprefs</string>
+            <key>label</key>
+            <string>Turn the Flashlight into a stroboscopic light effect</string>
+            <key>key</key>
+            <string>strobeEnabled</string>
+            <key>default</key>
+            <true/>
+            <key>PostNotification</key>
+            <string>com.platykor.tenprefs.prefschanged</string>
+            <key>icon</key>
+            <string>2.png</string>
+            <key>height</key>
+            <integer>60</integer>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>defaults</key>
+            <string>com.platykor.tenprefs</string>
             <key>label</key>
             <string>Turn on the Flashlight and switch off after desired time.</string>
+            <key>key</key>
+            <string>timerEnabled</string>
+            <key>default</key>
+            <true/>
+            <key>PostNotification</key>
+            <string>com.platykor.tenprefs.prefschanged</string>
             <key>icon</key>
             <string>3.png</string>
             <key>height</key>
