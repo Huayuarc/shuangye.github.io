@@ -1,9 +1,9 @@
 Package: com.platykor.tenmetsu
 Name: Tenmetsu
-Version: 1.3
+Version: 2.1
 Section: Tweaks
 Architecture: iphoneos-arm
 Depends: mobilesubstrate (>= 0.9.5000), firmware (>= 14.0)
 Author: Plat-Ykor <plat-ykor@libero.it>
 Maintainer: Plat-Ykor <plat-ykor@libero.it>
-Description: Additional options for your Flashlight
+Description: Flashlight strobe with adjustable frequency (1-20 Hz)

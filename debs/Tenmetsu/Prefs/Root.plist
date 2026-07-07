@@ -6,20 +6,6 @@
     <array>
         <dict>
             <key>cell</key>
-            <string>PSSwitchCell</string>
-            <key>defaults</key>
-            <string>com.platykor.tenprefs</string>
-            <key>label</key>
-            <string>IsEnabled</string>
-            <key>key</key>
-            <string>isenabled</string>
-            <key>PostNotification</key>
-            <string>com.platykor.tenprefs.prefschanged</string>
-            <key>height</key>
-            <integer>60</integer>
-        </dict>
-        <dict>
-            <key>cell</key>
             <string>PSGroupCell</string>
             <key>icon</key>
             <string>header@2x.png</string>
@@ -32,111 +18,39 @@
             <key>defaults</key>
             <string>com.platykor.tenprefs</string>
             <key>label</key>
-            <string>Launch a Morse S.O.S with the Flashlight</string>
+            <string>Enabled</string>
             <key>key</key>
-            <string>morseEnabled</string>
+            <string>isenabled</string>
             <key>default</key>
             <true/>
             <key>PostNotification</key>
             <string>com.platykor.tenprefs.prefschanged</string>
-            <key>icon</key>
-            <string>2.png</string>
             <key>height</key>
             <integer>60</integer>
         </dict>
         <dict>
             <key>cell</key>
-            <string>PSSwitchCell</string>
+            <string>PSSliderCell</string>
             <key>defaults</key>
             <string>com.platykor.tenprefs</string>
             <key>label</key>
-            <string>Turn the Flashlight into a stroboscopic light effect</string>
+            <string>Strobe Frequency</string>
             <key>key</key>
-            <string>strobeEnabled</string>
+            <string>frequency</string>
             <key>default</key>
+            <real>5.0</real>
+            <key>min</key>
+            <integer>1</integer>
+            <key>max</key>
+            <integer>20</integer>
+            <key>showValue</key>
             <true/>
+            <key>unit</key>
+            <string>Hz</string>
             <key>PostNotification</key>
             <string>com.platykor.tenprefs.prefschanged</string>
-            <key>icon</key>
-            <string>2.png</string>
             <key>height</key>
             <integer>60</integer>
-        </dict>
-        <dict>
-            <key>cell</key>
-            <string>PSSwitchCell</string>
-            <key>defaults</key>
-            <string>com.platykor.tenprefs</string>
-            <key>label</key>
-            <string>Turn on the Flashlight and switch off after desired time.</string>
-            <key>key</key>
-            <string>timerEnabled</string>
-            <key>default</key>
-            <true/>
-            <key>PostNotification</key>
-            <string>com.platykor.tenprefs.prefschanged</string>
-            <key>icon</key>
-            <string>3.png</string>
-            <key>height</key>
-            <integer>60</integer>
-        </dict>
-        <dict>
-            <key>cell</key>
-            <string>PSButtonCell</string>
-            <key>label</key>
-            <string>Follow me on Twitter</string>
-            <key>action</key>
-            <string>twitter</string>
-            <key>icon</key>
-            <string>twitter@2x.png</string>
-        </dict>
-        <dict>
-            <key>cell</key>
-            <string>PSButtonCell</string>
-            <key>label</key>
-            <string>Yobun Pro</string>
-            <key>action</key>
-            <string>yobun</string>
-            <key>icon</key>
-            <string>yobun@2x.png</string>
-        </dict>
-        <dict>
-            <key>cell</key>
-            <string>PSButtonCell</string>
-            <key>label</key>
-            <string>Only You</string>
-            <key>action</key>
-            <string>onlyyou</string>
-            <key>icon</key>
-            <string>onlyyou@2x.png</string>
-        </dict>
-        <dict>
-            <key>cell</key>
-            <string>PSButtonCell</string>
-            <key>label</key>
-            <string>Escape</string>
-            <key>action</key>
-            <string>escape</string>
-            <key>icon</key>
-            <string>escape@2x.png</string>
-        </dict>
-        <dict>
-            <key>cell</key>
-            <string>PSButtonCell</string>
-            <key>label</key>
-            <string>Fast-Ls</string>
-            <key>action</key>
-            <string>fast</string>
-            <key>icon</key>
-            <string>fastls@2x.png</string>
-        </dict>
-        <dict>
-            <key>cell</key>
-            <string>PSButtonCell</string>
-            <key>label</key>
-            <string>About</string>
-            <key>action</key>
-            <string>about</string>
         </dict>
         <dict>
             <key>cell</key>
