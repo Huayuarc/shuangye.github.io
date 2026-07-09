@@ -19,6 +19,6 @@
     <key>CFBundleVersion</key>
     <string>1.2.4</string>
     <key>NSPrincipalClass</key>
-    <string>PSListController</string>
+    <string>AmberSettingsController</string>
 </dict>
 </plist>

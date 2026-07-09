@@ -17,7 +17,7 @@
         <key>bundle</key>
         <string>AmberSettings</string>
         <key>bundleClass</key>
-        <string>PSListController</string>
+        <string>AmberSettingsController</string>
     </dict>
 </dict>
 </plist>
