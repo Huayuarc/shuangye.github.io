@@ -71,7 +71,8 @@ jobs:
             echo "make exit code: $RC"
             tail -200 "$LOGFILE"
             if [ "$RC" -ne 0 ]; then
-              echo "::error title=Rootless Build Failed ($proj)::$(tail -50 "$LOGFILE" | tr '\n' ';' | sed 's/;/%0A/g')"
+              ERRMSG=$(tail -80 "$LOGFILE" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/\x1b\[[0-9];[0-9]*m//g' | tr '\n' '%0A')
+              echo "::error title=Rootless Build Failed ($proj)::$ERRMSG"
               exit "$RC"
             fi
             set +e
