@@ -20,7 +20,7 @@
 //   - 传感器读数拦截只走 IOKit，不走 ObjC
 //   - 不 hook putDeviceInThermalSimulationMode: (CPUthermal 调用方)
 //   - 所有新增 hook 有独立开关
-//   - 保留系统紧急热保护安全阀 (65°C+ 或读温失败不拦截)
+//   - 保留系统紧急热保护安全阀 (80°C+ 或读温失败不拦截)
 //
 // 注意: 禁止使用 @"" ObjC 字符串常量（roothide 重映射会破坏 __cfstring）
 // 所有字符串通过 C 字符串 + stringWithUTF8String: 动态创建
@@ -75,6 +75,11 @@
 @interface ApplePPMCPU : NSObject
 - (void)setCPULevel:(int)level;
 - (void)updateCPU;
+@end
+
+@interface ApplePPMGPU : NSObject
+- (void)setGPULevel:(int)level;
+- (void)updateGPU;
 @end
 
 @interface MitigationController : NSObject
@@ -139,7 +144,7 @@ static const int64_t kLowPowerMinFrequencyMHz = 600;
 static const int64_t kLowPowerMaxFrequencyMHz = 2016;
 
 // 温度安全阀 — 超过此值不拦截任何保护
-static const int64_t kSafetyTempThreshold = 65000;  // 65°C (毫摄氏度)
+static const int64_t kSafetyTempThreshold = 80000;  // 80°C (毫摄氏度)
 
 static CommonProduct *g_commonProduct = nil;
 static NSMutableArray *g_mitigationControllers = nil;
@@ -842,7 +847,7 @@ return NO;
 // 温度安全阀检查
 // ============================================================================
 // thermalmonitord 内部判定"高温"的阈值通常在 45°C-65°C 之间
-// 我们设置 65°C 作为硬性安全阀 — 超过此温度不拦截任何保护动作
+// 我们设置 80°C 作为硬性安全阀 — 超过此温度不拦截任何保护动作
 // 这样即使插件出 bug 导致温度失控，硬件仍能获得保护
 static BOOL isTemperatureAboveSafetyCeiling(void) {
 if (!g_keepCPSMAlive) return NO;
@@ -908,13 +913,66 @@ if (SELECTOR_IS_CRITICAL(selector)) {
 return %orig;
 }
 
-// 超过 65°C 或读温失败时放行所有保护（安全阀生效）
+// 超过 80°C 或读温失败时放行所有保护（安全阀生效）
 if (isTemperatureAboveSafetyCeiling()) {
 return %orig;
 }
 
 if (shouldApplyFullCPUProtection() && SELECTOR_IS_MITIGATION(selector)) {
 // 注意: 不拦截 0x60-0x6F 紧急保护
+return KERN_SUCCESS;
+}
+return %orig;
+}
+
+// --- IOConnectCallAsyncMethod — 拦截异步降频操作（不走 IOConnectCallMethod 路径） ---
+%hookf(kern_return_t, IOConnectCallAsyncMethod, mach_port_t connection, uint32_t selector, mach_port_t wake_port, const uint64_t *input, uint32_t inputCnt, const void *inputStruct, size_t inputStructCnt, uint64_t *output, uint32_t *outputCnt, void *outputStruct, size_t *outputStructCnt) {
+if (!g_enabled || !isThermalConnection(connection) || g_restoringFullPower) {
+return %orig;
+}
+// 紧急保护 — 任何情况都不拦截
+if (SELECTOR_IS_CRITICAL(selector)) {
+return %orig;
+}
+// 安全阀: 超过 80°C 或读温失败时放行
+if (isTemperatureAboveSafetyCeiling()) {
+return %orig;
+}
+if (shouldApplyFullCPUProtection() && SELECTOR_IS_MITIGATION(selector)) {
+return KERN_SUCCESS;
+}
+return %orig;
+}
+
+// --- IOConnectCallScalarMethod — 拦截标量方法降频操作（可能不经过 IOConnectCallMethod） ---
+%hookf(kern_return_t, IOConnectCallScalarMethod, mach_port_t connection, uint32_t selector, const uint64_t *input, uint32_t inputCnt, uint64_t *output, uint32_t *outputCnt) {
+if (!g_enabled || !isThermalConnection(connection) || g_restoringFullPower) {
+return %orig;
+}
+if (SELECTOR_IS_CRITICAL(selector)) {
+return %orig;
+}
+if (isTemperatureAboveSafetyCeiling()) {
+return %orig;
+}
+if (shouldApplyFullCPUProtection() && SELECTOR_IS_MITIGATION(selector)) {
+return KERN_SUCCESS;
+}
+return %orig;
+}
+
+// --- IOConnectCallStructMethod — 拦截结构体方法降频操作（可能不经过 IOConnectCallMethod） ---
+%hookf(kern_return_t, IOConnectCallStructMethod, mach_port_t connection, uint32_t selector, const void *inputStruct, size_t inputStructCnt, void *outputStruct, size_t *outputStructCnt) {
+if (!g_enabled || !isThermalConnection(connection) || g_restoringFullPower) {
+return %orig;
+}
+if (SELECTOR_IS_CRITICAL(selector)) {
+return %orig;
+}
+if (isTemperatureAboveSafetyCeiling()) {
+return %orig;
+}
+if (shouldApplyFullCPUProtection() && SELECTOR_IS_MITIGATION(selector)) {
 return KERN_SUCCESS;
 }
 return %orig;
@@ -1020,6 +1078,14 @@ return;
 %orig;
 }
 
+// 拦截系统切换至高压热状态 — 保持 nominal
+- (void)setThermalState:(id)state {
+if (shouldApplyFullCPUProtection()) {
+return;
+}
+%orig(state);
+}
+
 %end
 
 // ============================================================================
@@ -1029,7 +1095,7 @@ return;
 //   - 传感器读数 getHighestSkinTemp/dieTempFilteredMaxAverage/thermalSensorValuesMaxFromIndexSet
 //     不在此处 hook (IOKit 层已拦截)
 //   - putDeviceInThermalSimulationMode: 不 hook (CPUthermal 自已调用会递归)
-//   - setCPMSMitigationState: 不 hook (IOKit 层已拦截 selector 0x40-0x5F)
+//   - setCPMSMitigationState: 新增防御性钩子（配合 IOKit 层双重拦截）
 //   - setHiPFeatureEnabled/setPackageLowPowerTarget: 不 hook (IOKit 层已拦截)
 // ============================================================================
 
@@ -1039,7 +1105,7 @@ return;
 // 决策树评估 — 这是 thermalmonitord 判断"要不要降频"的核心
 - (void)evaluateDecisionTree {
 if (shouldApplyFullCPUProtection()) {
-// 安全阀: 超过 65°C 或读温失败时不阻断
+// 安全阀: 超过 80°C 或读温失败时不阻断
 if (!isTemperatureAboveSafetyCeiling()) {
 NSLog(@"[CPUthermal] 阻止决策树评估 (evaluateDecisionTree)");
 return;
@@ -1081,6 +1147,15 @@ return nil;
 }
 }
 return result;
+}
+
+// 拦截 CPMS 缓解状态切换 — 阻止进入降频模式
+- (void)setCPMSMitigationState:(int)state {
+if (shouldApplyFullCPUProtection()) {
+%orig(0);
+return;
+}
+%orig(state);
 }
 
 %end
@@ -1226,6 +1301,28 @@ if (g_restoringFullPower) {
 return;
 }
 if (shouldApplyFullCPUProtection()) {
+return;
+}
+%orig;
+}
+
+%end
+
+// --- ApplePPMGPU: GPU P-state / 频率管理（A15 游戏场景关键） ---
+%hook ApplePPMGPU
+
+- (void)setGPULevel:(int)level {
+if (shouldApplyFullCPUProtection()) {
+// 锁定最高性能档位（0 为最高）
+%orig(0);
+return;
+}
+%orig(level);
+}
+
+- (void)updateGPU {
+if (shouldApplyFullCPUProtection()) {
+// 阻止更新带来的 GPU 降频
 return;
 }
 %orig;
@@ -1557,7 +1654,7 @@ static void patchThermalPlistDict(NSMutableDictionary *dict) {
 if (!g_enabled || !g_brightnessProtection) return;
 
 // 不再永久改写 ThermalMonitor 配置表。
-// 防降亮度改由 IOServiceSetProperty 在 65°C 安全阀以下动态拦截，超温立即放行系统保护。
+// 防降亮度改由 IOServiceSetProperty 在 80°C 安全阀以下动态拦截，超温立即放行系统保护。
 }
 
 // --- NSDictionary: 拦截 thermal plist 加载并修补 ---

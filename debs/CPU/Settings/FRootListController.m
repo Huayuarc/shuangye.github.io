@@ -421,7 +421,7 @@ group = [PSSpecifier emptyGroupSpecifier];
 // ===================== 第4组: 高级 =====================
 group = [PSSpecifier emptyGroupSpecifier];
 [group setProperty:S("高级") forKey:S("label")];
-[group setProperty:S("强烈建议开启：温度超过 65°C 或读温失败时放行系统温控，防止异常发热和自动黑屏。") forKey:S("footerText")];
+[group setProperty:S("强烈建议开启：温度超过 80°C 或读温失败时放行系统温控，防止异常发热和自动黑屏。") forKey:S("footerText")];
 [specs addObject:group];
 
 [specs addObject:[self switchSpecifier:S("保留 CPMS 紧急保护") key:S("keepCPMSAlive")]];
