@@ -45,6 +45,20 @@ jobs:
           rm -f /tmp/sdk.tar.xz
           ls -la "$HOME/theos/sdks/"
 
+          echo "=== 补齐 Preferences.framework（从 Xcode SDK）==="
+          XCODE_SDK="/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk"
+          THEOS_SDK="$HOME/theos/sdks/iPhoneOS16.5.sdk"
+          PREFS_FWK="System/Library/Frameworks/Preferences.framework"
+          if [ -d "$XCODE_SDK/$PREFS_FWK" ]; then
+            mkdir -p "$THEOS_SDK/System/Library/Frameworks/"
+            cp -a "$XCODE_SDK/$PREFS_FWK" "$THEOS_SDK/System/Library/Frameworks/"
+            echo "Preferences.framework 已补齐"
+            ls -la "$THEOS_SDK/$PREFS_FWK"
+          else
+            echo "⚠ Xcode SDK 中未找到 Preferences.framework"
+          fi
+          echo "=== SDK 准备完毕 ==="
+
       - name: Build rootless (arm64)
         working-directory: debs
         run: |
