@@ -84,7 +84,10 @@ jobs:
             RC=$?
             echo "make exit code: $RC"
             tail -200 "$LOGFILE"
-            [ "$RC" -eq 0 ] || exit "$RC"
+            if [ "$RC" -ne 0 ]; then
+              echo "::error file=.github,title=Build log (last 30 lines)::$(tail -30 "$LOGFILE" | tr '\n' ';' | sed 's/;/%0A/g' | sed 's/\x1b\[[0-9;]*m//g')"
+              exit "$RC"
+            fi
             set +e
             make THEOS_PACKAGE_SCHEME=rootless package FINALPACKAGE=1 > "$PKGLOGFILE" 2>&1
             PKG_RC=$?
