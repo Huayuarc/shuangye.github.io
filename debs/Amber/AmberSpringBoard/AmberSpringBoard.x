@@ -1,0 +1,121 @@
+#import "../Header.h"
+#import <UIKit/UIColor+Private.h>
+#import <UIKit/UIImage+Private.h>
+#import <version.h>
+
+@interface SBUIFlashlightController : NSObject
++ (instancetype)sharedInstance;
+@property (assign) NSUInteger level;
+@end
+
+@interface CCUICustomContentModuleBackgroundViewController : UIViewController
+- (void)setHeaderTitle:(NSString *)title;
+- (void)setHeaderGlyphImage:(UIImage *)image;
+- (void)setGlyphImage:(UIImage *)image;
+@end
+
+@interface CCUISliderModuleBackgroundViewController : CCUICustomContentModuleBackgroundViewController
+@end
+
+@interface CCUIFlashlightBackgroundViewController : CCUISliderModuleBackgroundViewController
+- (void)_updateGlyphForFlashlightLevel:(NSUInteger)level;
+@end
+
+%group SpringBoard_Flashlight
+
+static NSString *getModeLabel(PSAmberMode mode) {
+    switch (mode) {
+        case PSAmberModeOrange:
+            return @"Amber";
+        case PSAmberModeBoth:
+            return @"All";
+        default:
+            return @"Default";
+    }
+}
+
+static NSString *getStrobeLabel(void) {
+    if (CFPreferencesGetAppIntegerValue(strobeEnabledKey, strobeDomain, NULL)) {
+        int pattern = (int)CFPreferencesGetAppIntegerValue(strobePatternKey, strobeDomain, NULL);
+        if (pattern == PSStrobePatternSOS)
+            return @" [SOS]";
+        double freq = 3.0;
+        CFPropertyListRef val = CFPreferencesCopyAppValue(strobeFrequencyKey, strobeDomain);
+        if (val) {
+            if (CFGetTypeID(val) == CFNumberGetTypeID())
+                CFNumberGetValue((CFNumberRef)val, kCFNumberDoubleType, &freq);
+            CFRelease(val);
+        }
+        return [NSString stringWithFormat:@" [%.1fHz]", freq];
+    }
+    return @"";
+}
+
+BOOL didAddIconGesture = NO;
+BOOL didAddLabelGesture = NO;
+
+%hook CCUIFlashlightBackgroundViewController
+
+%new(v@:@)
+- (void)tapFlashlightGlyphView:(id)sender {
+    NSUInteger level = ((SBUIFlashlightController *)[%c(SBUIFlashlightController) sharedInstance]).level;
+    if (!level) return;
+    PSAmberMode amberMode = (CFPreferencesGetAppIntegerValue(amberModeKey, kDomain, NULL) + 1) % PSAmberModeCount;
+    CFNumberRef numberRef = CFNumberCreate(NULL, kCFNumberSInt32Type, &amberMode);
+    CFPreferencesSetAppValue(amberModeKey, numberRef, kDomain);
+    CFPreferencesAppSynchronize(kDomain);
+    [self _updateGlyphForFlashlightLevel:level];
+}
+
+- (void)_updateGlyphForFlashlightLevel:(NSUInteger)level {
+    NSBundle *bundle = [NSBundle bundleForClass:[self class]];
+    UIImage *image = [UIImage imageNamed:level ? @"FlashlightOn" : @"FlashlightOff" inBundle:bundle];
+    UIColor *flatColor;
+    PSAmberMode amberMode = CFPreferencesGetAppIntegerValue(amberModeKey, kDomain, NULL);
+    if (!level || amberMode == PSAmberModeDefault)
+        flatColor = UIColor.whiteColor;
+    else
+        flatColor = amberMode == PSAmberModeBoth ? [UIColor colorWithRed:1.00 green:0.84 blue:0.59 alpha:1.0] : UIColor.systemOrangeColor;
+    UIImage *flatImage = [image _flatImageWithColor:flatColor];
+    if ([self respondsToSelector:@selector(setHeaderGlyphImage:)])
+        [self setHeaderGlyphImage:flatImage];
+    else
+        [self setGlyphImage:flatImage];
+    UIImageView *imageView = [self valueForKey:@"_headerImageView"];
+    UIView *viewWithGesture = IS_IOS_OR_NEWER(iOS_14_0) ? [self valueForKey:@"_headerTitleLabel"] : imageView;
+    imageView.tintColor = flatColor;
+    imageView.userInteractionEnabled = viewWithGesture.userInteractionEnabled = level > 0;
+    if ([self respondsToSelector:@selector(setHeaderTitle:)]) {
+        NSString *strobeLabel = level ? getStrobeLabel() : @"";
+        NSString *headerTitle = level ? [NSString stringWithFormat:@"Mode: %@%@, Tap to change", getModeLabel(amberMode), strobeLabel] : @"";
+        [self setHeaderTitle:headerTitle];
+    }
+    if (level) {
+        if (!didAddIconGesture) {
+            UITapGestureRecognizer *t = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(tapFlashlightGlyphView:)];
+            [imageView addGestureRecognizer:t];
+            didAddIconGesture = YES;
+        }
+        for (UIGestureRecognizer *gesture in viewWithGesture.gestureRecognizers)
+            [viewWithGesture removeGestureRecognizer:gesture];
+        UITapGestureRecognizer *t = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(tapFlashlightGlyphView:)];
+        [viewWithGesture addGestureRecognizer:t];
+    }
+}
+
+%end
+
+%end
+
+%hook CCUIModuleCollectionViewController
+
+- (void)_populateModuleViewControllers {
+    %orig;
+    %init(SpringBoard_Flashlight);
+}
+
+%end
+
+%ctor {
+    %init;
+}
