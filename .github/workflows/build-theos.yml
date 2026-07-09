@@ -45,18 +45,24 @@ jobs:
           rm -f /tmp/sdk.tar.xz
           ls -la "$HOME/theos/sdks/"
 
-          echo "=== 补齐 Preferences.framework（从 Xcode SDK）==="
-          XCODE_SDK="/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk"
+          echo "=== 补齐 Preferences.framework（创建 stub）==="
           THEOS_SDK="$HOME/theos/sdks/iPhoneOS16.5.sdk"
-          PREFS_FWK="System/Library/Frameworks/Preferences.framework"
-          if [ -d "$XCODE_SDK/$PREFS_FWK" ]; then
-            mkdir -p "$THEOS_SDK/System/Library/Frameworks/"
-            cp -a "$XCODE_SDK/$PREFS_FWK" "$THEOS_SDK/System/Library/Frameworks/"
-            echo "Preferences.framework 已补齐"
-            ls -la "$THEOS_SDK/$PREFS_FWK"
-          else
-            echo "⚠ Xcode SDK 中未找到 Preferences.framework"
-          fi
+          PREFS_DIR="$THEOS_SDK/System/Library/Frameworks/Preferences.framework"
+          mkdir -p "$PREFS_DIR"
+          cat > "$PREFS_DIR/Preferences.tbd" << 'TBDEOF'
+--- !tapi-tbd
+tbd-version: 4
+targets:  [ arm64, arm64e ]
+install-name: /System/Library/Frameworks/Preferences.framework/Preferences
+current-version: 1.0
+compatibility-version: 1.0
+exports:
+  - targets: [ arm64, arm64e ]
+    symbols: [ _OBJC_CLASS_$_PSListController, _OBJC_CLASS_$_PSSpecifier ]
+...
+TBDEOF
+          echo "Preferences.tbd stub created"
+          ls -la "$PREFS_DIR"
           echo "=== SDK 准备完毕 ==="
 
       - name: Build rootless (arm64)
