@@ -6,7 +6,6 @@
 #import <notify.h>
 #import <dlfcn.h>
 #import <CPUthermalPaths.h>
-#import <crt_externs.h>
 
 // ============================================================
 // 注意: 禁止使用 @"" ObjC 字符串常量
@@ -66,6 +65,78 @@ return S("防温控");
 CPUthermalRestartThermalmonitordSoon();
 }
 
+#pragma mark - CPU频率锁定
+
+- (NSString *)deviceLockValue {
+NSString *val = [self prefs][S(kCPUthermalDeviceLockKeyC)];
+if ([val isKindOfClass:[NSString class]] && val.length > 0) return val;
+return S("");
+}
+
+- (NSString *)deviceLockLabel {
+NSString *chipKey = [self deviceLockValue];
+if (chipKey.length == 0) return S("CPU频率锁定：无");
+return [NSString stringWithFormat:S("CPU频率锁定：%@"), CPUthermalChipDisplayName(chipKey)];
+}
+
+- (void)openDeviceLockPicker {
+[self showDeviceLockPicker];
+}
+
+- (void)saveDeviceLock:(NSString *)chipKey {
+NSMutableDictionary *prefs = [self prefs];
+if (chipKey.length > 0) {
+prefs[S(kCPUthermalDeviceLockKeyC)] = chipKey;
+} else {
+[prefs removeObjectForKey:S(kCPUthermalDeviceLockKeyC)];
+}
+prefs[S("powerMode")] = S("fullPower");
+[self savePrefs:prefs];
+notify_post(kCPUthermalPowerModeChangedNotifC);
+[self restartThermalmonitord];
+PSSpecifier *specifier = [self specifierForID:S("deviceLock")];
+specifier.name = [self deviceLockLabel];
+[self reloadSpecifierID:S("deviceLock") animated:YES];
+}
+
+- (void)showDeviceLockPicker {
+UIAlertController *alert = [UIAlertController
+alertControllerWithTitle:S("CPU频率锁定")
+message:S("选择芯片代际后，CPU最高频率将被锁定为对应机型原生频率。\n锁定后自动切换为防温控模式。")
+preferredStyle:UIAlertControllerStyleActionSheet];
+
+NSString *currentKey = [self deviceLockValue];
+
+// 无锁定
+UIAlertAction *noneAction = [UIAlertAction actionWithTitle:S("无锁定（自动）")
+style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+[self saveDeviceLock:S("")];
+}];
+if (currentKey.length == 0) [noneAction setValue:@YES forKey:S("checked")];
+[alert addAction:noneAction];
+
+// A11 ~ A17 Pro
+NSArray *chipKeys = @[S("A11"), S("A12"), S("A13"), S("A14"), S("A15"), S("A16"), S("A17Pro")];
+for (NSString *key in chipKeys) {
+UIAlertAction *action = [UIAlertAction actionWithTitle:CPUthermalChipDisplayName(key)
+style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+[self saveDeviceLock:key];
+}];
+if ([key isEqualToString:currentKey]) [action setValue:@YES forKey:S("checked")];
+[alert addAction:action];
+}
+
+[alert addAction:[UIAlertAction actionWithTitle:S("取消") style:UIAlertActionStyleCancel handler:nil]];
+
+UIPopoverPresentationController *popover = alert.popoverPresentationController;
+if (popover) {
+popover.sourceView = self.view;
+popover.sourceRect = self.view.bounds;
+popover.permittedArrowDirections = 0;
+}
+[self presentViewController:alert animated:YES completion:nil];
+}
+
 - (void)savePowerMode:(NSString *)mode {
 NSMutableDictionary *prefs = [self prefs];
 prefs[S("powerMode")] = mode ?: S("fullPower");
@@ -116,9 +187,15 @@ return [NSString stringWithFormat:S("功率模式：%@"), [self powerModeTitle:[
 NSInteger index = [self indexForIndexPath:indexPath];
 if (index >= 0 && index < (NSInteger)self.specifiers.count) {
 PSSpecifier *specifier = self.specifiers[index];
-if ([[specifier propertyForKey:S("key")] isEqualToString:S("powerMode")]) {
+NSString *key = [specifier propertyForKey:S("key")];
+if ([key isEqualToString:S("powerMode")]) {
 [tableView deselectRowAtIndexPath:indexPath animated:YES];
 [self showPowerModePicker];
+return;
+}
+if ([key isEqualToString:S("deviceLock")]) {
+[tableView deselectRowAtIndexPath:indexPath animated:YES];
+[self showDeviceLockPicker];
 return;
 }
 }
@@ -230,7 +307,7 @@ pid_t pid = 0;
 NSString *toolPath = CPUthermalToolPath();
 if (toolPath.length > 0 && [[NSFileManager defaultManager] isExecutableFileAtPath:toolPath]) {
 char *args[] = {"CPUthermalTool", "userspace-reboot", NULL};
-if (posix_spawn(&pid, [toolPath fileSystemRepresentation], NULL, NULL, args, *_NSGetEnviron()) == 0) {
+if (posix_spawn(&pid, [toolPath fileSystemRepresentation], NULL, NULL, args, NULL) == 0) {
 waitpid(pid, NULL, 0);
 return;
 }
@@ -239,7 +316,7 @@ return;
 NSString *launchctlPath = CPUthermalLaunchctlPath();
 if (launchctlPath.length > 0) {
 char *args[] = {"launchctl", "reboot", "userspace", NULL};
-posix_spawn(&pid, [launchctlPath fileSystemRepresentation], NULL, NULL, args, *_NSGetEnviron());
+posix_spawn(&pid, [launchctlPath fileSystemRepresentation], NULL, NULL, args, NULL);
 waitpid(pid, NULL, 0);
 }
 }]];
@@ -278,6 +355,21 @@ edit:nil];
 return spec;
 }
 
+- (PSSpecifier *)deviceLockSpecifier {
+PSSpecifier *spec = [PSSpecifier
+preferenceSpecifierNamed:[self deviceLockLabel]
+target:self
+set:NULL
+get:NULL
+detail:nil
+cell:PSButtonCell
+edit:nil];
+[spec setIdentifier:S("deviceLock")];
+[spec setProperty:S("deviceLock") forKey:S("key")];
+[spec setButtonAction:@selector(openDeviceLockPicker)];
+return spec;
+}
+
 - (PSSpecifier *)buttonSpecifier:(NSString *)label action:(SEL)action identifier:(NSString *)identifier {
 PSSpecifier *spec = [PSSpecifier
 preferenceSpecifierNamed:label
@@ -308,7 +400,15 @@ group = [PSSpecifier emptyGroupSpecifier];
 
 [specs addObject:[self powerModeSpecifier]];
 
-// ===================== 第3组: 核心保护（整合） =====================
+// ===================== 第3组: CPU频率锁定 =====================
+group = [PSSpecifier emptyGroupSpecifier];
+[group setProperty:S("CPU频率锁定") forKey:S("label")];
+[group setProperty:S("选择芯片代际后，CPU最高频率将被锁定为对应机型原生频率，阻止温控降频。选锁定时自动切换为防温控模式。") forKey:S("footerText")];
+[specs addObject:group];
+
+[specs addObject:[self deviceLockSpecifier]];
+
+// ===================== 第4组: 核心保护（整合） =====================
 group = [PSSpecifier emptyGroupSpecifier];
 [group setProperty:S("核心保护") forKey:S("label")];
 [group setProperty:S("建议保持默认：CPU/亮度保护开启，避免误判温度。") forKey:S("footerText")];
@@ -321,7 +421,7 @@ group = [PSSpecifier emptyGroupSpecifier];
 // ===================== 第4组: 高级 =====================
 group = [PSSpecifier emptyGroupSpecifier];
 [group setProperty:S("高级") forKey:S("label")];
-[group setProperty:S("强烈建议开启：温度超过 70°C 或读温失败时放行系统温控，防止异常发热和自动黑屏。") forKey:S("footerText")];
+[group setProperty:S("强烈建议开启：温度超过 65°C 或读温失败时放行系统温控，防止异常发热和自动黑屏。") forKey:S("footerText")];
 [specs addObject:group];
 
 [specs addObject:[self switchSpecifier:S("保留 CPMS 紧急保护") key:S("keepCPMSAlive")]];
