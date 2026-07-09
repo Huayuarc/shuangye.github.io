@@ -70,13 +70,19 @@ jobs:
             RC=$?
             echo "make exit code: $RC"
             tail -200 "$LOGFILE"
-            [ "$RC" -eq 0 ] || exit "$RC"
+            if [ "$RC" -ne 0 ]; then
+              echo "::error title=Rootless Build Failed ($proj)::$(tail -50 "$LOGFILE" | tr '\n' ';' | sed 's/;/%0A/g')"
+              exit "$RC"
+            fi
             set +e
             make THEOS_PACKAGE_SCHEME=rootless package FINALPACKAGE=1 > "$PKGLOGFILE" 2>&1
             PKG_RC=$?
             echo "make package exit code: $PKG_RC"
             tail -100 "$PKGLOGFILE"
-            [ "$PKG_RC" -eq 0 ] || exit "$PKG_RC"
+            if [ "$PKG_RC" -ne 0 ]; then
+              echo "::error title=Rootless Package Failed ($proj)::$(tail -50 "$PKGLOGFILE" | tr '\n' ';' | sed 's/;/%0A/g')"
+              exit "$PKG_RC"
+            fi
             mkdir -p "${{ github.workspace }}/debs-rootless/$proj"
             cp packages/*.deb "${{ github.workspace }}/debs-rootless/$proj/" 2>/dev/null || true
             popd >/dev/null
