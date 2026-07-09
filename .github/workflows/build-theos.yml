@@ -49,18 +49,12 @@ jobs:
           THEOS_SDK="$HOME/theos/sdks/iPhoneOS16.5.sdk"
           PREFS_DIR="$THEOS_SDK/System/Library/Frameworks/Preferences.framework"
           mkdir -p "$PREFS_DIR"
-          cat > "$PREFS_DIR/Preferences.tbd" << 'TBDEOF'
---- !tapi-tbd
-tbd-version: 4
-targets:  [ arm64, arm64e ]
-install-name: /System/Library/Frameworks/Preferences.framework/Preferences
-current-version: 1.0
-compatibility-version: 1.0
-exports:
-  - targets: [ arm64, arm64e ]
-    symbols: [ _OBJC_CLASS_$_PSListController, _OBJC_CLASS_$_PSSpecifier ]
-...
-TBDEOF
+          printf '%s\n' '--- !tapi-tbd' 'tbd-version: 4' 'targets:  [ arm64, arm64e ]' \
+            'install-name: /System/Library/Frameworks/Preferences.framework/Preferences' \
+            'current-version: 1.0' 'compatibility-version: 1.0' 'exports:' \
+            '  - targets: [ arm64, arm64e ]' \
+            '    symbols: [ _OBJC_CLASS_$_PSListController, _OBJC_CLASS_$_PSSpecifier ]' \
+            '...' > "$PREFS_DIR/Preferences.tbd"
           echo "Preferences.tbd stub created"
           ls -la "$PREFS_DIR"
           echo "=== SDK 准备完毕 ==="
