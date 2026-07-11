@@ -162,9 +162,6 @@ if (!key) return nil;
 // 默认保留系统安全通路，避免异常发热、黑屏和不可恢复降亮度。
 id val = [self prefs][key];
 if (val) return val;
-if ([key isEqualToString:S("keepCPMSAlive")]) {
-return [NSNumber numberWithBool:YES];
-}
 if ([key isEqualToString:S("suppressThermalNotifications")]) {
 return [NSNumber numberWithBool:NO];
 }
@@ -418,15 +415,7 @@ group = [PSSpecifier emptyGroupSpecifier];
 [specs addObject:[self switchSpecifier:S("屏幕亮度保护") key:S("brightnessProtection")]];
 [specs addObject:[self switchSpecifier:S("屏蔽高温通知") key:S("suppressThermalNotifications")]];
 
-// ===================== 第4组: 高级 =====================
-group = [PSSpecifier emptyGroupSpecifier];
-[group setProperty:S("高级") forKey:S("label")];
-[group setProperty:S("强烈建议开启：温度超过 80°C 或读温失败时放行系统温控，防止异常发热和自动黑屏。") forKey:S("footerText")];
-[specs addObject:group];
-
-[specs addObject:[self switchSpecifier:S("保留 CPMS 紧急保护") key:S("keepCPMSAlive")]];
-
-// ===================== 第5组: 操作 =====================
+// ===================== 第4组: 操作 =====================
 group = [PSSpecifier emptyGroupSpecifier];
 [group setProperty:S("操作") forKey:S("label")];
 [specs addObject:group];
