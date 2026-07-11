@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>items</key>
+	<array>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>isController</key>
+			<true/>
+			<key>label</key>
+			<string>iOS主题键盘</string>
+			<key>bundle</key>
+			<string>iOS主题键盘Prefs</string>
+			<key>bundlePath</key>
+			<string>/var/jb/Library/PreferenceBundles/iOS主题键盘Prefs.bundle</string>
+		</dict>
+	</array>
+</dict>
+</plist>
