@@ -10,11 +10,11 @@
 			<key>isController</key>
 			<true/>
 			<key>label</key>
-			<string>iOS主题键盘</string>
+			<string>iOSKeyboardTheme</string>
 			<key>bundle</key>
-			<string>iOS主题键盘Prefs</string>
+			<string>iOSKeyboardThemePrefs</string>
 			<key>bundlePath</key>
-			<string>/var/jb/Library/PreferenceBundles/iOS主题键盘Prefs.bundle</string>
+			<string>/var/jb/Library/PreferenceBundles/iOSKeyboardThemePrefs.bundle</string>
 		</dict>
 	</array>
 </dict>

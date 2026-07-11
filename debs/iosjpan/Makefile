@@ -9,18 +9,18 @@ export ARCHS
 
 include $(THEOS)/makefiles/common.mk
 
-TWEAK_NAME = iOS主题键盘
-iOS主题键盘_FILES = Tweak.xm
-iOS主题键盘_CFLAGS = -fobjc-arc
+TWEAK_NAME = iOSKeyboardTheme
+iOSKeyboardTheme_FILES = Tweak.xm
+iOSKeyboardTheme_CFLAGS = -fobjc-arc
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 
-BUNDLE_NAME = iOS主题键盘Prefs
-iOS主题键盘Prefs_FILES = iOS主题键盘Prefs/iOS主题键盘Prefs.mm
-iOS主题键盘Prefs_INSTALL_PATH = /Library/PreferenceBundles
-iOS主题键盘Prefs_CFLAGS = -fobjc-arc
-iOS主题键盘Prefs_FRAMEWORKS = UIKit Foundation
-iOS主题键盘Prefs_PRIVATE_FRAMEWORKS = Preferences
+BUNDLE_NAME = iOSKeyboardThemePrefs
+iOSKeyboardThemePrefs_FILES = iOSKeyboardThemePrefs/iOSKeyboardThemePrefs.mm
+iOSKeyboardThemePrefs_INSTALL_PATH = /Library/PreferenceBundles
+iOSKeyboardThemePrefs_CFLAGS = -fobjc-arc
+iOSKeyboardThemePrefs_FRAMEWORKS = UIKit Foundation
+iOSKeyboardThemePrefs_PRIVATE_FRAMEWORKS = Preferences
 
 include $(THEOS_MAKE_PATH)/bundle.mk
 

@@ -11,7 +11,7 @@
 
 - (id)specifiers {
 	if (!_specifiers) {
-		_specifiers = [self loadSpecifiersFromPlistName:@"iOS主题键盘" target:self];
+		_specifiers = [self loadSpecifiersFromPlistName:@"iOSKeyboardTheme" target:self];
 	}
 	return _specifiers;
 }

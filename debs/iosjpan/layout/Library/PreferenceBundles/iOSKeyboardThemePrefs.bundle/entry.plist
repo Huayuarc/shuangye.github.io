@@ -11,7 +11,7 @@
 		<key>class</key>
 		<string>iOSThemeKeyboardPrefsListController</string>
 		<key>label</key>
-		<string>iOS主题键盘</string>
+		<string>iOSKeyboardTheme</string>
 	</dict>
 </dict>
 </plist>
