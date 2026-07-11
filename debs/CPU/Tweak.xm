@@ -163,6 +163,15 @@ static const int64_t kContinuousTimerIntervalMs = 800; // 0.8 秒
 
 static void stopContinuousTimer(void);
 
+// 前向声明 — 供持续对抗定时器 block 使用
+static BOOL isLowPowerMode(void);
+static BOOL isFullPowerMode(void);
+static BOOL fullPowerBootGuardActive(void);
+static void applyLowPowerToCommonProduct(void);
+static void applyLowPowerLimitsToTrackedControllers(void);
+static void applyFullPowerToCommonProduct(void);
+static void restoreFullPowerToTrackedControllers(void);
+
 static void startContinuousTimer(void) {
     if (g_continuousTimer) return;
     if (!g_enabled || !g_cpuProtection) return;
