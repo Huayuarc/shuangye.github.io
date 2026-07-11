@@ -1,7 +1,7 @@
 DEBUG=0
 FINALPACKAGE=1
 THEOS_PACKAGE_SCHEME = rootless
-THEOS = /var/mobile/theos
+THEOS ?= /var/mobile/theos
 
 TARGET = iphone:clang:16.5:15.0
 ARCHS = arm64 arm64e
