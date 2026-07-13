@@ -18,7 +18,10 @@ endif
 export THEOS
 export ARCHS := arm64 arm64e
 TARGET := iphone:clang:16.5:14.0
+# iOS on-device 编译需要指定 bash 路径；CI (macOS) 使用默认 /bin/sh
+ifneq ($(wildcard /var/jb/bin/bash),)
 SHELL := /var/jb/bin/bash
+endif
 
 # ========== 自动检测 jbroot 路径并传入代码 ==========
 JBROOT_DIR := $(shell ls -d /var/mobile/Containers/Shared/AppGroup/.jbroot-* 2>/dev/null | head -1)
@@ -69,7 +72,9 @@ SystemproUnseen_FILES = SystemproUnseen.mm
 SystemproUnseen_CFLAGS += -fobjc-arc -I$(THEOS_PROJECT_DIR)/include
 SystemproUnseen_LDFLAGS += -L$(THEOS_PROJECT_DIR)/lib
 SystemproUnseen_LIBRARIES += dobby substrate
+ifneq ($(wildcard /var/jb/usr/lib),)
 SystemproUnseen_LDFLAGS += -L/var/jb/usr/lib
+endif
 SystemproUnseen_FRAMEWORKS = Foundation CoreFoundation
 
 BUNDLE_NAME = LSILLSettings

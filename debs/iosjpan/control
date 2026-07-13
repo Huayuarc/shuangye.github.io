@@ -1,9 +1,0 @@
-Package: com.marsnakly.ios8darkkeyboard
-Name: iOS主题键盘
-Author: Huayuarc
-Description: 主题键盘 - 支持黑色主题与圆角样式自定义
-Depends: mobilesubstrate (>= 0.9.5000), firmware (>= 14.0), preferenceloader
-Maintainer: Huayuarc
-Section: Tweaks
-Architecture: iphoneos-arm
-Version: 2.0.1
