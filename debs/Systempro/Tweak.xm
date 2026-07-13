@@ -32,11 +32,6 @@ static NSString *const kDisconnectWiFiBTKey  = @"disconnectWiFiBT";
 static NSString *const kLowPowerOnLockKey   = @"lowPowerOnLock";
 static NSString *const kLockWhenFaceDownKey = @"lockWhenFaceDown";
 
-// ===== Cyanide 移植功能键 =====
-static NSString *const kDisableIconFlyInKey = @"disableIconFlyIn";
-static NSString *const kZeroWakeAnimationKey = @"zeroWakeAnimation";
-static NSString *const kCCRecordNoDelayKey  = @"ccRecordNoDelay";
-
 static NSString *const kNotifyPrefsChanged = @"com.huayuarc.systempro.prefschanged";
 static NSString *const kNotifyRespring     = @"com.huayuarc.systempro.respring";
 
@@ -81,14 +76,6 @@ static BOOL      g_lockWhenFaceDown           = NO;
 // 锁屏自动低电 — 记录锁屏前低电模式状态
 static BOOL      g_isLPMOnBeforeLock          = NO;
 
-// ===== Cyanide 移植功能全局变量 =====
-static BOOL      g_disableIconFlyIn    = NO;
-static BOOL      g_zeroWakeAnimation   = NO;
-
-// ===== 录屏去延迟 =====
-static BOOL      g_ccRecordNoDelay               = NO;
-static BOOL      g_ccRecordNoDelayHooksInited    = NO;
-
 // ============================================================================
 // 配置读写 — 内存缓存（避免热路径 I/O）
 // ============================================================================
@@ -122,11 +109,6 @@ static void reloadConfiguration(void) {
 		g_disconnectWiFiBT           = [prefs[kDisconnectWiFiBTKey] boolValue];
 		g_lowPowerOnLock             = [prefs[kLowPowerOnLockKey] boolValue];
 		g_lockWhenFaceDown           = [prefs[kLockWhenFaceDownKey] boolValue];
-
-		// ===== Cyanide 移植功能 =====
-		g_disableIconFlyIn    = [prefs[kDisableIconFlyInKey] boolValue];
-		g_zeroWakeAnimation   = [prefs[kZeroWakeAnimationKey] boolValue];
-		g_ccRecordNoDelay     = [prefs[kCCRecordNoDelayKey] boolValue];
 
 		// 兜底：确保枚举值不越界
 		// 兜底：确保枚举值不越界
@@ -422,29 +404,6 @@ static BOOL shouldBlock(void) {
 -(void)_simulateLockButtonPress;
 @end
 
-// Cyanide 移植 — SBFloatingDockController 私有方法声明
-@interface SBFloatingDockController : UIViewController
--(void)_setHomeAffordanceHidden:(BOOL)hidden;
--(void)setWantsHomeGestureHidden:(BOOL)hidden;
-@end
-
-// 自定义动画速度 — 私有类声明
-@interface SBIconAnimationController : NSObject
--(double)animationDuration;
-@end
-
-@interface SBCoverSheetAnimationController : NSObject
--(double)animationDuration;
-@end
-
-@interface SBUIAnimationController : NSObject
--(double)animationDuration;
-@end
-
-@interface SBFolderController : UIViewController
--(double)animationDuration;
-@end
-
 %group DisconnectWiFiBT
 
 %hook BluetoothManager
@@ -535,143 +494,6 @@ static BOOL shouldBlock(void) {
 %end
 
 // ============================================================================
-// ===== Cyanide 移植功能 Group =====
-// ============================================================================
-
-// ============================================================================
-// 2. Disable Icon Fly-In — 禁用锁屏图标飞入动画
-// 移植自 Cyanide: tweaks/darksword_tweaks.m → darksword_tweak_disable_icon_fly_in_in_session
-// ============================================================================
-%group IconFlyInHooks
-
-%hook SBCoverSheetPresentationManager
-- (double)_iconFlyInTension {
-	if (g_disableIconFlyIn) return 1000000.0;
-	return %orig;
-}
-- (double)_iconFlyInFriction {
-	if (g_disableIconFlyIn) return 1000000.0;
-	return %orig;
-}
-- (double)_iconFlyInInteractiveResponseMin {
-	if (g_disableIconFlyIn) return 0.0001;
-	return %orig;
-}
-- (double)_iconFlyInInteractiveResponseMax {
-	if (g_disableIconFlyIn) return 0.0001;
-	return %orig;
-}
-- (double)_iconFlyInInteractiveDampingRatioMin {
-	if (g_disableIconFlyIn) return 1.0;
-	return %orig;
-}
-- (double)_iconFlyInInteractiveDampingRatioMax {
-	if (g_disableIconFlyIn) return 1.0;
-	return %orig;
-}
-%end
-
-%end
-
-// ============================================================================
-// 3. Zero Wake Animation — 零唤醒动画（瞬间解锁）
-// 移植自 Cyanide: tweaks/darksword_tweaks.m → darksword_tweak_zero_wake_animation_in_session
-// ============================================================================
-%group ZeroWakeHooks
-
-%hook SBScreenWakeAnimationController
-- (double)_backlightFadeDuration {
-	if (g_zeroWakeAnimation) return 0.0;
-	return %orig;
-}
-- (double)speedMultiplierForWake {
-	if (g_zeroWakeAnimation) return 1000.0;
-	return %orig;
-}
-- (double)_speedMultiplierForLiftToWake {
-	if (g_zeroWakeAnimation) return 1000.0;
-	return %orig;
-}
-%end
-
-// 辅助: 让解锁后的回弹动画也消失 — hook SBIconController 动画速度
-%hook SBIconController
-- (double)maxScrollDuration {
-	if (g_zeroWakeAnimation) return 0.0;
-	return %orig;
-}
-%end
-
-%end
-
-// ============================================================================
-// 录屏去延迟// ============================================================================
-// 录屏去延迟 — Hook ReplayKit 控制中心模块跳过 3 秒倒计时
-// 移植自 CCRecordNoDelay by LaYii
-// 原理: NSBundle -load 检测 ReplayKitModule.bundle 加载后，
-//        懒初始化 CCRecordNoDelayHooks，hook 倒计时方法。
-// ============================================================================
-
-// 录屏去延迟 Hook — %group 必须定义在 %init 引用之前
-%group CCRecordNoDelayHooks
-
-%hook RPControlCenterMenuModuleViewController
-- (void)transitionToCountdownState {
-	if (!g_ccRecordNoDelay) { %orig; return; }
-
-	// 获取 _client 实例变量
-	Ivar ivar = class_getInstanceVariable(object_getClass(self), "_client");
-	if (!ivar) { %orig; return; }
-	id client = object_getIvar(self, ivar);
-	if (!client) { %orig; return; }
-
-	// 关闭控制中心（无动画）
-	Class ccCls = objc_getClass("SBControlCenterController");
-	if (ccCls) {
-		id cc = ((id (*)(Class, SEL))objc_msgSend)(ccCls, @selector(sharedInstance));
-		if (cc) {
-			((void (*)(id, SEL, BOOL))objc_msgSend)(cc, @selector(dismissAnimated:), NO);
-		}
-	}
-
-	// 延迟 100ms 后直接开始录制，跳过倒计时
-	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 100 * NSEC_PER_MSEC),
-		dispatch_get_main_queue(), ^{
-			((void (*)(id, SEL, id))objc_msgSend)(
-				client, @selector(startRecordingWithHandler:), nil);
-		});
-}
-%end
-
-%end
-
-// 录屏去延迟 — C 辅助函数（在 %group 外部，Logos 可正确解析 %init）
-static void initCCRecordNoDelayHooks(void) {
-	@try {
-		%init(CCRecordNoDelayHooks);
-	} @catch (NSException *e) {
-		NSLog(@"[Systempro] CCRecordNoDelayHooks init failed: %@", e);
-	}
-}
-
-// NSBundle 懒加载检测 — 始终初始化
-%group NSBundleHooks
-
-%hook NSBundle
-- (BOOL)load {
-	BOOL r = %orig;
-	if (g_ccRecordNoDelay && !g_ccRecordNoDelayHooksInited &&
-		[[self bundlePath] containsString:@"ReplayKitModule.bundle"]) {
-		g_ccRecordNoDelayHooksInited = YES;
-		initCCRecordNoDelayHooks();
-	}
-	return r;
-}
-%end
-
-%end
-
-// ============================================================================
 // ===== CFNotification 回调 =====
 // ============================================================================
 
@@ -681,12 +503,6 @@ static void onPrefsChanged(CFNotificationCenterRef center,
 						   const void *object,
 						   CFDictionaryRef userInfo) {
 	reloadConfiguration();
-
-	// 录屏去延迟 — 运行时开启后尝试懒初始化 hook
-	if (g_ccRecordNoDelay && !g_ccRecordNoDelayHooksInited) {
-		initCCRecordNoDelayHooks();
-		g_ccRecordNoDelayHooksInited = YES;
-	}
 }
 
 static volatile bool g_isRespringing = false;
@@ -739,9 +555,6 @@ static void onRespring(CFNotificationCenterRef center,
 	@autoreleasepool {
 		reloadConfiguration();
 
-		// NSBundle 懒加载检测 — 用于 ReplayKit 等动态加载模块的 hook
-		%init(NSBundleHooks);
-
 		// 核心功能 — 类必然存在
 		%init(MainHooks);
 
@@ -778,18 +591,6 @@ static void onRespring(CFNotificationCenterRef center,
 		// 设备朝下自动锁屏 — SBIdleTimerGlobalStateMonitor 类在 iOS 16 上存在
 		if (NSClassFromString(@"SBIdleTimerGlobalStateMonitor")) {
 			%init(FaceDownLock);
-		}
-
-		// ===== Cyanide 移植功能初始化 =====
-
-		// 禁用图标飞入动画 — SBCoverSheetPresentationManager iOS 16 上存在
-		if (NSClassFromString(@"SBCoverSheetPresentationManager")) {
-			%init(IconFlyInHooks);
-		}
-
-		// 零唤醒动画 — SBScreenWakeAnimationController iOS 16 上存在
-		if (NSClassFromString(@"SBScreenWakeAnimationController")) {
-			%init(ZeroWakeHooks);
 		}
 
 		// 监听静音开关状态变化		// 监听静音开关状态变化

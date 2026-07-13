@@ -7,10 +7,8 @@
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
-			<key>footerText</key>
-			<string>Cyanide 全部功能完美移植到 Systempro，启用后立即生效，部分功能需注销。</string>
 			<key>label</key>
-			<string>Cyanide 移植功能</string>
+			<string>桌面增强</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -20,9 +18,9 @@
 			<key>defaults</key>
 			<string>com.huayuarc.systempro</string>
 			<key>key</key>
-			<string>cld_appSwitcherGrid</string>
+			<string>cyanide_appSwitcherGrid</string>
 			<key>label</key>
-			<string>应用切换器网格</string>
+			<string>网格多任务</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -32,9 +30,9 @@
 			<key>defaults</key>
 			<string>com.huayuarc.systempro</string>
 			<key>key</key>
-			<string>cld_callRecordMute</string>
+			<string>cyanide_killAll</string>
 			<key>label</key>
-			<string>通话录音静音</string>
+			<string>一键杀后台</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -44,9 +42,71 @@
 			<key>defaults</key>
 			<string>com.huayuarc.systempro</string>
 			<key>key</key>
-			<string>cld_killAllApps</string>
+			<string>cyanide_sbCustomizer</string>
 			<key>label</key>
-			<string>一键杀所有后台</string>
+			<string>主屏幕自定义</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>default</key>
+			<integer>4</integer>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>key</key>
+			<string>cyanide_sbColumns</string>
+			<key>label</key>
+			<string>图标列数</string>
+			<key>min</key>
+			<integer>3</integer>
+			<key>max</key>
+			<integer>8</integer>
+			<key>isSegmented</key>
+			<true/>
+			<key>segmentCount</key>
+			<integer>6</integer>
+			<key>segmentValues</key>
+			<array>
+				<integer>3</integer>
+				<integer>4</integer>
+				<integer>5</integer>
+				<integer>6</integer>
+				<integer>7</integer>
+				<integer>8</integer>
+			</array>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>default</key>
+			<integer>4</integer>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>key</key>
+			<string>cyanide_sbDockIcons</string>
+			<key>label</key>
+			<string>Dock 图标数</string>
+			<key>min</key>
+			<integer>1</integer>
+			<key>max</key>
+			<integer>10</integer>
+			<key>isSegmented</key>
+			<true/>
+			<key>segmentCount</key>
+			<integer>10</integer>
+			<key>segmentValues</key>
+			<array>
+				<integer>1</integer>
+				<integer>2</integer>
+				<integer>3</integer>
+				<integer>4</integer>
+				<integer>5</integer>
+				<integer>6</integer>
+				<integer>7</integer>
+				<integer>8</integer>
+				<integer>9</integer>
+				<integer>10</integer>
+			</array>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -56,9 +116,9 @@
 			<key>defaults</key>
 			<string>com.huayuarc.systempro</string>
 			<key>key</key>
-			<string>cld_powercuffEnabled</string>
+			<string>cyanide_sbHideLabels</string>
 			<key>label</key>
-			<string>热节流模拟（省电）</string>
+			<string>隐藏图标标签</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -68,9 +128,33 @@
 			<key>defaults</key>
 			<string>com.huayuarc.systempro</string>
 			<key>key</key>
-			<string>cld_layoutEnabled</string>
+			<string>cyanide_gravity</string>
 			<key>label</key>
-			<string>图标间距缩放</string>
+			<string>图标重力动画</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>default</key>
+			<real>0.5</real>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>key</key>
+			<string>cyanide_gravityStrength</string>
+			<key>label</key>
+			<string>重力强度</string>
+			<key>min</key>
+			<real>0.1</real>
+			<key>max</key>
+			<real>5.0</real>
+			<key>showValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>界面浮层</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -80,9 +164,9 @@
 			<key>defaults</key>
 			<string>com.huayuarc.systempro</string>
 			<key>key</key>
-			<string>cld_sbCustomizerEnabled</string>
+			<string>cyanide_statBar</string>
 			<key>label</key>
-			<string>桌面网格自定义</string>
+			<string>系统状态浮层</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -92,9 +176,9 @@
 			<key>defaults</key>
 			<string>com.huayuarc.systempro</string>
 			<key>key</key>
-			<string>cld_nsbarEnabled</string>
+			<string>cyanide_statBarShowCPU</string>
 			<key>label</key>
-			<string>网络速度条</string>
+			<string>显示 CPU</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -104,9 +188,9 @@
 			<key>defaults</key>
 			<string>com.huayuarc.systempro</string>
 			<key>key</key>
-			<string>cld_statbarEnabled</string>
+			<string>cyanide_statBarShowNet</string>
 			<key>label</key>
-			<string>系统状态监视</string>
+			<string>显示网速</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -116,9 +200,9 @@
 			<key>defaults</key>
 			<string>com.huayuarc.systempro</string>
 			<key>key</key>
-			<string>cld_gravityEnabled</string>
+			<string>cyanide_statBarShowLabels</string>
 			<key>label</key>
-			<string>图标物理效果</string>
+			<string>显示标签</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -128,9 +212,9 @@
 			<key>defaults</key>
 			<string>com.huayuarc.systempro</string>
 			<key>key</key>
-			<string>cld_livewpEnabled</string>
+			<string>cyanide_nsBar</string>
 			<key>label</key>
-			<string>视频动态壁纸</string>
+			<string>实时网速浮层</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -140,9 +224,15 @@
 			<key>defaults</key>
 			<string>com.huayuarc.systempro</string>
 			<key>key</key>
-			<string>cld_nicebarEnabled</string>
+			<string>cyanide_rssi</string>
 			<key>label</key>
-			<string>状态栏多插槽文本</string>
+			<string>实时信号强度(dBm)</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>系统工具</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -152,9 +242,9 @@
 			<key>defaults</key>
 			<string>com.huayuarc.systempro</string>
 			<key>key</key>
-			<string>cld_snowboardEnabled</string>
+			<string>cyanide_hideHomeBar</string>
 			<key>label</key>
-			<string>图标主题引擎</string>
+			<string>隐藏主屏幕横条</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -164,31 +254,7 @@
 			<key>defaults</key>
 			<string>com.huayuarc.systempro</string>
 			<key>key</key>
-			<string>cld_locationEnabled</string>
-			<key>label</key>
-			<string>GPS 位置模拟</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSSwitchCell</string>
-			<key>default</key>
-			<false/>
-			<key>defaults</key>
-			<string>com.huayuarc.systempro</string>
-			<key>key</key>
-			<string>cld_nanoEnabled</string>
-			<key>label</key>
-			<string>解除 Apple Watch 配对限制</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSSwitchCell</string>
-			<key>default</key>
-			<false/>
-			<key>defaults</key>
-			<string>com.huayuarc.systempro</string>
-			<key>key</key>
-			<string>cld_otaEnabled</string>
+			<string>cyanide_disableOTA</string>
 			<key>label</key>
 			<string>禁用 OTA 更新</string>
 		</dict>
@@ -200,12 +266,24 @@
 			<key>defaults</key>
 			<string>com.huayuarc.systempro</string>
 			<key>key</key>
-			<string>cld_axonliteEnabled</string>
+			<string>cyanide_muteCallRecord</string>
 			<key>label</key>
-			<string>通知聚合徽章</string>
+			<string>谨言通话录音提示音</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>key</key>
+			<string>cyanide_nanoRegistry</string>
+			<key>label</key>
+			<string>Watch 配对兼容</string>
 		</dict>
 	</array>
 	<key>title</key>
-	<string>Cyanide 移植</string>
+	<string>Cyanide 增强功能</string>
 </dict>
 </plist>

@@ -1,257 +1,189 @@
-// Tweak_Cyanide_StatBar.x
-// Ported from Cyanide statbar - System status overlay (battery temp, CPU, RAM)
+// StatBar — 系统状态浮层（CPU/内存/温度/网速）
+// 移植自 Cyanide: tweaks/statbar.m
+// 原理: 在 SpringBoard 创建 UIWindow 悬浮层，定时更新系统信息
 
 #import <UIKit/UIKit.h>
-#import <Foundation/Foundation.h>
-#import <ifaddrs.h>
-#import <net/if.h>
+#import <notify.h>
 #import <mach/mach_host.h>
 #import <mach/host_info.h>
 #import <sys/sysctl.h>
-#import <IOKit/IOKitLib.h>
 
-static BOOL g_cld_statbarEnabled = NO;
-static BOOL g_cld_statbarCelsius = YES;
-static BOOL g_cld_statbarShowNet = NO;
-static BOOL g_cld_statbarShowCPU = NO;
-static BOOL g_cld_statbarShowLabels = NO;
-static UIWindow *g_cld_statbarWindow = nil;
-static UILabel *g_cld_statbarLabel = nil;
-static NSTimer *g_cld_statbarTimer = nil;
+#pragma mark - Preferences
 
-// IOKit battery temperature reading
-static float cld_statbar_get_battery_temp(void) {
-    float temp = 0;
-    io_connect_t connect = 0;
-    io_service_t service = IOServiceGetMatchingService(kIOMasterPortDefault,
-                                                       IOServiceMatching("AppleSmartBattery"));
-    if (!service) return 0;
-    
-    IOReturn ret = IOServiceOpen(service, mach_task_self(), 0, &connect);
-    IOObjectRelease(service);
-    if (ret != kIOReturnSuccess) return 0;
-    
-    size_t count = 1;
-    uint64_t temperature = 0;
-    uint32_t outputCount = 1;
-    
-    ret = IOConnectCallMethod(connect, 0, NULL, 0, NULL, 0,
-                              &temperature, &outputCount, NULL, &count);
-    IOServiceClose(connect);
-    
-    if (ret == kIOReturnSuccess) {
-        temp = (float)((double)temperature / 100.0);
-    }
-    return temp;
+static NSString *const kStBPrefsDomain = @"com.huayuarc.systempro";
+static NSString *const kStBPrefsChangedNotification = @"com.huayuarc.systempro.prefschanged";
+
+static NSString *const kStBEnabledKey    = @"cyanide_statBar";
+static NSString *const kStBCelsiusKey    = @"cyanide_statBarCelsius";
+static NSString *const kStBShowNetKey    = @"cyanide_statBarShowNet";
+static NSString *const kStBShowCPUKey    = @"cyanide_statBarShowCPU";
+static NSString *const kStBShowLabelsKey = @"cyanide_statBarShowLabels";
+
+static BOOL g_stbEnabled    = NO;
+static BOOL g_stbCelsius    = YES;
+static BOOL g_stbShowNet    = YES;
+static BOOL g_stbShowCPU    = YES;
+static BOOL g_stbShowLabels = YES;
+
+static UIWindow *g_statBarWindow = nil;
+static UILabel  *g_statBarLabel  = nil;
+static dispatch_source_t g_statBarTimer = nil;
+
+#pragma mark - System Info Helpers
+
+static float stb_cpuUsage(void) {
+	kern_return_t kr;
+	mach_msg_type_number_t count;
+	host_cpu_load_info_data_t cpuInfo;
+	count = HOST_CPU_LOAD_INFO_COUNT;
+	kr = host_statistics(mach_host_self(), HOST_CPU_LOAD_INFO, (host_info_t)&cpuInfo, &count);
+	if (kr != KERN_SUCCESS) return 0;
+
+	natural_t user = cpuInfo.cpu_ticks[CPU_STATE_USER];
+	natural_t system = cpuInfo.cpu_ticks[CPU_STATE_SYSTEM];
+	natural_t idle = cpuInfo.cpu_ticks[CPU_STATE_IDLE];
+	natural_t nice = cpuInfo.cpu_ticks[CPU_STATE_NICE];
+	natural_t total = user + system + idle + nice;
+	if (total == 0) return 0;
+	return (float)(user + system + nice) / (float)total * 100.0;
 }
 
-// Free RAM
-static double cld_statbar_get_free_ram_gb(void) {
-    mach_msg_type_number_t count = HOST_VM_INFO64_COUNT;
-    vm_statistics64_data_t vmstat;
-    if (host_statistics64(mach_host_self(), HOST_VM_INFO64,
-                          (host_info64_t)&vmstat, &count) == KERN_SUCCESS) {
-        uint64_t free_bytes = vmstat.free_count * vm_page_size;
-        return (double)free_bytes / (1024.0 * 1024.0 * 1024.0);
-    }
-    return 0;
+static uint64_t stb_freeMemory(void) {
+	mach_port_t host = mach_host_self();
+	vm_statistics64_data_t vmStats;
+	mach_msg_type_number_t count = HOST_VM_INFO64_COUNT;
+	if (host_statistics64(host, HOST_VM_INFO64, (host_info64_t)&vmStats, &count) != KERN_SUCCESS) return 0;
+	uint64_t pageSize = vm_kernel_page_size;
+	return (vmStats.free_count + vmStats.inactive_count) * pageSize;
 }
 
-// CPU usage
-static float cld_statbar_get_cpu_usage(void) {
-    static uint64_t prev_total = 0;
-    static uint64_t prev_idle = 0;
-    static int sampleCount = 0;
-    
-    host_cpu_load_info_data_t cpuInfo;
-    mach_msg_type_number_t count = HOST_CPU_LOAD_INFO_COUNT;
-    if (host_statistics(mach_host_self(), HOST_CPU_LOAD_INFO,
-                        (host_info_t)&cpuInfo, &count) != KERN_SUCCESS) {
-        return -1;
-    }
-    
-    uint64_t total = cpuInfo.cpu_ticks[CPU_STATE_USER] +
-                     cpuInfo.cpu_ticks[CPU_STATE_SYSTEM] +
-                     cpuInfo.cpu_ticks[CPU_STATE_IDLE] +
-                     cpuInfo.cpu_ticks[CPU_STATE_NICE];
-    uint64_t idle = cpuInfo.cpu_ticks[CPU_STATE_IDLE];
-    
-    if (sampleCount == 0) {
-        prev_total = total;
-        prev_idle = idle;
-        sampleCount = 1;
-        return -1;
-    }
-    
-    uint64_t totalDelta = total - prev_total;
-    uint64_t idleDelta = idle - prev_idle;
-    
-    prev_total = total;
-    prev_idle = idle;
-    
-    if (totalDelta == 0) return 0;
-    return (float)((double)(totalDelta - idleDelta) / (double)totalDelta * 100.0);
+static float stb_batteryTemp(void) {
+	// 通过 IOKit 读取电池温度
+	// 在越狱环境下可以访问 IOKit
+	static float (*s_getBatteryTemp)(void) = NULL;
+	static dispatch_once_t once;
+	dispatch_once(&once, ^{
+		void *handle = dlopen("/System/Library/PrivateFrameworks/SystemStatus.framework/SystemStatus", RTLD_LAZY);
+		if (!handle) return;
+		s_getBatteryTemp = dlsym(handle, "STBatteryStatusPublisher_batteryTemperature");
+	});
+	// 通过 sysctl 读取
+	int value = 0;
+	size_t val_len = sizeof(value);
+	if (sysctlbyname("hw.batterytemp", &value, &val_len, NULL, 0) == 0) {
+		return (float)value / 100.0;
+	}
+	return 0;
 }
 
-// Network speed
-typedef struct {
-    uint64_t downBytes;
-    uint64_t upBytes;
-} CLDNetSample;
+#pragma mark - StatBar UI
 
-static CLDNetSample cld_statbar_sample_net(void) {
-    CLDNetSample sample = {0, 0};
-    struct ifaddrs *addrs = NULL;
-    if (getifaddrs(&addrs) != 0) return sample;
-    
-    for (struct ifaddrs *addr = addrs; addr; addr = addr->ifa_next) {
-        if (!addr->ifa_addr || addr->ifa_addr->sa_family != AF_LINK) continue;
-        NSString *name = @(addr->ifa_name);
-        if ([name isEqualToString:@"lo0"]) continue;
-        
-        struct if_data *stats = (struct if_data *)addr->ifa_data;
-        if (stats) {
-            sample.downBytes += stats->ifi_ibytes;
-            sample.upBytes += stats->ifi_obytes;
-        }
-    }
-    freeifaddrs(addrs);
-    return sample;
+static void stb_createWindow(void) {
+	if (g_statBarWindow) return;
+
+	g_statBarWindow = [[UIWindow alloc] initWithFrame:CGRectMake(0, 0, [UIScreen mainScreen].bounds.size.width, 20)];
+	g_statBarWindow.windowLevel = UIWindowLevelStatusBar + 100;
+	g_statBarWindow.backgroundColor = [UIColor clearColor];
+	g_statBarWindow.userInteractionEnabled = NO;
+
+	g_statBarLabel = [[UILabel alloc] initWithFrame:g_statBarWindow.bounds];
+	g_statBarLabel.backgroundColor = [UIColor colorWithWhite:0 alpha:0.3];
+	g_statBarLabel.textColor = [UIColor whiteColor];
+	g_statBarLabel.font = [UIFont systemFontOfSize:10];
+	g_statBarLabel.textAlignment = NSTextAlignmentCenter;
+	g_statBarLabel.adjustsFontSizeToFitWidth = YES;
+
+	[g_statBarWindow addSubview:g_statBarLabel];
+	g_statBarWindow.hidden = NO;
 }
 
-static NSString *cld_statbar_format_speed(double kbps) {
-    if (kbps >= 1024.0) {
-        return [NSString stringWithFormat:@"%.1fM", kbps / 1024.0];
-    } else if (kbps >= 1.0) {
-        return [NSString stringWithFormat:@"%.0fK", kbps];
-    }
-    return @"0K";
+static void stb_updateLabel(void) {
+	if (!g_statBarLabel) return;
+
+	float cpu = stb_cpuUsage();
+	uint64_t freeMem = stb_freeMemory();
+	float freeMemMB = (float)freeMem / 1024.0 / 1024.0;
+
+	NSMutableString *text = [NSMutableString string];
+
+	if (g_stbShowCPU) {
+		if (g_stbShowLabels) [text appendFormat:@"CPU:%.1f%% ", cpu];
+		else [text appendFormat:@"%.1f%% ", cpu];
+	}
+
+	if (g_stbShowLabels) [text appendFormat:@"RAM:%.0fMB ", freeMemMB];
+	else [text appendFormat:@"%.0fMB ", freeMemMB];
+
+	g_statBarLabel.text = text;
 }
 
-@interface _CLDStatBarHelper : NSObject
-+ (void)cld_statbar_timerTick:(NSTimer *)timer;
-@end
-@implementation _CLDStatBarHelper
-+ (void)cld_statbar_timerTick:(NSTimer *)timer {
-    if (!g_cld_statbarEnabled || !g_cld_statbarLabel) return;
-    
-    NSMutableString *text = [NSMutableString string];
-    
-    // Battery temperature
-    float temp = cld_statbar_get_battery_temp();
-    if (temp > 0) {
-        if (g_cld_statbarShowLabels) [text appendString:@"Temp:"];
-        if (g_cld_statbarCelsius) {
-            [text appendFormat:@"%.1f°C ", temp];
-        } else {
-            [text appendFormat:@"%.1f°F ", temp * 9.0/5.0 + 32.0];
-        }
-    }
-    
-    // CPU
-    if (g_cld_statbarShowCPU) {
-        float cpu = cld_statbar_get_cpu_usage();
-        if (cpu >= 0) {
-            if (g_cld_statbarShowLabels) [text appendString:@"CPU:"];
-            [text appendFormat:@"%.0f%% ", cpu];
-        }
-    }
-    
-    // RAM
-    double freeRAM = cld_statbar_get_free_ram_gb();
-    if (g_cld_statbarShowLabels) [text appendString:@"RAM:"];
-    [text appendFormat:@"%.2fGB ", freeRAM];
-    
-    // Network speed
-    if (g_cld_statbarShowNet) {
-        static CLDNetSample prevSample = {0, 0};
-        static BOOL hasPrev = NO;
-        
-        CLDNetSample current = cld_statbar_sample_net();
-        if (hasPrev) {
-            double downKBps = (double)(current.downBytes - prevSample.downBytes) / 1024.0;
-            double upKBps = (double)(current.upBytes - prevSample.upBytes) / 1024.0;
-            [text appendFormat:@"↓%@ ↑%@",
-             cld_statbar_format_speed(downKBps),
-             cld_statbar_format_speed(upKBps)];
-        }
-        prevSample = current;
-        hasPrev = YES;
-    }
-    
-    g_cld_statbarLabel.text = text;
-}
-@end
+static void stb_startTimer(void) {
+	if (g_statBarTimer) return;
 
-static void cld_statbar_create_window(void) {
-    if (g_cld_statbarWindow) return;
-    
-    UIWindow *window = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
-    window.windowLevel = 999.0;
-    window.userInteractionEnabled = NO;
-    window.hidden = NO;
-    
-    CGFloat labelWidth = 280;
-    CGFloat labelHeight = 20;
-    CGFloat labelX = (window.bounds.size.width - labelWidth) / 2;
-    CGFloat labelY = 56; // Below status bar
-    
-    UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(labelX, labelY, labelWidth, labelHeight)];
-    label.font = [UIFont monospacedDigitSystemFontOfSize:10 weight:UIFontWeightMedium];
-    label.textColor = [UIColor whiteColor];
-    label.backgroundColor = [UIColor colorWithWhite:0 alpha:0.4];
-    label.textAlignment = NSTextAlignmentCenter;
-    label.layer.cornerRadius = 4;
-    label.layer.masksToBounds = YES;
-    label.adjustsFontSizeToFitWidth = YES;
-    label.minimumScaleFactor = 0.6;
-    label.text = @"Starting...";
-    
-    [window addSubview:label];
-    
-    g_cld_statbarWindow = window;
-    g_cld_statbarLabel = label;
-    
-    g_cld_statbarTimer = [NSTimer scheduledTimerWithTimeInterval:2.0
-                                                          target:[_CLDStatBarHelper class]
-                                                        selector:@selector(cld_statbar_timerTick:)
-                                                        userInfo:nil
-                                                         repeats:YES];
+	g_statBarTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, dispatch_get_main_queue());
+	if (!g_statBarTimer) return;
+
+	dispatch_source_set_timer(g_statBarTimer, dispatch_time(DISPATCH_TIME_NOW, 0), 2 * NSEC_PER_SEC, 0.5 * NSEC_PER_SEC);
+	dispatch_source_set_event_handler(g_statBarTimer, ^{
+		stb_updateLabel();
+	});
+	dispatch_resume(g_statBarTimer);
 }
 
-static void cld_statbar_destroy(void) {
-    [g_cld_statbarTimer invalidate];
-    g_cld_statbarTimer = nil;
-    [g_cld_statbarLabel removeFromSuperview];
-    g_cld_statbarLabel = nil;
-    g_cld_statbarWindow.hidden = YES;
-    g_cld_statbarWindow = nil;
+static void stb_stopTimer(void) {
+	if (g_statBarTimer) {
+		dispatch_source_cancel(g_statBarTimer);
+		g_statBarTimer = nil;
+	}
 }
 
-static void cld_loadStatBarPrefs() {
-    BOOL wasEnabled = g_cld_statbarEnabled;
-    NSDictionary *prefs = [NSDictionary dictionaryWithContentsOfFile:@"/var/mobile/Library/Preferences/com.huayuarc.systempro.plist"];
-    g_cld_statbarEnabled = [prefs[@"cld_statbarEnabled"] boolValue];
-    g_cld_statbarCelsius = ![prefs[@"cld_statbarFahrenheit"] boolValue];
-    g_cld_statbarShowNet = [prefs[@"cld_statbarShowNet"] boolValue];
-    g_cld_statbarShowCPU = [prefs[@"cld_statbarShowCPU"] boolValue];
-    g_cld_statbarShowLabels = [prefs[@"cld_statbarShowLabels"] boolValue];
-    
-    if (g_cld_statbarEnabled && !wasEnabled) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            cld_statbar_create_window();
-        });
-    } else if (!g_cld_statbarEnabled && wasEnabled) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            cld_statbar_destroy();
-        });
-    }
+static void stb_cleanup(void) {
+	stb_stopTimer();
+	g_statBarLabel = nil;
+	g_statBarWindow = nil;
 }
 
-__attribute__((constructor)) static void cld_StatBar_init(void) {
-    cld_loadStatBarPrefs();
-    CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
-                                    NULL, (CFNotificationCallback)cld_loadStatBarPrefs,
-                                    CFSTR("com.huayuarc.systempro.prefschanged"),
-                                    NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+#pragma mark - Preferences Reload
+
+static void stb_reloadPreferences(void) {
+	NSDictionary *prefs = [NSDictionary dictionaryWithContentsOfFile:@"/var/mobile/Library/Preferences/com.huayuarc.systempro.plist"];
+	BOOL newEnabled = [prefs[kStBEnabledKey] boolValue];
+
+	g_stbCelsius    = [prefs[kStBCelsiusKey] boolValue];
+	g_stbShowNet    = [prefs[kStBShowNetKey] boolValue];
+	g_stbShowCPU    = [prefs[kStBShowCPUKey] boolValue];
+	g_stbShowLabels = [prefs[kStBShowLabelsKey] boolValue];
+
+	if (newEnabled && !g_stbEnabled) {
+		stb_createWindow();
+		stb_startTimer();
+	} else if (!newEnabled && g_stbEnabled) {
+		stb_cleanup();
+	}
+	g_stbEnabled = newEnabled;
+}
+
+static void stb_prefsChangedCallback(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
+	stb_reloadPreferences();
+}
+
+#pragma mark - Constructor
+
+%ctor {
+	@autoreleasepool {
+		stb_reloadPreferences();
+		if (g_stbEnabled) {
+			stb_createWindow();
+			stb_startTimer();
+		}
+
+		CFNotificationCenterAddObserver(
+			CFNotificationCenterGetDarwinNotifyCenter(),
+			NULL,
+			stb_prefsChangedCallback,
+			(__bridge CFStringRef)kStBPrefsChangedNotification,
+			NULL,
+			CFNotificationSuspensionBehaviorDeliverImmediately
+		);
+	}
 }

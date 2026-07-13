@@ -47,25 +47,20 @@ endif
 include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = Systempro SystemproUnseen
-Systempro_FILES = Tweak.xm Tweak_SystemBox.x \
-	Tweak_Cyanide_AppSwitcher.x \
+Systempro_FILES = Tweak.xm \
+	Tweak_Cyanide_AppSwitcherGrid.x \
+	Tweak_Cyanide_HideHomeBar.x \
+	Tweak_Cyanide_DSOTA.x \
+	Tweak_Cyanide_CallRecordSound.x \
+	Tweak_Cyanide_NanoRegistry.x \
 	Tweak_Cyanide_KillAll.x \
-	Tweak_Cyanide_CallRecord.x \
-	Tweak_Cyanide_Powercuff.x \
-	Tweak_Cyanide_Layout.x \
 	Tweak_Cyanide_SBCustomizer.x \
-	Tweak_Cyanide_NSBar.x \
-	Tweak_Cyanide_StatBar.x \
 	Tweak_Cyanide_Gravity.x \
-	Tweak_Cyanide_LiveWP.x \
-	Tweak_Cyanide_NiceBar.x \
-	Tweak_Cyanide_SnowBoard.x \
-	Tweak_Cyanide_Location.x \
-	Tweak_Cyanide_Nano.x \
-	Tweak_Cyanide_OTA.x \
-	Tweak_Cyanide_AxonLite.x
+	Tweak_Cyanide_StatBar.x \
+	Tweak_Cyanide_NSBar.x \
+	Tweak_Cyanide_RSSI.x
 Systempro_CFLAGS += -fobjc-arc -Wno-deprecated-declarations -Wno-objc-protocol-method-implementation -Wno-int-to-void-pointer-cast -Wno-cast-function-type -Wno-unused-function
-Systempro_FRAMEWORKS = UIKit Foundation CoreGraphics QuartzCore IOKit
+Systempro_FRAMEWORKS = UIKit Foundation CoreGraphics QuartzCore IOKit CoreTelephony
 Systempro_PRIVATE_FRAMEWORKS = AppSupport
 
 SystemproUnseen_FILES = SystemproUnseen.mm
@@ -78,7 +73,7 @@ endif
 SystemproUnseen_FRAMEWORKS = Foundation CoreFoundation
 
 BUNDLE_NAME = LSILLSettings
-LSILLSettings_FILES = Settings/LLRootListController.m Settings/LLHideListController.m Settings/LLDateTimeListController.m Settings/LLGeneralListController.m Settings/LLStatusBarListController.m Settings/LLGestureListController.m Settings/LLCyanideListController.m
+LSILLSettings_FILES = Settings/LLRootListController.m Settings/LLCyanideListController.m
 LSILLSettings_CFLAGS += -fobjc-arc
 LSILLSettings_FRAMEWORKS = UIKit
 LSILLSettings_PRIVATE_FRAMEWORKS = Preferences
@@ -105,11 +100,6 @@ after-stage::
 	$(ECHO_NOTHING)cp Settings/Disable.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/System.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/Unseen.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
-	$(ECHO_NOTHING)cp Settings/Hide.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
-	$(ECHO_NOTHING)cp Settings/DateTime.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
-	$(ECHO_NOTHING)cp Settings/General.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
-	$(ECHO_NOTHING)cp Settings/StatusBar.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
-	$(ECHO_NOTHING)cp Settings/Gesture.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/Cyanide.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/Info.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/Systempro@2x.png "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)

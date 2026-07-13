@@ -48,61 +48,11 @@
 			<key>cell</key>
 			<string>PSLinkCell</string>
 			<key>detail</key>
-			<string>LLHideListController</string>
-			<key>isController</key>
-			<true/>
-			<key>label</key>
-			<string>隐藏界面元素</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSLinkCell</string>
-			<key>detail</key>
-			<string>LLGeneralListController</string>
-			<key>isController</key>
-			<true/>
-			<key>label</key>
-			<string>通用</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSLinkCell</string>
-			<key>detail</key>
-			<string>LLStatusBarListController</string>
-			<key>isController</key>
-			<true/>
-			<key>label</key>
-			<string>状态栏</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSLinkCell</string>
-			<key>detail</key>
-			<string>LLGestureListController</string>
-			<key>isController</key>
-			<true/>
-			<key>label</key>
-			<string>手势</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSLinkCell</string>
-			<key>detail</key>
-			<string>LLDateTimeListController</string>
-			<key>isController</key>
-			<true/>
-			<key>label</key>
-			<string>日期/时间</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSLinkCell</string>
-			<key>detail</key>
 			<string>LLCyanideListController</string>
 			<key>isController</key>
 			<true/>
 			<key>label</key>
-			<string>Cyanide 移植功能</string>
+			<string>Cyanide 增强功能</string>
 		</dict>
 		<dict>
 			<key>cell</key>
