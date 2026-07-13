@@ -30,18 +30,6 @@
 			<key>defaults</key>
 			<string>com.huayuarc.systempro</string>
 			<key>key</key>
-			<string>cyanide_killAll</string>
-			<key>label</key>
-			<string>一键杀后台</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSSwitchCell</string>
-			<key>default</key>
-			<false/>
-			<key>defaults</key>
-			<string>com.huayuarc.systempro</string>
-			<key>key</key>
 			<string>cyanide_sbCustomizer</string>
 			<key>label</key>
 			<string>主屏幕自定义</string>

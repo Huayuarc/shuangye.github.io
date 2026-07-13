@@ -1,13 +1,11 @@
 // Hide Home Bar — 隐藏主屏幕底部横条
 // 移植自 Cyanide: tweaks/hide_home_bar
-// 原版用 kernel 级文件清零操作，这里改为 hook SBFloatingDockController
 
 #import <UIKit/UIKit.h>
 #import <notify.h>
 
 #pragma mark - Preferences
 
-static NSString *const kHHBPrefsDomain = @"com.huayuarc.systempro";
 static NSString *const kHHBPrefsChangedNotification = @"com.huayuarc.systempro.prefschanged";
 static NSString *const kHHBEnabledKey = @"cyanide_hideHomeBar";
 
@@ -26,8 +24,6 @@ static void hhb_prefsChangedCallback(CFNotificationCenterRef center, void *obser
 
 #pragma mark - Logos Hooks
 
-%group HideHomeBarHooks
-
 %hook SBFloatingDockController
 - (void)_setHomeAffordanceHidden:(BOOL)hidden {
 	%orig(g_hhbEnabled ? YES : hidden);
@@ -37,23 +33,13 @@ static void hhb_prefsChangedCallback(CFNotificationCenterRef center, void *obser
 }
 %end
 
-%end
-
-%group HideHomeBariOS16Hooks
-
 %hook CSHomeAffordanceView
 - (void)setHidden:(BOOL)hidden {
 	%orig(g_hhbEnabled ? YES : hidden);
 }
 - (void)setAlpha:(CGFloat)alpha {
-	if (g_hhbEnabled) {
-		%orig(0.0);
-	} else {
-		%orig;
-	}
+	%orig(g_hhbEnabled ? 0.0 : alpha);
 }
-%end
-
 %end
 
 #pragma mark - Constructor
@@ -61,13 +47,6 @@ static void hhb_prefsChangedCallback(CFNotificationCenterRef center, void *obser
 %ctor {
 	@autoreleasepool {
 		hhb_reloadPreferences();
-
-		if (NSClassFromString(@"SBFloatingDockController")) {
-			%init(HideHomeBarHooks);
-		}
-		if (NSClassFromString(@"CSHomeAffordanceView")) {
-			%init(HideHomeBariOS16Hooks);
-		}
 
 		CFNotificationCenterAddObserver(
 			CFNotificationCenterGetDarwinNotifyCenter(),

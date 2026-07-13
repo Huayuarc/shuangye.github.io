@@ -4,6 +4,10 @@
 
 #import <UIKit/UIKit.h>
 #import <notify.h>
+#import <objc/runtime.h>
+#import <objc/message.h>
+#import <dlfcn.h>
+#import <SystemConfiguration/CaptiveNetwork.h>
 
 #pragma mark - Preferences
 
@@ -36,34 +40,14 @@ static int rssi_getWiFiRSSI(void) {
 			if (rssiVal) return [rssiVal intValue];
 		}
 	}
-
-	// 通过私有 API: WiFiManager
-	static int (*getRSSI)(void) = NULL;
-	static dispatch_once_t once;
-	dispatch_once(&once, ^{
-		void *handle = dlopen("/System/Library/PrivateFrameworks/MobileWiFi.framework/MobileWiFi", RTLD_LAZY);
-		if (handle) {
-			getRSSI = dlsym(handle, "WiFiManagerClientCopyProperty");
-		}
-	});
 	return 0;
 }
 
 static int rssi_getCellRSSI(void) {
-	// 通过 CT framework 读取蜂窝信号
-	static int (*getSignalStrength)(void) = NULL;
-	static dispatch_once_t once;
-	dispatch_once(&once, ^{
-		void *handle = dlopen("/System/Library/Frameworks/CoreTelephony.framework/CoreTelephony", RTLD_LAZY);
-		if (handle) {
-			getSignalStrength = dlsym(handle, "CTSignalStrengthGetBars");
-		}
-	});
-
 	// 通过 SBTelephonyManager（SpringBoard 私有类）
-	id telephonyMgr = [objc_getClass("SBTelephonyManager") sharedTelephonyManager];
-	if ([telephonyMgr respondsToSelector:@selector( signalStrength)]) {
-		int bars = (int)[telephonyMgr signalStrength];
+	id telephonyMgr = ((id (*)(id, SEL))objc_msgSend)(objc_getClass("SBTelephonyManager"), sel_registerName("sharedTelephonyManager"));
+	if ([telephonyMgr respondsToSelector:@selector(signalStrength)]) {
+		int bars = (int)((NSInteger (*)(id, SEL))objc_msgSend)(telephonyMgr, sel_registerName("signalStrength"));
 		// dBm 近似: bars 0->-113, 1->-105, 2->-97, 3->-89, 4->-77, 5->-65
 		int dBm[] = { -113, -105, -97, -89, -77, -65 };
 		if (bars >= 0 && bars <= 5) return dBm[bars];

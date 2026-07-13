@@ -9,7 +9,6 @@
 
 #pragma mark - Preferences
 
-static NSString *const kASGPrefsDomain = @"com.huayuarc.systempro";
 static NSString *const kASGPrefsChangedNotification = @"com.huayuarc.systempro.prefschanged";
 static NSString *const kASGEnabledKey = @"cyanide_appSwitcherGrid";
 
@@ -28,21 +27,16 @@ static void asg_prefsChangedCallback(CFNotificationCenterRef center, void *obser
 
 #pragma mark - Logos Hooks
 
-%group AppSwitcherGridHooks
-
 %hook SBAppSwitcherSettings
 - (int)switcherStyle {
 	if (g_asgEnabled) {
-		// 返回 dockUpdateMode 的值使多任务变为网格布局
-		SBDeckSwitcherModifier *modifier = [objc_getClass("SBDeckSwitcherModifier") sharedInstance];
+		id modifier = ((id (*)(id, SEL))objc_msgSend)(objc_getClass("SBDeckSwitcherModifier"), sel_registerName("sharedInstance"));
 		if ([modifier respondsToSelector:@selector(dockUpdateMode)]) {
-			return (int)[modifier dockUpdateMode];
+			return (int)((NSInteger (*)(id, SEL))objc_msgSend)(modifier, sel_registerName("dockUpdateMode"));
 		}
 	}
 	return %orig;
 }
-%end
-
 %end
 
 #pragma mark - Constructor
@@ -50,10 +44,6 @@ static void asg_prefsChangedCallback(CFNotificationCenterRef center, void *obser
 %ctor {
 	@autoreleasepool {
 		asg_reloadPreferences();
-
-		if (NSClassFromString(@"SBAppSwitcherSettings") && NSClassFromString(@"SBDeckSwitcherModifier")) {
-			%init(AppSwitcherGridHooks);
-		}
 
 		CFNotificationCenterAddObserver(
 			CFNotificationCenterGetDarwinNotifyCenter(),

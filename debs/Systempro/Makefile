@@ -53,7 +53,6 @@ Systempro_FILES = Tweak.xm \
 	Tweak_Cyanide_DSOTA.x \
 	Tweak_Cyanide_CallRecordSound.x \
 	Tweak_Cyanide_NanoRegistry.x \
-	Tweak_Cyanide_KillAll.x \
 	Tweak_Cyanide_SBCustomizer.x \
 	Tweak_Cyanide_Gravity.x \
 	Tweak_Cyanide_StatBar.x \

@@ -7,6 +7,7 @@
 #import <ifaddrs.h>
 #import <net/if.h>
 #import <net/if_dl.h>
+#import <mach/mach_time.h>
 
 #pragma mark - Preferences
 

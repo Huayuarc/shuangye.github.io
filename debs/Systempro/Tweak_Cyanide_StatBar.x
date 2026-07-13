@@ -7,6 +7,7 @@
 #import <mach/mach_host.h>
 #import <mach/host_info.h>
 #import <sys/sysctl.h>
+#import <dlfcn.h>
 
 #pragma mark - Preferences
 
@@ -58,16 +59,7 @@ static uint64_t stb_freeMemory(void) {
 }
 
 static float stb_batteryTemp(void) {
-	// 通过 IOKit 读取电池温度
-	// 在越狱环境下可以访问 IOKit
-	static float (*s_getBatteryTemp)(void) = NULL;
-	static dispatch_once_t once;
-	dispatch_once(&once, ^{
-		void *handle = dlopen("/System/Library/PrivateFrameworks/SystemStatus.framework/SystemStatus", RTLD_LAZY);
-		if (!handle) return;
-		s_getBatteryTemp = dlsym(handle, "STBatteryStatusPublisher_batteryTemperature");
-	});
-	// 通过 sysctl 读取
+	// 通过 sysctl 读取电池温度
 	int value = 0;
 	size_t val_len = sizeof(value);
 	if (sysctlbyname("hw.batterytemp", &value, &val_len, NULL, 0) == 0) {
