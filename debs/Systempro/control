@@ -1,0 +1,9 @@
+Package: com.huayuarc.systempro
+Name: Systempro
+Author: Huayuarc
+Description: 通知不亮屏 + 多项系统增强 + 完美移植Cyanide全部22个功能模块
+Depends: mobilesubstrate, preferenceloader, firmware (>= 14.0)
+Maintainer: Huayuarc
+Section: Tweaks
+Architecture: iphoneos-arm
+Version: 1.0.0

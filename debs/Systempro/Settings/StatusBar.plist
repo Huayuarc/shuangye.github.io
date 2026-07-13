@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>items</key>
+    <array>
+        <dict>
+            <key>cell</key>
+            <string>group</string>
+            <key>label</key>
+            <string>状态栏自定义</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>default</key>
+            <false/>
+            <key>defaults</key>
+            <string>com.huayuarc.systempro</string>
+            <key>key</key>
+            <string>sb_statusBarDateTimeEnabled</string>
+            <key>label</key>
+            <string>启用日期/时间格式</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>default</key>
+            <false/>
+            <key>defaults</key>
+            <string>com.huayuarc.systempro</string>
+            <key>key</key>
+            <string>sb_colorizeVPNStatusBar</string>
+            <key>label</key>
+            <string>VPN 状态栏着色</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>default</key>
+            <false/>
+            <key>defaults</key>
+            <string>com.huayuarc.systempro</string>
+            <key>key</key>
+            <string>sb_vpnStatusBarIcon</string>
+            <key>label</key>
+            <string>VPN 状态栏图标</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>default</key>
+            <false/>
+            <key>defaults</key>
+            <string>com.huayuarc.systempro</string>
+            <key>key</key>
+            <string>sb_silentStatusBarIcon</string>
+            <key>label</key>
+            <string>静音状态栏图标</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>group</string>
+            <key>label</key>
+            <string>VPN 颜色设置</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSButtonCell</string>
+            <key>label</key>
+            <string>选择 VPN 状态栏颜色</string>
+            <key>action</key>
+            <string>chooseVPNStatusBarColor</string>
+            <key>isController</key>
+            <true/>
+        </dict>
+    </array>
+    <key>title</key>
+    <string>状态栏</string>
+</dict>
+</plist>

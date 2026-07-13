@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>items</key>
+    <array>
+        <dict>
+            <key>cell</key>
+            <string>group</string>
+            <key>label</key>
+            <string>主屏幕手势</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>default</key>
+            <false/>
+            <key>defaults</key>
+            <string>com.huayuarc.systempro</string>
+            <key>key</key>
+            <string>sb_homePullDownNotificationCenter</string>
+            <key>label</key>
+            <string>主屏幕下拉 - 通知中心</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>default</key>
+            <false/>
+            <key>defaults</key>
+            <string>com.huayuarc.systempro</string>
+            <key>key</key>
+            <string>sb_homePullDownControlCenter</string>
+            <key>label</key>
+            <string>主屏幕下拉 - 控制中心</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>default</key>
+            <false/>
+            <key>defaults</key>
+            <string>com.huayuarc.systempro</string>
+            <key>key</key>
+            <string>sb_homePullUpNotificationCenter</string>
+            <key>label</key>
+            <string>主屏幕上推 - 通知中心</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>default</key>
+            <false/>
+            <key>defaults</key>
+            <string>com.huayuarc.systempro</string>
+            <key>key</key>
+            <string>sb_homePullUpControlCenter</string>
+            <key>label</key>
+            <string>主屏幕上推 - 控制中心</string>
+        </dict>
+    </array>
+    <key>title</key>
+    <string>手势</string>
+</dict>
+</plist>
