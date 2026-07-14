@@ -1,0 +1,51 @@
+name: Build VVebo Fix
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Theos
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y git make perl curl
+        
+        # Install Theos
+        git clone --recursive https://github.com/theos/theos.git $HOME/theos
+        echo "export THEOS=$HOME/theos" >> $HOME/.bashrc
+        echo "export PATH=\$THEOS/bin:\$PATH" >> $HOME/.bashrc
+        source $HOME/.bashrc
+        
+        # Setup toolchain
+        curl -LO https://github.com/sbingner/llvm-project/releases/latest/download/linux-ios-arm64e-clang-toolchain.tar.lzma
+        TMP=$(mktemp -d)
+        tar -xvf linux-ios-arm64e-clang-toolchain.tar.lzma -C $TMP
+        mkdir -p $HOME/theos/toolchain/linux/iphone
+        mv $TMP/ios-arm64e-clang-toolchain/* $HOME/theos/toolchain/linux/iphone/
+        
+        # Download iOS SDK
+        curl -LO https://github.com/theos/sdks/archive/master.zip
+        unzip master.zip
+        mv sdks-master/* $HOME/theos/sdks/
+        
+    - name: Build Tweak
+      run: |
+        export THEOS=$HOME/theos
+        export PATH=$THEOS/bin:$PATH
+        make clean
+        make package FINALPACKAGE=1
+        
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: VVeboFix-deb
+        path: packages/*.deb
