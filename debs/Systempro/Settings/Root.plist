@@ -15,16 +15,6 @@
 			<string>通知</string>
 		</dict>
 		<dict>
-			<key>action</key>
-			<string>restartRenderServices</string>
-			<key>cell</key>
-			<string>PSButtonCell</string>
-			<key>isDestructive</key>
-			<true/>
-			<key>label</key>
-			<string>✓ 注销</string>
-		</dict>
-		<dict>
 			<key>cell</key>
 			<string>PSLinkCell</string>
 			<key>detail</key>
@@ -33,16 +23,6 @@
 			<true/>
 			<key>label</key>
 			<string>禁用</string>
-		</dict>
-		<dict>
-			<key>action</key>
-			<string>restartRenderServices</string>
-			<key>cell</key>
-			<string>PSButtonCell</string>
-			<key>isDestructive</key>
-			<true/>
-			<key>label</key>
-			<string>✓ 注销</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -55,16 +35,6 @@
 			<string>系统</string>
 		</dict>
 		<dict>
-			<key>action</key>
-			<string>restartRenderServices</string>
-			<key>cell</key>
-			<string>PSButtonCell</string>
-			<key>isDestructive</key>
-			<true/>
-			<key>label</key>
-			<string>✓ 注销</string>
-		</dict>
-		<dict>
 			<key>cell</key>
 			<string>PSLinkCell</string>
 			<key>detail</key>
@@ -73,16 +43,6 @@
 			<true/>
 			<key>label</key>
 			<string>Unseen</string>
-		</dict>
-		<dict>
-			<key>action</key>
-			<string>restartRenderServices</string>
-			<key>cell</key>
-			<string>PSButtonCell</string>
-			<key>isDestructive</key>
-			<true/>
-			<key>label</key>
-			<string>✓ 注销</string>
 		</dict>
 		<dict>
 			<key>cell</key>
