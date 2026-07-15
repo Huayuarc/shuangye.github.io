@@ -46,7 +46,7 @@ endif
 
 include $(THEOS)/makefiles/common.mk
 
-TWEAK_NAME = Systempro SystemproUnseen
+TWEAK_NAME = Systempro SystemproUnseen SystemproGestureSB SystemproGestureUI
 Systempro_FILES = Tweak.xm \
 	Tweak_Cyanide_HideHomeBar.x \
 	Tweak_Cyanide_DSOTA.x \
@@ -65,6 +65,16 @@ SystemproUnseen_LDFLAGS += -L/var/jb/usr/lib
 endif
 SystemproUnseen_FRAMEWORKS = Foundation CoreFoundation
 
+# ========== 手势插件 (移植自 HalFiPad) ==========
+SystemproGestureSB_FILES = Tweak_GestureSB.xm
+SystemproGestureSB_CFLAGS += -fobjc-arc
+SystemproGestureSB_FRAMEWORKS = UIKit Foundation CoreGraphics
+
+SystemproGestureUI_FILES = Tweak_GestureUI.xm
+SystemproGestureUI_CFLAGS += -fobjc-arc
+SystemproGestureUI_FRAMEWORKS = UIKit Foundation CoreGraphics
+SystemproGestureUI_LIBRARIES = MobileGestalt
+
 BUNDLE_NAME = LSILLSettings
 LSILLSettings_FILES = Settings/LLRootListController.m
 LSILLSettings_CFLAGS += -fobjc-arc
@@ -76,6 +86,8 @@ LSILLSettings_INSTALL_PATH = /Library/PreferenceBundles
 ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
 Systempro_LDFLAGS += -lroothide
 SystemproUnseen_LDFLAGS += -lroothide
+SystemproGestureSB_LDFLAGS += -lroothide
+SystemproGestureUI_LDFLAGS += -lroothide
 LSILLSettings_LDFLAGS += -lroothide
 endif
 
@@ -93,9 +105,13 @@ after-stage::
 	$(ECHO_NOTHING)cp Settings/Disable.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/System.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/Unseen.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
+	$(ECHO_NOTHING)cp Settings/Gesture.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/Info.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/Systempro@2x.png "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/Systempro@3x.png "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
+	# 安装手势插件过滤文件
+	$(ECHO_NOTHING)cp SystemproGestureSB.plist "$(THEOS_STAGING_DIR)/Library/MobileSubstrate/DynamicLibraries/"$(ECHO_END)
+	$(ECHO_NOTHING)cp SystemproGestureUI.plist "$(THEOS_STAGING_DIR)/Library/MobileSubstrate/DynamicLibraries/"$(ECHO_END)
 
 after-install::
 	$(ECHO_NOTHING)echo "[Systempro] 安装完成！SpringBoard/backboardd 即将自动重启使插件生效。"$(ECHO_END)

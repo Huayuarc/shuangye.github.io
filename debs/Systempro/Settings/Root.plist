@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>items</key>
+	<array>
+		<!-- ===== 系统增强 ===== -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>系统增强</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>label</key>
+			<string>▸ 通知不亮屏</string>
+			<key>detail</key>
+			<string>System.plist</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>label</key>
+			<string>▸ 系统功能</string>
+			<key>detail</key>
+			<string>Disable.plist</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>label</key>
+			<string>▸ 通知增强</string>
+			<key>detail</key>
+			<string>Notification.plist</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>label</key>
+			<string>▸ 未读数增强</string>
+			<key>detail</key>
+			<string>Unseen.plist</string>
+		</dict>
+
+		<!-- ===== 手势 ===== -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>手势</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>label</key>
+			<string>▸ 手势设置</string>
+			<key>detail</key>
+			<string>Gesture.plist</string>
+			<key>icon</key>
+			<string>Systempro@2x.png</string>
+		</dict>
+
+		<!-- ===== 其他 ===== -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+		</dict>
+		<dict>
+			<key>label</key>
+			<string>✓ 注销</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>action</key>
+			<string>respring</string>
+		</dict>
+	</array>
+	<key>title</key>
+	<string>Systempro</string>
+</dict>
+</plist>

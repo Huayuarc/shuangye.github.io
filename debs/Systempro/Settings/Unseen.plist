@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>items</key>
+	<array>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>关闭后，Unseen 不会处理隐藏画面、截图通知和录屏/投屏状态。更改隐藏画面或录屏状态后，请回到首页底部点击“注销”使其完全生效。</string>
+			<key>label</key>
+			<string>Unseen</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>key</key>
+			<string>unseenEnabled</string>
+			<key>label</key>
+			<string>启用 Unseen</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>开启后，截图和录屏会尽量显示 App 通过私有接口标记为隐藏的普通画面；不会绕过 DRM 或系统版权保护。</string>
+			<key>label</key>
+			<string>隐藏画面</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>key</key>
+			<string>unseenRevealHiddenContent</string>
+			<key>label</key>
+			<string>显示被隐藏的画面</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>开启后，App 通常无法再通过系统截图通知得知你何时截屏。</string>
+			<key>label</key>
+			<string>截图行为</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>key</key>
+			<string>unseenHideScreenshotEvents</string>
+			<key>label</key>
+			<string>隐藏截图行为</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>开启后，App 通常无法再通过系统录屏状态通知得知屏幕正在被录制或投放。</string>
+			<key>label</key>
+			<string>录屏/投屏状态</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>key</key>
+			<string>unseenHideRecordingState</string>
+			<key>label</key>
+			<string>隐藏录屏/投屏状态</string>
+		</dict>
+	</array>
+	<key>title</key>
+	<string>Unseen</string>
+</dict>
+</plist>
