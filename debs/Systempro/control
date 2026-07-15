@@ -6,4 +6,4 @@ Depends: mobilesubstrate, preferenceloader, firmware (>= 14.0)
 Maintainer: Huayuarc
 Section: Tweaks
 Architecture: iphoneos-arm
-Version: 1.1.5
+Version: 1.1.6

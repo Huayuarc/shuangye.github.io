@@ -14,7 +14,7 @@
 			<key>cell</key>
 			<string>PSLinkCell</string>
 			<key>detail</key>
-			<string>System.plist</string>
+			<string>LLSystemListController</string>
 			<key>label</key>
 			<string>▸ 通知不亮屏</string>
 		</dict>
@@ -22,7 +22,7 @@
 			<key>cell</key>
 			<string>PSLinkCell</string>
 			<key>detail</key>
-			<string>Disable.plist</string>
+			<string>LLDisableListController</string>
 			<key>label</key>
 			<string>▸ 系统功能</string>
 		</dict>
@@ -30,7 +30,7 @@
 			<key>cell</key>
 			<string>PSLinkCell</string>
 			<key>detail</key>
-			<string>Notification.plist</string>
+			<string>LLNotificationListController</string>
 			<key>label</key>
 			<string>▸ 通知增强</string>
 		</dict>
@@ -38,7 +38,7 @@
 			<key>cell</key>
 			<string>PSLinkCell</string>
 			<key>detail</key>
-			<string>Unseen.plist</string>
+			<string>LLUnseenListController</string>
 			<key>label</key>
 			<string>▸ 未读数增强</string>
 		</dict>
@@ -46,7 +46,7 @@
 			<key>cell</key>
 			<string>PSLinkCell</string>
 			<key>detail</key>
-			<string>Gesture.plist</string>
+			<string>LLGestureListController</string>
 			<key>label</key>
 			<string>▸ 手势设置</string>
 		</dict>

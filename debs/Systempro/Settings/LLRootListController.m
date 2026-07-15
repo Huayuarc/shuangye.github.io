@@ -11,6 +11,7 @@
 #import <unistd.h>
 
 static NSString *const kPrefPath          = @"/var/mobile/Library/Preferences/com.huayuarc.systempro.plist";
+static NSString *const kDefaultsProperty  = @"defaults";
 static NSString *const kEnabledKey        = @"enabled";
 static NSString *const kBlockModeKey      = @"blockMode";
 static NSString *const kBlockModeGroupKey = @"blockModeGroup";
@@ -57,6 +58,12 @@ typedef NS_ENUM(NSInteger, LSBlockMode) {
 	LSBlockModeAlways   = 2,
 };
 
+static NSString *LSDefaultsPath(PSSpecifier *spec) {
+	NSString *domain = [spec propertyForKey:kDefaultsProperty];
+	if (!domain) domain = @"com.huayuarc.systempro";
+	return [NSString stringWithFormat:@"/var/mobile/Library/Preferences/%@.plist", domain];
+}
+
 static NSInteger sanitizedBlockMode(id value) {
 	NSInteger mode = [value integerValue];
 	if (mode != LSBlockModeLowPower &&
@@ -83,6 +90,9 @@ static NSInteger sanitizedBlockMode(id value) {
 @end
 
 @interface LLUnseenListController : LLRootListController
+@end
+
+@interface LLGestureListController : LLRootListController
 @end
 
 @implementation LLRootListController
@@ -119,7 +129,7 @@ static NSInteger sanitizedBlockMode(id value) {
 	NSString *key = [spec propertyForKey:kKeyProperty];
 	if (!key) return nil;
 
-	NSDictionary *d = [NSDictionary dictionaryWithContentsOfFile:kPrefPath];
+	NSDictionary *d = [NSDictionary dictionaryWithContentsOfFile:LSDefaultsPath(spec)];
 	id val = d ? d[key] : nil;
 
 	if (!val) {
@@ -137,7 +147,8 @@ static NSInteger sanitizedBlockMode(id value) {
 	NSString *key = [spec propertyForKey:kKeyProperty];
 	if (!key) return;
 
-	NSMutableDictionary *d = [NSMutableDictionary dictionaryWithContentsOfFile:kPrefPath];
+	NSString *plistPath = LSDefaultsPath(spec);
+	NSMutableDictionary *d = [NSMutableDictionary dictionaryWithContentsOfFile:plistPath];
 	if (!d) d = [NSMutableDictionary dictionary];
 
 	if ([key isEqualToString:kBlockModeKey]) {
@@ -148,7 +159,7 @@ static NSInteger sanitizedBlockMode(id value) {
 	} else {
 		[d removeObjectForKey:key];
 	}
-	[d writeToFile:kPrefPath atomically:YES];
+	[d writeToFile:plistPath atomically:YES];
 
 	if ([key isEqualToString:kEnabledKey]) {
 		dispatch_async(dispatch_get_main_queue(), ^{
@@ -335,6 +346,14 @@ static NSInteger sanitizedBlockMode(id value) {
 
 - (NSString *)specifiersPlistName {
 	return @"Unseen";
+}
+
+@end
+
+@implementation LLGestureListController
+
+- (NSString *)specifiersPlistName {
+	return @"Gesture";
 }
 
 @end
