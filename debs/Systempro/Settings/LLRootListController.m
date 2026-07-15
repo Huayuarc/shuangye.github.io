@@ -12,7 +12,6 @@
 #import <rootless.h>
 
 static NSString *const kPrefPath          = @"/var/mobile/Library/Preferences/com.huayuarc.systempro.plist";
-static NSString *const kGesturePrefPath   = @"/var/mobile/Library/Preferences/com.huayuarc.systempro.gesture.plist";
 static NSString *const kEnabledKey        = @"enabled";
 static NSString *const kBlockModeKey      = @"blockMode";
 static NSString *const kBlockModeGroupKey = @"blockModeGroup";
@@ -83,9 +82,6 @@ static NSInteger sanitizedBlockMode(id value) {
 @end
 
 @interface LLUnseenListController : LLRootListController
-@end
-
-@interface LLGestureListController : PSListController
 @end
 
 @implementation LLRootListController
@@ -348,6 +344,10 @@ static NSInteger sanitizedBlockMode(id value) {
 		@"lockWhenFaceDown": @NO,
 		@"disableIconFlyIn": @NO,
 		@"zeroWakeAnimation": @NO,
+		@"cyanide_hideHomeBar": @NO,
+		@"cyanide_disableOTA": @NO,
+		@"cyanide_muteCallRecord": @NO,
+		@"cyanide_nanoRegistry": @NO,
 	};
 }
 
@@ -408,89 +408,3 @@ static NSInteger sanitizedBlockMode(id value) {
 
 @end
 
-@implementation LLGestureListController
-
-- (NSString *)specifiersPlistName {
-	return @"Gesture";
-}
-
-- (NSArray *)specifiers {
-	if (!_specifiers) {
-		_specifiers = [[self loadSpecifiersFromPlistName:[self specifiersPlistName] target:self] copy];
-	}
-	return _specifiers;
-}
-
-- (NSDictionary *)defaultValues {
-	return @{
-		@"Enabled": @YES,
-		@"gesturesMode": @1,
-		@"statusBarMode": @5,
-		@"edgeProtect": @YES,
-		@"ccAnimation": @YES,
-		@"ccStatusBar": @YES,
-		@"ccGrabber": @NO,
-		@"padLock": @YES,
-		@"noBreadcrumb": @YES,
-		@"lsShortcuts": @YES,
-		@"noReachability": @YES,
-		@"ipxCombination": @YES,
-		@"homeBarAutoHide": @NO,
-		@"homeBarSB": @YES,
-		@"homeBarLS": @YES,
-		@"homeBarCustom": @YES,
-		@"homeBarWidth": @134,
-		@"homeBarHeight": @5,
-		@"homeBarRadius": @3,
-		@"ipadDock": @NO,
-		@"inAppDock": @YES,
-		@"recentApp": @NO,
-		@"iPadMultitask": @NO,
-		@"newSwitcher": @NO,
-		@"pictureInPicture": @YES,
-		@"screenMode": @1,
-		@"darkKeyboard": @NO,
-		@"highKeyboard": @YES,
-		@"noSwipeKeyboard": @NO,
-		@"bottomHeightKB": @48,
-		@"swipeScreenshot": @YES,
-		@"makeSBClean": @NO,
-		@"moreIconDock": @NO,
-		@"fastOpenApp": @YES,
-		@"noDockBackground": @NO,
-		@"noIconsFly": @YES,
-		@"reduceRows": @NO,
-		@"landscapeLock": @NO,
-		@"batteryPercent": @YES,
-	};
-}
-
-- (void)registerDefaults {
-	NSDictionary *defaults = [self defaultValues];
-	if (defaults.count == 0) return;
-
-	NSMutableDictionary *prefs = [NSMutableDictionary dictionaryWithContentsOfFile:kGesturePrefPath];
-	if (!prefs) prefs = [NSMutableDictionary dictionary];
-
-	BOOL needsWrite = NO;
-	for (NSString *key in defaults) {
-		if (!prefs[key]) {
-			prefs[key] = defaults[key];
-			needsWrite = YES;
-		}
-	}
-
-	if (needsWrite) {
-		[prefs writeToFile:kGesturePrefPath atomically:YES];
-	}
-}
-
-- (instancetype)init {
-	self = [super init];
-	if (self) {
-		[self registerDefaults];
-	}
-	return self;
-}
-
-@end

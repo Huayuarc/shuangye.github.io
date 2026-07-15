@@ -163,6 +163,54 @@
 			<string>零唤醒动画</string>
 		</dict>
 		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>key</key>
+			<string>cyanide_hideHomeBar</string>
+			<key>label</key>
+			<string>隐藏 HomeBar</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>key</key>
+			<string>cyanide_disableOTA</string>
+			<key>label</key>
+			<string>禁用 OTA 更新</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>key</key>
+			<string>cyanide_muteCallRecord</string>
+			<key>label</key>
+			<string>通话录音提示音静音</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>key</key>
+			<string>cyanide_nanoRegistry</string>
+			<key>label</key>
+			<string>Watch 配对兼容</string>
+		</dict>
+		<dict>
 			<key>action</key>
 			<string>restartRenderServices</string>
 			<key>cell</key>

@@ -32,6 +32,12 @@ static NSString *const kDisconnectWiFiBTKey  = @"disconnectWiFiBT";
 static NSString *const kLowPowerOnLockKey   = @"lowPowerOnLock";
 static NSString *const kLockWhenFaceDownKey = @"lockWhenFaceDown";
 
+// Cyanide 功能键
+static NSString *const kCyanideHideHomeBarKey    = @"cyanide_hideHomeBar";
+static NSString *const kCyanideDisableOTAKey      = @"cyanide_disableOTA";
+static NSString *const kCyanideMuteCallRecordKey  = @"cyanide_muteCallRecord";
+static NSString *const kCyanideNanoRegistryKey    = @"cyanide_nanoRegistry";
+
 static NSString *const kNotifyPrefsChanged = @"com.huayuarc.systempro.prefschanged";
 static NSString *const kNotifyRespring     = @"com.huayuarc.systempro.respring";
 
@@ -76,6 +82,12 @@ static BOOL      g_lockWhenFaceDown           = NO;
 // 锁屏自动低电 — 记录锁屏前低电模式状态
 static BOOL      g_isLPMOnBeforeLock          = NO;
 
+// Cyanide 功能缓存
+static BOOL      g_cyanideHideHomeBar         = NO;
+static BOOL      g_cyanideDisableOTA          = NO;
+static BOOL      g_cyanideMuteCallRecord      = NO;
+static BOOL      g_cyanideNanoRegistry        = NO;
+
 // ============================================================================
 // 配置读写 — 内存缓存（避免热路径 I/O）
 // ============================================================================
@@ -110,6 +122,12 @@ static void reloadConfiguration(void) {
 		g_lowPowerOnLock             = [prefs[kLowPowerOnLockKey] boolValue];
 		g_lockWhenFaceDown           = [prefs[kLockWhenFaceDownKey] boolValue];
 
+		// Cyanide 功能
+		g_cyanideHideHomeBar     = [prefs[kCyanideHideHomeBarKey] boolValue];
+		g_cyanideDisableOTA      = [prefs[kCyanideDisableOTAKey] boolValue];
+		g_cyanideMuteCallRecord  = [prefs[kCyanideMuteCallRecordKey] boolValue];
+		g_cyanideNanoRegistry    = [prefs[kCyanideNanoRegistryKey] boolValue];
+
 		// 兜底：确保枚举值不越界
 		// 兜底：确保枚举值不越界
 		if (g_blockMode != LSBlockModeLowPower &&
@@ -117,6 +135,11 @@ static void reloadConfiguration(void) {
 			g_blockMode != LSBlockModeAlways) {
 			g_blockMode = LSBlockModeAlways;
 		}
+
+		// 应用 Cyanide 文件级功能
+		cyanide_applyDisableOTA(g_cyanideDisableOTA);
+		cyanide_applyMuteCallRecord(g_cyanideMuteCallRecord);
+		cyanide_applyNanoRegistry(g_cyanideNanoRegistry);
 	}
 }
 
@@ -494,6 +517,187 @@ static BOOL shouldBlock(void) {
 %end
 
 // ============================================================================
+// Cyanide — 通话录音提示音静音
+// ============================================================================
+
+static NSString *const kCRSTargetDir = @"/var/mobile/Library/CallServices/Greetings/default";
+static NSString *const kCRSBackupDir = @"/var/mobile/Library/Preferences/com.huayuarc.systempro.callrecord.backup";
+
+static const char *kCRSFileNames[] = {
+	"StartDisclosureWithTone.m4a",
+	"StopDisclosure.caf",
+};
+
+static NSData *cyanide_silentAudioData(void) {
+	const int sampleRate = 8000;
+	const int duration = 1;
+	const int dataSize = sampleRate * duration;
+	const int fileSize = 44 + dataSize;
+	uint8_t *buf = malloc(fileSize);
+	if (!buf) return nil;
+	memcpy(buf, "RIFF", 4);
+	uint32_t riffSize = fileSize - 8;
+	memcpy(buf + 4, &riffSize, 4);
+	memcpy(buf + 8, "WAVE", 4);
+	memcpy(buf + 12, "fmt ", 4);
+	uint32_t fmtSize = 16;
+	memcpy(buf + 16, &fmtSize, 4);
+	uint16_t audioFmt = 1;
+	memcpy(buf + 20, &audioFmt, 2);
+	uint16_t channels = 1;
+	memcpy(buf + 22, &channels, 2);
+	memcpy(buf + 24, &sampleRate, 4);
+	uint32_t byteRate = sampleRate;
+	memcpy(buf + 28, &byteRate, 4);
+	uint16_t blockAlign = 1;
+	memcpy(buf + 32, &blockAlign, 2);
+	uint16_t bitsPerSample = 8;
+	memcpy(buf + 34, &bitsPerSample, 2);
+	memcpy(buf + 36, "data", 4);
+	memcpy(buf + 40, &dataSize, 4);
+	memset(buf + 44, 0, dataSize);
+	return [NSData dataWithBytesNoCopy:buf length:fileSize freeWhenDone:YES];
+}
+
+static void cyanide_crsEnsureDirs(void) {
+	NSFileManager *fm = [NSFileManager defaultManager];
+	if (![fm fileExistsAtPath:kCRSBackupDir])
+		[fm createDirectoryAtPath:kCRSBackupDir withIntermediateDirectories:YES attributes:nil error:nil];
+	if (![fm fileExistsAtPath:kCRSTargetDir]) {
+		[fm createDirectoryAtPath:kCRSTargetDir withIntermediateDirectories:YES attributes:nil error:nil];
+		pid_t pid;
+		const char *args[] = {"bash", "-c", "chmod 755 /var/mobile/Library/CallServices/Greetings 2>/dev/null; chmod 755 /var/mobile/Library/CallServices/Greetings/default 2>/dev/null", NULL};
+		posix_spawn(&pid, "/bin/bash", NULL, NULL, (char *const *)args, NULL);
+	}
+}
+
+static void cyanide_applyMuteCallRecord(BOOL mute) {
+	cyanide_crsEnsureDirs();
+	NSData *silentData = cyanide_silentAudioData();
+	if (!silentData) return;
+	NSFileManager *fm = [NSFileManager defaultManager];
+	for (size_t i = 0; i < sizeof(kCRSFileNames) / sizeof(kCRSFileNames[0]); i++) {
+		NSString *fileName = @(kCRSFileNames[i]);
+		NSString *filePath = [kCRSTargetDir stringByAppendingPathComponent:fileName];
+		NSString *backupPath = [kCRSBackupDir stringByAppendingPathComponent:[fileName stringByAppendingString:@".orig"]];
+		if (mute) {
+			if (![fm fileExistsAtPath:backupPath] && [fm fileExistsAtPath:filePath])
+				[fm copyItemAtPath:filePath toPath:backupPath error:nil];
+			[silentData writeToFile:filePath options:NSDataWritingAtomic error:nil];
+		} else {
+			if ([fm fileExistsAtPath:backupPath]) {
+				[fm removeItemAtPath:filePath error:nil];
+				[fm copyItemAtPath:backupPath toPath:filePath error:nil];
+			}
+		}
+	}
+}
+
+// ============================================================================
+// Cyanide — 禁用 OTA 更新
+// ============================================================================
+
+static NSString *const kOTADisabledPlistPath = @"/var/db/com.apple.xpc.launchd/disabled.plist";
+
+static NSArray *cyanide_otaDaemonLabels(void) {
+	return @[
+		@"com.apple.mobile.softwareupdated",
+		@"com.apple.OTATaskingAgent",
+		@"com.apple.softwareupdateservicesd",
+		@"com.apple.mobile.NRDUpdated",
+	];
+}
+
+static void cyanide_applyDisableOTA(BOOL disabled) {
+	NSError *readError = nil;
+	NSMutableDictionary *plist = nil;
+	NSData *data = [NSData dataWithContentsOfFile:kOTADisabledPlistPath options:NSDataReadingMappedAlways error:&readError];
+	if (data.length == 0) {
+		plist = [NSMutableDictionary dictionary];
+	} else {
+		plist = [[NSPropertyListSerialization propertyListWithData:data options:NSPropertyListMutableContainersAndLeaves format:nil error:&readError] mutableCopy];
+		if (![plist isKindOfClass:[NSMutableDictionary class]]) plist = [NSMutableDictionary dictionary];
+	}
+	BOOL changed = NO;
+	for (NSString *label in cyanide_otaDaemonLabels()) {
+		if (disabled) {
+			if (![plist[label] boolValue]) { plist[label] = @YES; changed = YES; }
+		} else {
+			if (plist[label]) { [plist removeObjectForKey:label]; changed = YES; }
+		}
+	}
+	if (!changed) return;
+	NSData *outData = [NSPropertyListSerialization dataWithPropertyList:plist format:NSPropertyListXMLFormat_v1_0 options:0 error:nil];
+	if (outData.length == 0) return;
+	if (![outData writeToFile:kOTADisabledPlistPath atomically:YES]) {
+		pid_t pid;
+		const char *args[] = {"bash", "-c", "chmod 644 /var/db/com.apple.xpc.launchd/disabled.plist 2>/dev/null; cat > /var/db/com.apple.xpc.launchd/disabled.plist", NULL};
+		posix_spawn(&pid, "/bin/bash", NULL, NULL, (char *const *)args, NULL);
+		[outData writeToFile:kOTADisabledPlistPath atomically:YES];
+	}
+}
+
+// ============================================================================
+// Cyanide — Watch 配对兼容
+// ============================================================================
+
+static NSString *const kNRPlistPath = @"/var/mobile/Library/Preferences/com.apple.NanoRegistry.plist";
+static NSString *const kNRKeyMax = @"maxPairingCompatibilityVersion";
+static NSString *const kNRKeyMin = @"minPairingCompatibilityVersion";
+static NSString *const kNRKeyMinChipID = @"minPairingCompatibilityVersionWithChipID";
+static NSString *const kNRKeyMinQuick = @"minQuickSwitchCompatibilityVersion";
+
+static void cyanide_applyNanoRegistry(BOOL apply) {
+	NSError *error = nil;
+	NSMutableDictionary *plist = nil;
+	NSData *data = [NSData dataWithContentsOfFile:kNRPlistPath options:NSDataReadingMappedAlways error:&error];
+	if (data.length > 0) {
+		plist = [[NSPropertyListSerialization propertyListWithData:data options:NSPropertyListMutableContainersAndLeaves format:nil error:&error] mutableCopy];
+	}
+	if (![plist isKindOfClass:[NSMutableDictionary class]]) plist = [NSMutableDictionary dictionary];
+	if (apply) {
+		plist[kNRKeyMax] = @99;
+		plist[kNRKeyMin] = @23;
+		plist[kNRKeyMinChipID] = @23;
+		plist[kNRKeyMinQuick] = @99;
+	} else {
+		[plist removeObjectForKey:kNRKeyMax];
+		[plist removeObjectForKey:kNRKeyMin];
+		[plist removeObjectForKey:kNRKeyMinChipID];
+		[plist removeObjectForKey:kNRKeyMinQuick];
+	}
+	NSData *outData = [NSPropertyListSerialization dataWithPropertyList:plist format:NSPropertyListXMLFormat_v1_0 options:0 error:nil];
+	if (outData.length == 0) return;
+	[outData writeToFile:kNRPlistPath atomically:YES];
+	notify_post("com.apple.nanoregistry.pairingcompatibilityversion");
+}
+
+// ============================================================================
+// Cyanide — 隐藏 HomeBar（Logos hooks）
+// ============================================================================
+%group CyanideHideHomeBar
+
+%hook SBFloatingDockController
+- (void)_setHomeAffordanceHidden:(BOOL)hidden {
+	%orig(g_cyanideHideHomeBar ? YES : hidden);
+}
+- (void)setWantsHomeGestureHidden:(BOOL)hidden {
+	%orig(g_cyanideHideHomeBar ? YES : hidden);
+}
+%end
+
+%hook CSHomeAffordanceView
+- (void)setHidden:(BOOL)hidden {
+	%orig(g_cyanideHideHomeBar ? YES : hidden);
+}
+- (void)setAlpha:(CGFloat)alpha {
+	%orig(g_cyanideHideHomeBar ? 0.0 : alpha);
+}
+%end
+
+%end
+
+// ============================================================================
 // ===== CFNotification 回调 =====
 // ============================================================================
 
@@ -591,6 +795,11 @@ static void onRespring(CFNotificationCenterRef center,
 		// 设备朝下自动锁屏 — SBIdleTimerGlobalStateMonitor 类在 iOS 16 上存在
 		if (NSClassFromString(@"SBIdleTimerGlobalStateMonitor")) {
 			%init(FaceDownLock);
+		}
+
+		// Cyanide — 隐藏 HomeBar
+		if (NSClassFromString(@"SBFloatingDockController")) {
+			%init(CyanideHideHomeBar);
 		}
 
 		// 监听静音开关状态变化		// 监听静音开关状态变化

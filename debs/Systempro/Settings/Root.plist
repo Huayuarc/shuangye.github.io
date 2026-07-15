@@ -44,26 +44,6 @@
 			<key>label</key>
 			<string>Unseen</string>
 		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSLinkCell</string>
-			<key>detail</key>
-			<string>LLGestureListController</string>
-			<key>isController</key>
-			<true/>
-			<key>label</key>
-			<string>手势</string>
-		</dict>
-		<dict>
-			<key>action</key>
-			<string>restartRenderServices</string>
-			<key>cell</key>
-			<string>PSButtonCell</string>
-			<key>isDestructive</key>
-			<true/>
-			<key>label</key>
-			<string>✓ 注销</string>
-		</dict>
 	</array>
 	<key>title</key>
 	<string>Systempro</string>

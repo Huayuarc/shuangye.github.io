@@ -1,6 +1,6 @@
-#import "Tweak_GestureCommon.h"
+#import "TweakCommon.h"
 
-// ===== Bottom Inset =====
+// Bottom Inset
 %hook UIWindow
 - (UIEdgeInsets)safeAreaInsets {
     UIEdgeInsets const x = %orig;
@@ -8,11 +8,10 @@
 }
 %end
 
-// ===== Fix Instagram =====
 %group FixInstagram
 #include <sys/sysctl.h>
 %hookf(int, sysctlbyname, const char *name, void *oldp, size_t *oldlenp, void *newp, size_t newlen) {
-    if (strcmp(name, "hw.machine") == 0) {
+	if (strcmp(name, "hw.machine") == 0) {
         int ret = %orig;
         if (oldp) {
             const char *mechine1 = "iPhone12,1";
@@ -25,31 +24,36 @@
 }
 %end
 
-// ===== Fix Twitter =====
+// Fix Twitter
 %group FixTwitter
-%hook TFNNavigationBarOverlayView
+%hook TFNNavigationBarOverlayView 
 - (void)setFrame:(CGRect)frame {
     bottomInset = 0;
     if (statusBarMode == 3) {
         %orig(CGRectMake(frame.origin.x,frame.origin.y,frame.size.width,frame.size.height + 6));
-    } else {
+    }
+    else {
         %orig;
     }
 }
 %end
 %end
 
-// ===== Fix StatusBar InApp =====
+// Fix for Tiktok, ViettelPay, Instagram, Twitter
 %group FixStatusBarInApp
 %hook UIStatusBarManager
--(double)statusBarHeight { return 20; }
+-(double)statusBarHeight {
+    return 20;
+}
 %end
 %end
 
-// ===== Fix YouTube =====
+// Fix Youtube
 %group FixYouTube
 %hook UIStatusBarManager
--(BOOL)isStatusBarHidden { return YES; }
+-(BOOL)isStatusBarHidden {
+    return YES;
+}
 %end
 
 %hook YTSearchView
@@ -77,14 +81,16 @@
 %end
 %end
 
-// ===== Dark Keyboard =====
+// Dark Keyboard
 %group DarkKeyBoard
 %hook UIKBRenderConfig
-- (void)setLightKeyboard:(BOOL)arg1 { %orig(NO); }
+- (void)setLightKeyboard:(BOOL)arg1 {
+        %orig(NO);
+}
 %end
 %end
 
-// ===== Default Keyboard =====
+// Default Keyboard
 %group DefaultKeyboard
 %hook UIKeyboardImpl
 +(UIEdgeInsets)deviceSpecificPaddingForInterfaceOrientation:(long long)arg1 inputMode:(id)arg2 {
@@ -95,11 +101,11 @@
 %end
 %end
 
-// ===== Higher Keyboard =====
+// Higher Keyboard X
 %group HigherKeyboard
 %hook UIKeyboardImpl
 +(UIEdgeInsets)deviceSpecificPaddingForInterfaceOrientation:(long long)arg1 inputMode:(id)arg2 {
-    UIEdgeInsets const orig = %orig;
+	UIEdgeInsets const orig = %orig;
     if(!isNonLatinKeyboard) return UIEdgeInsetsMake(orig.top, 0, KeyboardHeight, 0);
     return UIEdgeInsetsMake(orig.top, orig.left, KeyboardHeight, orig.right);
 }
@@ -113,7 +119,7 @@
 %end
 %end
 
-// ===== iPad App Style (Landscape) =====
+// Landscape Mode
 %group iPadAppStyle
 %hook UITraitCollection
 +(id)traitCollectionWithHorizontalSizeClass:(long long)arg1 {
@@ -124,33 +130,39 @@
 %end
 %end
 
-// ===== Picture in Picture =====
+// Picture in Picture
 %group PictureInPicture
 #define keyy(key) CFEqual(string, CFSTR(key))
 extern "C" Boolean MGGetBoolAnswer(CFStringRef);
 %hookf(Boolean, MGGetBoolAnswer, CFStringRef string) {
-    if (keyy("nVh/gwNpy7Jv1NOk00CMrw"))
-        return YES;
-    return %orig;
+	if (keyy("nVh/gwNpy7Jv1NOk00CMrw"))
+		return YES;
+	return %orig;
 }
 %end
 
-// ===== Camera UI Set =====
+// Camera UI Set
 %group CameraUISet
 %hook CAMCaptureCapabilities
--(BOOL)isCTMSupported { return isCameraUI11; }
+-(BOOL)isCTMSupported {
+    return isCameraUI11;
+}
 %end
 
 %hook CAMFlipButton
--(BOOL)_useCTMAppearance { return isCameraZoomFlip11; }
+-(BOOL)_useCTMAppearance {
+    return isCameraZoomFlip11;
+}
 %end
 
 %hook CAMViewfinderViewController
--(BOOL)_shouldUseZoomControlInsteadOfSlider { return isCameraZoomFlip11; }
+-(BOOL)_shouldUseZoomControlInsteadOfSlider {
+    return isCameraZoomFlip11;
+}
 %end
 %end
 
-// ===== Camera Bottom Inset =====
+// Camera Bottom Inset
 %group CameraBottomSet
 %hook CAMZoomControl
 - (void)setFrame:(CGRect)frame {
@@ -169,16 +181,14 @@ static bool appID(NSString *keyString) {
     return [[[NSBundle mainBundle] bundleIdentifier] isEqualToString:keyString];
 }
 
-// ===== %ctor =====
+// Tweak handle
 %ctor {
     @autoreleasepool {
-        updateGesturePrefs();
+        updatePrefs();
 
         CFNotificationCenterAddObserver(
-            CFNotificationCenterGetDarwinNotifyCenter(), NULL,
-            (CFNotificationCallback)updateGesturePrefs,
-            (__bridge CFStringRef)kGestureNotifChanged,
-            NULL, CFNotificationSuspensionBehaviorCoalesce
+            CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)updatePrefs,
+            CFSTR("com.hius.HalFiPadPrefs.settingschanged"), NULL, CFNotificationSuspensionBehaviorCoalesce
         );
 
         if (enabled) {
@@ -212,9 +222,13 @@ static bool appID(NSString *keyString) {
             if (isPIP) %init(PictureInPicture);
 
             // Keyboard Options
-            if (isDarkKeyboard) %init(DarkKeyBoard);
-            if (isHigherKeyboard) %init(HigherKeyboard);
-            else %init(DefaultKeyboard);
+            if (isDarkKeyboard)
+                %init(DarkKeyBoard);
+
+            if (isHigherKeyboard)
+                %init(HigherKeyboard);
+            else
+                %init(DefaultKeyboard);
 
             %init;
         }

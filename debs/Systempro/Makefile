@@ -46,12 +46,8 @@ endif
 
 include $(THEOS)/makefiles/common.mk
 
-TWEAK_NAME = Systempro SystemproUnseen SystemproGestureSB SystemproGestureUI
-Systempro_FILES = Tweak.xm \
-	Tweak_Cyanide_HideHomeBar.x \
-	Tweak_Cyanide_DSOTA.x \
-	Tweak_Cyanide_CallRecordSound.x \
-	Tweak_Cyanide_NanoRegistry.x
+TWEAK_NAME = Systempro SystemproUnseen
+Systempro_FILES = Tweak.xm
 Systempro_CFLAGS += -fobjc-arc -Wno-deprecated-declarations -Wno-objc-protocol-method-implementation -Wno-int-to-void-pointer-cast -Wno-cast-function-type -Wno-unused-function
 Systempro_FRAMEWORKS = UIKit Foundation CoreGraphics QuartzCore IOKit CoreTelephony
 Systempro_PRIVATE_FRAMEWORKS = AppSupport
@@ -65,15 +61,6 @@ SystemproUnseen_LDFLAGS += -L/var/jb/usr/lib
 endif
 SystemproUnseen_FRAMEWORKS = Foundation CoreFoundation
 
-# ========== 手势插件 (移植自 HalFiPad) ==========
-SystemproGestureSB_FILES = Tweak_GestureSB.xm
-SystemproGestureSB_CFLAGS += -fobjc-arc
-SystemproGestureSB_FRAMEWORKS = UIKit Foundation CoreGraphics
-
-SystemproGestureUI_FILES = Tweak_GestureUI.xm
-SystemproGestureUI_CFLAGS += -fobjc-arc
-SystemproGestureUI_FRAMEWORKS = UIKit Foundation CoreGraphics
-SystemproGestureUI_LIBRARIES = MobileGestalt
 
 BUNDLE_NAME = LSILLSettings
 LSILLSettings_FILES = Settings/LLRootListController.m
@@ -86,8 +73,6 @@ LSILLSettings_INSTALL_PATH = /Library/PreferenceBundles
 ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
 Systempro_LDFLAGS += -lroothide
 SystemproUnseen_LDFLAGS += -lroothide
-SystemproGestureSB_LDFLAGS += -lroothide
-SystemproGestureUI_LDFLAGS += -lroothide
 LSILLSettings_LDFLAGS += -lroothide
 endif
 
@@ -100,16 +85,14 @@ after-stage::
 	$(ECHO_NOTHING)mkdir -p "$(THEOS_STAGING_DIR)/tmp"$(ECHO_END)
 	$(ECHO_NOTHING)mkdir -p "$(THEOS_STAGING_DIR)/Library/PreferenceLoader/Preferences" "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle" "$(THEOS_STAGING_DIR)/Library/MobileSubstrate/DynamicLibraries"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/entry.plist "$(THEOS_STAGING_DIR)/Library/PreferenceLoader/Preferences/LSILLSettings.plist"$(ECHO_END)
-	$(ECHO_NOTHING)cp Settings/Root.plist Settings/Notification.plist Settings/Disable.plist Settings/System.plist Settings/Unseen.plist Settings/Gesture.plist Settings/Info.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
+	$(ECHO_NOTHING)cp Settings/Root.plist Settings/Notification.plist Settings/Disable.plist Settings/System.plist Settings/Unseen.plist Settings/Info.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/Systempro@2x.png Settings/Systempro@3x.png "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
-	$(ECHO_NOTHING)cp SystemproGestureSB.plist SystemproGestureUI.plist "$(THEOS_STAGING_DIR)/Library/MobileSubstrate/DynamicLibraries/"$(ECHO_END)
 	# 如果 THEOS_PACKAGE_INSTALL_PREFIX 非空（rootless 模式），也安装到带前缀的路径
 ifneq ($(THEOS_PACKAGE_INSTALL_PREFIX),)
 	$(ECHO_NOTHING)mkdir -p "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/PreferenceLoader/Preferences" "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/PreferenceBundles/LSILLSettings.bundle" "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/MobileSubstrate/DynamicLibraries"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/entry.plist "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/PreferenceLoader/Preferences/LSILLSettings.plist"$(ECHO_END)
-	$(ECHO_NOTHING)cp Settings/Root.plist Settings/Notification.plist Settings/Disable.plist Settings/System.plist Settings/Unseen.plist Settings/Gesture.plist Settings/Info.plist "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
+	$(ECHO_NOTHING)cp Settings/Root.plist Settings/Notification.plist Settings/Disable.plist Settings/System.plist Settings/Unseen.plist Settings/Info.plist "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/Systempro@2x.png Settings/Systempro@3x.png "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
-	$(ECHO_NOTHING)cp SystemproGestureSB.plist SystemproGestureUI.plist "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/MobileSubstrate/DynamicLibraries/"$(ECHO_END)
 endif
 
 after-install::

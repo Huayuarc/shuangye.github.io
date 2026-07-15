@@ -1,4 +1,14 @@
 @import UIKit;
+@import ObjectiveC.runtime;
+
+#ifdef __cplusplus
+template <typename Type_>
+static inline Type_ &MSHookIvar(id self, const char *name) {
+    Ivar ivar_ = class_getInstanceVariable(object_getClass(self), name);
+    ptrdiff_t offset_ = ivar_getOffset(ivar_);
+    return *(Type_ *)((char *)self + offset_);
+}
+#endif
 
 #define CGRectSetY(rect, y) CGRectMake(rect.origin.x, y, rect.size.width, rect.size.height)
 
@@ -7,20 +17,19 @@ typedef struct SBIconCoordinate {
     NSInteger col;
 } SBIconCoordinate;
 
-// Gestures
+//Gestures
 @interface SBHomeGesturePanGestureRecognizer
 -(void)reset;
 -(void)touchesEnded:(id)arg1 withEvent:(id)arg2;
 @end
 
-// Lockscreen shortcuts
+//Lockscreen shortcuts
 @interface CSQuickActionsView : UIView
 - (UIEdgeInsets)_buttonOutsets;
 @property (nonatomic, retain) UIControl *flashlightButton;
 @property (nonatomic, retain) UIControl *cameraButton;
 @end
 
-// ===== 全局变量 =====
 NSInteger screenRound, appDockRound, bottomInset;
 NSInteger HomeBarWidth, HomeBarHeight, HomeBarRadius;
 static NSInteger KeyboardHeight = 48, KeyboardBound = -15;
@@ -28,48 +37,47 @@ static NSInteger KeyboardHeight = 48, KeyboardBound = -15;
 short statusBarMode, gesturesMode, screenMode, batteryColorMode;
 
 BOOL enabled;
-
-// iPad features
+//iPad features
 BOOL isiPadDock, isInAppDock, isRecentApp;
 BOOL isiPadMultitask, isPIP, isNewGridSwitcher;
 
-// General
+//General
 BOOL isEdgeProtect, isHomeBarAutoHide, isHomeBarSB, isHomeBarLS, isHomeBarCustom;
 BOOL isCCStatusbar, isCCGrabber, isCCAnimation, isNoBreadcrumb;
 BOOL isiPXCombination, isReachability, isLSShortcuts, isPadLock;
 
-// Battery
+//Battery Percent - BP
 BOOL isBatteryPercent, isPercentChargingCC;
 BOOL isHideChargingIndicator, isHideStockPercent;
 
-// Keyboard
+//Keyboard options
 BOOL isHigherKeyboard, isDarkKeyboard, isNonLatinKeyboard;
 BOOL isNoSwipeKeyboard, isNoGesturesKeyboard;
 
-// Camera
+//Camera Options
 BOOL isCameraBottomSet, isCameraUI11, isCameraZoomFlip11;
 
-// More options
+//More options
 BOOL isFastOpenApp, isNoIconsFly, isLandscapeLock, isNoDockBackgroud;
 BOOL isMakeSBClean, isMoreIconDock, isReduceRows, isSwipeScreenshot;
 
-// ===== 偏好设置域名 =====
-static NSString *const kGesturePrefsPath = @"/var/mobile/Library/Preferences/com.huayuarc.systempro.gesture.plist";
-static NSString *const kGestureNotifChanged = @"com.huayuarc.systempro.gesture.settingschanged";
-
-// ===== 偏好读取 =====
+//Handle Preferences:
 static BOOL boolValueForKey(NSString *key) {
-    NSDictionary const *prefs = [[NSMutableDictionary alloc] initWithContentsOfFile:kGesturePrefsPath];
+    NSDictionary const *prefs = [[NSMutableDictionary alloc] initWithContentsOfFile:@"/var/mobile/Library/Preferences/com.hius.HalFiPadPrefs.plist"];
     return [[prefs objectForKey:key] boolValue];
 }
 
 static int intValueForKey(NSString *key) {
-    NSDictionary const *prefs = [[NSMutableDictionary alloc] initWithContentsOfFile:kGesturePrefsPath];
+    NSDictionary const *prefs = [[NSMutableDictionary alloc] initWithContentsOfFile:@"/var/mobile/Library/Preferences/com.hius.HalFiPadPrefs.plist"];
     return [[prefs objectForKey:key] integerValue];
 }
 
-static void updateGesturePrefs(void) {
-    NSDictionary const *prefs = [[NSMutableDictionary alloc] initWithContentsOfFile:kGesturePrefsPath];
+static void updatePrefs() {
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    if (![fileManager fileExistsAtPath:@"/User/Library/Preferences/com.hius.HalFiPadPrefs.plist"]) {
+        [fileManager copyItemAtPath:@"/Library/PreferenceBundles/HalFiPadPrefs.bundle/defaults.plist" toPath:@"/User/Library/Preferences/com.hius.HalFiPadPrefs.plist" error:nil];
+    }
+    NSDictionary const *prefs = [[NSMutableDictionary alloc] initWithContentsOfFile:@"/var/mobile/Library/Preferences/com.hius.HalFiPadPrefs.plist"];
     if (prefs) {
         enabled = boolValueForKey(@"Enabled");
         batteryColorMode = intValueForKey(@"batteryColorMode");
@@ -84,17 +92,18 @@ static void updateGesturePrefs(void) {
         HomeBarRadius = intValueForKey(@"homeBarRadius");
         KeyboardHeight = intValueForKey(@"bottomHeightKB");
         KeyboardBound = intValueForKey(@"boundKeyboard");
-        // iPad features
+        //iPad features:
         isiPadDock = boolValueForKey(@"ipadDock");
         isiPadMultitask = boolValueForKey(@"iPadMultitask");
         isRecentApp = boolValueForKey(@"recentApp");
         isNewGridSwitcher = boolValueForKey(@"newSwitcher");
         isPIP = boolValueForKey(@"pictureInPicture");
         isInAppDock = boolValueForKey(@"inAppDock");
-        // General
+        //General options:
         isCCAnimation = boolValueForKey(@"ccAnimation");
         isCCStatusbar = boolValueForKey(@"ccStatusBar");
         isCCGrabber = boolValueForKey(@"ccGrabber");
+        //HomeBar
         isEdgeProtect = boolValueForKey(@"edgeProtect");
         isHomeBarAutoHide = boolValueForKey(@"homeBarAutoHide");
         isHomeBarSB = boolValueForKey(@"homeBarSB");
@@ -104,17 +113,17 @@ static void updateGesturePrefs(void) {
         isNoBreadcrumb = boolValueForKey(@"noBreadcrumb");
         isReachability = boolValueForKey(@"noReachability");
         isiPXCombination = boolValueForKey(@"ipxCombination");
-        // Battery
+        //Battery Customization:
         isBatteryPercent = boolValueForKey(@"batteryPercent");
         isHideChargingIndicator = boolValueForKey(@"hideChargingIndicator");
         isHideStockPercent = boolValueForKey(@"hideStockPercent");
         isPercentChargingCC = boolValueForKey(@"percentChargingCC");
-        // Keyboard
+        //Keyboard options:
         isHigherKeyboard = boolValueForKey(@"highKeyboard");
         isDarkKeyboard = boolValueForKey(@"darkKeyboard");
         isNoSwipeKeyboard = boolValueForKey(@"noSwipeKeyboard");
         isNonLatinKeyboard = boolValueForKey(@"nonLatinKeyboard");
-        // More options
+        // More options:
         isMakeSBClean = boolValueForKey(@"makeSBClean");
         isMoreIconDock = boolValueForKey(@"moreIconDock");
         isNoDockBackgroud = boolValueForKey(@"noDockBackground");
@@ -127,15 +136,15 @@ static void updateGesturePrefs(void) {
         isLandscapeLock = boolValueForKey(@"landscapeLock");
         isReduceRows = boolValueForKey(@"reduceRows");
         isPadLock = boolValueForKey(@"padLock");
-        // Per-App Customize
+        //Per-App Customize
         NSString const *mainAppID = [NSBundle mainBundle].bundleIdentifier;
         NSDictionary const *appCustomize = [prefs objectForKey:mainAppID];
         if (appCustomize) {
-            screenMode = (NSInteger)[[appCustomize objectForKey:@"screenMode"] ?: ((NSNumber *)[NSNumber numberWithBool:screenMode]) integerValue];
-            bottomInset = (NSInteger)[[appCustomize objectForKey:@"bottomInset"] ?: ((NSNumber *)[NSNumber numberWithBool:bottomInset]) integerValue];
-            isDarkKeyboard = (BOOL)[[appCustomize objectForKey:@"darkKeyboard"] ?: ((NSNumber *)[NSNumber numberWithBool:isDarkKeyboard]) boolValue];
-            isHigherKeyboard = (BOOL)[[appCustomize objectForKey:@"highKeyboard"] ?: ((NSNumber *)[NSNumber numberWithBool:isHigherKeyboard]) boolValue];
-            isNonLatinKeyboard = (BOOL)[[appCustomize objectForKey:@"nonLatinKeyboard"] ?: ((NSNumber *)[NSNumber numberWithBool:isNonLatinKeyboard]) boolValue];
+            screenMode = (NSInteger)[[appCustomize objectForKey:@"screenMode"]?:((NSNumber *)[NSNumber numberWithBool:screenMode]) integerValue];
+            bottomInset = (NSInteger)[[appCustomize objectForKey:@"bottomInset"]?:((NSNumber *)[NSNumber numberWithBool:bottomInset]) integerValue];
+            isDarkKeyboard = (BOOL)[[appCustomize objectForKey:@"darkKeyboard"]?:((NSNumber *)[NSNumber numberWithBool:isDarkKeyboard]) boolValue];
+            isHigherKeyboard = (BOOL)[[appCustomize objectForKey:@"highKeyboard"]?:((NSNumber *)[NSNumber numberWithBool:isHigherKeyboard]) boolValue];
+            isNonLatinKeyboard = (BOOL)[[appCustomize objectForKey:@"nonLatinKeyboard"]?:((NSNumber *)[NSNumber numberWithBool:isNonLatinKeyboard]) boolValue];
         }
     }
 }
