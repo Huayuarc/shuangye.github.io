@@ -1,9 +1,0 @@
-Package: com.huayuarc.systempro
-Name: Systempro
-Author: Huayuarc
-Description: 通知不亮屏 + 多项系统增强 + 系统工具（禁用OTA/通话录音提示音/Watch配对）
-Depends: mobilesubstrate, preferenceloader, firmware (>= 14.0)
-Maintainer: Huayuarc
-Section: Tweaks
-Architecture: iphoneos-arm
-Version: 1.2.1
