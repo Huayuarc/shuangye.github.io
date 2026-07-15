@@ -15,6 +15,16 @@
 			<string>通知</string>
 		</dict>
 		<dict>
+			<key>action</key>
+			<string>restartRenderServices</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>isDestructive</key>
+			<true/>
+			<key>label</key>
+			<string>✓ 注销</string>
+		</dict>
+		<dict>
 			<key>cell</key>
 			<string>PSLinkCell</string>
 			<key>detail</key>
@@ -23,6 +33,16 @@
 			<true/>
 			<key>label</key>
 			<string>禁用</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>restartRenderServices</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>isDestructive</key>
+			<true/>
+			<key>label</key>
+			<string>✓ 注销</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -35,6 +55,16 @@
 			<string>系统</string>
 		</dict>
 		<dict>
+			<key>action</key>
+			<string>restartRenderServices</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>isDestructive</key>
+			<true/>
+			<key>label</key>
+			<string>✓ 注销</string>
+		</dict>
+		<dict>
 			<key>cell</key>
 			<string>PSLinkCell</string>
 			<key>detail</key>
@@ -43,6 +73,16 @@
 			<true/>
 			<key>label</key>
 			<string>Unseen</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>restartRenderServices</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>isDestructive</key>
+			<true/>
+			<key>label</key>
+			<string>✓ 注销</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -55,14 +95,6 @@
 			<string>手势</string>
 		</dict>
 		<dict>
-			<key>cell</key>
-			<string>PSGroupCell</string>
-			<key>footerText</key>
-			<string>注销会重启 backboardd 和 SpringBoard，让渲染相关设置立即生效。</string>
-			<key>label</key>
-			<string></string>
-		</dict>
-		<dict>
 			<key>action</key>
 			<string>restartRenderServices</string>
 			<key>cell</key>
@@ -70,23 +102,7 @@
 			<key>isDestructive</key>
 			<true/>
 			<key>label</key>
-			<string>注销</string>
-		</dict>
-		<dict>
-			<key>action</key>
-			<string>openQQFeedbackGroup</string>
-			<key>cell</key>
-			<string>PSButtonCell</string>
-			<key>label</key>
-			<string>📮 QQ 交流反馈群</string>
-		</dict>
-		<dict>
-			<key>action</key>
-			<string>openRepo</string>
-			<key>cell</key>
-			<string>PSButtonCell</string>
-			<key>label</key>
-			<string>📦 Sileo 添加源</string>
+			<string>✓ 注销</string>
 		</dict>
 	</array>
 	<key>title</key>

@@ -4,16 +4,17 @@
 <dict>
 	<key>items</key>
 	<array>
-		<!-- ===== 总开关 ===== -->
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
-			<key>label</key>
-			<string>手势增强</string>
 			<key>footerText</key>
 			<string>启用后将带来 iPhone X 风格的全屏手势、iPad 特性等</string>
+			<key>label</key>
+			<string>手势增强</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
@@ -24,11 +25,7 @@
 			<string>Enabled</string>
 			<key>label</key>
 			<string>启用手势</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 		</dict>
-
-		<!-- ===== 手势样式 ===== -->
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
@@ -36,25 +33,18 @@
 			<string>手势样式</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSegmentCell</string>
 			<key>default</key>
 			<integer>1</integer>
 			<key>defaults</key>
 			<string>com.huayuarc.systempro.gesture</string>
-			<key>key</key>
-			<string>gesturesMode</string>
 			<key>detail</key>
 			<string>PSListItemsController</string>
-			<key>validValues</key>
-			<array>
-				<integer>0</integer>
-				<integer>5</integer>
-				<integer>1</integer>
-				<integer>2</integer>
-				<integer>3</integer>
-				<integer>4</integer>
-			</array>
+			<key>key</key>
+			<string>gesturesMode</string>
 			<key>validTitles</key>
 			<array>
 				<string>原始</string>
@@ -64,29 +54,29 @@
 				<string>右侧</string>
 				<string>迷你</string>
 			</array>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
+			<key>validValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>5</integer>
+				<integer>1</integer>
+				<integer>2</integer>
+				<integer>3</integer>
+				<integer>4</integer>
+			</array>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSegmentCell</string>
 			<key>default</key>
 			<integer>5</integer>
 			<key>defaults</key>
 			<string>com.huayuarc.systempro.gesture</string>
-			<key>key</key>
-			<string>statusBarMode</string>
 			<key>detail</key>
 			<string>PSListItemsController</string>
-			<key>validValues</key>
-			<array>
-				<integer>0</integer>
-				<integer>1</integer>
-				<integer>2</integer>
-				<integer>3</integer>
-				<integer>4</integer>
-				<integer>5</integer>
-			</array>
+			<key>key</key>
+			<string>statusBarMode</string>
 			<key>validTitles</key>
 			<array>
 				<string>原始</string>
@@ -96,10 +86,19 @@
 				<string>iPhoneX*</string>
 				<string>iPhone11*</string>
 			</array>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
+			<key>validValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+				<integer>2</integer>
+				<integer>3</integer>
+				<integer>4</integer>
+				<integer>5</integer>
+			</array>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
@@ -110,11 +109,7 @@
 			<string>edgeProtect</string>
 			<key>label</key>
 			<string>边缘保护</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 		</dict>
-
-		<!-- ===== 通用设置 ===== -->
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
@@ -122,6 +117,8 @@
 			<string>通用设置</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
@@ -132,10 +129,10 @@
 			<string>ccAnimation</string>
 			<key>label</key>
 			<string>控制中心动画</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
@@ -146,10 +143,10 @@
 			<string>ccStatusBar</string>
 			<key>label</key>
 			<string>控制中心状态栏</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
@@ -160,10 +157,10 @@
 			<string>ccGrabber</string>
 			<key>label</key>
 			<string>控制中心抓取条</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
@@ -174,10 +171,10 @@
 			<string>padLock</string>
 			<key>label</key>
 			<string>FaceID / 锁定动画</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
@@ -188,10 +185,10 @@
 			<string>noBreadcrumb</string>
 			<key>label</key>
 			<string>隐藏返回按钮</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
@@ -202,10 +199,10 @@
 			<string>lsShortcuts</string>
 			<key>label</key>
 			<string>锁屏快捷操作</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
@@ -216,10 +213,10 @@
 			<string>noReachability</string>
 			<key>label</key>
 			<string>允许单手模式</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
@@ -230,11 +227,7 @@
 			<string>ipxCombination</string>
 			<key>label</key>
 			<string>组合键截图</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 		</dict>
-
-		<!-- ===== 横条 (Home Bar) ===== -->
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
@@ -242,6 +235,8 @@
 			<string>横条设置</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
@@ -252,10 +247,10 @@
 			<string>homeBarAutoHide</string>
 			<key>label</key>
 			<string>自动隐藏</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
@@ -266,10 +261,10 @@
 			<string>homeBarSB</string>
 			<key>label</key>
 			<string>主屏幕显示</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
@@ -280,10 +275,10 @@
 			<string>homeBarLS</string>
 			<key>label</key>
 			<string>锁屏显示</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
@@ -294,71 +289,67 @@
 			<string>homeBarCustom</string>
 			<key>label</key>
 			<string>自定义尺寸</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSliderCell</string>
 			<key>default</key>
 			<real>134</real>
 			<key>defaults</key>
 			<string>com.huayuarc.systempro.gesture</string>
+			<key>isSegmented</key>
+			<false/>
 			<key>key</key>
 			<string>homeBarWidth</string>
 			<key>label</key>
 			<string>横条宽度</string>
-			<key>min</key>
-			<real>40</real>
 			<key>max</key>
 			<real>200</real>
-			<key>isSegmented</key>
-			<false/>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
+			<key>min</key>
+			<real>40</real>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSliderCell</string>
 			<key>default</key>
 			<real>5</real>
 			<key>defaults</key>
 			<string>com.huayuarc.systempro.gesture</string>
+			<key>isSegmented</key>
+			<false/>
 			<key>key</key>
 			<string>homeBarHeight</string>
 			<key>label</key>
 			<string>横条高度</string>
-			<key>min</key>
-			<real>1</real>
 			<key>max</key>
 			<real>20</real>
-			<key>isSegmented</key>
-			<false/>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
+			<key>min</key>
+			<real>1</real>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSliderCell</string>
 			<key>default</key>
 			<real>3</real>
 			<key>defaults</key>
 			<string>com.huayuarc.systempro.gesture</string>
+			<key>isSegmented</key>
+			<false/>
 			<key>key</key>
 			<string>homeBarRadius</string>
 			<key>label</key>
 			<string>横条圆角</string>
-			<key>min</key>
-			<real>0</real>
 			<key>max</key>
 			<real>10</real>
-			<key>isSegmented</key>
-			<false/>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
+			<key>min</key>
+			<real>0.0</real>
 		</dict>
-
-		<!-- ===== iPad 特性 ===== -->
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
@@ -366,6 +357,8 @@
 			<string>iPad 特性</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
@@ -376,10 +369,10 @@
 			<string>ipadDock</string>
 			<key>label</key>
 			<string>浮动 Dock</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
@@ -390,10 +383,10 @@
 			<string>inAppDock</string>
 			<key>label</key>
 			<string>应用内 Dock</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
@@ -404,10 +397,10 @@
 			<string>recentApp</string>
 			<key>label</key>
 			<string>最近应用建议</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
@@ -418,10 +411,10 @@
 			<string>iPadMultitask</string>
 			<key>label</key>
 			<string>分屏多任务</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
@@ -432,10 +425,10 @@
 			<string>newSwitcher</string>
 			<key>label</key>
 			<string>网格切换器</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
@@ -446,39 +439,35 @@
 			<string>pictureInPicture</string>
 			<key>label</key>
 			<string>画中画</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSLinkCell</string>
-			<key>label</key>
-			<string>屏幕模式</string>
 			<key>celltype</key>
 			<string>PSLinkCell</string>
-			<key>detail</key>
-			<string>PSListItemsController</string>
-			<key>defaults</key>
-			<string>com.huayuarc.systempro.gesture</string>
-			<key>key</key>
-			<string>screenMode</string>
 			<key>default</key>
 			<integer>1</integer>
-			<key>validValues</key>
-			<array>
-				<integer>0</integer>
-				<integer>1</integer>
-			</array>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro.gesture</string>
+			<key>detail</key>
+			<string>PSListItemsController</string>
+			<key>key</key>
+			<string>screenMode</string>
+			<key>label</key>
+			<string>屏幕模式</string>
 			<key>validTitles</key>
 			<array>
 				<string>iPad 模式</string>
 				<string>正常模式</string>
 			</array>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
+			<key>validValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+			</array>
 		</dict>
-
-		<!-- ===== 键盘设置 ===== -->
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
@@ -486,6 +475,8 @@
 			<string>键盘设置</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
@@ -496,10 +487,10 @@
 			<string>darkKeyboard</string>
 			<key>label</key>
 			<string>深色键盘</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
@@ -510,10 +501,10 @@
 			<string>highKeyboard</string>
 			<key>label</key>
 			<string>抬高键盘</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
@@ -524,31 +515,27 @@
 			<string>noSwipeKeyboard</string>
 			<key>label</key>
 			<string>键盘禁用滑动手势</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSliderCell</string>
 			<key>default</key>
 			<real>48</real>
 			<key>defaults</key>
 			<string>com.huayuarc.systempro.gesture</string>
+			<key>isSegmented</key>
+			<false/>
 			<key>key</key>
 			<string>bottomHeightKB</string>
 			<key>label</key>
 			<string>键盘抬高高度</string>
-			<key>min</key>
-			<real>0</real>
 			<key>max</key>
 			<real>120</real>
-			<key>isSegmented</key>
-			<false/>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
+			<key>min</key>
+			<real>0.0</real>
 		</dict>
-
-		<!-- ===== 更多设置 ===== -->
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
@@ -556,6 +543,8 @@
 			<string>更多设置</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
@@ -566,10 +555,10 @@
 			<string>swipeScreenshot</string>
 			<key>label</key>
 			<string>双指滑动截图</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
@@ -580,10 +569,10 @@
 			<string>makeSBClean</string>
 			<key>label</key>
 			<string>桌面精简</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
@@ -594,10 +583,10 @@
 			<string>moreIconDock</string>
 			<key>label</key>
 			<string>Dock 更多图标 (5-6)</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
@@ -608,10 +597,10 @@
 			<string>fastOpenApp</string>
 			<key>label</key>
 			<string>快速打开应用</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
@@ -622,10 +611,10 @@
 			<string>noDockBackground</string>
 			<key>label</key>
 			<string>透明 Dock 背景</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
@@ -636,10 +625,10 @@
 			<string>noIconsFly</string>
 			<key>label</key>
 			<string>禁用图标飞入</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
@@ -650,10 +639,10 @@
 			<string>reduceRows</string>
 			<key>label</key>
 			<string>减少图标行数 (5行)</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
@@ -664,10 +653,10 @@
 			<string>landscapeLock</string>
 			<key>label</key>
 			<string>横屏锁定</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 		</dict>
 		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
@@ -678,22 +667,20 @@
 			<string>batteryPercent</string>
 			<key>label</key>
 			<string>电池百分比</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.gesture.settingschanged</string>
 		</dict>
-
-		<!-- ===== 恢复默认 ===== -->
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
 		</dict>
 		<dict>
-			<key>label</key>
-			<string>✓ 注销</string>
+			<key>action</key>
+			<string>restartRenderServices</string>
 			<key>cell</key>
 			<string>PSButtonCell</string>
-			<key>action</key>
-			<string>respring</string>
+			<key>isDestructive</key>
+			<true/>
+			<key>label</key>
+			<string>✓ 注销</string>
 		</dict>
 	</array>
 	<key>title</key>

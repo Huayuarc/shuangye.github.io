@@ -90,6 +90,16 @@
 			<key>label</key>
 			<string>隐藏录屏/投屏状态</string>
 		</dict>
+		<dict>
+			<key>action</key>
+			<string>restartRenderServices</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>isDestructive</key>
+			<true/>
+			<key>label</key>
+			<string>✓ 注销</string>
+		</dict>
 	</array>
 	<key>title</key>
 	<string>Unseen</string>
