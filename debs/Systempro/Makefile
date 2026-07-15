@@ -97,21 +97,20 @@ include $(THEOS_MAKE_PATH)/bundle.mk
 INSTALL_TARGET_PROCESSES := SpringBoard backboardd
 
 after-stage::
-	$(ECHO_NOTHING)mkdir -p "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/tmp"$(ECHO_END)
-	$(ECHO_NOTHING)mkdir -p "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/PreferenceLoader/Preferences" "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/PreferenceBundles/LSILLSettings.bundle"$(ECHO_END)
+	$(ECHO_NOTHING)mkdir -p "$(THEOS_STAGING_DIR)/tmp"$(ECHO_END)
+	$(ECHO_NOTHING)mkdir -p "$(THEOS_STAGING_DIR)/Library/PreferenceLoader/Preferences" "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle" "$(THEOS_STAGING_DIR)/Library/MobileSubstrate/DynamicLibraries"$(ECHO_END)
+	$(ECHO_NOTHING)cp Settings/entry.plist "$(THEOS_STAGING_DIR)/Library/PreferenceLoader/Preferences/LSILLSettings.plist"$(ECHO_END)
+	$(ECHO_NOTHING)cp Settings/Root.plist Settings/Notification.plist Settings/Disable.plist Settings/System.plist Settings/Unseen.plist Settings/Gesture.plist Settings/Info.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
+	$(ECHO_NOTHING)cp Settings/Systempro@2x.png Settings/Systempro@3x.png "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
+	$(ECHO_NOTHING)cp SystemproGestureSB.plist SystemproGestureUI.plist "$(THEOS_STAGING_DIR)/Library/MobileSubstrate/DynamicLibraries/"$(ECHO_END)
+	# 如果 THEOS_PACKAGE_INSTALL_PREFIX 非空（rootless 模式），也安装到带前缀的路径
+ifneq ($(THEOS_PACKAGE_INSTALL_PREFIX),)
+	$(ECHO_NOTHING)mkdir -p "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/PreferenceLoader/Preferences" "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/PreferenceBundles/LSILLSettings.bundle" "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/MobileSubstrate/DynamicLibraries"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/entry.plist "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/PreferenceLoader/Preferences/LSILLSettings.plist"$(ECHO_END)
-	$(ECHO_NOTHING)cp Settings/Root.plist "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
-	$(ECHO_NOTHING)cp Settings/Notification.plist "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
-	$(ECHO_NOTHING)cp Settings/Disable.plist "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
-	$(ECHO_NOTHING)cp Settings/System.plist "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
-	$(ECHO_NOTHING)cp Settings/Unseen.plist "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
-	$(ECHO_NOTHING)cp Settings/Gesture.plist "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
-	$(ECHO_NOTHING)cp Settings/Info.plist "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
-	$(ECHO_NOTHING)cp Settings/Systempro@2x.png "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
-	$(ECHO_NOTHING)cp Settings/Systempro@3x.png "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
-	# 安装手势插件过滤文件
-	$(ECHO_NOTHING)cp SystemproGestureSB.plist "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/MobileSubstrate/DynamicLibraries/"$(ECHO_END)
-	$(ECHO_NOTHING)cp SystemproGestureUI.plist "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/MobileSubstrate/DynamicLibraries/"$(ECHO_END)
+	$(ECHO_NOTHING)cp Settings/Root.plist Settings/Notification.plist Settings/Disable.plist Settings/System.plist Settings/Unseen.plist Settings/Gesture.plist Settings/Info.plist "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
+	$(ECHO_NOTHING)cp Settings/Systempro@2x.png Settings/Systempro@3x.png "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
+	$(ECHO_NOTHING)cp SystemproGestureSB.plist SystemproGestureUI.plist "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/MobileSubstrate/DynamicLibraries/"$(ECHO_END)
+endif
 
 after-install::
 	$(ECHO_NOTHING)echo "[Systempro] 安装完成！SpringBoard/backboardd 即将自动重启使插件生效。"$(ECHO_END)
