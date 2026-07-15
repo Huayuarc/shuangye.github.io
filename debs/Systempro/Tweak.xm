@@ -88,6 +88,11 @@ static BOOL      g_cyanideDisableOTA          = NO;
 static BOOL      g_cyanideMuteCallRecord      = NO;
 static BOOL      g_cyanideNanoRegistry        = NO;
 
+// 前向声明（定义在文件后半部分的静态函数）
+static void cyanide_applyDisableOTA(BOOL disabled);
+static void cyanide_applyMuteCallRecord(BOOL mute);
+static void cyanide_applyNanoRegistry(BOOL apply);
+
 // ============================================================================
 // 配置读写 — 内存缓存（避免热路径 I/O）
 // ============================================================================
@@ -533,7 +538,7 @@ static NSData *cyanide_silentAudioData(void) {
 	const int duration = 1;
 	const int dataSize = sampleRate * duration;
 	const int fileSize = 44 + dataSize;
-	uint8_t *buf = malloc(fileSize);
+	uint8_t *buf = (uint8_t *)malloc(fileSize);
 	if (!buf) return nil;
 	memcpy(buf, "RIFF", 4);
 	uint32_t riffSize = fileSize - 8;
