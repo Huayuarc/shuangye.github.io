@@ -6,61 +6,87 @@
 	<array>
 		<dict>
 			<key>cell</key>
-			<string>PSGroupCell</string>
-			<key>label</key>
-			<string>系统增强</string>
-		</dict>
-		<dict>
-			<key>cell</key>
 			<string>PSLinkCell</string>
 			<key>detail</key>
-			<string>LLSystemListController</string>
+			<string>LLNotificationListController</string>
+			<key>isController</key>
+			<true/>
 			<key>label</key>
-			<string>▸ 通知不亮屏</string>
+			<string>通知</string>
 		</dict>
 		<dict>
 			<key>cell</key>
 			<string>PSLinkCell</string>
 			<key>detail</key>
 			<string>LLDisableListController</string>
+			<key>isController</key>
+			<true/>
 			<key>label</key>
-			<string>▸ 系统功能</string>
+			<string>禁用</string>
 		</dict>
 		<dict>
 			<key>cell</key>
 			<string>PSLinkCell</string>
 			<key>detail</key>
-			<string>LLNotificationListController</string>
+			<string>LLSystemListController</string>
+			<key>isController</key>
+			<true/>
 			<key>label</key>
-			<string>▸ 通知增强</string>
+			<string>系统</string>
 		</dict>
 		<dict>
 			<key>cell</key>
 			<string>PSLinkCell</string>
 			<key>detail</key>
 			<string>LLUnseenListController</string>
+			<key>isController</key>
+			<true/>
 			<key>label</key>
-			<string>▸ 未读数增强</string>
+			<string>Unseen</string>
 		</dict>
 		<dict>
 			<key>cell</key>
 			<string>PSLinkCell</string>
 			<key>detail</key>
 			<string>LLGestureListController</string>
+			<key>isController</key>
+			<true/>
 			<key>label</key>
-			<string>▸ 手势设置</string>
+			<string>手势</string>
 		</dict>
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>注销会重启 backboardd 和 SpringBoard，让渲染相关设置立即生效。</string>
+			<key>label</key>
+			<string></string>
 		</dict>
 		<dict>
 			<key>action</key>
-			<string>respring</string>
+			<string>restartRenderServices</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>isDestructive</key>
+			<true/>
+			<key>label</key>
+			<string>注销</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>openQQFeedbackGroup</string>
 			<key>cell</key>
 			<string>PSButtonCell</string>
 			<key>label</key>
-			<string>✓ 注销</string>
+			<string>📮 QQ 交流反馈群</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>openRepo</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>📦 Sileo 添加源</string>
 		</dict>
 	</array>
 	<key>title</key>

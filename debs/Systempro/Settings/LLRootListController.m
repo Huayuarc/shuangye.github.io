@@ -9,12 +9,14 @@
 #import <string.h>
 #import <sys/sysctl.h>
 #import <unistd.h>
+#import <rootless.h>
 
 static NSString *const kPrefPath          = @"/var/mobile/Library/Preferences/com.huayuarc.systempro.plist";
-static NSString *const kDefaultsProperty  = @"defaults";
+static NSString *const kGesturePrefPath   = @"/var/mobile/Library/Preferences/com.huayuarc.systempro.gesture.plist";
 static NSString *const kEnabledKey        = @"enabled";
 static NSString *const kBlockModeKey      = @"blockMode";
 static NSString *const kBlockModeGroupKey = @"blockModeGroup";
+static NSString *const kUnseenEnabledKey  = @"unseenEnabled";
 static NSString *const kKeyProperty       = @"key";
 
 static const char *const kNotifyPrefsChanged = "com.huayuarc.systempro.prefschanged";
@@ -38,16 +40,16 @@ static BOOL LSLaunchExecutable(const char *executablePath, char *const arguments
 
 static BOOL LSPerformRespring(void) {
 	char *const sbreloadArguments[] = {(char *)"sbreload", NULL};
-	const char *sbreloadPath = LSExecutablePath("/usr/bin/sbreload", "/var/jb/usr/bin/sbreload", "/usr/bin/sbreload");
+	const char *sbreloadPath = LSExecutablePath("/usr/bin/sbreload", ROOT_PATH("/usr/bin/sbreload"), "/usr/bin/sbreload");
 	if (LSLaunchExecutable(sbreloadPath, sbreloadArguments)) return YES;
 
 	char *const killallArguments[] = {(char *)"killall", (char *)"-9", (char *)"SpringBoard", NULL};
-	const char *killallPath = LSExecutablePath("/usr/bin/killall", "/var/jb/usr/bin/killall", "/usr/bin/killall");
+	const char *killallPath = LSExecutablePath("/usr/bin/killall", ROOT_PATH("/usr/bin/killall"), "/usr/bin/killall");
 	return LSLaunchExecutable(killallPath, killallArguments);
 }
 
 static BOOL LSRestartRenderServices(void) {
-	const char *killallPath = LSExecutablePath("/usr/bin/killall", "/var/jb/usr/bin/killall", "/usr/bin/killall");
+	const char *killallPath = LSExecutablePath("/usr/bin/killall", ROOT_PATH("/usr/bin/killall"), "/usr/bin/killall");
 	char *const arguments[] = {(char *)"killall", (char *)"-TERM", (char *)"backboardd", (char *)"SpringBoard", NULL};
 	return LSLaunchExecutable(killallPath, arguments);
 }
@@ -57,12 +59,6 @@ typedef NS_ENUM(NSInteger, LSBlockMode) {
 	LSBlockModeSilent   = 1,
 	LSBlockModeAlways   = 2,
 };
-
-static NSString *LSDefaultsPath(PSSpecifier *spec) {
-	NSString *domain = [spec propertyForKey:kDefaultsProperty];
-	if (!domain) domain = @"com.huayuarc.systempro";
-	return [NSString stringWithFormat:@"/var/mobile/Library/Preferences/%@.plist", domain];
-}
 
 static NSInteger sanitizedBlockMode(id value) {
 	NSInteger mode = [value integerValue];
@@ -80,9 +76,6 @@ static NSInteger sanitizedBlockMode(id value) {
 @interface LLNotificationListController : LLRootListController
 @end
 
-@interface LLDynamicIslandListController : LLRootListController
-@end
-
 @interface LLDisableListController : LLRootListController
 @end
 
@@ -92,7 +85,7 @@ static NSInteger sanitizedBlockMode(id value) {
 @interface LLUnseenListController : LLRootListController
 @end
 
-@interface LLGestureListController : LLRootListController
+@interface LLGestureListController : PSListController
 @end
 
 @implementation LLRootListController
@@ -129,7 +122,7 @@ static NSInteger sanitizedBlockMode(id value) {
 	NSString *key = [spec propertyForKey:kKeyProperty];
 	if (!key) return nil;
 
-	NSDictionary *d = [NSDictionary dictionaryWithContentsOfFile:LSDefaultsPath(spec)];
+	NSDictionary *d = [NSDictionary dictionaryWithContentsOfFile:kPrefPath];
 	id val = d ? d[key] : nil;
 
 	if (!val) {
@@ -147,8 +140,7 @@ static NSInteger sanitizedBlockMode(id value) {
 	NSString *key = [spec propertyForKey:kKeyProperty];
 	if (!key) return;
 
-	NSString *plistPath = LSDefaultsPath(spec);
-	NSMutableDictionary *d = [NSMutableDictionary dictionaryWithContentsOfFile:plistPath];
+	NSMutableDictionary *d = [NSMutableDictionary dictionaryWithContentsOfFile:kPrefPath];
 	if (!d) d = [NSMutableDictionary dictionary];
 
 	if ([key isEqualToString:kBlockModeKey]) {
@@ -159,9 +151,9 @@ static NSInteger sanitizedBlockMode(id value) {
 	} else {
 		[d removeObjectForKey:key];
 	}
-	[d writeToFile:plistPath atomically:YES];
+	[d writeToFile:kPrefPath atomically:YES];
 
-	if ([key isEqualToString:kEnabledKey]) {
+	if ([key isEqualToString:kEnabledKey] || [key isEqualToString:kUnseenEnabledKey]) {
 		dispatch_async(dispatch_get_main_queue(), ^{
 			self->_specifiers = nil;
 			[self reloadSpecifiers];
@@ -241,49 +233,32 @@ static NSInteger sanitizedBlockMode(id value) {
 	return cell;
 }
 
-- (NSDictionary *)defaultValues {
-	return @{};
-}
-
-- (void)saveAllPrefs {
-	NSDictionary *defaults = [self defaultValues];
-	if (defaults.count == 0) return;
-
-	NSMutableDictionary *prefs = [NSMutableDictionary dictionaryWithContentsOfFile:kPrefPath];
+- (void)_registerDefaults:(NSDictionary *)defaults atPath:(NSString *)path {
+	if (!defaults || defaults.count == 0) return;
+	NSMutableDictionary *prefs = [NSMutableDictionary dictionaryWithContentsOfFile:path];
 	if (!prefs) prefs = [NSMutableDictionary dictionary];
-
+	BOOL needsWrite = NO;
 	for (NSString *key in defaults) {
-		if (!prefs[key]) prefs[key] = defaults[key];
+		if (!prefs[key]) {
+			prefs[key] = defaults[key];
+			needsWrite = YES;
+		}
 	}
-
-	[prefs writeToFile:kPrefPath atomically:YES];
-	notify_post(kNotifyPrefsChanged);
-
-	UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"已保存"
-		message:[NSString stringWithFormat:@"已写入 %lu 项灵动岛设置", (unsigned long)defaults.count]
-		preferredStyle:UIAlertControllerStyleAlert];
-	[alert addAction:[UIAlertAction actionWithTitle:@"好" style:UIAlertActionStyleDefault handler:nil]];
-	[self presentViewController:alert animated:YES completion:nil];
+	if (needsWrite) {
+		[prefs writeToFile:path atomically:YES];
+	}
 }
 
-- (void)resetAllPrefs {
-	NSDictionary *defaults = [self defaultValues];
-	if (defaults.count == 0) return;
+- (void)registerDefaults {
+	// Subclasses override to provide per-page defaults
+}
 
-	UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"恢复默认值？"
-		message:@"仅会重置灵动岛分类下的设置，不影响 Systempro 其它功能。"
-		preferredStyle:UIAlertControllerStyleAlert];
-	[alert addAction:[UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:nil]];
-	[alert addAction:[UIAlertAction actionWithTitle:@"恢复" style:UIAlertActionStyleDestructive handler:^(__unused UIAlertAction *action) {
-		NSMutableDictionary *prefs = [NSMutableDictionary dictionaryWithContentsOfFile:kPrefPath];
-		if (!prefs) prefs = [NSMutableDictionary dictionary];
-		[prefs addEntriesFromDictionary:defaults];
-		[prefs writeToFile:kPrefPath atomically:YES];
-		notify_post(kNotifyPrefsChanged);
-		self->_specifiers = nil;
-		[self reloadSpecifiers];
-	}]];
-	[self presentViewController:alert animated:YES completion:nil];
+- (instancetype)init {
+	self = [super init];
+	if (self) {
+		[self registerDefaults];
+	}
+	return self;
 }
 
 @end
@@ -294,34 +269,38 @@ static NSInteger sanitizedBlockMode(id value) {
 	return @"Notification";
 }
 
-@end
-
-@implementation LLDynamicIslandListController
-
-- (NSString *)specifiersPlistName {
-	return @"DynamicIsland";
-}
-
 - (NSDictionary *)defaultValues {
 	return @{
-		@"islandEnabled": @NO,
-		@"yOffset": @45,
-		@"compactW": @155,
-		@"compactH": @35,
-		@"expandedW": @340,
-		@"fullW": @370,
-		@"fullH": @175,
-		@"reappearDelay": @1,
-		@"notificationEnabled": @NO,
-		@"notifDuration": @3,
-		@"mediaCornerRadius": @18,
-		@"notifCornerRadius": @22,
-		@"borderEnabled": @NO,
-		@"borderWidth": @1.5,
-		@"borderR": @255,
-		@"borderG": @255,
-		@"borderB": @255,
+		@"enabled": @NO,
+		@"blockMode": @2,
 	};
+}
+
+- (void)registerDefaults {
+	[self _registerDefaults:[self defaultValues] atPath:kPrefPath];
+}
+
+- (NSArray *)specifiers {
+	if (!_specifiers) {
+		NSArray *loadedSpecs = [self loadSpecifiersFromPlistName:[self specifiersPlistName] target:self];
+		NSMutableArray *specs = loadedSpecs ? [loadedSpecs mutableCopy] : [NSMutableArray array];
+
+		NSDictionary *d = [NSDictionary dictionaryWithContentsOfFile:kPrefPath];
+		if (![d[@"enabled"] boolValue]) {
+			NSSet *hideKeys = [NSSet setWithObjects:@"blockModeGroup", @"blockMode", nil];
+			NSMutableArray *filtered = [NSMutableArray array];
+			for (PSSpecifier *spec in specs) {
+				NSString *key = [spec propertyForKey:kKeyProperty];
+				if (![hideKeys containsObject:key]) {
+					[filtered addObject:spec];
+				}
+			}
+			specs = filtered;
+		}
+
+		_specifiers = [specs copy];
+	}
+	return _specifiers;
 }
 
 @end
@@ -332,12 +311,48 @@ static NSInteger sanitizedBlockMode(id value) {
 	return @"Disable";
 }
 
+- (NSDictionary *)defaultValues {
+	return @{
+		@"disableAppLibrary": @NO,
+		@"disableSignatureCheck": @NO,
+		@"disableFlashlight": @NO,
+		@"disableCamera": @NO,
+		@"disableLockScreenCamera": @NO,
+		@"disableCameraShutterSound": @NO,
+		@"disableLockSound": @NO,
+	};
+}
+
+- (void)registerDefaults {
+	[self _registerDefaults:[self defaultValues] atPath:kPrefPath];
+}
+
 @end
 
 @implementation LLSystemListController
 
 - (NSString *)specifiersPlistName {
 	return @"System";
+}
+
+- (NSDictionary *)defaultValues {
+	return @{
+		@"ccRecordNoDelay": @NO,
+		@"autoDismissFaceID": @NO,
+		@"transparentDock": @NO,
+		@"removeUnlockDelay": @NO,
+		@"inCallUnlocked": @NO,
+		@"appOpenAnimationDirection": @0,
+		@"disconnectWiFiBT": @NO,
+		@"lowPowerOnLock": @NO,
+		@"lockWhenFaceDown": @NO,
+		@"disableIconFlyIn": @NO,
+		@"zeroWakeAnimation": @NO,
+	};
+}
+
+- (void)registerDefaults {
+	[self _registerDefaults:[self defaultValues] atPath:kPrefPath];
 }
 
 @end
@@ -348,12 +363,134 @@ static NSInteger sanitizedBlockMode(id value) {
 	return @"Unseen";
 }
 
+- (NSDictionary *)defaultValues {
+	return @{
+		@"unseenEnabled": @NO,
+		@"unseenRevealHiddenContent": @YES,
+		@"unseenHideScreenshotEvents": @YES,
+		@"unseenHideRecordingState": @YES,
+	};
+}
+
+- (void)registerDefaults {
+	[self _registerDefaults:[self defaultValues] atPath:kPrefPath];
+}
+
+- (NSArray *)specifiers {
+	if (!_specifiers) {
+		NSArray *loadedSpecs = [self loadSpecifiersFromPlistName:[self specifiersPlistName] target:self];
+		NSMutableArray *specs = loadedSpecs ? [loadedSpecs mutableCopy] : [NSMutableArray array];
+
+		NSDictionary *d = [NSDictionary dictionaryWithContentsOfFile:kPrefPath];
+		if (![d[@"unseenEnabled"] boolValue]) {
+			NSSet *hideKeys = [NSSet setWithObjects:
+				@"unseenRevealHiddenContentGroup",
+				@"unseenRevealHiddenContent",
+				@"unseenHideScreenshotEventsGroup",
+				@"unseenHideScreenshotEvents",
+				@"unseenHideRecordingStateGroup",
+				@"unseenHideRecordingState",
+				nil];
+			NSMutableArray *filtered = [NSMutableArray array];
+			for (PSSpecifier *spec in specs) {
+				NSString *key = [spec propertyForKey:kKeyProperty];
+				if (![hideKeys containsObject:key]) {
+					[filtered addObject:spec];
+				}
+			}
+			specs = filtered;
+		}
+
+		_specifiers = [specs copy];
+	}
+	return _specifiers;
+}
+
 @end
 
 @implementation LLGestureListController
 
 - (NSString *)specifiersPlistName {
 	return @"Gesture";
+}
+
+- (NSArray *)specifiers {
+	if (!_specifiers) {
+		_specifiers = [[self loadSpecifiersFromPlistName:[self specifiersPlistName] target:self] copy];
+	}
+	return _specifiers;
+}
+
+- (NSDictionary *)defaultValues {
+	return @{
+		@"Enabled": @YES,
+		@"gesturesMode": @1,
+		@"statusBarMode": @5,
+		@"edgeProtect": @YES,
+		@"ccAnimation": @YES,
+		@"ccStatusBar": @YES,
+		@"ccGrabber": @NO,
+		@"padLock": @YES,
+		@"noBreadcrumb": @YES,
+		@"lsShortcuts": @YES,
+		@"noReachability": @YES,
+		@"ipxCombination": @YES,
+		@"homeBarAutoHide": @NO,
+		@"homeBarSB": @YES,
+		@"homeBarLS": @YES,
+		@"homeBarCustom": @YES,
+		@"homeBarWidth": @134,
+		@"homeBarHeight": @5,
+		@"homeBarRadius": @3,
+		@"ipadDock": @NO,
+		@"inAppDock": @YES,
+		@"recentApp": @NO,
+		@"iPadMultitask": @NO,
+		@"newSwitcher": @NO,
+		@"pictureInPicture": @YES,
+		@"screenMode": @1,
+		@"darkKeyboard": @NO,
+		@"highKeyboard": @YES,
+		@"noSwipeKeyboard": @NO,
+		@"bottomHeightKB": @48,
+		@"swipeScreenshot": @YES,
+		@"makeSBClean": @NO,
+		@"moreIconDock": @NO,
+		@"fastOpenApp": @YES,
+		@"noDockBackground": @NO,
+		@"noIconsFly": @YES,
+		@"reduceRows": @NO,
+		@"landscapeLock": @NO,
+		@"batteryPercent": @YES,
+	};
+}
+
+- (void)registerDefaults {
+	NSDictionary *defaults = [self defaultValues];
+	if (defaults.count == 0) return;
+
+	NSMutableDictionary *prefs = [NSMutableDictionary dictionaryWithContentsOfFile:kGesturePrefPath];
+	if (!prefs) prefs = [NSMutableDictionary dictionary];
+
+	BOOL needsWrite = NO;
+	for (NSString *key in defaults) {
+		if (!prefs[key]) {
+			prefs[key] = defaults[key];
+			needsWrite = YES;
+		}
+	}
+
+	if (needsWrite) {
+		[prefs writeToFile:kGesturePrefPath atomically:YES];
+	}
+}
+
+- (instancetype)init {
+	self = [super init];
+	if (self) {
+		[self registerDefaults];
+	}
+	return self;
 }
 
 @end

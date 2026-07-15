@@ -7,8 +7,10 @@
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>集中放置所有禁用类功能，启用后立即生效，部分功能可能需要注销。</string>
 			<key>label</key>
-			<string>系统功能</string>
+			<string>禁用</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -21,8 +23,6 @@
 			<string>disableAppLibrary</string>
 			<key>label</key>
 			<string>禁用 App 资源库</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.prefschanged</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -34,23 +34,7 @@
 			<key>key</key>
 			<string>disableSignatureCheck</string>
 			<key>label</key>
-			<string>禁用签名验证</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.prefschanged</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSSwitchCell</string>
-			<key>default</key>
-			<false/>
-			<key>defaults</key>
-			<string>com.huayuarc.systempro</string>
-			<key>key</key>
-			<string>transparentDock</string>
-			<key>label</key>
-			<string>透明 Dock</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.prefschanged</string>
+			<string>禁用企业签名验证</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -62,9 +46,7 @@
 			<key>key</key>
 			<string>disableFlashlight</string>
 			<key>label</key>
-			<string>禁用锁屏手电筒</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.prefschanged</string>
+			<string>禁用锁屏手电筒图标</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -76,9 +58,7 @@
 			<key>key</key>
 			<string>disableCamera</string>
 			<key>label</key>
-			<string>禁用锁屏相机</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.prefschanged</string>
+			<string>禁用锁屏相机图标</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -88,11 +68,9 @@
 			<key>defaults</key>
 			<string>com.huayuarc.systempro</string>
 			<key>key</key>
-			<string>disableScreenshotDetection</string>
+			<string>disableLockScreenCamera</string>
 			<key>label</key>
-			<string>屏蔽截图检测</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.prefschanged</string>
+			<string>禁用锁屏相机按钮</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -105,22 +83,6 @@
 			<string>disableCameraShutterSound</string>
 			<key>label</key>
 			<string>禁用相机快门声</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.prefschanged</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSSwitchCell</string>
-			<key>default</key>
-			<false/>
-			<key>defaults</key>
-			<string>com.huayuarc.systempro</string>
-			<key>key</key>
-			<string>autoDismissFaceID</string>
-			<key>label</key>
-			<string>自动解锁面容</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.prefschanged</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -133,95 +95,9 @@
 			<string>disableLockSound</string>
 			<key>label</key>
 			<string>关闭锁屏/解锁声音</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.prefschanged</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSSwitchCell</string>
-			<key>default</key>
-			<false/>
-			<key>defaults</key>
-			<string>com.huayuarc.systempro</string>
-			<key>key</key>
-			<string>removeUnlockDelay</string>
-			<key>label</key>
-			<string>移除解锁动画延迟</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.prefschanged</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSSwitchCell</string>
-			<key>default</key>
-			<false/>
-			<key>defaults</key>
-			<string>com.huayuarc.systempro</string>
-			<key>key</key>
-			<string>inCallUnlocked</string>
-			<key>label</key>
-			<string>锁屏来电可操作</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.prefschanged</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSSwitchCell</string>
-			<key>default</key>
-			<false/>
-			<key>defaults</key>
-			<string>com.huayuarc.systempro</string>
-			<key>key</key>
-			<string>disconnectWiFiBT</string>
-			<key>label</key>
-			<string>彻底关闭Wi-Fi/蓝牙</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.prefschanged</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSSwitchCell</string>
-			<key>default</key>
-			<false/>
-			<key>defaults</key>
-			<string>com.huayuarc.systempro</string>
-			<key>key</key>
-			<string>lowPowerOnLock</string>
-			<key>label</key>
-			<string>锁屏自动低电量</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.prefschanged</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSSwitchCell</string>
-			<key>default</key>
-			<false/>
-			<key>defaults</key>
-			<string>com.huayuarc.systempro</string>
-			<key>key</key>
-			<string>lockWhenFaceDown</string>
-			<key>label</key>
-			<string>朝下自动锁屏</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.prefschanged</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSSwitchCell</string>
-			<key>default</key>
-			<false/>
-			<key>defaults</key>
-			<string>com.huayuarc.systempro</string>
-			<key>key</key>
-			<string>appOpenAnimationDirection</string>
-			<key>label</key>
-			<string>应用打开动画方向</string>
-			<key>PostNotification</key>
-			<string>com.huayuarc.systempro.prefschanged</string>
 		</dict>
 	</array>
 	<key>title</key>
-	<string>系统功能</string>
+	<string>禁用</string>
 </dict>
 </plist>

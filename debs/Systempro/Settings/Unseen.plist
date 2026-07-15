@@ -29,6 +29,8 @@
 			<string>PSGroupCell</string>
 			<key>footerText</key>
 			<string>开启后，截图和录屏会尽量显示 App 通过私有接口标记为隐藏的普通画面；不会绕过 DRM 或系统版权保护。</string>
+			<key>key</key>
+			<string>unseenRevealHiddenContentGroup</string>
 			<key>label</key>
 			<string>隐藏画面</string>
 		</dict>
@@ -49,6 +51,8 @@
 			<string>PSGroupCell</string>
 			<key>footerText</key>
 			<string>开启后，App 通常无法再通过系统截图通知得知你何时截屏。</string>
+			<key>key</key>
+			<string>unseenHideScreenshotEventsGroup</string>
 			<key>label</key>
 			<string>截图行为</string>
 		</dict>
@@ -69,6 +73,8 @@
 			<string>PSGroupCell</string>
 			<key>footerText</key>
 			<string>开启后，App 通常无法再通过系统录屏状态通知得知屏幕正在被录制或投放。</string>
+			<key>key</key>
+			<string>unseenHideRecordingStateGroup</string>
 			<key>label</key>
 			<string>录屏/投屏状态</string>
 		</dict>
