@@ -234,9 +234,19 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add packages/
+
+          # 清空旧 deb，只保留本次构建的最新版本
+          rm -f packages/*.deb packages/*.deb.md5
+
+          if [ -z "$(ls packages/*.deb 2>/dev/null)" ]; then
+            echo "无新 deb，跳过提交"
+            exit 0
+          fi
+
+          # 强制添加（绕过 .gitignore，确保只跟踪最新版本）
+          git add -f packages/*.deb
           if git diff --quiet --cached; then
-            echo "无新 deb 需要提交"
+            echo "无变更，跳过提交"
           else
             deb_list=$(ls packages/*.deb 2>/dev/null | xargs -I{} basename {} | tr '\n' ' ')
             echo "提交 debs: $deb_list"

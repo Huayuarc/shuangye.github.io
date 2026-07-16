@@ -9,6 +9,10 @@ vendor/
 # SSH 密钥（本地推送用，不上传）
 .ssh/
 
+# packages/ 根目录产物（CI 强制添加，本地 git 忽略）
+/packages/*.deb
+/packages/*.deb.md5
+
 # Theos 构建临时文件（适用于所有子目录层级）
 .theos/
 .swiftpm/
