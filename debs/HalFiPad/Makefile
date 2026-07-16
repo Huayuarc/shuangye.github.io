@@ -3,7 +3,7 @@ FINALPACKAGE = 1
 THEOS_PACKAGE_SCHEME = rootless
 
 export TARGET = iphone:clang:16.5:15.0
-export ADDITIONAL_CFLAGS = -DTHEOS_LEAN_AND_MEAN
+export ADDITIONAL_CFLAGS = -std=gnu++17 -DTHEOS_LEAN_AND_MEAN
 
 include $(THEOS)/makefiles/common.mk
 
@@ -17,8 +17,6 @@ ARCHS = arm64 arm64e
 
 HalFiPadSB_OBJCFLAGS = -fno-objc-arc
 HalFiPadUI_OBJCFLAGS = -fno-objc-arc
-HalFiPadSB_CXXFLAGS = -std=gnu++17
-HalFiPadUI_CXXFLAGS = -std=gnu++17
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 SUBPROJECTS += HalFiPadPrefs
