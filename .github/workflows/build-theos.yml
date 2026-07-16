@@ -25,16 +25,15 @@ jobs:
           sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
           xcodebuild -version
           swift --version
-          command -v swift-build || xcrun --find swift-build
           rm -rf "$HOME/theos"
           git clone --recursive --branch master https://github.com/roothide/theos.git "$HOME/theos"
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
           cd "$HOME/theos"
           git submodule update --init --recursive 2>&1
           echo "=== 验证 roothide vendor ==="
-          ls -la vendor/include/roothide.h
-          ls -la vendor/mod/roothide/
-          ls -la vendor/lib/libroothide.tbd
+          ls -la vendor/include/roothide.h || echo "MISSING roothide.h"
+          ls -la vendor/mod/roothide/ || echo "MISSING roothide mod"
+          ls -la vendor/lib/libroothide.tbd || echo "MISSING libroothide.tbd"
           echo "=== vendor 验证完毕 ==="
           cd "$OLDPWD"
           brew install ldid dpkg 2>/dev/null || true
@@ -49,72 +48,65 @@ jobs:
         working-directory: debs
         run: |
           set -x
-          export ARCHS="arm64 arm64e"
-          mkdir -p "${{ github.workspace }}/debs-rootless"
-          LOGFILE="${{ github.workspace }}/build-rootless.log"
-          PKGLOGFILE="${{ github.workspace }}/build-rootless-pkg.log"
+          export ARCHS="arm64"
+          LOGFILE="/tmp/build-rootless.log"
+          ERRLOG="${{ github.workspace }}/build-errors.txt"
 
-          shopt -s nullglob
-          for proj in */; do
-            proj="${proj%/}"
-            mf="${proj}/Makefile"
-            [ -f "$mf" ] || continue
-            grep -qE "(TWEAK_NAME|TOOL_NAME|APPLICATION_NAME)" "$mf" 2>/dev/null || continue
+          echo "=== 当前目录 ==="
+          pwd
+          ls -la
+          echo "=== THEOS ==="
+          echo "THEOS=$THEOS"
+          echo "=== 检查 Makefile ==="
+          cat -n HalFiPad/Makefile
 
-            echo ""
-            echo "=== 编译 [$proj] rootless (arm64) ==="
-            pushd "$proj" >/dev/null
+          cd HalFiPad
+          make clean 2>/dev/null || true
 
-            echo "--- 项目文件清单 ---"
-            find . -maxdepth 2 -not -path './.git/*' -type f | head -50
-            echo "--- Makefile 内容 ---"
-            cat -n Makefile 2>/dev/null || echo "无 Makefile"
+          echo "=== 开始编译 ==="
+          make THEOS_PACKAGE_SCHEME=rootless FINALPACKAGE=1 VERBOSE=1 2>&1 | tee "$LOGFILE"
+          RC=${PIPESTATUS[0]}
+          echo "Exit code: $RC"
 
-            make clean 2>/dev/null || true
-            set +e
-            make THEOS_PACKAGE_SCHEME=rootless FINALPACKAGE=1 2>&1 | tee "$LOGFILE"
-            RC=${PIPESTATUS[0]}
-            echo "make exit code: $RC"
-            echo "=== 完整构建日志 ($(wc -l < "$LOGFILE") 行) ==="
-            cat "$LOGFILE"
-            echo "=== 日志结束 ==="
-            [ "$RC" -eq 0 ] || exit "$RC"
-            set +e
-            make THEOS_PACKAGE_SCHEME=rootless package FINALPACKAGE=1 2>&1 | tee "$PKGLOGFILE"
-            PKG_RC=${PIPESTATUS[0]}
-            echo "make package exit code: $PKG_RC"
-            echo "=== 完整打包日志 ==="
-            cat "$PKGLOGFILE"
-            echo "=== 日志结束 ==="
-            [ "$PKG_RC" -eq 0 ] || exit "$PKG_RC"
-            mkdir -p "${{ github.workspace }}/debs-rootless/$proj"
-            cp packages/*.deb "${{ github.workspace }}/debs-rootless/$proj/" 2>/dev/null || true
-            popd >/dev/null
-          done
+          echo "=== 日志开始 ==="
+          cat "$LOGFILE"
+          echo "=== 日志结束 ==="
 
-          rootless_count=$(ls "${{ github.workspace }}/debs-rootless/"*/ 2>/dev/null | wc -l)
-          echo "rootless 项目数: $rootless_count"
-
-          # 将构建日志写入 GITHUB_STEP_SUMMARY 以便在 UI 中直接查看
+          # 保存到 repo 中的文件
           {
-            echo "## Rootless 构建日志"
-            echo '```'
-            cat "$LOGFILE" 2>/dev/null || echo "无日志"
-            echo '```'
-            echo "## Rootless 打包日志"
-            echo '```'
-            cat "$PKGLOGFILE" 2>/dev/null || echo "无日志"
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
+            echo "Build timestamp: $(date -u)"
+            echo "Exit code: $RC"
+            echo ""
+            cat "$LOGFILE"
+          } > "$ERRLOG"
+
+          if [ "$RC" -ne 0 ]; then
+            echo "BUILD_FAILED=HalFiPad" >> $GITHUB_ENV
+            exit "$RC"
+          fi
 
       - name: Upload build logs
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: build-logs
-          path: build-*.log
+          path: build-errors.txt
+
+      # 将错误日志提交到仓库以便阅读
+      - name: Commit error log for debugging
+        if: failure()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # 创建 build-logs 分支（如果不存在）
+          git checkout -b build-logs 2>/dev/null || git checkout build-logs
+          cp "${{ github.workspace }}/build-errors.txt" "errors/build-run-${{ github.run_id }}.txt"
+          git add errors/
+          git commit -m "ci: save build error log for run #${{ github.run_id }}"
+          git push origin build-logs --force
 
       - name: Build roothide (arm64e)
+        if: success()
         continue-on-error: true
         working-directory: debs
         run: |
@@ -154,7 +146,7 @@ jobs:
           [ "$roothide_count" -eq 0 ] && echo "⚠ roothide 未产出 deb（可能 vendor 不支持）"
 
       - name: Collect debs
-        if: always()
+        if: success()
         run: |
           set -x
           mkdir -p "${{ github.workspace }}/packages"
@@ -169,7 +161,7 @@ jobs:
           ls -la "${{ github.workspace }}/packages/" || echo "packages 为空"
 
       - name: Commit and push debs
-        if: always()
+        if: success()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
