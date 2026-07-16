@@ -58,64 +58,75 @@ jobs:
 
           echo "=== THEOS ==="
           echo "THEOS=$THEOS"
-          echo "=== 当前目录 ==="
-          pwd
-          ls -la
-          echo "=== Makefile ==="
-          cat -n HalFiPad/Makefile
+          echo "=== SDK ==="
+          ls -la "$THEOS/sdks/" 2>/dev/null
 
-          cd HalFiPad
-          make clean 2>/dev/null || true
-
-          echo "=== 开始编译 ==="
-          make THEOS_PACKAGE_SCHEME=rootless FINALPACKAGE=1 VERBOSE=1 2>&1 | tee /tmp/build-rootless.log
-          RC=${PIPESTATUS[0]}
-
-          # 保存错误日志
           {
             echo "=== Build Info ==="
             echo "Timestamp: $(date -u)"
-            echo "Exit code: $RC"
             echo "THEOS: $THEOS"
             echo "SDK: $(ls -la $THEOS/sdks/ 2>/dev/null)"
-            echo ""
-            cat /tmp/build-rootless.log
           } > "$ERRLOG"
+
+          mkdir -p "${{ github.workspace }}/debs-rootless"
+          RC=0
+
+          shopt -s nullglob
+          for proj in */; do
+            proj="${proj%/}"
+            mf="${proj}/Makefile"
+            [ -f "$mf" ] || continue
+            grep -qE "(TWEAK_NAME|TOOL_NAME|APPLICATION_NAME)" "$mf" 2>/dev/null || continue
+
+            echo ""
+            echo "=== 编译 [$proj] rootless (arm64) ==="
+            pushd "$proj" >/dev/null
+            make clean 2>/dev/null || true
+
+            LOGFILE="/tmp/build-rootless-${proj}.log"
+            make THEOS_PACKAGE_SCHEME=rootless FINALPACKAGE=1 VERBOSE=1 2>&1 | tee "$LOGFILE"
+            proj_rc=${PIPESTATUS[0]}
+
+            if [ "$proj_rc" -ne 0 ]; then
+              RC=$proj_rc
+              echo ""
+              echo "=== [$proj] 编译失败！最后 30 行错误日志 ==="
+              tail -30 "$LOGFILE"
+              grep -ni "error:" "$LOGFILE" | head -10 | while IFS=: read -r line rest; do
+                echo "::error file=${proj},line=${line}::${rest:0:200}"
+              done
+            else
+              echo "=== [$proj] 编译成功，开始打包 ==="
+              make THEOS_PACKAGE_SCHEME=rootless package FINALPACKAGE=1 2>&1 | tee /tmp/build-rootless-pkg-${proj}.log
+              if [ ${PIPESTATUS[0]} -eq 0 ]; then
+                cp packages/*.deb "${{ github.workspace }}/debs-rootless/" 2>/dev/null || true
+              fi
+            fi
+
+            {
+              echo ""
+              echo "=== Project: $proj ==="
+              echo "Exit code: $proj_rc"
+              cat "$LOGFILE"
+            } >> "$ERRLOG"
+
+            popd >/dev/null
+          done
+
+          rootless_count=$(ls "${{ github.workspace }}/debs-rootless/"*.deb 2>/dev/null | wc -l)
+          echo "rootless deb 数量: $rootless_count"
 
           if [ "$RC" -ne 0 ]; then
             echo "exit_code=$RC" >> $GITHUB_OUTPUT
-            echo "BUILD_FAILED=HalFiPad" >> $GITHUB_ENV
             echo ""
-            echo "=== 编译失败！最后 30 行错误日志 ==="
-            tail -30 /tmp/build-rootless.log
-            echo ""
-            echo "=== 完整日志已保存到 build-errors.txt ==="
-            # 用 GitHub Annotation 标出错误
-            grep -ni "error:" /tmp/build-rootless.log | head -10 | while IFS=: read -r line rest; do
-              echo "::error file=TweakSB.xm,line=$line::${rest:0:200}"
-            done
+            echo "=== 有项目编译失败，完整日志 ==="
+            tail -60 "$ERRLOG"
             exit "$RC"
           fi
 
           echo "exit_code=0" >> $GITHUB_OUTPUT
-          echo "=== 编译成功 ==="
-          ls -la packages/*.deb 2>/dev/null || echo "（无 deb 包，需要 run package 目标）"
-
-      - name: Package rootless (arm64)
-        if: success() && steps.build-rootless.outputs.exit_code == 0
-        working-directory: debs/HalFiPad
-        run: |
-          export ARCHS="arm64"
-          make package THEOS_PACKAGE_SCHEME=rootless FINALPACKAGE=1 2>&1 | tee /tmp/build-rootless-pkg.log
-          RC=${PIPESTATUS[0]}
-          if [ "$RC" -ne 0 ]; then
-            tail -20 /tmp/build-rootless-pkg.log
-            exit "$RC"
-          fi
-          echo "=== 打包成功 ==="
-          ls -lh packages/*.deb
-          mkdir -p "${{ github.workspace }}/debs-rootless"
-          cp packages/*.deb "${{ github.workspace }}/debs-rootless/" 2>/dev/null || true
+          echo "=== 全部 rootless 编译成功 ==="
+          ls -la "${{ github.workspace }}/debs-rootless/"
 
       - name: Upload build logs (on failure)
         if: failure()

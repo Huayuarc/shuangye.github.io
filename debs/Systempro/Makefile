@@ -18,12 +18,15 @@ SHELL := /var/jb/bin/bash
 endif
 
 # ========== 方案選擇 ==========
-# make               → 同時輸出 rootless (arm64) + roothide (arm64e)
-# make SCHEME=xxx    → 只編譯指定方案
+# make                     → 同時輸出 rootless + roothide (on-device 預設)
+# make SCHEME=rootless     → 只編 rootless
+# make SCHEME=roothide     → 只編 roothide
+# THEOS_PACKAGE_SCHEME=xxx make  → CI 用，只編指定方案
 ifeq ($(SCHEME),)
-.DEFAULT_GOAL := all
-
-all::
+  ifeq ($(THEOS_PACKAGE_SCHEME),)
+    # SCHEME 和 THEOS_PACKAGE_SCHEME 均未指定 → 同時編兩種
+    .DEFAULT_GOAL := all
+    all::
 	@echo "================================================"
 	@echo "  [1/2] 構建 rootless (arm64)..."
 	@echo "================================================"
@@ -38,6 +41,7 @@ all::
 	@echo "  全部構建完成！"
 	@echo "================================================"
 	@ls -la packages/*.deb 2>/dev/null || echo "  (未找到 deb 檔案)"
+  endif
 else
 export THEOS_PACKAGE_SCHEME := $(SCHEME)
 endif
