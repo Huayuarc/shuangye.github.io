@@ -79,7 +79,7 @@ jobs:
           make clean 2>/dev/null || true
 
           echo "=== 开始编译 ==="
-          make THEOS_PACKAGE_SCHEME=rootless FINALPACKAGE=1 VERBOSE=1 ADDITIONAL_CXXFLAGS="-std=gnu++17" 2>&1 | tee /tmp/build-rootless.log
+          make THEOS_PACKAGE_SCHEME=rootless FINALPACKAGE=1 VERBOSE=1 2>&1 | tee /tmp/build-rootless.log
           RC=${PIPESTATUS[0]}
 
           # 保存错误日志

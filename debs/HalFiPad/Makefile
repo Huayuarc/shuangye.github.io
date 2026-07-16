@@ -17,6 +17,8 @@ ARCHS = arm64 arm64e
 
 HalFiPadSB_OBJCFLAGS = -fno-objc-arc
 HalFiPadUI_OBJCFLAGS = -fno-objc-arc
+HalFiPadSB_CXXFLAGS = -std=gnu++17
+HalFiPadUI_CXXFLAGS = -std=gnu++17
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 SUBPROJECTS += HalFiPadPrefs
