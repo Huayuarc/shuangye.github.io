@@ -24,9 +24,20 @@ endif
 # THEOS_PACKAGE_SCHEME=xxx make  → CI 用，只編指定方案
 ifeq ($(SCHEME),)
   ifeq ($(THEOS_PACKAGE_SCHEME),)
-    # SCHEME 和 THEOS_PACKAGE_SCHEME 均未指定 → 同時編兩種
-    .DEFAULT_GOAL := all
-    all::
+AGGREGATE_BUILD := 1
+  else
+AGGREGATE_BUILD := 0
+  endif
+else
+AGGREGATE_BUILD := 0
+export THEOS_PACKAGE_SCHEME := $(SCHEME)
+endif
+
+ifeq ($(AGGREGATE_BUILD),1)
+.DEFAULT_GOAL := package
+
+.PHONY: all package clean clean-packages
+all package::
 	@echo "================================================"
 	@echo "  [1/2] 構建 rootless (arm64)..."
 	@echo "================================================"
@@ -41,10 +52,16 @@ ifeq ($(SCHEME),)
 	@echo "  全部構建完成！"
 	@echo "================================================"
 	@ls -la packages/*.deb 2>/dev/null || echo "  (未找到 deb 檔案)"
-  endif
+
+clean::
+	$(MAKE) SCHEME=rootless clean
+	$(MAKE) SCHEME=roothide clean
+
+clean-packages::
+	@rm -f packages/com.huayuarc.systempro_*.deb
+	@rm -rf packages/com.huayuarc.systempro_*
+
 else
-export THEOS_PACKAGE_SCHEME := $(SCHEME)
-endif
 
 include $(THEOS)/makefiles/common.mk
 
@@ -88,7 +105,6 @@ include $(THEOS_MAKE_PATH)/bundle.mk
 INSTALL_TARGET_PROCESSES := SpringBoard backboardd
 
 after-stage::
-	$(ECHO_NOTHING)mkdir -p "$(THEOS_STAGING_DIR)/tmp"$(ECHO_END)
 	$(ECHO_NOTHING)mkdir -p "$(THEOS_STAGING_DIR)/Library/PreferenceLoader/Preferences" \
 		"$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle" \
 		"$(THEOS_STAGING_DIR)/Library/MobileSubstrate/DynamicLibraries"$(ECHO_END)
@@ -99,18 +115,6 @@ after-stage::
 		"$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/Systempro@2x.png Settings/Systempro@3x.png \
 		"$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
-ifneq ($(THEOS_PACKAGE_INSTALL_PREFIX),)
-	$(ECHO_NOTHING)mkdir -p "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/PreferenceLoader/Preferences" \
-		"$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/PreferenceBundles/LSILLSettings.bundle" \
-		"$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/MobileSubstrate/DynamicLibraries"$(ECHO_END)
-	$(ECHO_NOTHING)cp Settings/entry.plist \
-		"$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/PreferenceLoader/Preferences/LSILLSettings.plist"$(ECHO_END)
-	$(ECHO_NOTHING)cp Settings/Root.plist Settings/Notification.plist Settings/Disable.plist \
-		Settings/System.plist Settings/Unseen.plist Settings/IPad.plist Settings/Info.plist \
-		"$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
-	$(ECHO_NOTHING)cp Settings/Systempro@2x.png Settings/Systempro@3x.png \
-		"$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
-endif
 
 after-install::
 	$(ECHO_NOTHING)echo "[Systempro] 安裝完成！SpringBoard/backboardd 即將自動重啟使插件生效。"$(ECHO_END)
@@ -120,4 +124,6 @@ ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
 before-package::
 	$(ECHO_NOTHING)perl -pi -e 's/^Architecture:.*/Architecture: iphoneos-arm64e/' \
 		"$(THEOS_STAGING_DIR)/DEBIAN/control"$(ECHO_END)
+endif
+
 endif

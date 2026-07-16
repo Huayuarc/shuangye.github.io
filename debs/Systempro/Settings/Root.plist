@@ -54,6 +54,20 @@
 			<key>label</key>
 			<string>Unseen</string>
 		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>关于我 / 投喂</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>📮 QQ 交流反馈群</string>
+			<key>action</key>
+			<string>openQQFeedbackGroup</string>
+		</dict>
 	</array>
 	<key>title</key>
 	<string>Systempro</string>
