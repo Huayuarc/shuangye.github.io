@@ -48,6 +48,16 @@
 			<key>cell</key>
 			<string>PSLinkCell</string>
 			<key>detail</key>
+			<string>LLKeyboardListController</string>
+			<key>isController</key>
+			<true/>
+			<key>label</key>
+			<string>键盘外观</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>detail</key>
 			<string>LLUnseenListController</string>
 			<key>isController</key>
 			<true/>
@@ -58,15 +68,15 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>label</key>
-			<string>关于我 / 投喂</string>
+			<string>关于我：</string>
 		</dict>
 		<dict>
+			<key>action</key>
+			<string>openQQFeedbackGroup</string>
 			<key>cell</key>
 			<string>PSButtonCell</string>
 			<key>label</key>
 			<string>📮 QQ 交流反馈群</string>
-			<key>action</key>
-			<string>openQQFeedbackGroup</string>
 		</dict>
 	</array>
 	<key>title</key>

@@ -84,6 +84,9 @@ static NSInteger sanitizedBlockMode(id value) {
 @interface LLIPadListController : LLRootListController
 @end
 
+@interface LLKeyboardListController : LLRootListController
+@end
+
 @interface LLUnseenListController : LLRootListController
 @end
 
@@ -403,6 +406,25 @@ static NSInteger sanitizedBlockMode(id value) {
 		_specifiers = [specs copy];
 	}
 	return _specifiers;
+}
+
+@end
+
+@implementation LLKeyboardListController
+
+- (NSString *)specifiersPlistName {
+	return @"Keyboard";
+}
+
+- (NSDictionary *)defaultValues {
+	return @{
+		@"keyboardRoundRectEnabled": @NO,
+		@"keyboardRoundRectRadius": @16.1,
+	};
+}
+
+- (void)registerDefaults {
+	[self _registerDefaults:[self defaultValues] atPath:kPrefPath];
 }
 
 @end

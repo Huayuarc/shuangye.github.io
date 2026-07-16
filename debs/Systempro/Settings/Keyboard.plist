@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>items</key>
+	<array>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>修改 UIKit 键盘按键圆角；默认值为源插件的 16.1。调整后重启目标应用，必要时注销。</string>
+			<key>label</key>
+			<string>键盘外观</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>key</key>
+			<string>keyboardRoundRectEnabled</string>
+			<key>label</key>
+			<string>启用键盘圆角调整</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>default</key>
+			<real>16.1</real>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>key</key>
+			<string>keyboardRoundRectRadius</string>
+			<key>label</key>
+			<string>按键圆角数值</string>
+			<key>minValue</key>
+			<real>0</real>
+			<key>maxValue</key>
+			<real>40</real>
+			<key>showValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>restartRenderServices</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>isDestructive</key>
+			<true/>
+			<key>label</key>
+			<string>✓ 注销</string>
+		</dict>
+	</array>
+	<key>title</key>
+	<string>键盘外观</string>
+</dict>
+</plist>
