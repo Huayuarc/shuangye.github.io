@@ -48,11 +48,11 @@
 			<key>cell</key>
 			<string>PSLinkCell</string>
 			<key>detail</key>
-			<string>LLKeyboardListController</string>
+			<string>LLSystemBoxListController</string>
 			<key>isController</key>
 			<true/>
 			<key>label</key>
-			<string>键盘外观</string>
+			<string>SystemBox 移植</string>
 		</dict>
 		<dict>
 			<key>cell</key>

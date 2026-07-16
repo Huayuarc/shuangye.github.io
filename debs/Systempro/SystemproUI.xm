@@ -4,14 +4,10 @@
 static NSString *const kPrefPath = @"/var/mobile/Library/Preferences/com.huayuarc.systempro.plist";
 static NSString *const kPictureInPictureKey = @"pictureInPicture";
 static NSString *const kScreenModeKey = @"screenMode";
-static NSString *const kKeyboardRoundRectEnabledKey = @"keyboardRoundRectEnabled";
-static NSString *const kKeyboardRoundRectRadiusKey = @"keyboardRoundRectRadius";
 static NSString *const kNotifyPrefsChanged = @"com.huayuarc.systempro.prefschanged";
 
 static BOOL g_pictureInPicture = NO;
 static NSInteger g_screenMode = 0;
-static BOOL g_keyboardRoundRectEnabled = NO;
-static CGFloat g_keyboardRoundRectRadius = 16.1;
 
 static BOOL boolPreference(NSDictionary *prefs, NSString *key, BOOL defaultValue) {
 	id value = prefs[key];
@@ -23,27 +19,11 @@ static NSInteger integerPreference(NSDictionary *prefs, NSString *key, NSInteger
 	return value ? [value integerValue] : defaultValue;
 }
 
-static CGFloat doublePreference(NSDictionary *prefs, NSString *key, CGFloat defaultValue) {
-	id value = prefs[key];
-	return value ? [value doubleValue] : defaultValue;
-}
-
-static CGFloat clampedKeyboardRoundRectRadius(CGFloat radius) {
-	if (radius > 0.0 && radius <= 1.0) {
-		radius *= 40.0;
-	}
-	if (radius < 0.0) return 0.0;
-	if (radius > 40.0) return 40.0;
-	return radius;
-}
-
 static void reloadConfiguration(void) {
 	@autoreleasepool {
 		NSDictionary *prefs = [NSDictionary dictionaryWithContentsOfFile:kPrefPath];
 		g_pictureInPicture = boolPreference(prefs, kPictureInPictureKey, NO);
 		g_screenMode = integerPreference(prefs, kScreenModeKey, 0);
-		g_keyboardRoundRectEnabled = boolPreference(prefs, kKeyboardRoundRectEnabledKey, NO);
-		g_keyboardRoundRectRadius = clampedKeyboardRoundRectRadius(doublePreference(prefs, kKeyboardRoundRectRadiusKey, 16.1));
 	}
 }
 
@@ -59,17 +39,6 @@ static BOOL isApplicationProcess(void) {
 		return %orig(2);
 	}
 	return %orig;
-}
-%end
-%end
-
-%group SystemproKeyboardAdjust
-%hook UIKBRenderGeometry
-- (void)setRoundRectRadius:(double)radius {
-	if (g_keyboardRoundRectEnabled) {
-		radius = g_keyboardRoundRectRadius;
-	}
-	%orig(radius);
 }
 %end
 %end
@@ -96,7 +65,6 @@ static void onPrefsChanged(CFNotificationCenterRef center,
 %ctor {
 	@autoreleasepool {
 		reloadConfiguration();
-		%init(SystemproKeyboardAdjust);
 
 		if (g_pictureInPicture) {
 			%init(SystemproPictureInPicture);

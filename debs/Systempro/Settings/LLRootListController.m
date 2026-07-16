@@ -69,15 +69,6 @@ static NSInteger sanitizedBlockMode(id value) {
 	return mode;
 }
 
-static NSNumber *sanitizedKeyboardRoundRectRadius(id value) {
-	CGFloat radius = value ? [value doubleValue] : 16.1;
-	if (radius > 0.0 && radius <= 1.0) {
-		radius *= 40.0;
-	}
-	if (radius < 0.0) radius = 0.0;
-	if (radius > 40.0) radius = 40.0;
-	return @(radius);
-}
 
 @interface LLRootListController : PSListController
 @end
@@ -94,7 +85,7 @@ static NSNumber *sanitizedKeyboardRoundRectRadius(id value) {
 @interface LLIPadListController : LLRootListController
 @end
 
-@interface LLKeyboardListController : LLRootListController
+@interface LLSystemBoxListController : LLRootListController
 @end
 
 @interface LLUnseenListController : LLRootListController
@@ -144,9 +135,6 @@ static NSNumber *sanitizedKeyboardRoundRectRadius(id value) {
 	if ([key isEqualToString:kBlockModeKey]) {
 		return @(sanitizedBlockMode(val));
 	}
-	if ([key isEqualToString:@"keyboardRoundRectRadius"]) {
-		return sanitizedKeyboardRoundRectRadius(val);
-	}
 
 	return val ?: nil;
 }
@@ -160,9 +148,6 @@ static NSNumber *sanitizedKeyboardRoundRectRadius(id value) {
 
 	if ([key isEqualToString:kBlockModeKey]) {
 		value = @(sanitizedBlockMode(value));
-	}
-	if ([key isEqualToString:@"keyboardRoundRectRadius"]) {
-		value = sanitizedKeyboardRoundRectRadius(value);
 	}
 	if (value) {
 		d[key] = value;
@@ -355,7 +340,6 @@ static NSNumber *sanitizedKeyboardRoundRectRadius(id value) {
 
 - (NSDictionary *)defaultValues {
 	return @{
-		@"ccRecordNoDelay": @NO,
 		@"autoDismissFaceID": @NO,
 		@"transparentDock": @NO,
 		@"removeUnlockDelay": @NO,
@@ -365,7 +349,6 @@ static NSNumber *sanitizedKeyboardRoundRectRadius(id value) {
 		@"lowPowerOnLock": @NO,
 		@"lockWhenFaceDown": @NO,
 		@"disableIconFlyIn": @NO,
-		@"zeroWakeAnimation": @NO,
 		@"cyanide_hideHomeBar": @NO,
 		@"cyanide_disableOTA": @NO,
 		@"cyanide_muteCallRecord": @NO,
@@ -426,16 +409,39 @@ static NSNumber *sanitizedKeyboardRoundRectRadius(id value) {
 
 @end
 
-@implementation LLKeyboardListController
+
+@implementation LLSystemBoxListController
 
 - (NSString *)specifiersPlistName {
-	return @"Keyboard";
+	return @"SystemBox";
 }
 
 - (NSDictionary *)defaultValues {
 	return @{
-		@"keyboardRoundRectEnabled": @NO,
-		@"keyboardRoundRectRadius": @16.1,
+		@"doubleTapToLock": @NO,
+		@"longPressToLock": @NO,
+		@"homePullDownNotificationCenter": @NO,
+		@"homePullDownControlCenter": @NO,
+		@"homePullUpNotificationCenter": @NO,
+		@"homePullUpControlCenter": @NO,
+		@"hideHomePageDots": @NO,
+		@"hideHomeIconLabels": @NO,
+		@"hideIconDotLabels": @NO,
+		@"hideWidgetLabels": @NO,
+		@"hideAllBadges": @NO,
+		@"hideStatusBarBreadcrumb": @NO,
+		@"hideLockScreenControlCenterGrabber": @NO,
+		@"disableTodayView": @NO,
+		@"disableHomePullDownSearch": @NO,
+		@"disableAppLibraryPullDown": @NO,
+		@"disableOpenFolderBackground": @NO,
+		@"disableScreenshotPreview": @NO,
+		@"hideChargingAlert": @NO,
+		@"hideLowBatteryAlert": @NO,
+		@"enableFolder4x4": @NO,
+		@"forceZoomToSystemAperture": @NO,
+		@"magicInteractionAnimation": @NO,
+		@"fakeBatteryPercent": @"",
 	};
 }
 

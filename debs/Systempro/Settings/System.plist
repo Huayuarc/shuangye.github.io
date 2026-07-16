@@ -20,18 +20,6 @@
 			<key>defaults</key>
 			<string>com.huayuarc.systempro</string>
 			<key>key</key>
-			<string>ccRecordNoDelay</string>
-			<key>label</key>
-			<string>去除录屏延迟</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSSwitchCell</string>
-			<key>default</key>
-			<false/>
-			<key>defaults</key>
-			<string>com.huayuarc.systempro</string>
-			<key>key</key>
 			<string>autoDismissFaceID</string>
 			<key>label</key>
 			<string>自动解锁面容ID</string>
@@ -149,18 +137,6 @@
 			<string>disableIconFlyIn</string>
 			<key>label</key>
 			<string>禁用图标飞入动画</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSSwitchCell</string>
-			<key>default</key>
-			<false/>
-			<key>defaults</key>
-			<string>com.huayuarc.systempro</string>
-			<key>key</key>
-			<string>zeroWakeAnimation</string>
-			<key>label</key>
-			<string>零唤醒动画</string>
 		</dict>
 		<dict>
 			<key>cell</key>
