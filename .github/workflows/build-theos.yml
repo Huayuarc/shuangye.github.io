@@ -64,18 +64,28 @@ jobs:
             echo ""
             echo "=== 编译 [$proj] rootless (arm64) ==="
             pushd "$proj" >/dev/null
+
+            echo "--- 项目文件清单 ---"
+            find . -maxdepth 2 -not -path './.git/*' -type f | head -50
+            echo "--- Makefile 内容 ---"
+            cat -n Makefile 2>/dev/null || echo "无 Makefile"
+
             make clean 2>/dev/null || true
             set +e
-            make THEOS_PACKAGE_SCHEME=rootless FINALPACKAGE=1 > "$LOGFILE" 2>&1
-            RC=$?
+            make THEOS_PACKAGE_SCHEME=rootless FINALPACKAGE=1 2>&1 | tee "$LOGFILE"
+            RC=${PIPESTATUS[0]}
             echo "make exit code: $RC"
-            tail -200 "$LOGFILE"
+            echo "=== 完整构建日志 ($(wc -l < "$LOGFILE") 行) ==="
+            cat "$LOGFILE"
+            echo "=== 日志结束 ==="
             [ "$RC" -eq 0 ] || exit "$RC"
             set +e
-            make THEOS_PACKAGE_SCHEME=rootless package FINALPACKAGE=1 > "$PKGLOGFILE" 2>&1
-            PKG_RC=$?
+            make THEOS_PACKAGE_SCHEME=rootless package FINALPACKAGE=1 2>&1 | tee "$PKGLOGFILE"
+            PKG_RC=${PIPESTATUS[0]}
             echo "make package exit code: $PKG_RC"
-            tail -100 "$PKGLOGFILE"
+            echo "=== 完整打包日志 ==="
+            cat "$PKGLOGFILE"
+            echo "=== 日志结束 ==="
             [ "$PKG_RC" -eq 0 ] || exit "$PKG_RC"
             mkdir -p "${{ github.workspace }}/debs-rootless/$proj"
             cp packages/*.deb "${{ github.workspace }}/debs-rootless/$proj/" 2>/dev/null || true
@@ -84,6 +94,18 @@ jobs:
 
           rootless_count=$(ls "${{ github.workspace }}/debs-rootless/"*/ 2>/dev/null | wc -l)
           echo "rootless 项目数: $rootless_count"
+
+          # 将构建日志写入 GITHUB_STEP_SUMMARY 以便在 UI 中直接查看
+          {
+            echo "## Rootless 构建日志"
+            echo '```'
+            cat "$LOGFILE" 2>/dev/null || echo "无日志"
+            echo '```'
+            echo "## Rootless 打包日志"
+            echo '```'
+            cat "$PKGLOGFILE" 2>/dev/null || echo "无日志"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload build logs
         if: failure()
