@@ -31,6 +31,12 @@ static NSString *const kAppOpenAnimationDirectionKey = @"appOpenAnimationDirecti
 static NSString *const kDisconnectWiFiBTKey  = @"disconnectWiFiBT";
 static NSString *const kLowPowerOnLockKey   = @"lowPowerOnLock";
 static NSString *const kLockWhenFaceDownKey = @"lockWhenFaceDown";
+static NSString *const kIPadDockKey = @"ipadDock";
+static NSString *const kInAppDockKey = @"inAppDock";
+static NSString *const kRecentAppKey = @"recentApp";
+static NSString *const kIPadMultitaskKey = @"iPadMultitask";
+static NSString *const kNewSwitcherKey = @"newSwitcher";
+static NSString *const kScreenModeKey = @"screenMode";
 
 // Cyanide 功能键
 static NSString *const kCyanideHideHomeBarKey    = @"cyanide_hideHomeBar";
@@ -79,6 +85,12 @@ static AppOpenAnimationDirection g_appOpenAnimationDirection = AppOpenAnimationD
 static BOOL      g_disconnectWiFiBT           = NO;
 static BOOL      g_lowPowerOnLock             = NO;
 static BOOL      g_lockWhenFaceDown           = NO;
+static BOOL      g_iPadDock                  = YES;
+static BOOL      g_inAppDock                 = NO;
+static BOOL      g_recentApp                 = NO;
+static BOOL      g_iPadMultitask             = NO;
+static BOOL      g_newSwitcher               = NO;
+static NSInteger g_screenMode                = 0;
 // 锁屏自动低电 — 记录锁屏前低电模式状态
 static BOOL      g_isLPMOnBeforeLock          = NO;
 
@@ -126,6 +138,12 @@ static void reloadConfiguration(void) {
 		g_disconnectWiFiBT           = [prefs[kDisconnectWiFiBTKey] boolValue];
 		g_lowPowerOnLock             = [prefs[kLowPowerOnLockKey] boolValue];
 		g_lockWhenFaceDown           = [prefs[kLockWhenFaceDownKey] boolValue];
+		g_iPadDock                  = prefs[kIPadDockKey] ? [prefs[kIPadDockKey] boolValue] : YES;
+		g_inAppDock                 = [prefs[kInAppDockKey] boolValue];
+		g_recentApp                 = [prefs[kRecentAppKey] boolValue];
+		g_iPadMultitask             = [prefs[kIPadMultitaskKey] boolValue];
+		g_newSwitcher               = [prefs[kNewSwitcherKey] boolValue];
+		g_screenMode                = prefs[kScreenModeKey] ? [prefs[kScreenModeKey] integerValue] : 0;
 
 		// Cyanide 功能
 		g_cyanideHideHomeBar     = [prefs[kCyanideHideHomeBarKey] boolValue];
@@ -703,6 +721,91 @@ static void cyanide_applyNanoRegistry(BOOL apply) {
 %end
 
 // ============================================================================
+// iPad 功能 — Dock / 分屏 / 网格切换器
+// ============================================================================
+%group SystemproFloatingDock
+
+%hook SBFloatingDockController
++ (BOOL)isFloatingDockSupported {
+	return YES;
+}
+%end
+
+%hook SBFloatingDockSuggestionsModel
+- (void)_setRecentsEnabled:(BOOL)enabled {
+	%orig(g_recentApp);
+}
+%end
+
+%hook SBFloatingDockBehaviorAssertion
+- (BOOL)gesturePossible {
+	if (!g_inAppDock) return NO;
+	return %orig;
+}
+%end
+
+%hook SBIconListView
+- (NSUInteger)iconRowsForCurrentOrientation {
+	NSUInteger rows = %orig;
+	if (rows < 4) return rows;
+	return rows + 1;
+}
+%end
+
+%end
+
+%group SystemproIPadMultitask
+
+@interface FBApplicationInfo
+@property (nonatomic, retain, readonly) NSURL *executableURL;
+@end
+
+@interface SBApplicationInfo : FBApplicationInfo
+@end
+
+@interface SBApplication
+@property (nonatomic, readonly) SBApplicationInfo *info;
+@end
+
+%hook SBPlatformController
+- (NSInteger)medusaCapabilities {
+	return 2;
+}
+%end
+
+%hook SBMainWorkspace
+- (BOOL)isMedusaEnabled {
+	return YES;
+}
+%end
+
+%hook SBApplication
+- (BOOL)isMedusaCapable {
+	NSString *path = [self.info.executableURL.path stringByDeletingLastPathComponent];
+	NSDictionary *info = [NSDictionary dictionaryWithContentsOfFile:[path stringByAppendingPathComponent:@"Info.plist"]];
+	NSArray *orientations = info[@"UISupportedInterfaceOrientations"];
+	if ([orientations indexOfObject:@"UIInterfaceOrientationPortrait"] == NSNotFound) {
+		return NO;
+	}
+	return YES;
+}
+
+- (BOOL)mainSceneWantsFullscreen {
+	return g_screenMode != 0;
+}
+%end
+
+%end
+
+%group SystemproGridSwitcher
+%hook SBAppSwitcherSettings
+- (void)setSwitcherStyle:(NSInteger)style {
+	%orig(2);
+}
+%end
+%end
+
+// ============================================================================
 // ===== CFNotification 回调 =====
 // ============================================================================
 
@@ -805,6 +908,18 @@ static void onRespring(CFNotificationCenterRef center,
 		// Cyanide — 隐藏 HomeBar
 		if (NSClassFromString(@"SBFloatingDockController")) {
 			%init(CyanideHideHomeBar);
+		}
+
+		// iPad 功能
+		if (g_iPadDock && NSClassFromString(@"SBFloatingDockController")) {
+			%init(SystemproFloatingDock);
+			if (g_iPadMultitask && NSClassFromString(@"SBMainWorkspace")) {
+				%init(SystemproIPadMultitask);
+			}
+		}
+
+		if (g_newSwitcher && NSClassFromString(@"SBAppSwitcherSettings")) {
+			%init(SystemproGridSwitcher);
 		}
 
 		// 监听静音开关状态变化		// 监听静音开关状态变化

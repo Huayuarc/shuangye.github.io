@@ -46,11 +46,16 @@ endif
 
 include $(THEOS)/makefiles/common.mk
 
-TWEAK_NAME = Systempro SystemproUnseen
+TWEAK_NAME = Systempro SystemproUnseen SystemproUI
 Systempro_FILES = Tweak.xm
 Systempro_CFLAGS += -fobjc-arc -Wno-deprecated-declarations -Wno-objc-protocol-method-implementation -Wno-int-to-void-pointer-cast -Wno-cast-function-type -Wno-unused-function
 Systempro_FRAMEWORKS = UIKit Foundation CoreGraphics QuartzCore IOKit CoreTelephony
 Systempro_PRIVATE_FRAMEWORKS = AppSupport
+
+SystemproUI_FILES = SystemproUI.xm
+SystemproUI_CFLAGS += -fobjc-arc -Wno-deprecated-declarations
+SystemproUI_FRAMEWORKS = UIKit Foundation
+SystemproUI_LIBRARIES = MobileGestalt
 
 SystemproUnseen_FILES = SystemproUnseen.mm
 SystemproUnseen_CFLAGS += -fobjc-arc -I$(THEOS_PROJECT_DIR)/include
@@ -73,6 +78,7 @@ LSILLSettings_INSTALL_PATH = /Library/PreferenceBundles
 ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
 Systempro_LDFLAGS += -lroothide
 SystemproUnseen_LDFLAGS += -lroothide
+SystemproUI_LDFLAGS += -lroothide
 LSILLSettings_LDFLAGS += -lroothide
 endif
 
@@ -85,13 +91,13 @@ after-stage::
 	$(ECHO_NOTHING)mkdir -p "$(THEOS_STAGING_DIR)/tmp"$(ECHO_END)
 	$(ECHO_NOTHING)mkdir -p "$(THEOS_STAGING_DIR)/Library/PreferenceLoader/Preferences" "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle" "$(THEOS_STAGING_DIR)/Library/MobileSubstrate/DynamicLibraries"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/entry.plist "$(THEOS_STAGING_DIR)/Library/PreferenceLoader/Preferences/LSILLSettings.plist"$(ECHO_END)
-	$(ECHO_NOTHING)cp Settings/Root.plist Settings/Notification.plist Settings/Disable.plist Settings/System.plist Settings/Unseen.plist Settings/Info.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
+	$(ECHO_NOTHING)cp Settings/Root.plist Settings/Notification.plist Settings/Disable.plist Settings/System.plist Settings/Unseen.plist Settings/IPad.plist Settings/Info.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/Systempro@2x.png Settings/Systempro@3x.png "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
 	# 如果 THEOS_PACKAGE_INSTALL_PREFIX 非空（rootless 模式），也安装到带前缀的路径
 ifneq ($(THEOS_PACKAGE_INSTALL_PREFIX),)
 	$(ECHO_NOTHING)mkdir -p "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/PreferenceLoader/Preferences" "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/PreferenceBundles/LSILLSettings.bundle" "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/MobileSubstrate/DynamicLibraries"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/entry.plist "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/PreferenceLoader/Preferences/LSILLSettings.plist"$(ECHO_END)
-	$(ECHO_NOTHING)cp Settings/Root.plist Settings/Notification.plist Settings/Disable.plist Settings/System.plist Settings/Unseen.plist Settings/Info.plist "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
+	$(ECHO_NOTHING)cp Settings/Root.plist Settings/Notification.plist Settings/Disable.plist Settings/System.plist Settings/Unseen.plist Settings/IPad.plist Settings/Info.plist "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/Systempro@2x.png Settings/Systempro@3x.png "$(THEOS_STAGING_DIR)$(THEOS_PACKAGE_INSTALL_PREFIX)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
 endif
 

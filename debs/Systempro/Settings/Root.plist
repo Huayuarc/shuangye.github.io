@@ -38,6 +38,16 @@
 			<key>cell</key>
 			<string>PSLinkCell</string>
 			<key>detail</key>
+			<string>LLIPadListController</string>
+			<key>isController</key>
+			<true/>
+			<key>label</key>
+			<string>iPad 功能</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>detail</key>
 			<string>LLUnseenListController</string>
 			<key>isController</key>
 			<true/>

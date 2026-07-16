@@ -81,6 +81,9 @@ static NSInteger sanitizedBlockMode(id value) {
 @interface LLSystemListController : LLRootListController
 @end
 
+@interface LLIPadListController : LLRootListController
+@end
+
 @interface LLUnseenListController : LLRootListController
 @end
 
@@ -149,7 +152,7 @@ static NSInteger sanitizedBlockMode(id value) {
 	}
 	[d writeToFile:kPrefPath atomically:YES];
 
-	if ([key isEqualToString:kEnabledKey] || [key isEqualToString:kUnseenEnabledKey]) {
+	if ([key isEqualToString:kEnabledKey] || [key isEqualToString:kUnseenEnabledKey] || [key isEqualToString:@"ipadDock"]) {
 		dispatch_async(dispatch_get_main_queue(), ^{
 			self->_specifiers = nil;
 			[self reloadSpecifiers];
@@ -357,6 +360,53 @@ static NSInteger sanitizedBlockMode(id value) {
 
 @end
 
+@implementation LLIPadListController
+
+- (NSString *)specifiersPlistName {
+	return @"IPad";
+}
+
+- (NSDictionary *)defaultValues {
+	return @{
+		@"newSwitcher": @NO,
+		@"pictureInPicture": @NO,
+		@"ipadDock": @YES,
+		@"inAppDock": @NO,
+		@"recentApp": @NO,
+		@"iPadMultitask": @NO,
+		@"screenMode": @0,
+	};
+}
+
+- (void)registerDefaults {
+	[self _registerDefaults:[self defaultValues] atPath:kPrefPath];
+}
+
+- (NSArray *)specifiers {
+	if (!_specifiers) {
+		NSArray *loadedSpecs = [self loadSpecifiersFromPlistName:[self specifiersPlistName] target:self];
+		NSMutableArray *specs = loadedSpecs ? [loadedSpecs mutableCopy] : [NSMutableArray array];
+
+		NSDictionary *d = [NSDictionary dictionaryWithContentsOfFile:kPrefPath];
+		if (![d[@"ipadDock"] boolValue]) {
+			NSSet *hideKeys = [NSSet setWithObjects:@"inAppDock", @"recentApp", @"iPadMultitask", nil];
+			NSMutableArray *filtered = [NSMutableArray array];
+			for (PSSpecifier *spec in specs) {
+				NSString *key = [spec propertyForKey:kKeyProperty];
+				if (![hideKeys containsObject:key]) {
+					[filtered addObject:spec];
+				}
+			}
+			specs = filtered;
+		}
+
+		_specifiers = [specs copy];
+	}
+	return _specifiers;
+}
+
+@end
+
 @implementation LLUnseenListController
 
 - (NSString *)specifiersPlistName {
@@ -407,4 +457,3 @@ static NSInteger sanitizedBlockMode(id value) {
 }
 
 @end
-
