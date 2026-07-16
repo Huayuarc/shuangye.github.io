@@ -214,6 +214,10 @@ jobs:
         if: success() && steps.build-rootless.outputs.exit_code == 0
         run: |
           set -x
+
+          # 清空旧 deb，只保留本次构建的最新版本
+          rm -f "${{ github.workspace }}/packages/"*.deb "${{ github.workspace }}/packages/"*.deb.md5
+
           mkdir -p "${{ github.workspace }}/packages"
 
           echo "=== rootless debs ==="
@@ -234,9 +238,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          # 清空旧 deb，只保留本次构建的最新版本
-          rm -f packages/*.deb packages/*.deb.md5
 
           if [ -z "$(ls packages/*.deb 2>/dev/null)" ]; then
             echo "无新 deb，跳过提交"
