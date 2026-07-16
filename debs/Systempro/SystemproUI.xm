@@ -29,6 +29,9 @@ static CGFloat doublePreference(NSDictionary *prefs, NSString *key, CGFloat defa
 }
 
 static CGFloat clampedKeyboardRoundRectRadius(CGFloat radius) {
+	if (radius > 0.0 && radius <= 1.0) {
+		radius *= 40.0;
+	}
 	if (radius < 0.0) return 0.0;
 	if (radius > 40.0) return 40.0;
 	return radius;

@@ -35,10 +35,12 @@
 			<string>keyboardRoundRectRadius</string>
 			<key>label</key>
 			<string>按键圆角数值</string>
-			<key>minValue</key>
+			<key>min</key>
 			<real>0</real>
-			<key>maxValue</key>
+			<key>max</key>
 			<real>40</real>
+			<key>stepValue</key>
+			<real>0.1</real>
 			<key>showValue</key>
 			<true/>
 		</dict>

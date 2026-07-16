@@ -69,6 +69,16 @@ static NSInteger sanitizedBlockMode(id value) {
 	return mode;
 }
 
+static NSNumber *sanitizedKeyboardRoundRectRadius(id value) {
+	CGFloat radius = value ? [value doubleValue] : 16.1;
+	if (radius > 0.0 && radius <= 1.0) {
+		radius *= 40.0;
+	}
+	if (radius < 0.0) radius = 0.0;
+	if (radius > 40.0) radius = 40.0;
+	return @(radius);
+}
+
 @interface LLRootListController : PSListController
 @end
 
@@ -134,6 +144,9 @@ static NSInteger sanitizedBlockMode(id value) {
 	if ([key isEqualToString:kBlockModeKey]) {
 		return @(sanitizedBlockMode(val));
 	}
+	if ([key isEqualToString:@"keyboardRoundRectRadius"]) {
+		return sanitizedKeyboardRoundRectRadius(val);
+	}
 
 	return val ?: nil;
 }
@@ -147,6 +160,9 @@ static NSInteger sanitizedBlockMode(id value) {
 
 	if ([key isEqualToString:kBlockModeKey]) {
 		value = @(sanitizedBlockMode(value));
+	}
+	if ([key isEqualToString:@"keyboardRoundRectRadius"]) {
+		value = sanitizedKeyboardRoundRectRadius(value);
 	}
 	if (value) {
 		d[key] = value;
