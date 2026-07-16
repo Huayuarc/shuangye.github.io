@@ -1,15 +1,6 @@
 @import UIKit;
 @import ObjectiveC.runtime;
 
-#ifdef __cplusplus
-template <typename Type_>
-static inline Type_ &MSHookIvar(id self, const char *name) {
-    Ivar ivar_ = class_getInstanceVariable(object_getClass(self), name);
-    ptrdiff_t offset_ = ivar_getOffset(ivar_);
-    return *(Type_ *)((char *)self + offset_);
-}
-#endif
-
 #define CGRectSetY(rect, y) CGRectMake(rect.origin.x, y, rect.size.width, rect.size.height)
 
 typedef struct SBIconCoordinate {
