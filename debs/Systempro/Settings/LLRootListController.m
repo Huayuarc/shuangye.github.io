@@ -85,9 +85,6 @@ static NSInteger sanitizedBlockMode(id value) {
 @interface LLIPadListController : LLRootListController
 @end
 
-@interface LLSystemBoxListController : LLRootListController
-@end
-
 @interface LLUnseenListController : LLRootListController
 @end
 
@@ -370,7 +367,9 @@ static NSInteger sanitizedBlockMode(id value) {
 
 - (NSDictionary *)defaultValues {
 	return @{
-		@"newSwitcher": @NO,
+		@"gridScale": @0.3,
+		@"gridHorizontalSpacing": @10,
+		@"gridVerticalSpacing": @80,
 		@"pictureInPicture": @NO,
 		@"ipadDock": @YES,
 		@"inAppDock": @NO,
@@ -409,47 +408,6 @@ static NSInteger sanitizedBlockMode(id value) {
 
 @end
 
-
-@implementation LLSystemBoxListController
-
-- (NSString *)specifiersPlistName {
-	return @"SystemBox";
-}
-
-- (NSDictionary *)defaultValues {
-	return @{
-		@"doubleTapToLock": @NO,
-		@"longPressToLock": @NO,
-		@"homePullDownNotificationCenter": @NO,
-		@"homePullDownControlCenter": @NO,
-		@"homePullUpNotificationCenter": @NO,
-		@"homePullUpControlCenter": @NO,
-		@"hideHomePageDots": @NO,
-		@"hideHomeIconLabels": @NO,
-		@"hideIconDotLabels": @NO,
-		@"hideWidgetLabels": @NO,
-		@"hideAllBadges": @NO,
-		@"hideStatusBarBreadcrumb": @NO,
-		@"hideLockScreenControlCenterGrabber": @NO,
-		@"disableTodayView": @NO,
-		@"disableHomePullDownSearch": @NO,
-		@"disableAppLibraryPullDown": @NO,
-		@"disableOpenFolderBackground": @NO,
-		@"disableScreenshotPreview": @NO,
-		@"hideChargingAlert": @NO,
-		@"hideLowBatteryAlert": @NO,
-		@"enableFolder4x4": @NO,
-		@"forceZoomToSystemAperture": @NO,
-		@"magicInteractionAnimation": @NO,
-		@"fakeBatteryPercent": @"",
-	};
-}
-
-- (void)registerDefaults {
-	[self _registerDefaults:[self defaultValues] atPath:kPrefPath];
-}
-
-@end
 
 @implementation LLUnseenListController
 

@@ -44,17 +44,7 @@
 			<key>label</key>
 			<string>iPad 功能</string>
 		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSLinkCell</string>
-			<key>detail</key>
-			<string>LLSystemBoxListController</string>
-			<key>isController</key>
-			<true/>
-			<key>label</key>
-			<string>SystemBox 移植</string>
-		</dict>
-		<dict>
+	<dict>
 			<key>cell</key>
 			<string>PSLinkCell</string>
 			<key>detail</key>

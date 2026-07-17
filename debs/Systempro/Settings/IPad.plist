@@ -14,15 +14,65 @@
 		</dict>
 		<dict>
 			<key>cell</key>
-			<string>PSSwitchCell</string>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>仿 iPad 后台窗口布局，可自定义窗口大小和间距。</string>
+			<key>label</key>
+			<string>iPhone仿iPad后台</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
 			<key>default</key>
-			<false/>
+			<real>0.3</real>
 			<key>defaults</key>
 			<string>com.huayuarc.systempro</string>
 			<key>key</key>
-			<string>newSwitcher</string>
+			<string>gridScale</string>
 			<key>label</key>
-			<string>网格切换器</string>
+			<string>窗口大小</string>
+			<key>min</key>
+			<real>0.1</real>
+			<key>max</key>
+			<real>0.6</real>
+			<key>showValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>default</key>
+			<real>10</real>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>key</key>
+			<string>gridHorizontalSpacing</string>
+			<key>label</key>
+			<string>左右间距</string>
+			<key>min</key>
+			<real>0</real>
+			<key>max</key>
+			<real>50</real>
+			<key>showValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>default</key>
+			<real>80</real>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>key</key>
+			<string>gridVerticalSpacing</string>
+			<key>label</key>
+			<string>上下间距</string>
+			<key>min</key>
+			<real>20</real>
+			<key>max</key>
+			<real>150</real>
+			<key>showValue</key>
+			<true/>
 		</dict>
 		<dict>
 			<key>cell</key>

@@ -111,7 +111,7 @@ after-stage::
 	$(ECHO_NOTHING)cp Settings/entry.plist \
 		"$(THEOS_STAGING_DIR)/Library/PreferenceLoader/Preferences/LSILLSettings.plist"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/Root.plist Settings/Notification.plist Settings/Disable.plist \
-		Settings/System.plist Settings/SystemBox.plist Settings/Unseen.plist Settings/IPad.plist Settings/Info.plist \
+		Settings/System.plist Settings/Unseen.plist Settings/IPad.plist Settings/Info.plist \
 		"$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/Systempro@2x.png Settings/Systempro@3x.png \
 		"$(THEOS_STAGING_DIR)/Library/PreferenceBundles/LSILLSettings.bundle/"$(ECHO_END)

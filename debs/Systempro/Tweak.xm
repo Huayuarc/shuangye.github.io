@@ -36,35 +36,12 @@ static NSString *const kIPadDockKey = @"ipadDock";
 static NSString *const kInAppDockKey = @"inAppDock";
 static NSString *const kRecentAppKey = @"recentApp";
 static NSString *const kIPadMultitaskKey = @"iPadMultitask";
-static NSString *const kNewSwitcherKey = @"newSwitcher";
+static NSString *const kGridScaleKey = @"gridScale";
+static NSString *const kGridHorizontalSpacingKey = @"gridHorizontalSpacing";
+static NSString *const kGridVerticalSpacingKey = @"gridVerticalSpacing";
 static NSString *const kScreenModeKey = @"screenMode";
 static NSString *const kDisableIconFlyInKey = @"disableIconFlyIn";
 
-// SystemBox 移植功能键（只保留有实际 Hook 的功能）
-static NSString *const kDoubleTapToLockKey = @"doubleTapToLock";
-static NSString *const kLongPressToLockKey = @"longPressToLock";
-static NSString *const kHomePullDownNotificationCenterKey = @"homePullDownNotificationCenter";
-static NSString *const kHomePullDownControlCenterKey = @"homePullDownControlCenter";
-static NSString *const kHomePullUpNotificationCenterKey = @"homePullUpNotificationCenter";
-static NSString *const kHomePullUpControlCenterKey = @"homePullUpControlCenter";
-static NSString *const kHideHomePageDotsKey = @"hideHomePageDots";
-static NSString *const kHideHomeIconLabelsKey = @"hideHomeIconLabels";
-static NSString *const kHideIconDotLabelsKey = @"hideIconDotLabels";
-static NSString *const kHideWidgetLabelsKey = @"hideWidgetLabels";
-static NSString *const kHideAllBadgesKey = @"hideAllBadges";
-static NSString *const kHideStatusBarBreadcrumbKey = @"hideStatusBarBreadcrumb";
-static NSString *const kHideLockScreenControlCenterGrabberKey = @"hideLockScreenControlCenterGrabber";
-static NSString *const kDisableTodayViewKey = @"disableTodayView";
-static NSString *const kDisableHomePullDownSearchKey = @"disableHomePullDownSearch";
-static NSString *const kDisableAppLibraryPullDownKey = @"disableAppLibraryPullDown";
-static NSString *const kDisableOpenFolderBackgroundKey = @"disableOpenFolderBackground";
-static NSString *const kDisableScreenshotPreviewKey = @"disableScreenshotPreview";
-static NSString *const kHideChargingAlertKey = @"hideChargingAlert";
-static NSString *const kHideLowBatteryAlertKey = @"hideLowBatteryAlert";
-static NSString *const kEnableFolder4x4Key = @"enableFolder4x4";
-static NSString *const kForceZoomToSystemApertureKey = @"forceZoomToSystemAperture";
-static NSString *const kMagicInteractionAnimationKey = @"magicInteractionAnimation";
-static NSString *const kFakeBatteryPercentKey = @"fakeBatteryPercent";
 
 // Cyanide 功能键
 static NSString *const kCyanideHideHomeBarKey    = @"cyanide_hideHomeBar";
@@ -117,33 +94,11 @@ static BOOL      g_iPadDock                  = YES;
 static BOOL      g_inAppDock                 = NO;
 static BOOL      g_recentApp                 = NO;
 static BOOL      g_iPadMultitask             = NO;
-static BOOL      g_newSwitcher               = NO;
+static CGFloat   g_gridScale                 = 0.3;
+static CGFloat   g_gridHorizontalSpacing     = 10;
+static CGFloat   g_gridVerticalSpacing       = 80;
 static NSInteger g_screenMode                = 0;
 static BOOL      g_disableIconFlyIn          = NO;
-static BOOL      g_doubleTapToLock           = NO;
-static BOOL      g_longPressToLock           = NO;
-static BOOL      g_homePullDownNotificationCenter = NO;
-static BOOL      g_homePullDownControlCenter = NO;
-static BOOL      g_homePullUpNotificationCenter = NO;
-static BOOL      g_homePullUpControlCenter   = NO;
-static BOOL      g_hideHomePageDots          = NO;
-static BOOL      g_hideHomeIconLabels        = NO;
-static BOOL      g_hideIconDotLabels         = NO;
-static BOOL      g_hideWidgetLabels          = NO;
-static BOOL      g_hideAllBadges             = NO;
-static BOOL      g_hideStatusBarBreadcrumb   = NO;
-static BOOL      g_hideLockScreenControlCenterGrabber = NO;
-static BOOL      g_disableTodayView          = NO;
-static BOOL      g_disableHomePullDownSearch = NO;
-static BOOL      g_disableAppLibraryPullDown = NO;
-static BOOL      g_disableOpenFolderBackground = NO;
-static BOOL      g_disableScreenshotPreview  = NO;
-static BOOL      g_hideChargingAlert         = NO;
-static BOOL      g_hideLowBatteryAlert       = NO;
-static BOOL      g_enableFolder4x4           = NO;
-static BOOL      g_forceZoomToSystemAperture = NO;
-static BOOL      g_magicInteractionAnimation = NO;
-static NSString *g_fakeBatteryPercent        = nil;
 // 锁屏自动低电 — 记录锁屏前低电模式状态
 static BOOL      g_isLPMOnBeforeLock          = NO;
 
@@ -159,108 +114,6 @@ static void cyanide_applyMuteCallRecord(BOOL mute);
 static void cyanide_applyNanoRegistry(BOOL apply);
 
 
-// ============================================================================
-// SystemBox 移植 — 手势目标（保留 target，避免 UIGestureRecognizer 释放 target 后失效）
-// ============================================================================
-@interface SystemproLockGestureTarget : NSObject <UIGestureRecognizerDelegate>
-@end
-
-@implementation SystemproLockGestureTarget
-- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldReceiveTouch:(UITouch *)touch {
-	return g_doubleTapToLock || g_longPressToLock;
-}
-- (BOOL)gestureRecognizerShouldBegin:(UIGestureRecognizer *)gestureRecognizer {
-	return g_doubleTapToLock || g_longPressToLock;
-}
-- (void)lockDevice:(UIGestureRecognizer *)gesture {
-	if (gesture.state != UIGestureRecognizerStateRecognized && gesture.state != UIGestureRecognizerStateBegan) return;
-	id springBoard = [NSClassFromString(@"SpringBoard") sharedApplication];
-	if ([springBoard respondsToSelector:@selector(_simulateLockButtonPress)]) {
-		((void (*)(id, SEL))objc_msgSend)(springBoard, @selector(_simulateLockButtonPress));
-	}
-}
-@end
-
-@interface SystemproHomeGestureTarget : NSObject <UIGestureRecognizerDelegate>
-@property (nonatomic, assign) NSInteger action;
-@end
-
-@implementation SystemproHomeGestureTarget
-- (BOOL)gestureRecognizerShouldBegin:(UIGestureRecognizer *)gestureRecognizer {
-	UIPanGestureRecognizer *pan = (UIPanGestureRecognizer *)gestureRecognizer;
-	CGPoint velocity = [pan velocityInView:gestureRecognizer.view];
-	CGPoint translation = [pan translationInView:gestureRecognizer.view];
-	BOOL down = velocity.y > 120.0 && fabs(translation.x) * 1.25 <= fabs(velocity.y);
-	BOOL up = velocity.y < -120.0 && fabs(translation.x) * 1.25 <= fabs(velocity.y);
-	switch (self.action) {
-		case 0: return g_homePullDownNotificationCenter && !g_homePullDownControlCenter && down;
-		case 1: return g_homePullDownControlCenter && !g_homePullDownNotificationCenter && down;
-		case 2: return g_homePullUpNotificationCenter && !g_homePullUpControlCenter && up;
-		case 3: return g_homePullUpControlCenter && !g_homePullUpNotificationCenter && up;
-		default: return NO;
-	}
-}
-- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
-	return YES;
-}
-- (void)handlePan:(UIGestureRecognizer *)gesture {
-	if (gesture.state != UIGestureRecognizerStateRecognized && gesture.state != UIGestureRecognizerStateEnded) return;
-	BOOL wantsNotificationCenter = self.action == 0 || self.action == 2;
-	Class controllerClass = NSClassFromString(wantsNotificationCenter ? @"SBNotificationCenterController" : @"SBControlCenterController");
-	id controller = [controllerClass respondsToSelector:@selector(sharedInstance)] ? [controllerClass sharedInstance] : nil;
-	if ([controller respondsToSelector:@selector(presentAnimated:completion:)]) {
-		((void (*)(id, SEL, BOOL, id))objc_msgSend)(controller, @selector(presentAnimated:completion:), YES, nil);
-	}
-}
-@end
-
-static NSMutableArray *g_systemBoxGestureTargets;
-static BOOL g_systemBoxGesturesInstalled = NO;
-
-static void systemBoxInstallGestures(void) {
-	if (g_systemBoxGesturesInstalled) return;
-	if (!g_doubleTapToLock && !g_longPressToLock &&
-		!g_homePullDownNotificationCenter && !g_homePullDownControlCenter &&
-		!g_homePullUpNotificationCenter && !g_homePullUpControlCenter) {
-		return;
-	}
-	UIWindow *window = [UIApplication sharedApplication].keyWindow;
-	if (!window) window = [UIApplication sharedApplication].windows.firstObject;
-	if (!window) return;
-
-	g_systemBoxGestureTargets = [NSMutableArray array];
-	if (g_doubleTapToLock || g_longPressToLock) {
-		SystemproLockGestureTarget *target = [SystemproLockGestureTarget new];
-		[g_systemBoxGestureTargets addObject:target];
-		if (g_doubleTapToLock) {
-			UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:target action:@selector(lockDevice:)];
-			tap.numberOfTapsRequired = 2;
-			tap.delegate = target;
-			[window addGestureRecognizer:tap];
-		}
-		if (g_longPressToLock) {
-			UILongPressGestureRecognizer *press = [[UILongPressGestureRecognizer alloc] initWithTarget:target action:@selector(lockDevice:)];
-			press.minimumPressDuration = 0.6;
-			press.delegate = target;
-			[window addGestureRecognizer:press];
-		}
-	}
-
-	for (NSInteger action = 0; action < 4; action++) {
-		BOOL enabled = (action == 0 && g_homePullDownNotificationCenter) ||
-			(action == 1 && g_homePullDownControlCenter) ||
-			(action == 2 && g_homePullUpNotificationCenter) ||
-			(action == 3 && g_homePullUpControlCenter);
-		if (!enabled) continue;
-		SystemproHomeGestureTarget *target = [SystemproHomeGestureTarget new];
-		target.action = action;
-		[g_systemBoxGestureTargets addObject:target];
-		UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:target action:@selector(handlePan:)];
-		pan.delegate = target;
-		[window addGestureRecognizer:pan];
-	}
-	g_systemBoxGesturesInstalled = YES;
-}
 
 // ============================================================================
 // 配置读写 — 内存缓存（避免热路径 I/O）
@@ -299,43 +152,11 @@ static void reloadConfiguration(void) {
 		g_inAppDock                 = [prefs[kInAppDockKey] boolValue];
 		g_recentApp                 = [prefs[kRecentAppKey] boolValue];
 		g_iPadMultitask             = [prefs[kIPadMultitaskKey] boolValue];
-		g_newSwitcher               = [prefs[kNewSwitcherKey] boolValue];
+		g_gridScale                 = prefs[kGridScaleKey] ? [prefs[kGridScaleKey] doubleValue] : 0.3;
+		g_gridHorizontalSpacing     = prefs[kGridHorizontalSpacingKey] ? [prefs[kGridHorizontalSpacingKey] doubleValue] : 10;
+		g_gridVerticalSpacing       = prefs[kGridVerticalSpacingKey] ? [prefs[kGridVerticalSpacingKey] doubleValue] : 80;
 		g_screenMode                = prefs[kScreenModeKey] ? [prefs[kScreenModeKey] integerValue] : 0;
 		g_disableIconFlyIn          = [prefs[kDisableIconFlyInKey] boolValue];
-
-		g_doubleTapToLock           = [prefs[kDoubleTapToLockKey] boolValue];
-		g_longPressToLock           = [prefs[kLongPressToLockKey] boolValue];
-		g_homePullDownNotificationCenter = [prefs[kHomePullDownNotificationCenterKey] boolValue];
-		g_homePullDownControlCenter = [prefs[kHomePullDownControlCenterKey] boolValue];
-		g_homePullUpNotificationCenter = [prefs[kHomePullUpNotificationCenterKey] boolValue];
-		g_homePullUpControlCenter   = [prefs[kHomePullUpControlCenterKey] boolValue];
-
-		g_hideHomePageDots          = [prefs[kHideHomePageDotsKey] boolValue];
-		g_hideHomeIconLabels        = [prefs[kHideHomeIconLabelsKey] boolValue];
-		g_hideIconDotLabels         = [prefs[kHideIconDotLabelsKey] boolValue];
-		g_hideWidgetLabels          = [prefs[kHideWidgetLabelsKey] boolValue];
-		g_hideAllBadges             = [prefs[kHideAllBadgesKey] boolValue];
-		g_hideStatusBarBreadcrumb   = [prefs[kHideStatusBarBreadcrumbKey] boolValue];
-		g_hideLockScreenControlCenterGrabber = [prefs[kHideLockScreenControlCenterGrabberKey] boolValue];
-		g_disableTodayView          = [prefs[kDisableTodayViewKey] boolValue];
-		g_disableHomePullDownSearch = [prefs[kDisableHomePullDownSearchKey] boolValue];
-		g_disableAppLibraryPullDown = [prefs[kDisableAppLibraryPullDownKey] boolValue];
-		g_disableOpenFolderBackground = [prefs[kDisableOpenFolderBackgroundKey] boolValue];
-		g_disableScreenshotPreview  = [prefs[kDisableScreenshotPreviewKey] boolValue];
-		g_hideChargingAlert         = [prefs[kHideChargingAlertKey] boolValue];
-		g_hideLowBatteryAlert       = [prefs[kHideLowBatteryAlertKey] boolValue];
-		g_enableFolder4x4           = [prefs[kEnableFolder4x4Key] boolValue];
-		g_forceZoomToSystemAperture = [prefs[kForceZoomToSystemApertureKey] boolValue];
-		g_magicInteractionAnimation = [prefs[kMagicInteractionAnimationKey] boolValue];
-
-		id fakeBatteryPercentValue = prefs[kFakeBatteryPercentKey];
-		if ([fakeBatteryPercentValue isKindOfClass:[NSString class]]) {
-			g_fakeBatteryPercent = [(NSString *)fakeBatteryPercentValue copy];
-		} else if ([fakeBatteryPercentValue respondsToSelector:@selector(stringValue)]) {
-			g_fakeBatteryPercent = [fakeBatteryPercentValue stringValue];
-		} else {
-			g_fakeBatteryPercent = nil;
-		}
 
 		// Cyanide 功能
 		g_cyanideHideHomeBar     = [prefs[kCyanideHideHomeBarKey] boolValue];
@@ -731,280 +552,7 @@ static BOOL shouldBlock(void) {
 
 %end
 
-// ============================================================================
-// SystemBox 移植 — 主屏隐藏/禁用类功能
-// ============================================================================
-%group SystemBoxHomeScreenHooks
 
-%hook SBRootFolderView
-- (void)setPageControlHidden:(BOOL)hidden {
-	%orig(g_hideHomePageDots ? YES : hidden);
-}
-
-- (void)layoutSubviews {
-	%orig;
-	if (g_hideHomePageDots) {
-		((void (*)(id, SEL, BOOL))objc_msgSend)(self, @selector(setPageControlHidden:), YES);
-	}
-}
-%end
-
-%hook SBIconListPageControl
-- (void)setHidden:(BOOL)hidden {
-	%orig(g_hideHomePageDots ? YES : hidden);
-}
-%end
-
-%hook SBIconView
-- (void)setLabelHidden:(BOOL)hidden {
-	%orig(g_hideHomeIconLabels ? YES : hidden);
-}
-%end
-
-%hook SBIconDotLabelAccessoryView
-- (void)setHidden:(BOOL)hidden {
-	%orig(g_hideIconDotLabels ? YES : hidden);
-}
-%end
-
-%hook SBHIconManager
-- (BOOL)iconViewDisplaysLabel:(id)iconView {
-	if (g_hideHomeIconLabels) return NO;
-	return %orig(iconView);
-}
-
-- (BOOL)iconManager:(id)manager iconViewDisplaysLabel:(id)iconView {
-	if (g_hideHomeIconLabels) return NO;
-	return %orig(manager, iconView);
-}
-%end
-
-%hook SBIconBadgeView
-- (void)setHidden:(BOOL)hidden {
-	%orig(g_hideAllBadges ? YES : hidden);
-}
-%end
-
-%hook SBRootFolderController
-- (void)setTodayViewPageHidden:(BOOL)hidden {
-	%orig(g_disableTodayView ? YES : hidden);
-}
-%end
-
-%hook SBHLibrarySearchController
-- (BOOL)spotlightPresenterAllowsPullToSearch {
-	if (g_disableAppLibraryPullDown) return NO;
-	return %orig;
-}
-%end
-
-%hook SBSearchGesture
-- (BOOL)searchScrollViewShouldRecognize:(id)scrollView {
-	if (g_disableHomePullDownSearch) return NO;
-	return %orig(scrollView);
-}
-%end
-
-%end
-
-%group SystemBoxWidgetHooks
-
-%hook SBHWidgetContainerView
-- (void)setTitleLabel:(id)label {
-	%orig(label);
-	if (g_hideWidgetLabels && [label respondsToSelector:@selector(setHidden:)]) {
-		[label setHidden:YES];
-	}
-}
-%end
-
-%hook SBHWidgetWrapperView
-- (void)setTitleAndSubtitleVisible:(BOOL)visible {
-	%orig(g_hideWidgetLabels ? NO : visible);
-}
-%end
-
-%hook SBHWidgetWrapperViewController
-- (void)setTitleAndSubtitleVisible:(BOOL)visible {
-	%orig(g_hideWidgetLabels ? NO : visible);
-}
-%end
-
-%end
-
-%group SystemBoxFolderHooks
-
-%hook SBFolderView
-- (void)setBackgroundBlurEnabled:(BOOL)enabled {
-	%orig(g_disableOpenFolderBackground ? NO : enabled);
-}
-%end
-
-%hook SBFolderBackgroundView
-- (void)setHidden:(BOOL)hidden {
-	%orig(g_disableOpenFolderBackground ? YES : hidden);
-}
-%end
-
-%end
-
-%group SystemBoxStatusBarHooks
-
-%hook SBDeviceApplicationSceneStatusBarBreadcrumbProvider
-- (BOOL)_shouldAddBreadcrumbToActivatingSceneEntity:(id)entity sceneHandle:(id)handle withTransitionContext:(id)context {
-	if (g_hideStatusBarBreadcrumb) return NO;
-	return %orig(entity, handle, context);
-}
-%end
-
-%hook UIStatusBarBatteryPercentItemView
-- (id)_percentString {
-	if (g_fakeBatteryPercent.length > 0 && ![g_fakeBatteryPercent isEqualToString:@"0"]) {
-		return [NSString stringWithFormat:@"%@%%", g_fakeBatteryPercent];
-	}
-	return %orig;
-}
-%end
-
-%end
-
-%group SystemBoxLockScreenHooks
-
-%hook SBHomeGrabberView
-- (void)setHidden:(BOOL)hidden {
-	%orig(g_hideLockScreenControlCenterGrabber ? YES : hidden);
-}
-%end
-
-%end
-
-%group SystemBoxTodayViewHooks
-
-%hook SBMainDisplayPolicyAggregator
-- (BOOL)_allowsCapabilityTodayViewWithExplanation:(id)explanation {
-	if (g_disableTodayView) return NO;
-	return %orig(explanation);
-}
-
-- (BOOL)_allowsCapabilityLockScreenTodayViewWithExplanation:(id)explanation {
-	if (g_disableTodayView) return NO;
-	return %orig(explanation);
-}
-%end
-
-%hook SBTodayViewController
-- (void)setTodayViewPageHidden:(BOOL)hidden {
-	%orig(g_disableTodayView ? YES : hidden);
-}
-%end
-
-%end
-
-%group SystemBoxAlertHooks
-
-%hook SBAlertItemsController
-- (void)activateAlertItem:(id)item animated:(BOOL)animated {
-	Class lowPowerAlertClass = NSClassFromString(@"SBLowPowerAlertItem");
-	Class chargingAlertClass = NSClassFromString(@"SBLockScreenBatteryChargingViewController");
-	if (g_hideLowBatteryAlert && lowPowerAlertClass && [item isKindOfClass:lowPowerAlertClass]) {
-		return;
-	}
-	if (g_hideChargingAlert && chargingAlertClass && [item isKindOfClass:chargingAlertClass]) {
-		return;
-	}
-	%orig(item, animated);
-}
-%end
-
-%hook SBChargingSystemApertureElementProvider
-- (void)showChargeLevelWithBatteryVisible:(BOOL)visible {
-	if (g_hideChargingAlert) return;
-	%orig(visible);
-}
-
-- (id)powerElementWithBatteryCapacity:(id)capacity {
-	if (g_hideChargingAlert) return nil;
-	return %orig(capacity);
-}
-%end
-
-%end
-
-%group SystemBoxScreenshotPreviewHooks
-
-%hook SSScreenshotsWindowRootViewController
-- (void)setHidden:(BOOL)hidden {
-	%orig(g_disableScreenshotPreview ? YES : hidden);
-}
-%end
-
-%hook SBDarkeningImageView
-- (void)setHidden:(BOOL)hidden {
-	%orig(g_disableScreenshotPreview ? YES : hidden);
-}
-%end
-
-%end
-
-%group SystemBoxAnimationHooks
-
-%hook SBFluidSwitcherViewController
-- (BOOL)shouldZoomToSystemApertureForEvent:(id)event activeLayout:(id)layout {
-	if (g_forceZoomToSystemAperture) return YES;
-	return %orig(event, layout);
-}
-%end
-
-%hook SBSwitcherModifier
-- (id)applyUpdate:(id)update toDisplayItem:(id)item {
-	if (g_magicInteractionAnimation) {
-		id settingsClass = NSClassFromString(@"SBFluidSwitcherAnimationSettings");
-		id settings = [settingsClass respondsToSelector:@selector(centralAnimationSettings)] ? [settingsClass performSelector:@selector(centralAnimationSettings)] : nil;
-		if (settings) {
-			[settings setValue:@(0.4) forKey:@"stiffness"];
-			[settings setValue:@(0.8) forKey:@"damping"];
-		}
-	}
-	return %orig(update, item);
-}
-%end
-
-%hook SBHUnlockSettings
-- (BOOL)iconsFlyIn {
-	if (g_disableIconFlyIn) return NO;
-	return %orig;
-}
-%end
-
-%end
-
-%group SystemBoxFolderGridHooks
-
-%hook SBRootFolderControllerConfiguration
-- (unsigned long long)numberOfColumnsForOrientation:(int)orientation {
-	if (g_enableFolder4x4) return 4;
-	return %orig(orientation);
-}
-
-- (unsigned long long)numberOfRowsForOrientation:(int)orientation {
-	if (g_enableFolder4x4) return 4;
-	return %orig(orientation);
-}
-%end
-
-%hook SBIconListFlowLayout
-- (unsigned long long)numberOfColumnsForOrientation:(int)orientation {
-	if (g_enableFolder4x4) return 4;
-	return %orig(orientation);
-}
-
-- (unsigned long long)numberOfRowsForOrientation:(int)orientation {
-	if (g_enableFolder4x4) return 4;
-	return %orig(orientation);
-}
-%end
-
-%end
 
 // ============================================================================
 // Cyanide — 通话录音提示音静音
@@ -1269,6 +817,15 @@ static void cyanide_applyNanoRegistry(BOOL apply) {
 - (void)setSwitcherStyle:(NSInteger)style {
 	%orig(2);
 }
+- (void)setGridSwitcherPageScale:(double)scale {
+	%orig(g_gridScale);
+}
+- (void)setGridSwitcherHorizontalInterpageSpacingPortrait:(double)spacing {
+	%orig(g_gridHorizontalSpacing);
+}
+- (void)setGridSwitcherVerticalNaturalSpacingPortrait:(double)spacing {
+	%orig(g_gridVerticalSpacing);
+}
 %end
 %end
 
@@ -1385,44 +942,9 @@ static void onRespring(CFNotificationCenterRef center,
 			}
 		}
 
-		if (g_newSwitcher && NSClassFromString(@"SBAppSwitcherSettings")) {
+		if (NSClassFromString(@"SBAppSwitcherSettings")) {
 			%init(SystemproGridSwitcher);
 		}
-
-		if (NSClassFromString(@"SBRootFolderView")) {
-			%init(SystemBoxHomeScreenHooks);
-		}
-		if (NSClassFromString(@"SBHWidgetWrapperView") || NSClassFromString(@"SBHWidgetContainerView")) {
-			%init(SystemBoxWidgetHooks);
-		}
-		if (NSClassFromString(@"SBFolderView")) {
-			%init(SystemBoxFolderHooks);
-		}
-		if (NSClassFromString(@"SBDeviceApplicationSceneStatusBarBreadcrumbProvider") || NSClassFromString(@"UIStatusBarBatteryPercentItemView")) {
-			%init(SystemBoxStatusBarHooks);
-		}
-		if (NSClassFromString(@"SBHomeGrabberView")) {
-			%init(SystemBoxLockScreenHooks);
-		}
-		if (NSClassFromString(@"SBMainDisplayPolicyAggregator") || NSClassFromString(@"SBTodayViewController")) {
-			%init(SystemBoxTodayViewHooks);
-		}
-		if (NSClassFromString(@"SBAlertItemsController") || NSClassFromString(@"SBChargingSystemApertureElementProvider")) {
-			%init(SystemBoxAlertHooks);
-		}
-		if (NSClassFromString(@"SSScreenshotsWindowRootViewController") || NSClassFromString(@"SBDarkeningImageView")) {
-			%init(SystemBoxScreenshotPreviewHooks);
-		}
-		if (NSClassFromString(@"SBFluidSwitcherViewController") || NSClassFromString(@"SBHUnlockSettings")) {
-			%init(SystemBoxAnimationHooks);
-		}
-		if (NSClassFromString(@"SBRootFolderControllerConfiguration") || NSClassFromString(@"SBIconListFlowLayout")) {
-			%init(SystemBoxFolderGridHooks);
-		}
-
-		dispatch_async(dispatch_get_main_queue(), ^{
-			systemBoxInstallGestures();
-		});
 
 		// 监听静音开关状态变化		// 监听静音开关状态变化
 		int ringerToken = 0;
