@@ -16,9 +16,31 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>footerText</key>
-			<string>仿 iPad 后台窗口布局，可自定义窗口大小和间距。</string>
+			<string>启用后生效 PHONE 仿 iPad 后台布局；关闭时保持系统默认后台。下面三项分别用于调整窗口尺寸、左右间距、上下间距。</string>
 			<key>label</key>
 			<string>iPhone仿iPad后台</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>key</key>
+			<string>gridSwitcherEnabled</string>
+			<key>label</key>
+			<string>启用后台布局</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>窗口尺寸：控制后台卡片缩放比例，数值越小窗口越小。</string>
+			<key>key</key>
+			<string>gridScaleGroup</string>
+			<key>label</key>
+			<string>窗口尺寸</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -30,13 +52,23 @@
 			<key>key</key>
 			<string>gridScale</string>
 			<key>label</key>
-			<string>窗口大小</string>
+			<string>窗口尺寸</string>
 			<key>min</key>
 			<real>0.1</real>
 			<key>max</key>
 			<real>0.6</real>
 			<key>showValue</key>
 			<true/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>左右间距：控制后台卡片之间的横向间隔。</string>
+			<key>key</key>
+			<string>gridHorizontalSpacingGroup</string>
+			<key>label</key>
+			<string>左右间距</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -55,6 +87,16 @@
 			<real>50</real>
 			<key>showValue</key>
 			<true/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>上下间距：控制后台卡片之间的纵向间隔。</string>
+			<key>key</key>
+			<string>gridVerticalSpacingGroup</string>
+			<key>label</key>
+			<string>上下间距</string>
 		</dict>
 		<dict>
 			<key>cell</key>

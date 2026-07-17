@@ -36,6 +36,7 @@ static NSString *const kIPadDockKey = @"ipadDock";
 static NSString *const kInAppDockKey = @"inAppDock";
 static NSString *const kRecentAppKey = @"recentApp";
 static NSString *const kIPadMultitaskKey = @"iPadMultitask";
+static NSString *const kGridSwitcherEnabledKey = @"gridSwitcherEnabled";
 static NSString *const kGridScaleKey = @"gridScale";
 static NSString *const kGridHorizontalSpacingKey = @"gridHorizontalSpacing";
 static NSString *const kGridVerticalSpacingKey = @"gridVerticalSpacing";
@@ -94,6 +95,7 @@ static BOOL      g_iPadDock                  = YES;
 static BOOL      g_inAppDock                 = NO;
 static BOOL      g_recentApp                 = NO;
 static BOOL      g_iPadMultitask             = NO;
+static BOOL      g_gridSwitcherEnabled       = NO;
 static CGFloat   g_gridScale                 = 0.3;
 static CGFloat   g_gridHorizontalSpacing     = 10;
 static CGFloat   g_gridVerticalSpacing       = 80;
@@ -152,6 +154,7 @@ static void reloadConfiguration(void) {
 		g_inAppDock                 = [prefs[kInAppDockKey] boolValue];
 		g_recentApp                 = [prefs[kRecentAppKey] boolValue];
 		g_iPadMultitask             = [prefs[kIPadMultitaskKey] boolValue];
+		g_gridSwitcherEnabled       = [prefs[kGridSwitcherEnabledKey] boolValue];
 		g_gridScale                 = prefs[kGridScaleKey] ? [prefs[kGridScaleKey] doubleValue] : 0.3;
 		g_gridHorizontalSpacing     = prefs[kGridHorizontalSpacingKey] ? [prefs[kGridHorizontalSpacingKey] doubleValue] : 10;
 		g_gridVerticalSpacing       = prefs[kGridVerticalSpacingKey] ? [prefs[kGridVerticalSpacingKey] doubleValue] : 80;
@@ -814,16 +817,40 @@ static void cyanide_applyNanoRegistry(BOOL apply) {
 
 %group SystemproGridSwitcher
 %hook SBAppSwitcherSettings
+
+// 总开关：启用 PHONE 仿 iPad 后台网格样式
 - (void)setSwitcherStyle:(NSInteger)style {
+	if (!g_gridSwitcherEnabled) {
+		%orig(style);
+		return;
+	}
 	%orig(2);
 }
+
+// 窗口尺寸：控制后台卡片缩放比例
 - (void)setGridSwitcherPageScale:(double)scale {
+	if (!g_gridSwitcherEnabled) {
+		%orig(scale);
+		return;
+	}
 	%orig(g_gridScale);
 }
+
+// 左右间距：控制后台卡片横向间隔
 - (void)setGridSwitcherHorizontalInterpageSpacingPortrait:(double)spacing {
+	if (!g_gridSwitcherEnabled) {
+		%orig(spacing);
+		return;
+	}
 	%orig(g_gridHorizontalSpacing);
 }
+
+// 上下间距：控制后台卡片纵向间隔
 - (void)setGridSwitcherVerticalNaturalSpacingPortrait:(double)spacing {
+	if (!g_gridSwitcherEnabled) {
+		%orig(spacing);
+		return;
+	}
 	%orig(g_gridVerticalSpacing);
 }
 %end
@@ -942,7 +969,7 @@ static void onRespring(CFNotificationCenterRef center,
 			}
 		}
 
-		if (NSClassFromString(@"SBAppSwitcherSettings")) {
+		if (g_gridSwitcherEnabled && NSClassFromString(@"SBAppSwitcherSettings")) {
 			%init(SystemproGridSwitcher);
 		}
 

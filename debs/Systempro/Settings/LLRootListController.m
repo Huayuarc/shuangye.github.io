@@ -153,7 +153,7 @@ static NSInteger sanitizedBlockMode(id value) {
 	}
 	[d writeToFile:kPrefPath atomically:YES];
 
-	if ([key isEqualToString:kEnabledKey] || [key isEqualToString:kUnseenEnabledKey] || [key isEqualToString:@"ipadDock"]) {
+	if ([key isEqualToString:kEnabledKey] || [key isEqualToString:kUnseenEnabledKey] || [key isEqualToString:@"ipadDock"] || [key isEqualToString:@"gridSwitcherEnabled"]) {
 		dispatch_async(dispatch_get_main_queue(), ^{
 			self->_specifiers = nil;
 			[self reloadSpecifiers];
@@ -367,6 +367,7 @@ static NSInteger sanitizedBlockMode(id value) {
 
 - (NSDictionary *)defaultValues {
 	return @{
+		@"gridSwitcherEnabled": @NO,
 		@"gridScale": @0.3,
 		@"gridHorizontalSpacing": @10,
 		@"gridVerticalSpacing": @80,
@@ -389,6 +390,25 @@ static NSInteger sanitizedBlockMode(id value) {
 		NSMutableArray *specs = loadedSpecs ? [loadedSpecs mutableCopy] : [NSMutableArray array];
 
 		NSDictionary *d = [NSDictionary dictionaryWithContentsOfFile:kPrefPath];
+		if (![d[@"gridSwitcherEnabled"] boolValue]) {
+			NSSet *hideKeys = [NSSet setWithObjects:
+				@"gridScaleGroup",
+				@"gridScale",
+				@"gridHorizontalSpacingGroup",
+				@"gridHorizontalSpacing",
+				@"gridVerticalSpacingGroup",
+				@"gridVerticalSpacing",
+				nil];
+			NSMutableArray *filtered = [NSMutableArray array];
+			for (PSSpecifier *spec in specs) {
+				NSString *key = [spec propertyForKey:kKeyProperty];
+				if (![hideKeys containsObject:key]) {
+					[filtered addObject:spec];
+				}
+			}
+			specs = filtered;
+		}
+
 		if (![d[@"ipadDock"] boolValue]) {
 			NSSet *hideKeys = [NSSet setWithObjects:@"inAppDock", @"recentApp", @"iPadMultitask", nil];
 			NSMutableArray *filtered = [NSMutableArray array];
