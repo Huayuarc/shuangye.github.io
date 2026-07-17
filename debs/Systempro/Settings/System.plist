@@ -146,6 +146,30 @@
 			<key>defaults</key>
 			<string>com.huayuarc.systempro</string>
 			<key>key</key>
+			<string>bottomLeftControlCenter</string>
+			<key>label</key>
+			<string>左下角打开控制中心</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>key</key>
+			<string>bottomRightControlCenter</string>
+			<key>label</key>
+			<string>右下角打开控制中心</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.systempro</string>
+			<key>key</key>
 			<string>cyanide_hideHomeBar</string>
 			<key>label</key>
 			<string>隐藏 HomeBar</string>

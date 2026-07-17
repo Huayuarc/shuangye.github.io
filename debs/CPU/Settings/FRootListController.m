@@ -202,7 +202,7 @@ return;
 - (void)showPowerModePicker {
 UIAlertController *alert = [UIAlertController
 alertControllerWithTitle:S("功率模式")
-message:S("低功耗 = 限制 CPU 最高 2016MHz，不抬高待机频率\n防温控 = 减少降频/降亮度，保留系统安全保护")
+message:S("防温控 = 性能优先，尽量保持满频满帧\n低功耗 = 限制 CPU 最高 2016MHz，更凉更省电")
 preferredStyle:UIAlertControllerStyleActionSheet];
 
 NSString *currentMode = [self powerModeValue];
@@ -270,24 +270,6 @@ preferredStyle:UIAlertControllerStyleAlert];
 [self presentViewController:alert animated:YES completion:nil];
 }
 
-
-#pragma mark - 关于我 / 投喂动作
-
-// QQ 测试反馈群
-- (void)openQQFeedbackGroup {
-[self openURLString:S("https://qm.qq.com/q/JvllAQiEwI") fallback:nil];
-}
-
-// 支付宝投喂我
-- (void)openAlipayDonate {
-[self openURLString:S("alipays://platformapi/startapp?appId=20000067&url=https%3A%2F%2Fqr.alipay.com%2Ffkx16683ylwdrfdo8fiuy01")
-fallback:S("https://qr.alipay.com/fkx16683ylwdrfdo8fiuy01")];
-}
-
-// 打开Sileo添加源（优先sileo://协议，否则打开网页）
-- (void)openRepo {
-[self openURLString:S("sileo://source/https://huayuarc.github.io") fallback:S("https://huayuarc.github.io")];
-}
 
 #pragma mark - 重启用户空间
 
@@ -392,7 +374,7 @@ PSSpecifier *master = [self switchSpecifier:S("启用 CPUthermal") key:S("enable
 // ===================== 第2组: 功率模式 =====================
 group = [PSSpecifier emptyGroupSpecifier];
 [group setProperty:S("功率模式") forKey:S("label")];
-[group setProperty:S("低功耗只限制最高频率，不再强制锁 2016MHz；防温控会减少降频/降亮度，但保留系统过热保护。") forKey:S("footerText")];
+[group setProperty:S("默认防温控，优先性能和帧率；仍保留 85°C 最后过热保护，防止异常高温损伤设备。") forKey:S("footerText")];
 [specs addObject:group];
 
 [specs addObject:[self powerModeSpecifier]];
@@ -423,21 +405,6 @@ group = [PSSpecifier emptyGroupSpecifier];
 [specs addObject:[self buttonSpecifier:S("重启用户空间")
 action:@selector(usreboot)
 identifier:S("usreboot")]];
-
-// ===================== 第6组: 关于我 （底部） =====================
-group = [PSSpecifier emptyGroupSpecifier];
-[group setProperty:S("关于我 / 投喂") forKey:S("label")];
-[specs addObject:group];
-
-[specs addObject:[self buttonSpecifier:S("📮 QQ 交流反馈群")
-action:@selector(openQQFeedbackGroup)
-identifier:S("qqGroup")]];
-[specs addObject:[self buttonSpecifier:S("💰 支付宝🧧打赏")
-action:@selector(openAlipayDonate)
-identifier:S("alipayDonate")]];
-[specs addObject:[self buttonSpecifier:S("📦 Sileo 添加源")
-action:@selector(openRepo)
-identifier:S("sileoRepo")]];
 
 [self setSpecifiers:specs];
 }

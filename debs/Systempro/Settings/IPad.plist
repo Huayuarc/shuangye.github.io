@@ -16,7 +16,7 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>footerText</key>
-			<string>启用后生效 PHONE 仿 iPad 后台布局；关闭时保持系统默认后台。下面三项分别用于调整窗口尺寸、左右间距、上下间距。</string>
+			<string>启用后生效 PHONE 仿 iPad 后台布局；关闭时保持系统默认后台。下面三项分别用于调整窗口尺寸、左右间距、上下间距。推荐设置窗口尺寸：0.36 - 左右间距：38.3 - 上下间距：56.2</string>
 			<key>label</key>
 			<string>iPhone仿iPad后台</string>
 		</dict>
@@ -46,17 +46,17 @@
 			<key>cell</key>
 			<string>PSSliderCell</string>
 			<key>default</key>
-			<real>0.3</real>
+			<real>0.29999999999999999</real>
 			<key>defaults</key>
 			<string>com.huayuarc.systempro</string>
 			<key>key</key>
 			<string>gridScale</string>
 			<key>label</key>
 			<string>窗口尺寸</string>
-			<key>min</key>
-			<real>0.1</real>
 			<key>max</key>
-			<real>0.6</real>
+			<real>0.59999999999999998</real>
+			<key>min</key>
+			<real>0.10000000000000001</real>
 			<key>showValue</key>
 			<true/>
 		</dict>
@@ -81,10 +81,10 @@
 			<string>gridHorizontalSpacing</string>
 			<key>label</key>
 			<string>左右间距</string>
-			<key>min</key>
-			<real>0</real>
 			<key>max</key>
 			<real>50</real>
+			<key>min</key>
+			<real>0.0</real>
 			<key>showValue</key>
 			<true/>
 		</dict>
@@ -109,10 +109,10 @@
 			<string>gridVerticalSpacing</string>
 			<key>label</key>
 			<string>上下间距</string>
-			<key>min</key>
-			<real>20</real>
 			<key>max</key>
 			<real>150</real>
+			<key>min</key>
+			<real>20</real>
 			<key>showValue</key>
 			<true/>
 		</dict>

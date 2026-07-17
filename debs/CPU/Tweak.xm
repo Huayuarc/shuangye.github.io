@@ -20,7 +20,7 @@
 //   - 传感器读数拦截只走 IOKit，不走 ObjC
 //   - 不 hook putDeviceInThermalSimulationMode: (CPUthermal 调用方)
 //   - 所有新增 hook 有独立开关
-//   - 保留系统紧急热保护安全阀 (95°C+ 或读温失败不拦截)
+//   - 保留系统紧急热保护安全阀 (85°C+ 或读温失败不拦截)
 //
 // 注意: 禁止使用 @"" ObjC 字符串常量（roothide 重映射会破坏 __cfstring）
 // 所有字符串通过 C 字符串 + stringWithUTF8String: 动态创建
@@ -141,7 +141,9 @@ static const int64_t kLowPowerMinFrequencyMHz = 600;
 static const int64_t kLowPowerMaxFrequencyMHz = 2016;
 
 // 温度安全阀 — 超过此值不拦截任何保护
-static const int64_t kSafetyTempThreshold = 95000;  // 95°C (毫摄氏度) 从80°C提升，避免游戏场景过早触发
+// 85°C 后优先交还系统温控，保留最后硬件保护，避免异常高温损伤设备。
+static const int64_t kSafetyTempThreshold = 85000;
+static const int64_t kThermalThresholdRaise = 15000;
 
 static CommonProduct *g_commonProduct = nil;
 static NSMutableArray *g_mitigationControllers = nil;
@@ -149,24 +151,29 @@ static BOOL g_restoringFullPower = NO;
 static BOOL g_applyingLowPower = NO;
 static NSMutableDictionary *g_originalControllerValues = nil;
 static CFAbsoluteTime g_processStartTime = 0;
-static const double kFullPowerBootGuardDuration = 5.0;
+static const double kFullPowerBootGuardDuration = 1.0;
 static BOOL g_deferredRuntimeApplyScheduled = NO;
 static BOOL g_readingSafetyTemperature = NO;
+static BOOL g_cachedAboveSafetyTemperature = YES;
+static CFAbsoluteTime g_safetyTemperatureCacheUntil = 0;
+static const double kSafetyTemperatureCacheSeconds = 1.5;
 
 // ============================================================================
-// 持续对抗定时器 — 替代一次性脉冲机制
-// 用 dispatch_source 定时器每 0.8 秒持续重写功率设置
-// 彻底杜绝 thermalmonitord 决策循环恢复降频
+// 运行时维护定时器
+// 防温控模式下低频率补写满性能状态，避免 0.8s 高频刷写造成额外卡顿。
 // ============================================================================
 static dispatch_source_t g_continuousTimer = NULL;
-static const int64_t kContinuousTimerIntervalMs = 800; // 0.8 秒
+static const int64_t kContinuousTimerIntervalMs = 2000;
 
 static void stopContinuousTimer(void);
 
-// 前向声明 — 供持续对抗定时器 block 使用
+// 前向声明 — 供性能维护定时器 block 使用
 static BOOL isLowPowerMode(void);
 static BOOL isFullPowerMode(void);
 static BOOL fullPowerBootGuardActive(void);
+static BOOL shouldApplyFullCPUProtection(void);
+static BOOL shouldApplyLowPowerLimit(void);
+static BOOL isTemperatureAboveSafetyCeiling(void);
 static void applyLowPowerToCommonProduct(void);
 static void applyLowPowerLimitsToTrackedControllers(void);
 static void applyFullPowerToCommonProduct(void);
@@ -187,28 +194,27 @@ static void startContinuousTimer(void) {
                 stopContinuousTimer();
                 return;
             }
-            if (isLowPowerMode()) {
+            if (shouldApplyLowPowerLimit()) {
                 applyLowPowerToCommonProduct();
                 applyLowPowerLimitsToTrackedControllers();
-            } else if (isFullPowerMode() && !fullPowerBootGuardActive()) {
+            } else if (shouldApplyFullCPUProtection()) {
                 applyFullPowerToCommonProduct();
                 restoreFullPowerToTrackedControllers();
             }
         }
     });
     dispatch_resume(g_continuousTimer);
-    NSLog(@"[CPUthermal] 持续对抗定时器已启动 (间隔 %.1f 秒)", (double)kContinuousTimerIntervalMs / 1000.0);
+    NSLog(@"[CPUthermal] 性能维护定时器已启动 (间隔 %.1f 秒)", (double)kContinuousTimerIntervalMs / 1000.0);
 }
 
 static void stopContinuousTimer(void) {
     if (g_continuousTimer) {
         dispatch_source_cancel(g_continuousTimer);
         g_continuousTimer = NULL;
-        NSLog(@"[CPUthermal] 持续对抗定时器已停止");
+        NSLog(@"[CPUthermal] 性能维护定时器已停止");
     }
 }
 
-static BOOL shouldApplyLowPowerLimit(void);
 static int lowPowerTargetValue(void);
 static void loadPrefs(void);
 static void applyCurrentPowerModeToRuntime(void);
@@ -248,7 +254,7 @@ return (CFAbsoluteTimeGetCurrent() - g_processStartTime) < kFullPowerBootGuardDu
 }
 
 static BOOL shouldApplyFullCPUProtection(void) {
-return g_enabled && g_cpuProtection && isFullPowerMode() && !fullPowerBootGuardActive();
+return g_enabled && g_cpuProtection && isFullPowerMode() && !fullPowerBootGuardActive() && !isTemperatureAboveSafetyCeiling();
 }
 
 static BOOL shouldApplyLowPowerLimit(void) {
@@ -442,7 +448,7 @@ applyLowPowerLimitToController(controller);
 }
 
 static void restoreFullPowerToController(id controller) {
-if (!controller || !g_enabled || !g_cpuProtection || !isFullPowerMode()) return;
+if (!controller || !shouldApplyFullCPUProtection()) return;
 @try {
 g_restoringFullPower = YES;
 if ([controller respondsToSelector:@selector(setPowerSaveActive:)]) {
@@ -496,7 +502,7 @@ g_restoringFullPower = NO;
 }
 
 static void restoreFullPowerToTrackedControllers(void) {
-if (!g_enabled || !g_cpuProtection || !isFullPowerMode()) return;
+if (!shouldApplyFullCPUProtection()) return;
 @autoreleasepool {
 NSArray *controllers = [g_mitigationControllers copy];
 for (id controller in controllers) {
@@ -512,7 +518,7 @@ if (!g_commonProduct || ![g_commonProduct respondsToSelector:selector]) return;
 }
 
 static void applyFullPowerToCommonProduct(void) {
-if (!g_commonProduct || !g_enabled || !g_cpuProtection || !isFullPowerMode()) return;
+if (!g_commonProduct || !shouldApplyFullCPUProtection()) return;
 @try {
 g_restoringFullPower = YES;
 if ([g_commonProduct respondsToSelector:@selector(setCPULevel:)]) {
@@ -746,14 +752,13 @@ return CPUthermalReadPrefs();
 
 static void loadPrefs(void) {
 @autoreleasepool {
-NSDictionary *d = readPrefsDictionary();
-if (!d) return;
-g_enabled               = [d[S("enabled")] ?: [NSNumber numberWithBool:YES] boolValue];
-g_cpuProtection         = [d[S("cpuProtection")] ?: [NSNumber numberWithBool:YES] boolValue];
-g_brightnessProtection  = [d[S("brightnessProtection")] ?: [NSNumber numberWithBool:YES] boolValue];
-g_suppressThermalNotifications = [d[S("suppressThermalNotifications")] ?: [NSNumber numberWithBool:NO] boolValue];
+	NSDictionary *d = readPrefsDictionary() ?: [NSDictionary dictionary];
+	g_enabled               = [d[S("enabled")] ?: [NSNumber numberWithBool:YES] boolValue];
+	g_cpuProtection         = [d[S("cpuProtection")] ?: [NSNumber numberWithBool:YES] boolValue];
+	g_brightnessProtection  = [d[S("brightnessProtection")] ?: [NSNumber numberWithBool:YES] boolValue];
+	g_suppressThermalNotifications = [d[S("suppressThermalNotifications")] ?: [NSNumber numberWithBool:NO] boolValue];
 
-NSString *mode = d[S("powerMode")] ?: S("fullPower");
+	NSString *mode = d[S("powerMode")] ?: S("fullPower");
 g_powerMode = [mode isEqualToString:S("lowPower")] ? CPUthermalPowerModeLow : CPUthermalPowerModeFull;
 
 // CPU频率锁定
@@ -823,12 +828,16 @@ return NO;
 // ============================================================================
 // 温度安全阀检查
 // ============================================================================
-// thermalmonitord 内部判定"高温"的阈值通常在 45°C-65°C 之间
-// 我们设置 95°C 作为硬性安全阀 — 超过此温度不拦截任何保护动作
-// 这样即使插件出 bug 导致温度失控，硬件仍能获得保护
+// thermalmonitord 内部判定"高温"的阈值通常在 45°C-65°C 之间。
+// 这里使用 85°C 最后安全阀，并缓存短时间结果，降低 IOKit 查询开销。
 static BOOL isTemperatureAboveSafetyCeiling(void) {
 // 安全阀始终生效 — 移除 CPMS 开关后无条件检查
-if (g_readingSafetyTemperature) return NO;
+if (g_readingSafetyTemperature) return g_cachedAboveSafetyTemperature;
+
+CFAbsoluteTime now = CFAbsoluteTimeGetCurrent();
+if (g_safetyTemperatureCacheUntil > now) {
+return g_cachedAboveSafetyTemperature;
+}
 
 BOOL above = YES;
 g_readingSafetyTemperature = YES;
@@ -859,6 +868,8 @@ above = tempVal >= kSafetyTempThreshold;
 if (temp) CFRelease(temp);
 
 g_readingSafetyTemperature = NO;
+g_cachedAboveSafetyTemperature = above;
+g_safetyTemperatureCacheUntil = CFAbsoluteTimeGetCurrent() + kSafetyTemperatureCacheSeconds;
 return above;
 }
 
@@ -890,7 +901,7 @@ if (SELECTOR_IS_CRITICAL(selector)) {
 return %orig;
 }
 
-// 超过 80°C 或读温失败时放行所有保护（安全阀生效）
+// 超过安全阀或读温失败时放行所有保护
 if (isTemperatureAboveSafetyCeiling()) {
 return %orig;
 }
@@ -911,7 +922,7 @@ return %orig;
 if (SELECTOR_IS_CRITICAL(selector)) {
 return %orig;
 }
-// 安全阀: 超过 80°C 或读温失败时放行
+// 安全阀: 超过阈值或读温失败时放行
 if (isTemperatureAboveSafetyCeiling()) {
 return %orig;
 }
@@ -1080,7 +1091,7 @@ return;
 // 决策树评估 — 这是 thermalmonitord 判断"要不要降频"的核心
 - (void)evaluateDecisionTree {
 if (shouldApplyFullCPUProtection()) {
-// 安全阀: 超过 80°C 或读温失败时不阻断
+// 安全阀: 超过阈值或读温失败时不阻断
 if (!isTemperatureAboveSafetyCeiling()) {
 NSLog(@"[CPUthermal] 阻止决策树评估 (evaluateDecisionTree)");
 return;
@@ -1279,7 +1290,6 @@ return;
 
 - (void)setGPULevel:(int)level {
 if (shouldApplyFullCPUProtection()) {
-// 锁定最高性能档位（0 为最高）
 %orig(0);
 return;
 }
@@ -1288,7 +1298,6 @@ return;
 
 - (void)updateGPU {
 if (shouldApplyFullCPUProtection()) {
-// 阻止更新带来的 GPU 降频
 return;
 }
 %orig;
@@ -1407,6 +1416,7 @@ if (g_restoringFullPower) {
 return;
 }
 if (shouldApplyFullCPUProtection()) {
+%orig;
 return;
 }
 %orig;
@@ -1589,8 +1599,8 @@ id thresholds = modified[tk];
 if ([thresholds isKindOfClass:[NSArray class]]) {
 NSMutableArray *newThresholds = [NSMutableArray array];
 for (NSNumber *val in (NSArray *)thresholds) {
-// 将每个阈值提高 20°C (20000 毫摄氏度)，游戏场景需要更大余量
-int64_t raised = [val longLongValue] + 20000;
+// 小幅提高阈值，减少频繁误触发，但不长期绕过系统温控。
+int64_t raised = [val longLongValue] + kThermalThresholdRaise;
 [newThresholds addObject:@(raised)];
 }
 modified[tk] = newThresholds;
@@ -1598,7 +1608,7 @@ modified[tk] = newThresholds;
 NSMutableDictionary *newDict = [NSMutableDictionary dictionary];
 [(NSDictionary *)thresholds enumerateKeysAndObjectsUsingBlock:^(id k, id v, BOOL *stop) {
 if ([v isKindOfClass:[NSNumber class]]) {
-int64_t raised = [v longLongValue] + 20000;
+int64_t raised = [v longLongValue] + kThermalThresholdRaise;
 newDict[k] = @(raised);
 } else {
 newDict[k] = v;
@@ -1642,7 +1652,7 @@ if ([val isKindOfClass:[NSNumber class]]) {
 // 判断是否像温度阈值 (毫摄氏度, 通常 30000-90000)
 int64_t num = [val longLongValue];
 if (num >= 30000 && num <= 120000) {
-hotspot[key] = @(num + 20000);
+hotspot[key] = @(num + kThermalThresholdRaise);
 }
 }
 }
@@ -1776,7 +1786,7 @@ NSLog(@"[CPUthermal] 未找到 _getConfigurationFor (非致命)");
 NSLog(@"[CPUthermal] 未找到 DeviceMonitor.framework (非致命)");
 }
 
-NSLog(@"[CPUthermal] 温控防护已激活 — 安全阀:%d°C CPU性能:%d 亮度:%d 通知:%d 持续对抗:%dms",
+NSLog(@"[CPUthermal] 温控防护已激活 — 安全阀:%d°C CPU性能:%d 亮度:%d 通知:%d 性能维护:%dms",
 (int)(kSafetyTempThreshold / 1000),
 g_cpuProtection, g_brightnessProtection,
 g_suppressThermalNotifications, (int)kContinuousTimerIntervalMs);

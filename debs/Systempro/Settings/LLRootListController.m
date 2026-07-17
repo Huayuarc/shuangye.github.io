@@ -346,6 +346,8 @@ static NSInteger sanitizedBlockMode(id value) {
 		@"lowPowerOnLock": @NO,
 		@"lockWhenFaceDown": @NO,
 		@"disableIconFlyIn": @NO,
+		@"bottomLeftControlCenter": @NO,
+		@"bottomRightControlCenter": @NO,
 		@"cyanide_hideHomeBar": @NO,
 		@"cyanide_disableOTA": @NO,
 		@"cyanide_muteCallRecord": @NO,

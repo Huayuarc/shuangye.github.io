@@ -42,6 +42,8 @@ static NSString *const kGridHorizontalSpacingKey = @"gridHorizontalSpacing";
 static NSString *const kGridVerticalSpacingKey = @"gridVerticalSpacing";
 static NSString *const kScreenModeKey = @"screenMode";
 static NSString *const kDisableIconFlyInKey = @"disableIconFlyIn";
+static NSString *const kBottomLeftControlCenterKey = @"bottomLeftControlCenter";
+static NSString *const kBottomRightControlCenterKey = @"bottomRightControlCenter";
 
 
 // Cyanide 功能键
@@ -101,6 +103,8 @@ static CGFloat   g_gridHorizontalSpacing     = 10;
 static CGFloat   g_gridVerticalSpacing       = 80;
 static NSInteger g_screenMode                = 0;
 static BOOL      g_disableIconFlyIn          = NO;
+static BOOL      g_bottomLeftControlCenter   = NO;
+static BOOL      g_bottomRightControlCenter  = NO;
 // 锁屏自动低电 — 记录锁屏前低电模式状态
 static BOOL      g_isLPMOnBeforeLock          = NO;
 
@@ -160,6 +164,8 @@ static void reloadConfiguration(void) {
 		g_gridVerticalSpacing       = prefs[kGridVerticalSpacingKey] ? [prefs[kGridVerticalSpacingKey] doubleValue] : 80;
 		g_screenMode                = prefs[kScreenModeKey] ? [prefs[kScreenModeKey] integerValue] : 0;
 		g_disableIconFlyIn          = [prefs[kDisableIconFlyInKey] boolValue];
+		g_bottomLeftControlCenter   = [prefs[kBottomLeftControlCenterKey] boolValue];
+		g_bottomRightControlCenter  = [prefs[kBottomRightControlCenterKey] boolValue];
 
 		// Cyanide 功能
 		g_cyanideHideHomeBar     = [prefs[kCyanideHideHomeBarKey] boolValue];
@@ -857,6 +863,98 @@ static void cyanide_applyNanoRegistry(BOOL apply) {
 %end
 
 // ============================================================================
+// 底部角落打开控制中心
+// ============================================================================
+static const UIRectEdge SystemproBottomLeftControlCenterEdge = (UIRectEdgeBottom | UIRectEdgeLeft);
+static const UIRectEdge SystemproBottomRightControlCenterEdge = (UIRectEdgeBottom | UIRectEdgeRight);
+
+static UIRectEdge SystemproActiveControlCenterEdge(void) {
+	if (g_bottomRightControlCenter) return SystemproBottomRightControlCenterEdge;
+	if (g_bottomLeftControlCenter) return SystemproBottomLeftControlCenterEdge;
+	return UIRectEdgeNone;
+}
+
+static CGFloat SystemproClampedControlCenterCornerWidth(CGFloat screenWidth) {
+	CGFloat width = screenWidth * 0.30;
+	if (width < 96.0) return 96.0;
+	if (width > 132.0) return 132.0;
+	return width;
+}
+
+static BOOL SystemproPointIsInBottomControlCenterCorner(CGPoint point, CGSize screenSize, UIRectEdge edge) {
+	CGFloat screenWidth = MIN(screenSize.width, screenSize.height);
+	CGFloat screenHeight = MAX(screenSize.width, screenSize.height);
+	CGPoint normalizedPoint = point;
+
+	if (screenSize.width > screenSize.height) {
+		normalizedPoint = CGPointMake(point.y, point.x);
+	}
+
+	CGFloat allowedWidth = SystemproClampedControlCenterCornerWidth(screenWidth);
+	CGFloat allowedHeight = 88.0;
+	BOOL isInBottomArea = normalizedPoint.y >= (screenHeight - allowedHeight);
+
+	if (edge == SystemproBottomRightControlCenterEdge) {
+		CGFloat rightEdgeStart = screenWidth - allowedWidth;
+		return normalizedPoint.x >= rightEdgeStart && normalizedPoint.x <= screenWidth && isInBottomArea;
+	}
+
+	if (edge == SystemproBottomLeftControlCenterEdge) {
+		return normalizedPoint.x >= 0.0 && normalizedPoint.x <= allowedWidth && isInBottomArea;
+	}
+
+	return NO;
+}
+
+static BOOL SystemproShouldBlockControlCenterGesture(UIScreenEdgePanGestureRecognizer *gestureRecognizer, NSSet *touches) {
+	UIRectEdge activeEdge = SystemproActiveControlCenterEdge();
+	if (activeEdge == UIRectEdgeNone || gestureRecognizer.edges != activeEdge || touches.count == 0) {
+		return NO;
+	}
+
+	UITouch *touch = touches.anyObject;
+	UIWindow *window = touch.window;
+	CGPoint point = [touch locationInView:window];
+	CGSize screenSize = window ? window.bounds.size : UIScreen.mainScreen.bounds.size;
+
+	return !SystemproPointIsInBottomControlCenterCorner(point, screenSize, activeEdge);
+}
+
+%group BottomLeftControlCenterDefaults
+%hook CCSControlCenterDefaults
+- (unsigned long long)_defaultPresentationGesture {
+	UIRectEdge activeEdge = SystemproActiveControlCenterEdge();
+	if (activeEdge != UIRectEdgeNone) return activeEdge;
+	return %orig;
+}
+%end
+%end
+
+%group BottomLeftControlCenterController
+%hook SBControlCenterController
+- (unsigned long long)presentingEdge {
+	UIRectEdge activeEdge = SystemproActiveControlCenterEdge();
+	if (activeEdge != UIRectEdgeNone) return activeEdge;
+	return %orig;
+}
+%end
+%end
+
+%group BottomLeftControlCenterGestureFilter
+%hook UIScreenEdgePanGestureRecognizer
+- (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
+	if (SystemproShouldBlockControlCenterGesture(self, touches)) {
+		self.enabled = NO;
+		self.enabled = YES;
+		return;
+	}
+
+	%orig;
+}
+%end
+%end
+
+// ============================================================================
 // ===== CFNotification 回调 =====
 // ============================================================================
 
@@ -971,6 +1069,21 @@ static void onRespring(CFNotificationCenterRef center,
 
 		if (g_gridSwitcherEnabled && NSClassFromString(@"SBAppSwitcherSettings")) {
 			%init(SystemproGridSwitcher);
+		}
+
+		Class controlCenterDefaultsClass = objc_getClass("CCSControlCenterDefaults");
+		if (controlCenterDefaultsClass && class_getInstanceMethod(controlCenterDefaultsClass, @selector(_defaultPresentationGesture))) {
+			%init(BottomLeftControlCenterDefaults);
+		}
+
+		Class controlCenterControllerClass = objc_getClass("SBControlCenterController");
+		if (controlCenterControllerClass && class_getInstanceMethod(controlCenterControllerClass, @selector(presentingEdge))) {
+			%init(BottomLeftControlCenterController);
+		}
+
+		Class edgePanGestureClass = objc_getClass("UIScreenEdgePanGestureRecognizer");
+		if (edgePanGestureClass && class_getInstanceMethod(edgePanGestureClass, @selector(touchesBegan:withEvent:))) {
+			%init(BottomLeftControlCenterGestureFilter);
 		}
 
 		// 监听静音开关状态变化		// 监听静音开关状态变化
