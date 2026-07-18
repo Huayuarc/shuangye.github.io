@@ -46,16 +46,16 @@ return d;
 }
 
 - (void)savePrefs:(NSMutableDictionary *)prefs {
-	CPUthermalWritePrefs(prefs);
-	notify_post(kCPUthermalSettingsChangedNotifC);
+CPUthermalWritePrefs(prefs);
+notify_post(kCPUthermalSettingsChangedNotifC);
 }
 
 - (void)applyThermalStatusOverrides {
-	NSString *toolPath = CPUthermalToolPath();
-	if (toolPath.length > 0 && [[NSFileManager defaultManager] isExecutableFileAtPath:toolPath]) {
-	char *args[] = {"CPUthermalTool", "apply-thermal-overrides", NULL};
-	CPUthermalSpawnRootDetached(toolPath, args);
-	}
+NSString *toolPath = CPUthermalToolPath();
+if (toolPath.length > 0 && [[NSFileManager defaultManager] isExecutableFileAtPath:toolPath]) {
+char *args[] = {"CPUthermalTool", "apply-thermal-overrides", NULL};
+CPUthermalSpawnRootDetached(toolPath, args);
+}
 }
 
 - (NSString *)powerModeValue {
@@ -159,14 +159,14 @@ specifier.name = [self powerModeLabel];
 - (void)setPreferenceValue:(id)value specifier:(PSSpecifier *)spec {
 NSString *key = [spec propertyForKey:S("key")];
 if (!key) return;
-	NSMutableDictionary *prefs = [self prefs];
-	prefs[key] = value;
-	[self savePrefs:prefs];
-	if ([key isEqualToString:S("enabled")] ||
-	[key isEqualToString:S(kCPUthermalDisableHotInPocketKeyC)] ||
-	[key isEqualToString:S(kCPUthermalLockSunlightExposureKeyC)]) {
-	[self applyThermalStatusOverrides];
-	}
+NSMutableDictionary *prefs = [self prefs];
+prefs[key] = value;
+[self savePrefs:prefs];
+if ([key isEqualToString:S("enabled")] ||
+[key isEqualToString:S(kCPUthermalDisableHotInPocketKeyC)] ||
+[key isEqualToString:S(kCPUthermalLockSunlightExposureKeyC)]) {
+[self applyThermalStatusOverrides];
+}
 }
 
 - (id)readPreferenceValue:(PSSpecifier *)spec {
@@ -174,13 +174,12 @@ NSString *key = [spec propertyForKey:S("key")];
 if (!key) return nil;
 id val = [self prefs][key];
 if (val) return val;
-	// 总开关默认关闭，安装后由用户手动启用；其他保护项默认开启。
-	if ([key isEqualToString:S("enabled")]) return [NSNumber numberWithBool:NO];
-	if ([key isEqualToString:S(kCPUthermalDisableHotInPocketKeyC)] ||
-	[key isEqualToString:S(kCPUthermalLockSunlightExposureKeyC)]) {
-	return [NSNumber numberWithBool:NO];
-	}
-	return [NSNumber numberWithBool:YES];
+if ([key isEqualToString:S("enabled")]) return [NSNumber numberWithBool:NO];
+if ([key isEqualToString:S(kCPUthermalDisableHotInPocketKeyC)] ||
+[key isEqualToString:S(kCPUthermalLockSunlightExposureKeyC)]) {
+return [NSNumber numberWithBool:NO];
+}
+return [NSNumber numberWithBool:YES];
 }
 
 - (id)readPowerModeValue:(PSSpecifier *)spec {
@@ -378,10 +377,8 @@ if (!_specifiers) {
 NSMutableArray *specs = [NSMutableArray array];
 PSSpecifier *group = nil;
 
-// ===================== 第1组: 总开关 =====================
 group = [PSSpecifier emptyGroupSpecifier];
 [group setProperty:S("CPU 去温控") forKey:S("label")];
-[group setProperty:S("默认关闭，安装后需要手动启用。") forKey:S("footerText")];
 [specs addObject:group];
 
 PSSpecifier *master = [self switchSpecifier:S("启用 CPU 去温控") key:S("enabled")];
@@ -399,31 +396,30 @@ group = [PSSpecifier emptyGroupSpecifier];
 group = [PSSpecifier emptyGroupSpecifier];
 [group setProperty:S("CPU频率锁定") forKey:S("label")];
 [group setProperty:S("默认无锁定（自动）。选择芯片代际后，CPU最高频率将被锁定为对应机型原生频率，阻止温控降频；选锁定时自动切换为防温控模式。") forKey:S("footerText")];
-	[specs addObject:group];
-	
-	[specs addObject:[self deviceLockSpecifier]];
+[specs addObject:group];
 
-	// ===================== 第4组: 环境状态 =====================
-	group = [PSSpecifier emptyGroupSpecifier];
-	[group setProperty:S("环境状态") forKey:S("label")];
-	[group setProperty:S("移植自 Battman 的 OSThermalStatus 控制。关闭开关会恢复系统自动判断；需启用 CPU 去温控后生效。") forKey:S("footerText")];
-	[specs addObject:group];
+[specs addObject:[self deviceLockSpecifier]];
 
-	[specs addObject:[self switchSpecifier:S("禁用口袋高温") key:S(kCPUthermalDisableHotInPocketKeyC)]];
-	[specs addObject:[self switchSpecifier:S("锁定阳光暴晒") key:S(kCPUthermalLockSunlightExposureKeyC)]];
-	
-	// ===================== 第5组: 核心保护（整合） =====================
-	group = [PSSpecifier emptyGroupSpecifier];
-	[group setProperty:S("核心保护") forKey:S("label")];
-[group setProperty:S("建议保持默认全开：屏蔽 40°C 左右误弹温度计；不拦截充电/电池 PMU 通路。") forKey:S("footerText")];
+// ===================== 第4组: 环境状态 =====================
+group = [PSSpecifier emptyGroupSpecifier];
+[group setProperty:S("环境状态") forKey:S("label")];
+[group setProperty:S("口袋过热 (Hot-in-Pocket) 保护在屏幕关闭且不播放任何媒体时自动降低 CPU 与 GPU活动，避免设备在口袋中积热。") forKey:S("footerText")];
+[specs addObject:group];
+
+[specs addObject:[self switchSpecifier:S("禁用口袋高温") key:S(kCPUthermalDisableHotInPocketKeyC)]];
+[specs addObject:[self switchSpecifier:S("锁定阳光暴晒") key:S(kCPUthermalLockSunlightExposureKeyC)]];
+
+// ===================== 第5组: 核心保护（整合） =====================
+group = [PSSpecifier emptyGroupSpecifier];
+[group setProperty:S("核心保护") forKey:S("label")];
 [specs addObject:group];
 
 [specs addObject:[self switchSpecifier:S("CPU 性能保护") key:S("cpuProtection")]];
 [specs addObject:[self switchSpecifier:S("屏幕亮度保护") key:S("brightnessProtection")]];
 [specs addObject:[self switchSpecifier:S("屏蔽温度计通知") key:S("suppressThermalNotifications")]];
 
-	// ===================== 第6组: 操作 =====================
-	group = [PSSpecifier emptyGroupSpecifier];
+// ===================== 第6组: 操作 =====================
+group = [PSSpecifier emptyGroupSpecifier];
 [group setProperty:S("操作") forKey:S("label")];
 [specs addObject:group];
 
