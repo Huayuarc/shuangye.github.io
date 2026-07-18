@@ -22,9 +22,9 @@ endif
 
 TWEAK_NAME = CPUthermal CPUthermalPrefHook
 
-CPUthermal_FILES = Tweak.xm
+CPUthermal_FILES = Tweak.x
 CPUthermal_CFLAGS = -fobjc-arc -Iinclude -Wno-deprecated-declarations -DTHEOS_INSIDE
-CPUthermal_FRAMEWORKS = Foundation UIKit CoreFoundation IOKit
+CPUthermal_FRAMEWORKS = Foundation UIKit CoreFoundation IOKit SystemConfiguration
 ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
 CPUthermal_LDFLAGS += -lroothide
 endif
@@ -60,6 +60,7 @@ CPUthermalTool_FILES = Tools/CPUthermalTool.m
 CPUthermalTool_CFLAGS = -fobjc-arc -Iinclude
 CPUthermalTool_CODESIGN_FLAGS = -STools/CPUthermalTool.entitlements
 CPUthermalTool_INSTALL_PATH = /usr/local/bin
+CPUthermalTool_FRAMEWORKS = Foundation SystemConfiguration
 include $(THEOS_MAKE_PATH)/tool.mk
 
 after-stage::

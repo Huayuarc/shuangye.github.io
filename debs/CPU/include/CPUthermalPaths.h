@@ -8,12 +8,18 @@
 #include <sys/sysctl.h>
 #include <sys/wait.h>
 
+extern int posix_spawnattr_set_persona_np(const posix_spawnattr_t *__restrict attr, uid_t persona_id, uint32_t flags);
+extern int posix_spawnattr_set_persona_uid_np(const posix_spawnattr_t *__restrict attr, uid_t uid);
+extern int posix_spawnattr_set_persona_gid_np(const posix_spawnattr_t *__restrict attr, uid_t gid);
+
 #define S(str) [NSString stringWithUTF8String:(str)]
 
 static const char *kCPUthermalPrefRootFSPathC = "/var/mobile/Library/Preferences/com.huayuarc.CPUthermal.plist";
 static const char *kCPUthermalOldJBPrefRelativePathC = "Library/Preferences/com.huayuarc.CPUthermal.plist";
 static const char *kCPUthermalSettingsChangedNotifC = "com.huayuarc.CPUthermal/settingsChanged";
 static const char *kCPUthermalPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeChanged";
+static const char *kCPUthermalDisableHotInPocketKeyC = "disableHotInPocket";
+static const char *kCPUthermalLockSunlightExposureKeyC = "lockSunlightExposure";
 static const NSInteger kCPUthermalDefaultMaxPCoreFrequencyMHz = 3240;
 
 static inline NSString *CPUthermalStringFromCPath(const char *path) {
@@ -100,9 +106,9 @@ static inline NSInteger CPUthermalFrequencyForChipKey(NSString *chipKey) {
 
 // 芯片代际 -> 显示名称
 static inline NSString *CPUthermalChipDisplayName(NSString *chipKey) {
-    if (!chipKey || chipKey.length == 0) return S("无锁定");
+    if (!chipKey || chipKey.length == 0) return S("无锁定（自动）");
     NSInteger freq = CPUthermalFrequencyForChipKey(chipKey);
-    if (freq == 0) return S("无锁定");
+    if (freq == 0) return S("无锁定（自动）");
     if ([chipKey isEqualToString:S("A11")])
         return [NSString stringWithFormat:S("A11 · %ld MHz (iPhone 8 ~ X)"), (long)freq];
     if ([chipKey isEqualToString:S("A12")])
@@ -117,7 +123,7 @@ static inline NSString *CPUthermalChipDisplayName(NSString *chipKey) {
         return [NSString stringWithFormat:S("A16 · %ld MHz (iPhone 14 Pro / 15)"), (long)freq];
     if ([chipKey isEqualToString:S("A17Pro")])
         return [NSString stringWithFormat:S("A17 Pro · %ld MHz (iPhone 15 Pro)"), (long)freq];
-    return S("无锁定");
+    return S("无锁定（自动）");
 }
 
 static inline NSString *CPUthermalJBRootPathForRootFSPath(const char *path) {
@@ -214,6 +220,26 @@ static inline void CPUthermalSpawnDetached(NSString *path, char *const args[]) {
             waitpid(pid, NULL, 0);
         });
     }
+}
+
+static inline void CPUthermalSpawnRootDetached(NSString *path, char *const args[]) {
+    if (path.length == 0) {
+        return;
+    }
+
+    posix_spawnattr_t attr;
+    posix_spawnattr_init(&attr);
+    posix_spawnattr_set_persona_np(&attr, 99, 1);
+    posix_spawnattr_set_persona_uid_np(&attr, 0);
+    posix_spawnattr_set_persona_gid_np(&attr, 0);
+
+    pid_t pid = 0;
+    if (posix_spawn(&pid, [path fileSystemRepresentation], NULL, &attr, args, NULL) == 0) {
+        dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+            waitpid(pid, NULL, 0);
+        });
+    }
+    posix_spawnattr_destroy(&attr);
 }
 
 static inline BOOL CPUthermalRunAndWait(NSString *path, char *const args[]) {

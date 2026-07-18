@@ -2,6 +2,7 @@
 #import <spawn.h>
 #import <sys/wait.h>
 #import <CPUthermalPaths.h>
+#import <CPUthermalThermalPrefs.h>
 
 static int runExecutable(NSString *path, char *const argv[]) {
     if (path.length == 0) {
@@ -45,6 +46,11 @@ static int rebootUserspace(void) {
     return runExecutable(launchctlPath, args);
 }
 
+static int applyThermalOverrides(void) {
+    NSDictionary *prefs = CPUthermalReadPrefs();
+    return CPUthermalApplyThermalStatusOverridesFromPrefs(prefs ?: [NSDictionary dictionary]);
+}
+
 int main(int argc, char *argv[]) {
     @autoreleasepool {
         if (argc > 1) {
@@ -61,6 +67,9 @@ int main(int argc, char *argv[]) {
             if ([command isEqualToString:S("userspace-reboot")]) {
                 return rebootUserspace();
             }
+            if ([command isEqualToString:S("apply-thermal-overrides")]) {
+                return applyThermalOverrides();
+            }
         }
 
         printf("CPUthermalTool commands:\n");
@@ -68,6 +77,7 @@ int main(int argc, char *argv[]) {
         printf("  restart-thermalmonitord-delayed\n");
         printf("  sbreload\n");
         printf("  userspace-reboot\n");
+        printf("  apply-thermal-overrides\n");
     }
     return 0;
 }
