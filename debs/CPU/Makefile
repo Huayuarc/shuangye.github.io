@@ -1,7 +1,8 @@
 export THEOS ?= /rootfs/var/mobile/theos
 export PATH := $(THEOS)/bin:$(PATH)
 export TARGET = iphone:clang:16.5:15.0
-THEOS_PACKAGE_SCHEME = rootless
+THEOS_PACKAGE_SCHEME ?= rootless
+export THEOS_PACKAGE_SCHEME
 include $(THEOS)/makefiles/common.mk
 INSTALL_TARGET_PROCESSES = thermalmonitord
 # 注意: postinst 也在 configure 阶段 killall thermalmonitord。
@@ -82,4 +83,7 @@ after-stage::
 	$(ECHO_NOTHING)cp Settings/icon.png Settings/icon@2x.png Settings/icon@3x.png "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/CPUthermalSettings.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp ControlCenter/Info.plist "$(THEOS_STAGING_DIR)/Library/ControlCenter/Bundles/CPUthermalCC.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp ControlCenter/SettingsIcon.png "$(THEOS_STAGING_DIR)/Library/ControlCenter/Bundles/CPUthermalCC.bundle/"$(ECHO_END)
+	$(ECHO_NOTHING)cp ControlCenter/SettingsIcon.png "$(THEOS_STAGING_DIR)/Library/ControlCenter/Bundles/CPUthermalCC.bundle/SettingsIcon@2x.png"$(ECHO_END)
+	$(ECHO_NOTHING)cp ControlCenter/SettingsIcon.png "$(THEOS_STAGING_DIR)/Library/ControlCenter/Bundles/CPUthermalCC.bundle/SettingsIcon@3x.png"$(ECHO_END)
+	$(ECHO_NOTHING)if [ "$(THEOS_PACKAGE_SCHEME)" = "roothide" ]; then ln -sfn / "$(THEOS_STAGING_DIR)/Library/ControlCenter/Bundles/CPUthermalCC.bundle/.jbroot"; fi$(ECHO_END)
 	$(ECHO_NOTHING)cp postinst "$(THEOS_STAGING_DIR)/DEBIAN/" && chmod 0755 "$(THEOS_STAGING_DIR)/DEBIAN/postinst"$(ECHO_END)

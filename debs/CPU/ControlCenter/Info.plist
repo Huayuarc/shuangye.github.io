@@ -41,14 +41,37 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>GetModuleSizeAtRuntime</key>
+	<false/>
 	<key>MinimumOSVersion</key>
 	<string>15.0</string>
+	<key>ModuleSize</key>
+	<dict>
+		<key>Landscape</key>
+		<dict>
+			<key>Height</key>
+			<integer>1</integer>
+			<key>Width</key>
+			<integer>1</integer>
+		</dict>
+		<key>Portrait</key>
+		<dict>
+			<key>Height</key>
+			<integer>1</integer>
+			<key>Width</key>
+			<integer>1</integer>
+		</dict>
+	</dict>
 	<key>NSPrincipalClass</key>
 	<string>CPUthermalCCModule</string>
 	<key>UIDeviceFamily</key>
 	<array>
 		<integer>1</integer>
 		<integer>2</integer>
+	</array>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>arm64</string>
 	</array>
 </dict>
 </plist>
