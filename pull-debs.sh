@@ -1,4 +1,4 @@
-#!/var/jb/usr/bin/bash
+#!/var/usr/bin/bash
 #==========================================
 # pull-debs.sh — 从 GitHub 拉取最新 deb 包到本地
 # 用法: 在 Filza 中点击执行，或终端直接运行
