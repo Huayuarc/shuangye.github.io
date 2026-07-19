@@ -1,4 +1,4 @@
-export THEOS ?= /var/mobile/theos
+export THEOS ?= /rootfs/var/mobile/theos
 export PATH := $(THEOS)/bin:$(PATH)
 export TARGET = iphone:clang:16.5:15.0
 THEOS_PACKAGE_SCHEME = rootless
@@ -39,7 +39,7 @@ CPUthermalPrefHook_LDFLAGS += -lroothide
 endif
 include $(THEOS_MAKE_PATH)/tweak.mk
 
-BUNDLE_NAME = CPUthermalSettings
+BUNDLE_NAME = CPUthermalSettings CPUthermalCC
 
 # PreferenceBundle: 设置面板
 CPUthermalSettings_FILES = Settings/FRootListController.m
@@ -50,6 +50,17 @@ CPUthermalSettings_FRAMEWORKS = UIKit Foundation
 CPUthermalSettings_PRIVATE_FRAMEWORKS = Preferences
 ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
 CPUthermalSettings_LDFLAGS += -lroothide
+endif
+
+# Control Center Module: 控制中心短按开关总开关，长按选择功率模式
+CPUthermalCC_FILES = ControlCenter/CPUthermalCCModule.m ControlCenter/CPUthermalCCModuleViewController.m
+CPUthermalCC_INSTALL_PATH = /Library/ControlCenter/Bundles
+CPUthermalCC_BUNDLE_EXTENSION = bundle
+CPUthermalCC_CFLAGS = -fobjc-arc -Iinclude -IControlCenter -Wno-deprecated-declarations
+CPUthermalCC_FRAMEWORKS = UIKit Foundation
+CPUthermalCC_PRIVATE_FRAMEWORKS = ControlCenterUIKit
+ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
+CPUthermalCC_LDFLAGS += -lroothide
 endif
 
 include $(THEOS_MAKE_PATH)/bundle.mk
@@ -64,9 +75,11 @@ CPUthermalTool_FRAMEWORKS = Foundation SystemConfiguration
 include $(THEOS_MAKE_PATH)/tool.mk
 
 after-stage::
-	$(ECHO_NOTHING)mkdir -p "$(THEOS_STAGING_DIR)/Library/PreferenceLoader/Preferences" "$(THEOS_STAGING_DIR)/DEBIAN"$(ECHO_END)
+	$(ECHO_NOTHING)mkdir -p "$(THEOS_STAGING_DIR)/Library/PreferenceLoader/Preferences" "$(THEOS_STAGING_DIR)/Library/ControlCenter/Bundles/CPUthermalCC.bundle" "$(THEOS_STAGING_DIR)/DEBIAN"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/entry.plist "$(THEOS_STAGING_DIR)/Library/PreferenceLoader/Preferences/CPUthermalSettings.plist"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/Info.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/CPUthermalSettings.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/Root.plist "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/CPUthermalSettings.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp Settings/icon.png Settings/icon@2x.png Settings/icon@3x.png "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/CPUthermalSettings.bundle/"$(ECHO_END)
+	$(ECHO_NOTHING)cp ControlCenter/Info.plist "$(THEOS_STAGING_DIR)/Library/ControlCenter/Bundles/CPUthermalCC.bundle/"$(ECHO_END)
+	$(ECHO_NOTHING)cp ControlCenter/SettingsIcon.png "$(THEOS_STAGING_DIR)/Library/ControlCenter/Bundles/CPUthermalCC.bundle/"$(ECHO_END)
 	$(ECHO_NOTHING)cp postinst "$(THEOS_STAGING_DIR)/DEBIAN/" && chmod 0755 "$(THEOS_STAGING_DIR)/DEBIAN/postinst"$(ECHO_END)
