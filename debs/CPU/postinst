@@ -1,19 +1,13 @@
 #!/bin/bash
 
 # CPUthermal postinst
-# 安装/升级完成后重启相关进程，使 tweak 和控制中心模块生效
+# 安装/升级完成后重启 thermalmonitord 使 tweak 生效
 
 case "$1" in
     configure)
         # 配置完成（安装或升级），杀死 thermalmonitord
         # launchd 会自动重启，加载新的 tweak
         killall -q thermalmonitord 2>/dev/null || true
-        killall -q cfprefsd Preferences 2>/dev/null || true
-        if command -v sbreload >/dev/null 2>&1; then
-            sbreload
-        else
-            killall -q SpringBoard 2>/dev/null || true
-        fi
         ;;
     abort-upgrade|abort-remove|abort-deconfigure)
         # 这些阶段不做任何操作

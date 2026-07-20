@@ -17,10 +17,10 @@
 - (void)updateModuleSelectedState;
 - (void)selectPowerModeAtIndex:(NSInteger)index;
 - (void)selectPowerModeAtIndex:(NSInteger)index dismissAfterSelection:(BOOL)dismissAfterSelection;
-- (void)centerMenuItemLabelsInView:(UIView *)view;
-- (void)centerMenuItemLabelsAfterLayout;
+- (void)styleMenuItemLabelsInView:(UIView *)view;
+- (void)styleMenuItemLabelsAfterLayout;
 - (BOOL)isModeTitle:(NSString *)text;
-- (NSString *)menuTitleForTitle:(NSString *)title selected:(BOOL)isSelected;
+- (BOOL)isModeSubtitle:(NSString *)text;
 @end
 
 @interface UIView (CPUthermalCCPrivateLayout)
@@ -36,6 +36,7 @@
 
 @synthesize modeValues = _modeValues;
 @synthesize modeTitles = _modeTitles;
+@synthesize modeSubtitles = _modeSubtitles;
 @synthesize selectedIndex = _selectedIndex;
 
 //==============================================================================
@@ -90,6 +91,7 @@
     if (self) {
         _modeValues = @[S("lowPower"), S("fullPower")];
         _modeTitles = @[S("低功耗"), S("防温控")];
+        _modeSubtitles = @[S("限制最高频率"), S("防止温控降频")];
 
         // 读取当前设置的模式
         NSString *currentMode = [self currentPowerMode];
@@ -122,7 +124,7 @@
     }
 
     if ([self respondsToSelector:@selector(setUseTrailingCheckmarkLayout:)]) {
-        [self setUseTrailingCheckmarkLayout:NO];
+        [self setUseTrailingCheckmarkLayout:YES];
     }
     if ([self respondsToSelector:@selector(setUseTallLayout:)]) {
         [self setUseTallLayout:NO];
@@ -145,7 +147,7 @@
 
 - (void)viewDidLayoutSubviews {
     [super viewDidLayoutSubviews];
-    [self centerMenuItemLabelsAfterLayout];
+    [self styleMenuItemLabelsAfterLayout];
 }
 
 //==============================================================================
@@ -208,20 +210,23 @@
     for (NSUInteger i = 0; i < itemCount; i++) {
         NSString *title = self.modeTitles[i];
         BOOL isSelected = ((NSInteger)i == self.selectedIndex);
-        NSString *displayTitle = [self menuTitleForTitle:title selected:isSelected];
+        NSString *subtitle = i < self.modeSubtitles.count ? self.modeSubtitles[i] : S("");
 
         NSString *identifier = S("cpu-item-");
         identifier = [identifier stringByAppendingFormat:S("%lu"), (unsigned long)i];
         __weak typeof(self) weakSelf = self;
         NSInteger itemIndex = (NSInteger)i;
-        CCUIMenuModuleItem *item = [[CCUIMenuModuleItem alloc] initWithTitle:displayTitle identifier:identifier handler:^{
+        CCUIMenuModuleItem *item = [[CCUIMenuModuleItem alloc] initWithTitle:title identifier:identifier handler:^{
             [weakSelf selectPowerModeAtIndex:itemIndex];
         }];
         if (!item) {
             continue;
         }
+        if ([item respondsToSelector:@selector(setSubtitle:)]) {
+            [item setSubtitle:subtitle];
+        }
         if ([item respondsToSelector:@selector(setSelected:)]) {
-            [item setSelected:NO];
+            [item setSelected:isSelected];
         }
 
         // 根据模式设置选中状态和颜色（用 respondsToSelector 保护私有 API）
@@ -250,20 +255,13 @@
         self.menuItems = items;
     }
 
-    [self centerMenuItemLabelsAfterLayout];
+    [self styleMenuItemLabelsAfterLayout];
 }
 
-- (NSString *)menuTitleForTitle:(NSString *)title selected:(BOOL)isSelected {
-    if (!isSelected) {
-        return title;
-    }
-    return [title stringByAppendingString:S("  ✓")];
-}
-
-- (void)centerMenuItemLabelsAfterLayout {
+- (void)styleMenuItemLabelsAfterLayout {
     dispatch_async(dispatch_get_main_queue(), ^{
         [self.view layoutIfNeeded];
-        [self centerMenuItemLabelsInView:self.view];
+        [self styleMenuItemLabelsInView:self.view];
     });
 }
 
@@ -272,14 +270,26 @@
         return NO;
     }
     for (NSString *title in self.modeTitles) {
-        if ([text isEqualToString:title] || [text isEqualToString:[self menuTitleForTitle:title selected:YES]]) {
+        if ([text isEqualToString:title]) {
             return YES;
         }
     }
     return NO;
 }
 
-- (void)centerMenuItemLabelsInView:(UIView *)view {
+- (BOOL)isModeSubtitle:(NSString *)text {
+    if (![text isKindOfClass:[NSString class]] || [text length] == 0) {
+        return NO;
+    }
+    for (NSString *subtitle in self.modeSubtitles) {
+        if ([text isEqualToString:subtitle]) {
+            return YES;
+        }
+    }
+    return NO;
+}
+
+- (void)styleMenuItemLabelsInView:(UIView *)view {
     if (!view) {
         return;
     }
@@ -288,18 +298,11 @@
     BOOL isMenuItemView = [className containsString:S("MenuModuleItem")];
     if (isMenuItemView) {
         if ([view respondsToSelector:@selector(setUseTrailingCheckmarkLayout:)]) {
-            [view setUseTrailingCheckmarkLayout:NO];
+            [view setUseTrailingCheckmarkLayout:YES];
         }
         if ([view respondsToSelector:@selector(setUseTrailingInset:)]) {
-            [view setUseTrailingInset:NO];
+            [view setUseTrailingInset:YES];
         }
-        if ([view respondsToSelector:@selector(setIndentation:)]) {
-            [view setIndentation:0.0];
-        }
-        if ([view respondsToSelector:@selector(setPreservesSuperviewLayoutMargins:)]) {
-            [view setPreservesSuperviewLayoutMargins:NO];
-        }
-        view.layoutMargins = UIEdgeInsetsZero;
 
         UILabel *titleLabel = nil;
         UILabel *subtitleLabel = nil;
@@ -332,26 +335,26 @@
             if (![label isKindOfClass:[UILabel class]]) {
                 continue;
             }
-            if (![self isModeTitle:label.text]) {
+            BOOL isTitle = [self isModeTitle:label.text];
+            BOOL isSubtitle = [self isModeSubtitle:label.text];
+            if (!isTitle && !isSubtitle) {
                 continue;
             }
-            label.textAlignment = NSTextAlignmentCenter;
+            label.textAlignment = NSTextAlignmentLeft;
             label.numberOfLines = 1;
-            label.translatesAutoresizingMaskIntoConstraints = YES;
-            label.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin;
-
-            UIView *labelContainer = label.superview ?: view;
-            CGFloat targetWidth = CGRectGetWidth(view.bounds);
-            CGRect frameInView = [view convertRect:view.bounds toView:labelContainer];
-            CGRect frame = label.frame;
-            frame.origin.x = frameInView.origin.x;
-            frame.size.width = targetWidth;
-            label.frame = frame;
+            label.lineBreakMode = NSLineBreakByTruncatingTail;
+            if (isTitle) {
+                label.font = [UIFont systemFontOfSize:16.0 weight:UIFontWeightSemibold];
+                label.textColor = [UIColor colorWithWhite:1.0 alpha:0.95];
+            } else {
+                label.font = [UIFont systemFontOfSize:12.0 weight:UIFontWeightRegular];
+                label.textColor = [UIColor colorWithWhite:1.0 alpha:0.42];
+            }
         }
     }
 
     for (UIView *subview in view.subviews) {
-        [self centerMenuItemLabelsInView:subview];
+        [self styleMenuItemLabelsInView:subview];
     }
 }
 
@@ -447,6 +450,15 @@
 
 - (void)setModeTitles:(NSArray<NSString *> *)modeTitles {
     _modeTitles = [modeTitles copy];
+    [self setupModeButtons];
+}
+
+- (NSArray<NSString *> *)modeSubtitles {
+    return _modeSubtitles;
+}
+
+- (void)setModeSubtitles:(NSArray<NSString *> *)modeSubtitles {
+    _modeSubtitles = [modeSubtitles copy];
     [self setupModeButtons];
 }
 

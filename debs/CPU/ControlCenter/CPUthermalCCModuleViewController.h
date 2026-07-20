@@ -12,6 +12,9 @@ NS_ASSUME_NONNULL_BEGIN
 /// 模式标题数组 (@[@"低功耗", @"防温控"])
 @property (nonatomic, copy) NSArray<NSString *> *modeTitles;
 
+/// 模式副标题数组
+@property (nonatomic, copy) NSArray<NSString *> *modeSubtitles;
+
 /// 当前选中的模式索引
 @property (nonatomic, assign) NSInteger selectedIndex;
 
