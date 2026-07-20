@@ -426,7 +426,8 @@ static const CGFloat kCPUthermalCCSubtitleFontSize = 11.0;
 }
 
 - (void)buttonTapped:(id)arg forEvent:(id)event {
-    [self toggleTweakEnabled];
+    (void)arg;
+    (void)event;
 }
 
 - (void)toggleTweakEnabled {

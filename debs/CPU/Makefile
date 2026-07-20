@@ -53,7 +53,7 @@ ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
 CPUthermalSettings_LDFLAGS += -lroothide
 endif
 
-# Control Center Module: 控制中心短按开关总开关，长按选择功率模式
+# Control Center Module: 控制中心轻触不改变状态，长按选择功率模式
 CPUthermalCC_FILES = ControlCenter/CPUthermalCCModule.m ControlCenter/CPUthermalCCModuleViewController.m
 CPUthermalCC_INSTALL_PATH = /Library/ControlCenter/Bundles
 CPUthermalCC_BUNDLE_EXTENSION = bundle
