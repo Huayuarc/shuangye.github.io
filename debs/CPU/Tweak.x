@@ -42,6 +42,8 @@
 - (void)setGPUPowerCeiling:(int)ceiling fromDecisionSource:(id)source;
 - (void)setPackagePowerCeiling:(int)ceiling fromDecisionSource:(id)source;
 - (void)setThermalState:(id)state;
+- (void)registerDefaultsDomain;
+- (void)setServiceProperty:(id)svc key:(id)key value:(id)val scaleToFixedPoint:(BOOL)scale;
 @end
 
 // ============================================================================
@@ -51,10 +53,15 @@
 - (id)initWithComponentControllers:(id)components hotspotControllers:(id)hotspots decisionTreeTable:(id)table;
 - (void)evaluateDecisionTree;
 - (id)findComponent:(id)component;
+- (id)findCC:(id)component;
 - (void)actionComponentControl;
 - (void)readReleaseRateForAllComponents;
 - (float)getReleaseRateForComponent:(id)component;
 - (void)updateThermalNotification:(id)notification;
+- (void)updateThermalPressureLevelNotification:(id)notif shouldForceThermalPressure:(BOOL)force;
+- (id)getPotentialForcedThermalLevel:(id)level;
+- (id)getPotentialForcedThermalPressureLevel;
+- (BOOL)shouldEnforceLightThermalPressure;
 @end
 
 @interface ThermalControl : NSObject
@@ -109,6 +116,7 @@
 - (void)setCPMSMitigationState:(int)state;
 - (void)setCPMSMitigationsEnabled:(BOOL)enabled;
 - (BOOL)shouldSuppressMitigations;
+- (void)setHiPFeatureEnabled:(BOOL)en;
 @end
 
 @interface TableDrivenLowTempController : NSObject
@@ -936,6 +944,12 @@ return;
 %orig(state);
 }
 
+// 阻止注册默认域（额外防护层，防止热监控重置配置）
+- (void)registerDefaultsDomain {
+NSLog(@"[CPUthermal] 阻止 registerDefaultsDomain");
+// 不调用 %orig，跳过默认值注册
+}
+
 %end
 
 // ============================================================================
@@ -986,6 +1000,59 @@ NSLog(@"[CPUthermal] 拦截 ThermalManager 散热建议");
 return nil;
 }
 return result;
+}
+
+// === 以下方法适配自 ThermalUnlimited 逆向分析 ===
+
+// 阻止查找组件 — 避免热监控发现并管理组件
+- (id)findComponent:(id)component {
+if (shouldApplyFullCPUProtection()) {
+NSLog(@"[CPUthermal] 阻止 findComponent: %@", component);
+return nil;
+}
+return %orig(component);
+}
+
+// 阻止查找组件控制器
+- (id)findCC:(id)cc {
+if (shouldApplyFullCPUProtection()) {
+NSLog(@"[CPUthermal] 阻止 findCC: %@", cc);
+return nil;
+}
+return %orig(cc);
+}
+
+// 阻断热压力级别升级通知
+- (void)updateThermalPressureLevelNotification:(id)notif shouldForceThermalPressure:(BOOL)force {
+if (shouldApplyFullCPUProtection()) {
+NSLog(@"[CPUthermal] 阻止热压力级别升级: %@ force:%d", notif, force);
+return;
+}
+%orig;
+}
+
+// 强制热级别 — 防温控模式下归零
+- (id)getPotentialForcedThermalLevel:(id)level {
+if (shouldApplyFullCPUProtection()) {
+return @(0);
+}
+return %orig(level);
+}
+
+// 强制热压力级别 — 防温控模式下归零
+- (id)getPotentialForcedThermalPressureLevel {
+if (shouldApplyFullCPUProtection()) {
+return @(0);
+}
+return %orig;
+}
+
+// 轻量热压力强制 — 防温控模式下拒绝执行
+- (BOOL)shouldEnforceLightThermalPressure {
+if (shouldApplyFullCPUProtection()) {
+return NO;
+}
+return %orig;
 }
 
 %end
@@ -1477,6 +1544,16 @@ return YES;
 return %orig;
 }
 
+// 强制启用 HiP（高性能）特性 — 适配自 ThermalUnlimited 逆向
+- (void)setHiPFeatureEnabled:(BOOL)en {
+if (shouldApplyFullCPUProtection()) {
+NSLog(@"[CPUthermal] 强制启用 HiP 特性");
+%orig(YES);
+return;
+}
+%orig(en);
+}
+
 %end
 
 %hook TableDrivenLowTempController
@@ -1535,6 +1612,69 @@ if (shouldApplyLowPowerLimit()) {
 return lowTempLimitedOutputValue(original);
 }
 return original;
+}
+
+%end
+
+// ============================================================================
+// 新增 %hook 类 — 适配自 ThermalUnlimited 逆向分析
+// 初始化追踪层: 拦截 thermalmonitord 各子系统的初始化，注入修改参数
+// ============================================================================
+
+// --- ThermalDecisionTable: 决策表初始化追踪 ---
+%hook ThermalDecisionTable
+
+- (id)initDecisionTable:(id)table {
+id res = %orig(table);
+if (res) {
+NSLog(@"[CPUthermal] ThermalDecisionTable 已初始化");
+}
+return res;
+}
+
+%end
+
+// --- PIDController: PID 控制器初始化追踪 ---
+%hook PIDController
+
+- (id)initPIDWith:(id)params {
+id res = %orig(params);
+if (res) {
+NSLog(@"[CPUthermal] PIDController 已初始化");
+}
+return res;
+}
+
+%end
+
+// --- HotspotController: 热点控制器 — 修改采样参数禁用温度轮询 ---
+%hook HotspotController
+
+- (id)initWithParams:(id)params aggdController:(id)aggd {
+id modifiedParams = params;
+if (g_enabled && g_cpuProtection && shouldApplyFullCPUProtection()) {
+NSMutableDictionary *p = params ? [NSMutableDictionary dictionaryWithDictionary:params] : nil;
+if (p) {
+p[S("samplingInterval")] = @(99999);
+p[S("enableTemperatureSampling")] = @NO;
+modifiedParams = p;
+NSLog(@"[CPUthermal] HotspotController: 已禁用温度采样");
+}
+}
+return %orig(modifiedParams, aggd);
+}
+
+%end
+
+// --- CommonAggdController: 通用聚合控制器初始化追踪 ---
+%hook CommonAggdController
+
+- (id)initWithParams:(id)params product:(id)product {
+id res = %orig(params, product);
+if (res) {
+NSLog(@"[CPUthermal] CommonAggdController 已初始化");
+}
+return res;
 }
 
 %end
