@@ -17,11 +17,21 @@
 - (void)updateModuleSelectedState;
 - (void)selectPowerModeAtIndex:(NSInteger)index;
 - (void)selectPowerModeAtIndex:(NSInteger)index dismissAfterSelection:(BOOL)dismissAfterSelection;
+- (CGFloat)availableExpandedContentWidth;
+- (void)applyCompactMenuInsetsToLabel:(UILabel *)label inMenuItemView:(UIView *)menuItemView;
 - (void)styleMenuItemLabelsInView:(UIView *)view;
 - (void)styleMenuItemLabelsAfterLayout;
 - (BOOL)isModeTitle:(NSString *)text;
 - (BOOL)isModeSubtitle:(NSString *)text;
 @end
+
+static const CGFloat kCPUthermalCCPreferredExpandedWidth = 260.0;
+static const CGFloat kCPUthermalCCPreferredExpandedHeight = 202.0;
+static const CGFloat kCPUthermalCCMinimumScreenMargin = 32.0;
+static const CGFloat kCPUthermalCCMenuLeadingInset = 18.0;
+static const CGFloat kCPUthermalCCMenuTrailingInset = 46.0;
+static const CGFloat kCPUthermalCCTitleFontSize = 15.0;
+static const CGFloat kCPUthermalCCSubtitleFontSize = 11.0;
 
 @interface UIView (CPUthermalCCPrivateLayout)
 - (UILabel *)titleLabel;
@@ -175,11 +185,11 @@
 }
 
 - (CGFloat)preferredExpandedContentHeight {
-    return 214.0;
+    return kCPUthermalCCPreferredExpandedHeight;
 }
 
 - (CGFloat)preferredExpandedContentWidth {
-    return 280.0;
+    return [self availableExpandedContentWidth];
 }
 
 - (BOOL)providesOwnPlatter {
@@ -258,6 +268,16 @@
     [self styleMenuItemLabelsAfterLayout];
 }
 
+- (CGFloat)availableExpandedContentWidth {
+    CGFloat width = kCPUthermalCCPreferredExpandedWidth;
+    UIScreen *screen = [UIScreen mainScreen];
+    CGFloat screenWidth = CGRectGetWidth(screen.bounds);
+    if (screenWidth > 0) {
+        width = MIN(width, screenWidth - (kCPUthermalCCMinimumScreenMargin * 2.0));
+    }
+    return MAX(width, 220.0);
+}
+
 - (void)styleMenuItemLabelsAfterLayout {
     dispatch_async(dispatch_get_main_queue(), ^{
         [self.view layoutIfNeeded];
@@ -289,6 +309,34 @@
     return NO;
 }
 
+- (void)applyCompactMenuInsetsToLabel:(UILabel *)label inMenuItemView:(UIView *)menuItemView {
+    if (!label || !menuItemView || !label.superview || CGRectGetWidth(menuItemView.bounds) <= 0) {
+        return;
+    }
+
+    UIView *labelContainer = label.superview;
+    CGRect labelFrame = label.frame;
+    CGPoint labelOriginInItem = [labelContainer convertPoint:labelFrame.origin toView:menuItemView];
+    CGFloat maxLabelWidth = CGRectGetWidth(menuItemView.bounds) - kCPUthermalCCMenuLeadingInset - kCPUthermalCCMenuTrailingInset;
+    if (maxLabelWidth <= 0) {
+        return;
+    }
+
+    CGFloat adjustedMinX = MAX(labelOriginInItem.x, kCPUthermalCCMenuLeadingInset);
+    CGFloat adjustedWidth = MIN(CGRectGetWidth(labelFrame), maxLabelWidth);
+    if (adjustedMinX + adjustedWidth > CGRectGetWidth(menuItemView.bounds) - kCPUthermalCCMenuTrailingInset) {
+        adjustedWidth = CGRectGetWidth(menuItemView.bounds) - kCPUthermalCCMenuTrailingInset - adjustedMinX;
+    }
+    if (adjustedWidth <= 0) {
+        return;
+    }
+
+    CGPoint adjustedOrigin = [menuItemView convertPoint:CGPointMake(adjustedMinX, labelOriginInItem.y) toView:labelContainer];
+    labelFrame.origin.x = adjustedOrigin.x;
+    labelFrame.size.width = adjustedWidth;
+    label.frame = labelFrame;
+}
+
 - (void)styleMenuItemLabelsInView:(UIView *)view {
     if (!view) {
         return;
@@ -302,6 +350,9 @@
         }
         if ([view respondsToSelector:@selector(setUseTrailingInset:)]) {
             [view setUseTrailingInset:YES];
+        }
+        if ([view respondsToSelector:@selector(setIndentation:)]) {
+            [view setIndentation:kCPUthermalCCMenuLeadingInset];
         }
 
         UILabel *titleLabel = nil;
@@ -343,13 +394,16 @@
             label.textAlignment = NSTextAlignmentLeft;
             label.numberOfLines = 1;
             label.lineBreakMode = NSLineBreakByTruncatingTail;
+            label.adjustsFontSizeToFitWidth = YES;
+            label.minimumScaleFactor = 0.82;
             if (isTitle) {
-                label.font = [UIFont systemFontOfSize:16.0 weight:UIFontWeightSemibold];
+                label.font = [UIFont systemFontOfSize:kCPUthermalCCTitleFontSize weight:UIFontWeightSemibold];
                 label.textColor = [UIColor colorWithWhite:1.0 alpha:0.95];
             } else {
-                label.font = [UIFont systemFontOfSize:12.0 weight:UIFontWeightRegular];
+                label.font = [UIFont systemFontOfSize:kCPUthermalCCSubtitleFontSize weight:UIFontWeightRegular];
                 label.textColor = [UIColor colorWithWhite:1.0 alpha:0.42];
             }
+            [self applyCompactMenuInsetsToLabel:label inMenuItemView:view];
         }
     }
 
