@@ -25,9 +25,9 @@
 - (BOOL)isModeSubtitle:(NSString *)text;
 @end
 
-static const CGFloat kCPUthermalCCPreferredExpandedWidth = 260.0;
-static const CGFloat kCPUthermalCCPreferredExpandedHeight = 202.0;
-static const CGFloat kCPUthermalCCMinimumScreenMargin = 32.0;
+static const CGFloat kCPUthermalCCPreferredExpandedWidth = 320.0;
+static const CGFloat kCPUthermalCCPreferredExpandedHeight = 250.0;
+static const CGFloat kCPUthermalCCMinimumScreenMargin = 30.0;
 static const CGFloat kCPUthermalCCMenuLeadingInset = 18.0;
 static const CGFloat kCPUthermalCCMenuTrailingInset = 46.0;
 static const CGFloat kCPUthermalCCTitleFontSize = 15.0;
