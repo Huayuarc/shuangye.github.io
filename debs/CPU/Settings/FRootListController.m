@@ -150,6 +150,7 @@ popover.permittedArrowDirections = 0;
 NSMutableDictionary *prefs = [self prefs];
 prefs[S("powerMode")] = mode ?: S(kCPUthermalDefaultPowerModeC);
 prefs[S("enabled")] = [NSNumber numberWithBool:YES];
+prefs[S("cpuProtection")] = [NSNumber numberWithBool:YES];
 [self savePrefs:prefs];
 notify_post(kCPUthermalPowerModeChangedNotifC);
 [self restartThermalmonitord];
@@ -221,7 +222,7 @@ return;
 - (void)showPowerModePicker {
 UIAlertController *alert = [UIAlertController
 alertControllerWithTitle:S("功率模式")
-message:S("解除温控 = 默认模式，性能优先，可能明显发热，仅短时间使用\n低功耗 = 原生频率高于3000MHz默认2016MHz，否则默认1380MHz，并限制GPU峰值")
+message:S("解除温控 = 默认模式，性能优先，可能明显发热。\n低功耗 = 默认1380MHz～2016MHz，并限制GPU峰值")
 preferredStyle:UIAlertControllerStyleActionSheet];
 
 NSString *currentMode = [self powerModeValue];
@@ -392,7 +393,7 @@ PSSpecifier *master = [self switchSpecifier:S("启用 CPU 去温控") key:S("ena
 // ===================== 第2组: 功率模式 =====================
 group = [PSSpecifier emptyGroupSpecifier];
 [group setProperty:S("功率模式") forKey:S("label")];
-[group setProperty:S("默认解除温控，优先避免降频；低功耗按原生频率分档限频：高于3000MHz用2016MHz，否则用1380MHz。") forKey:S("footerText")];
+[group setProperty:S("默认解除温控，优先避免降频；低功耗 = 默认1380MHz～2016MHz，并限制GPU峰值。") forKey:S("footerText")];
 [specs addObject:group];
 
 [specs addObject:[self powerModeSpecifier]];
@@ -400,7 +401,7 @@ group = [PSSpecifier emptyGroupSpecifier];
 // ===================== 第3组: CPU频率锁定 =====================
 group = [PSSpecifier emptyGroupSpecifier];
 [group setProperty:S("CPU频率锁定") forKey:S("label")];
-[group setProperty:S("低功耗模式按当前机型原生频率分档：高于3000MHz目标2016MHz，否则目标1380MHz；选择芯片代际可修正识别结果。") forKey:S("footerText")];
+[group setProperty:S("低功耗 = 默认1380MHz～2016MHz，并限制GPU峰值；选择芯片代际可修正识别结果。") forKey:S("footerText")];
 [specs addObject:group];
 
 [specs addObject:[self deviceLockSpecifier]];

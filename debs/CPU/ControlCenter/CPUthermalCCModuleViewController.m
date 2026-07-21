@@ -88,6 +88,7 @@ static const CGFloat kCPUthermalCCSubtitleFontSize = 11.0;
     if (!prefs) prefs = [NSMutableDictionary dictionary];
     prefs[S("powerMode")] = mode ?: S(kCPUthermalDefaultPowerModeC);
     prefs[S("enabled")] = [NSNumber numberWithBool:YES];
+    prefs[S("cpuProtection")] = [NSNumber numberWithBool:YES];
 
     CPUthermalWritePrefs(prefs);
     notify_post(kCPUthermalSettingsChangedNotifC);
