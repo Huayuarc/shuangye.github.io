@@ -167,11 +167,10 @@ static CPUthermalPowerMode g_powerMode = CPUthermalPowerModeFull;
 static NSInteger g_deviceLockMHz = 0;
 
 // 低功耗模式 CPU 频率限制（MHz）
-// 固定限制到 2016MHz，避免旧机型被压到 1380MHz 后滑动掉帧。
-static const int64_t kLowPowerMinFrequencyMHz = 600;
+// 固定限制到 2016MHz，避免旧机型被压到 2016MHz 后滑动掉帧。
+static const int64_t kLowPowerMinFrequencyMHz = 2016;
 static const int64_t kLowPowerTargetFrequencyMHz = 2016;
-static const int kLowPowerPowerCeilingPercent = 70;
-static const int64_t kMinimumDisplayRefreshRateHz = 60;
+static const int kLowPowerPowerCeilingPercent = 65;
 
 // 温度安全阀 — 超过此值不拦截任何保护
 // 100°C 后优先交还系统温控，并始终放行 0x60-0x6F 紧急保护。
@@ -606,6 +605,7 @@ g_restoringFullPower = NO;
 static void applyLowPowerToCommonProduct(void) {
 if (!g_commonProduct || !shouldApplyLowPowerLimit()) return;
 @try {
+g_applyingLowPower = YES;
 if ([g_commonProduct respondsToSelector:@selector(setCPULevel:)]) {
 ((void (*)(id, SEL, int))objc_msgSend)(g_commonProduct, @selector(setCPULevel:), lowPowerCPULevelValue());
 }
@@ -615,6 +615,8 @@ setCommonProductCeiling(@selector(setPackagePowerCeiling:fromDecisionSource:), l
 NSLog(@"[CPUthermal] 已主动套用低功耗 CommonProduct 状态");
 } @catch (NSException *exception) {
 NSLog(@"[CPUthermal] 套用低功耗 CommonProduct 状态失败: %@", exception);
+} @finally {
+g_applyingLowPower = NO;
 }
 }
 
@@ -1036,7 +1038,13 @@ return ret;
 }
 }
 if (g_cpuProtection && !g_restoringFullPower && shouldBlockCPUProperty(ks)) {
-if (isFullPowerMode()) return KERN_SUCCESS;
+if (isFullPowerMode()) {
+// 解除温控模式: 放行 IOKit 写入。
+// ObjC Hook 已确保 setCPULevel:/setCPUPowerCeiling: 等传入的是全功率值(0/100)，
+// %orig 内部调用的 IOServiceSetProperty 必须放行到原始函数才能使硬件寄存器生效。
+// 若此处 return KERN_SUCCESS 吞写，全功率值将永远无法写入 IOKit，硬件停留在低功耗状态。
+return orig_IOServiceSetProperty(service, key, value);
+}
 if (shouldApplyLowPowerLimit()) {
 CFTypeRef replacement = copyLowPowerFrequencyValueForKey(ks, value);
 if (replacement) {

@@ -110,15 +110,15 @@ static inline NSInteger CPUthermalFrequencyForChipKey(NSString *chipKey) {
     // A12 (iPhone XS / XS Max / XR)
     if ([chipKey isEqualToString:S("A12")]) return 2490;
     // A13 (iPhone 11 / 11 Pro / Pro Max)
-    if ([chipKey isEqualToString:S("A13")]) return 2660;
+    if ([chipKey isEqualToString:S("A13")]) return 2650;
     // A14 (iPhone 12 mini / 12 / 12 Pro / Pro Max)
-    if ([chipKey isEqualToString:S("A14")]) return 3100;
+    if ([chipKey isEqualToString:S("A14")]) return 3090;
     // A15 (iPhone 13 / 14 / 14+)
-    if ([chipKey isEqualToString:S("A15")]) return 3240;
+    if ([chipKey isEqualToString:S("A15")]) return 3230;
     // A16 (iPhone 14 Pro / 15 / 15+)
     if ([chipKey isEqualToString:S("A16")]) return 3460;
     // A17 Pro (iPhone 15 Pro / Pro Max)
-    if ([chipKey isEqualToString:S("A17Pro")]) return 3700;
+    if ([chipKey isEqualToString:S("A17Pro")]) return 3780;
     return 0;
 }
 
