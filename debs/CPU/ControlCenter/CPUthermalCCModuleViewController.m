@@ -61,13 +61,13 @@ static const CGFloat kCPUthermalCCSubtitleFontSize = 11.0;
     if ([mode isKindOfClass:[NSString class]] && [mode length] > 0) {
         return mode;
     }
-    return S("lowPower"); // 默认稳帧降温
+    return S("lowPower"); // 默认低功耗
 }
 
 - (BOOL)isTweakEnabled {
     NSDictionary *prefs = CPUthermalReadPrefs();
     id value = prefs[S("enabled")];
-    return value ? [value boolValue] : NO;
+    return value ? [value boolValue] : YES;
 }
 
 - (void)saveTweakEnabled:(BOOL)enabled {
@@ -77,6 +77,9 @@ static const CGFloat kCPUthermalCCSubtitleFontSize = 11.0;
 
     CPUthermalWritePrefs(prefs);
     notify_post(kCPUthermalSettingsChangedNotifC);
+    if (enabled) {
+        CPUthermalRestartThermalmonitordSoon();
+    }
 }
 
 /// 写入功率模式并发送通知
@@ -89,6 +92,7 @@ static const CGFloat kCPUthermalCCSubtitleFontSize = 11.0;
     CPUthermalWritePrefs(prefs);
     notify_post(kCPUthermalSettingsChangedNotifC);
     notify_post(kCPUthermalPowerModeChangedNotifC);
+    CPUthermalRestartThermalmonitordSoon();
 }
 
 
@@ -100,14 +104,14 @@ static const CGFloat kCPUthermalCCSubtitleFontSize = 11.0;
     self = [super init];
     if (self) {
         _modeValues = @[S("lowPower"), S("fullPower")];
-        _modeTitles = @[S("稳帧降温"), S("极限防温控")];
-        _modeSubtitles = @[S("更凉更稳"), S("短时满性能")];
+        _modeTitles = @[S("低功耗"), S("解除温控")];
+        _modeSubtitles = @[S("默认 2016MHz"), S("短时满性能")];
 
         // 读取当前设置的模式
         NSString *currentMode = [self currentPowerMode];
         _selectedIndex = [_modeValues indexOfObject:currentMode];
         if (_selectedIndex == NSNotFound) {
-            _selectedIndex = 0; // 默认选中"稳帧降温"
+            _selectedIndex = 0; // 默认选中"低功耗"
         }
     }
     return self;
@@ -428,6 +432,15 @@ static const CGFloat kCPUthermalCCSubtitleFontSize = 11.0;
 - (void)buttonTapped:(id)arg forEvent:(id)event {
     (void)arg;
     (void)event;
+
+    [self updateSelectedIndexFromCurrentMode];
+    NSInteger itemCount = (NSInteger)self.modeValues.count;
+    if (itemCount <= 0) {
+        return;
+    }
+
+    NSInteger nextIndex = (self.selectedIndex + 1) % itemCount;
+    [self selectPowerModeAtIndex:nextIndex dismissAfterSelection:NO];
 }
 
 - (void)toggleTweakEnabled {

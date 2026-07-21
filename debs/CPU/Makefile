@@ -11,7 +11,7 @@ include $(THEOS)/makefiles/common.mk
 # CPUthermal 主插件 (thermalmonitord)
 # ============================================================
 TWEAK_NAME = CPUthermal
-CPUthermal_FILES = Tweak.x PowercuffManager.m
+CPUthermal_FILES = Tweak.x
 CPUthermal_CFLAGS = -fobjc-arc -Iinclude
 CPUthermal_FRAMEWORKS = Foundation UIKit IOKit SystemConfiguration
 CPUthermal_PRIVATE_FRAMEWORKS = AppSupport

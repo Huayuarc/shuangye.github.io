@@ -20,6 +20,7 @@ static const char *kCPUthermalSettingsChangedNotifC = "com.huayuarc.CPUthermal/s
 static const char *kCPUthermalPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeChanged";
 static const char *kCPUthermalDisableHotInPocketKeyC = "disableHotInPocket";
 static const char *kCPUthermalLockSunlightExposureKeyC = "lockSunlightExposure";
+static const NSInteger kCPUthermalDefaultLowPowerFrequencyMHz = 2016;
 static const NSInteger kCPUthermalDefaultMaxPCoreFrequencyMHz = 3240;
 
 static inline NSString *CPUthermalStringFromCPath(const char *path) {
@@ -275,13 +276,13 @@ static inline void CPUthermalRestartThermalmonitordSoon(void) {
     NSString *toolPath = CPUthermalToolPath();
     if (toolPath.length > 0 && [[NSFileManager defaultManager] isExecutableFileAtPath:toolPath]) {
         char *args[] = {(char *)"CPUthermalTool", (char *)"restart-thermalmonitord-delayed", NULL};
-        CPUthermalSpawnDetached(toolPath, args);
+        CPUthermalSpawnRootDetached(toolPath, args);
         return;
     }
 
     NSString *killallPath = CPUthermalKillallPath();
     if (killallPath.length > 0) {
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.35 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
             CPUthermalRestartThermalmonitordNow();
         });
     }

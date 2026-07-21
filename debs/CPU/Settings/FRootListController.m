@@ -6,7 +6,6 @@
 #import <notify.h>
 #import <dlfcn.h>
 #import <CPUthermalPaths.h>
-#import "PowercuffManager.h"
 
 // ============================================================
 // 注意: 禁止使用 @"" ObjC 字符串常量
@@ -47,6 +46,8 @@ return d;
 }
 
 - (void)savePrefs:(NSMutableDictionary *)prefs {
+[prefs removeObjectForKey:S("powercuffEnabled")];
+[prefs removeObjectForKey:S("powercuffLevel")];
 CPUthermalWritePrefs(prefs);
 notify_post(kCPUthermalSettingsChangedNotifC);
 }
@@ -66,100 +67,12 @@ return S("lowPower");
 }
 
 - (NSString *)powerModeTitle:(NSString *)mode {
-if ([mode isEqualToString:S("lowPower")]) return S("稳帧降温");
-return S("极限防温控");
+if ([mode isEqualToString:S("lowPower")]) return S("低功耗");
+return S("解除温控");
 }
 
 - (void)restartThermalmonitord {
 CPUthermalRestartThermalmonitordSoon();
-}
-
-#pragma mark - Powercuff 热模拟
-
-- (BOOL)powercuffEnabled {
-    return [[self prefs][S("powercuffEnabled")] boolValue];
-}
-
-- (NSString *)powercuffLevel {
-    NSString *level = [self prefs][S("powercuffLevel")];
-    if ([level isKindOfClass:[NSString class]] && level.length > 0) return level;
-    return S("moderate");
-}
-
-- (NSString *)powercuffLevelLabel {
-    NSString *level = [self powercuffLevel];
-    if ([level isEqualToString:S("light")]) return S("轻度");
-    if ([level isEqualToString:S("moderate")]) return S("中度（推荐）");
-    if ([level isEqualToString:S("heavy")]) return S("重度");
-    return S("中度（推荐）");
-}
-
-- (NSString *)powercuffStatusLabel {
-    if (![self powercuffEnabled]) return S("热模拟：关闭");
-    return [NSString stringWithFormat:S("热模拟：%@ - %@"), [self powercuffLevelLabel], S("已启用")];
-}
-
-- (void)savePowercuffEnabled:(BOOL)enabled {
-    NSMutableDictionary *prefs = [self prefs];
-    prefs[S("powercuffEnabled")] = [NSNumber numberWithBool:enabled];
-    if (enabled && ![prefs[S("powercuffLevel")] isKindOfClass:[NSString class]]) {
-        prefs[S("powercuffLevel")] = S("moderate");
-    }
-    [self savePrefs:prefs];
-    [self restartThermalmonitord];
-}
-
-- (void)savePowercuffLevel:(NSString *)level {
-    NSMutableDictionary *prefs = [self prefs];
-    prefs[S("powercuffLevel")] = level ?: S("moderate");
-    prefs[S("powercuffEnabled")] = [NSNumber numberWithBool:YES];
-    [self savePrefs:prefs];
-    [self restartThermalmonitord];
-    PSSpecifier *spec = [self specifierForID:S("powercuffLevel")];
-    if (spec) {
-        spec.name = [self powercuffStatusLabel];
-        [self reloadSpecifierID:S("powercuffLevel") animated:YES];
-    }
-}
-
-- (void)openPowercuffLevelPicker {
-    UIAlertController *alert = [UIAlertController
-        alertControllerWithTitle:S("热模拟级别")
-        message:S("模拟 CPU 热状态来触发系统降频省电。\n\n轻度 = 轻微降频\n中度 = 明显省电，日常使用推荐\n重度 = 大幅度降频，可能影响流畅度\n\n关闭即不启用热模拟，仅用 CPUthermal 的 IOKit 拦截。")
-        preferredStyle:UIAlertControllerStyleActionSheet];
-
-    NSString *current = [self powercuffLevel];
-    BOOL enabled = [self powercuffEnabled];
-
-    NSArray *levels = @[S("light"), S("moderate"), S("heavy")];
-    NSArray *labels = @[S("轻度"), S("中度（推荐）"), S("重度")];
-    for (NSUInteger i = 0; i < levels.count; i++) {
-        UIAlertAction *action = [UIAlertAction actionWithTitle:labels[i]
-            style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
-                [self savePowercuffLevel:levels[i]];
-            }];
-        if (enabled && [current isEqualToString:levels[i]]) {
-            [action setValue:@YES forKey:S("checked")];
-        }
-        [alert addAction:action];
-    }
-
-    UIAlertAction *offAction = [UIAlertAction actionWithTitle:S("关闭")
-        style:UIAlertActionStyleDestructive handler:^(UIAlertAction *action) {
-            [self savePowercuffEnabled:NO];
-        }];
-    if (!enabled) [offAction setValue:@YES forKey:S("checked")];
-    [alert addAction:offAction];
-
-    [alert addAction:[UIAlertAction actionWithTitle:S("取消") style:UIAlertActionStyleCancel handler:nil]];
-
-    UIPopoverPresentationController *popover = alert.popoverPresentationController;
-    if (popover) {
-        popover.sourceView = self.view;
-        popover.sourceRect = self.view.bounds;
-        popover.permittedArrowDirections = 0;
-    }
-    [self presentViewController:alert animated:YES completion:nil];
 }
 
 
@@ -200,7 +113,7 @@ specifier.name = [self deviceLockLabel];
 - (void)showDeviceLockPicker {
 UIAlertController *alert = [UIAlertController
 alertControllerWithTitle:S("CPU频率锁定")
-message:S("选择芯片代际后，稳帧模式会把 CPU 上限限制在更凉的范围内；极限防温控模式才会尝试维持原生高频。")
+message:S("选择芯片代际后，低功耗模式会把 CPU 上限限制在更凉的范围内；解除温控模式才会尝试维持原生高频。")
 preferredStyle:UIAlertControllerStyleActionSheet];
 
 NSString *currentKey = [self deviceLockValue];
@@ -238,6 +151,7 @@ popover.permittedArrowDirections = 0;
 - (void)savePowerMode:(NSString *)mode {
 NSMutableDictionary *prefs = [self prefs];
 prefs[S("powerMode")] = mode ?: S("lowPower");
+prefs[S("enabled")] = [NSNumber numberWithBool:YES];
 [self savePrefs:prefs];
 notify_post(kCPUthermalPowerModeChangedNotifC);
 [self restartThermalmonitord];
@@ -257,6 +171,9 @@ if ([key isEqualToString:S("enabled")] ||
 [key isEqualToString:S(kCPUthermalLockSunlightExposureKeyC)]) {
 [self applyThermalStatusOverrides];
 }
+if ([key isEqualToString:S("enabled")]) {
+[self restartThermalmonitord];
+}
 }
 
 - (id)readPreferenceValue:(PSSpecifier *)spec {
@@ -264,8 +181,7 @@ NSString *key = [spec propertyForKey:S("key")];
 if (!key) return nil;
 id val = [self prefs][key];
 if (val) return val;
-if ([key isEqualToString:S("enabled")]) return [NSNumber numberWithBool:NO];
-if ([key isEqualToString:S("powercuffEnabled")]) return [NSNumber numberWithBool:NO];
+if ([key isEqualToString:S("enabled")]) return [NSNumber numberWithBool:YES];
 if ([key isEqualToString:S(kCPUthermalDisableHotInPocketKeyC)] ||
 [key isEqualToString:S(kCPUthermalLockSunlightExposureKeyC)]) {
 return [NSNumber numberWithBool:NO];
@@ -300,11 +216,6 @@ if ([key isEqualToString:S("deviceLock")]) {
 [self showDeviceLockPicker];
 return;
 }
-if ([key isEqualToString:S("powercuffLevel")]) {
-[tableView deselectRowAtIndexPath:indexPath animated:YES];
-[self openPowercuffLevelPicker];
-return;
-}
 }
 [super tableView:tableView didSelectRowAtIndexPath:indexPath];
 }
@@ -312,15 +223,15 @@ return;
 - (void)showPowerModePicker {
 UIAlertController *alert = [UIAlertController
 alertControllerWithTitle:S("功率模式")
-message:S("稳帧降温 = 限制 CPU 最高 1800MHz 并限制 GPU 峰值，减少发热后卡顿\n极限防温控 = 性能优先，可能明显发热，仅短时间使用")
+message:S("低功耗 = 所有机型统一限制 CPU 最高 2016MHz 并限制 GPU 峰值，减少发热后卡顿\n解除温控 = 性能优先，可能明显发热，仅短时间使用")
 preferredStyle:UIAlertControllerStyleActionSheet];
 
 NSString *currentMode = [self powerModeValue];
-UIAlertAction *low = [UIAlertAction actionWithTitle:S("稳帧降温")
+UIAlertAction *low = [UIAlertAction actionWithTitle:S("低功耗")
 style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
 [self savePowerMode:S("lowPower")];
 }];
-UIAlertAction *full = [UIAlertAction actionWithTitle:S("极限防温控")
+UIAlertAction *full = [UIAlertAction actionWithTitle:S("解除温控")
 style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
 [self savePowerMode:S("fullPower")];
 }];
@@ -459,21 +370,6 @@ edit:nil];
 return spec;
 }
 
-- (PSSpecifier *)powercuffLevelSpecifier {
-PSSpecifier *spec = [PSSpecifier
-preferenceSpecifierNamed:[self powercuffStatusLabel]
-target:self
-set:NULL
-get:NULL
-detail:nil
-cell:PSButtonCell
-edit:nil];
-[spec setIdentifier:S("powercuffLevel")];
-[spec setProperty:S("powercuffLevel") forKey:S("key")];
-[spec setButtonAction:@selector(openPowercuffLevelPicker)];
-return spec;
-}
-
 - (PSSpecifier *)buttonSpecifier:(NSString *)label action:(SEL)action identifier:(NSString *)identifier {
 PSSpecifier *spec = [PSSpecifier
 preferenceSpecifierNamed:label
@@ -498,24 +394,15 @@ PSSpecifier *master = [self switchSpecifier:S("启用 CPU 去温控") key:S("ena
 // ===================== 第2组: 功率模式 =====================
 group = [PSSpecifier emptyGroupSpecifier];
 [group setProperty:S("功率模式") forKey:S("label")];
-[group setProperty:S("默认稳帧降温，优先降低发热和长期卡顿；极限防温控会提高功耗和温度，仅建议短时间测试。") forKey:S("footerText")];
+[group setProperty:S("默认低功耗，优先降低发热和长期卡顿；解除温控会提高功耗和温度，仅建议短时间测试。") forKey:S("footerText")];
 [specs addObject:group];
 
 [specs addObject:[self powerModeSpecifier]];
 
-// ===================== Powercuff: 热模拟 =====================
-group = [PSSpecifier emptyGroupSpecifier];
-[group setProperty:S("Powercuff 热模拟") forKey:S("label")];
-[group setProperty:S("模拟 CPU 热状态来触发系统降频省电。配合低功耗模式使用效果更佳。需要依赖 thermalmonitord。") forKey:S("footerText")];
-[specs addObject:group];
-
-[specs addObject:[self switchSpecifier:S("启用热模拟") key:S("powercuffEnabled")]];
-[specs addObject:[self powercuffLevelSpecifier]];
-
 // ===================== 第3组: CPU频率锁定 =====================
 group = [PSSpecifier emptyGroupSpecifier];
 [group setProperty:S("CPU频率锁定") forKey:S("label")];
-[group setProperty:S("默认无锁定（自动）。选择芯片代际仅作为频率参考；稳帧降温模式仍会限制上限，避免游戏持续发热后掉帧。") forKey:S("footerText")];
+[group setProperty:S("低功耗模式下所有设备统一默认 2016MHz；选择芯片代际仅作为解除温控模式的原生高频参考。") forKey:S("footerText")];
 [specs addObject:group];
 
 [specs addObject:[self deviceLockSpecifier]];

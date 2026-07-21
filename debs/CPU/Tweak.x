@@ -11,7 +11,6 @@
 #include <CPUthermalPaths.h>
 #include <CPUthermalThermalPrefs.h>
 #import <IOKit/IOKitLib.h>
-#import "PowercuffManager.h"
 
 // ============================================================================
 // CPUthermal — 温控插件（完全版）
@@ -148,7 +147,7 @@
 // ============================================================================
 // 配置
 // ============================================================================
-static BOOL g_enabled               = NO;  // 总开关（默认关闭，安装后由用户手动启用）
+static BOOL g_enabled               = YES; // 总开关（默认开启，安装后默认进入低功耗）
 static BOOL g_cpuProtection         = NO; // CPU 性能保护(降频/决策树/控制力度/配置表)
 static BOOL g_brightnessProtection  = NO; // 屏幕亮度保护(降亮度/背光配置)
 static BOOL g_suppressThermalNotifications = NO; // 默认屏蔽误触发高温通知
@@ -175,16 +174,13 @@ CPUthermalPowerModeLow  = 1
 
 static CPUthermalPowerMode g_powerMode = CPUthermalPowerModeFull;
 
-// Powercuff 热模拟 — 上一次成功应用的级别（避免冗余调用）
-static NSString *g_lastPowercuffLevel = nil;
-
 // CPU频率锁定 — 手动选择芯片代际锁定频率(MHz)，0=无锁定
 static NSInteger g_deviceLockMHz = 0;
 
-// 低功耗/稳帧模式 CPU 频率限制（MHz）
-// 只限制上限，不强制抬高最低频，避免轻负载锁高频导致发热。
+// 低功耗模式 CPU 频率限制（MHz）
+// 所有设备与机型默认统一限制到 2016MHz；只限制上限，不强制抬高最低频。
 static const int64_t kLowPowerMinFrequencyMHz = 600;
-static const int64_t kLowPowerMaxFrequencyMHz = 1800;
+static const int64_t kLowPowerMaxFrequencyMHz = 2016;
 
 // 温度安全阀 — 超过此值不拦截任何保护
 // 100°C 后优先交还系统温控，并始终放行 0x60-0x6F 紧急保护。
@@ -202,10 +198,10 @@ static BOOL g_deferredRuntimeApplyScheduled = NO;
 
 // ============================================================================
 // 运行时维护定时器
-// 仅稳帧低功耗模式需要低频补写；防温控模式不再周期性拉满功率，避免越刷越热。
+// 仅低功耗模式需要低频补写；防温控模式不再周期性拉满功率，避免越刷越热。
 // ============================================================================
 static dispatch_source_t g_continuousTimer = NULL;
-static const int64_t kContinuousTimerIntervalMs = 8000;
+static const int64_t kContinuousTimerIntervalMs = 1500;
 
 static void stopContinuousTimer(void);
 
@@ -237,13 +233,8 @@ return;
 }
 applyLowPowerToCommonProduct();
 applyLowPowerLimitsToTrackedControllers();
-// Powercuff: 低功耗时同步应用热模拟
-NSString *pcLevel = powercuffReadLevel();
-if (pcLevel && g_commonProduct) {
-powercuffApply(g_commonProduct, pcLevel);
-}
-}
-});
+	}
+	});
 dispatch_resume(g_continuousTimer);
 CPUthermalDebugLog(@"[CPUthermal] 性能维护定时器已启动 (间隔 %.1f 秒)", (double)kContinuousTimerIntervalMs / 1000.0);
 }
@@ -303,7 +294,6 @@ return g_enabled && g_cpuProtection && isLowPowerMode();
 }
 
 static int lowPowerTargetValue(void) {
-if (g_deviceLockMHz > 0) return MIN((int)g_deviceLockMHz, (int)kLowPowerMaxFrequencyMHz);
 return (int)kLowPowerMaxFrequencyMHz;
 }
 
@@ -350,7 +340,6 @@ return fullPowerPercentValue();
 }
 
 static int lowTempLimitedOutputValue(int original) {
-if (g_deviceLockMHz > 0) return MIN(original, (int)g_deviceLockMHz);
 return MIN(original, lowPowerTargetValue());
 }
 
@@ -499,7 +488,7 @@ return fullPowerTargetForController(controller);
 }
 
 static void applyLowPowerLimitToController(id controller) {
-if (!controller || !shouldApplyLowPowerLimit()) return;
+if (!controller || !shouldApplyLowPowerLimit() || g_applyingLowPower) return;
 @try {
 g_applyingLowPower = YES;
 if ([controller respondsToSelector:@selector(setPowerSaveActive:)]) {
@@ -544,7 +533,7 @@ if ([controller respondsToSelector:@selector(updateGPU)]) {
 if ([controller respondsToSelector:@selector(updatePackage)]) {
 ((void (*)(id, SEL))objc_msgSend)(controller, @selector(updatePackage));
 }
-CPUthermalDebugLog(@"[CPUthermal] 已主动下发稳帧限制: CPU %lld-%lldMHz GPU ceiling:%d controller:%@", kLowPowerMinFrequencyMHz, kLowPowerMaxFrequencyMHz, lowPowerGPUPowerCeilingValue(), controller);
+CPUthermalDebugLog(@"[CPUthermal] 已主动下发低功耗限制: CPU %lld-%lldMHz GPU ceiling:%d controller:%@", kLowPowerMinFrequencyMHz, kLowPowerMaxFrequencyMHz, lowPowerGPUPowerCeilingValue(), controller);
 } @catch (NSException *exception) {
 NSLog(@"[CPUthermal] 下发低功耗 CPU 限制失败: %@", exception);
 } @finally {
@@ -662,7 +651,7 @@ if ([g_commonProduct respondsToSelector:@selector(setCPULevel:)]) {
 setCommonProductCeiling(@selector(setCPUPowerCeiling:fromDecisionSource:), lowPowerPowerCeilingValue());
 setCommonProductCeiling(@selector(setGPUPowerCeiling:fromDecisionSource:), lowPowerGPUPowerCeilingValue());
 setCommonProductCeiling(@selector(setPackagePowerCeiling:fromDecisionSource:), lowPowerPackagePowerCeilingValue());
-CPUthermalDebugLog(@"[CPUthermal] 已主动套用稳帧 CommonProduct 状态");
+CPUthermalDebugLog(@"[CPUthermal] 已主动套用低功耗 CommonProduct 状态");
 } @catch (NSException *exception) {
 NSLog(@"[CPUthermal] 套用低功耗 CommonProduct 状态失败: %@", exception);
 }
@@ -733,23 +722,14 @@ BOOL isPowerZoneTargetKey = isCPUKey &&
 return (isCPUKey && isFrequencyKey) || isLowPowerTargetKey || isMaxCPUPowerTargetKey || isPowerZoneTargetKey;
 }
 
-static int64_t frequencyMHzFromValue(int64_t value) {
-if (value >= 1000000000LL) return value / 1000000LL;
-if (value >= 1000000LL) return value / 1000LL;
-return value;
-}
-
 static int64_t frequencyValueFromMHz(int64_t mhz, int64_t originalValue) {
 if (originalValue >= 1000000000LL) return mhz * 1000000LL;
 if (originalValue >= 1000000LL) return mhz * 1000LL;
 return mhz;
 }
 
-static int64_t clampLowPowerFrequencyValue(int64_t value) {
-int64_t mhz = frequencyMHzFromValue(value);
-if (mhz < kLowPowerMinFrequencyMHz) mhz = kLowPowerMinFrequencyMHz;
-if (mhz > kLowPowerMaxFrequencyMHz) mhz = kLowPowerMaxFrequencyMHz;
-return frequencyValueFromMHz(mhz, value);
+static int64_t lowPowerTargetFrequencyValue(int64_t originalValue) {
+return frequencyValueFromMHz(kLowPowerMaxFrequencyMHz, originalValue);
 }
 
 static CFTypeRef copyLowPowerFrequencyValueForKey(NSString *key, CFTypeRef originalValue) {
@@ -769,7 +749,7 @@ original = kLowPowerMinFrequencyMHz;
 
 int64_t replacement = isMinKey && isFrequencyKey
 ? frequencyValueFromMHz(kLowPowerMinFrequencyMHz, original)
-: clampLowPowerFrequencyValue(original);
+: lowPowerTargetFrequencyValue(original);
 return CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &replacement);
 }
 
@@ -784,7 +764,7 @@ BOOL isFrequencyKey = [lower containsString:S("freq")] ||
 int64_t original = originalNumber ? [originalNumber longLongValue] : kLowPowerMaxFrequencyMHz;
 int64_t replacement = (isMinKey && isFrequencyKey)
 ? frequencyValueFromMHz(kLowPowerMinFrequencyMHz, original)
-: clampLowPowerFrequencyValue(original);
+: lowPowerTargetFrequencyValue(original);
 return [NSNumber numberWithLongLong:replacement];
 }
 
@@ -914,7 +894,7 @@ return CPUthermalReadPrefs();
 static void loadPrefs(void) {
 @autoreleasepool {
 NSDictionary *d = readPrefsDictionary() ?: [NSDictionary dictionary];
-g_enabled               = [d[S("enabled")] ?: [NSNumber numberWithBool:NO] boolValue];
+	g_enabled               = [d[S("enabled")] ?: [NSNumber numberWithBool:YES] boolValue];
 	g_cpuProtection         = [d[S("cpuProtection")] ?: [NSNumber numberWithBool:YES] boolValue];
 	g_brightnessProtection  = [d[S("brightnessProtection")] ?: [NSNumber numberWithBool:YES] boolValue];
 	g_suppressThermalNotifications = [d[S("suppressThermalNotifications")] ?: [NSNumber numberWithBool:YES] boolValue];
@@ -988,7 +968,7 @@ if (g_enabled) {
 g_commonProduct = self;
 [self putDeviceInThermalSimulationMode:S("nominal")];
 applyCurrentPowerModeToRuntime();
-CPUthermalDebugLog(@"[CPUthermal] CommonProduct init, 已重置热状态为 nominal, 功率模式:%@", isLowPowerMode() ? S("稳帧降温") : S("极限防温控"));
+CPUthermalDebugLog(@"[CPUthermal] CommonProduct init, 已重置热状态为 nominal, 功率模式:%@", isLowPowerMode() ? S("低功耗") : S("解除温控"));
 }
 return res;
 }
@@ -1027,30 +1007,6 @@ return;
 - (void)registerDefaultsDomain {
 CPUthermalDebugLog(@"[CPUthermal] 阻止 registerDefaultsDomain");
 // 不调用 %orig，跳过默认值注册
-}
-
-// ============================================================
-// Powercuff 热模拟持久化钩子
-// 防止系统/CC 模块切换时将热模拟状态复位为 off/nominal
-// ============================================================
-- (void)putDeviceInThermalSimulationMode:(id)mode {
-    NSString *desiredLevel = powercuffReadLevel();
-    if (desiredLevel) {
-        // Powercuff 已启用 — 检查是否是复位调用
-        NSString *incoming = (NSString *)mode;
-        BOOL isReset = (!incoming || incoming.length == 0 ||
-                        [incoming isEqualToString:@"off"] ||
-                        [incoming isEqualToString:@"nominal"]);
-        if (isReset) {
-            CPUthermalDebugLog(@"[CPUthermal][Powercuff] ← 拦截复位 '%@' → 重定向至 '%@'", incoming, desiredLevel);
-            g_lastPowercuffLevel = desiredLevel;
-            %orig(desiredLevel);
-            return;
-        }
-    }
-    // 非复位调用或 powercuff 关闭 — 正常放行
-    g_lastPowercuffLevel = nil;
-    %orig;
 }
 
 %end
@@ -1435,9 +1391,8 @@ if (g_restoringFullPower) {
 return;
 }
 if (shouldApplyLowPowerLimit()) {
-int64_t clamped = clampLowPowerFrequencyValue(target);
 rememberOriginalIntValue(self, "MaxCPUPowerTarget", target);
-%orig((int)clamped, legacy, propertyArg);
+%orig(lowPowerTargetValue(), legacy, propertyArg);
 return;
 }
 if (shouldApplyFullCPUProtection()) {
@@ -1504,9 +1459,8 @@ if (g_restoringFullPower) {
 return;
 }
 if (shouldApplyLowPowerLimit()) {
-int64_t clamped = clampLowPowerFrequencyValue(target);
 rememberOriginalIntValue(self, "CPUPowerZoneTarget", target);
-%orig((int)clamped);
+%orig(lowPowerTargetValue());
 return;
 }
 if (shouldApplyFullCPUProtection()) {
@@ -1588,7 +1542,11 @@ if (g_restoringFullPower) {
 %orig;
 return;
 }
-if (shouldApplyFullCPUProtection() || shouldApplyLowPowerLimit()) {
+if (shouldApplyLowPowerLimit()) {
+applyLowPowerLimitToController(self);
+return;
+}
+if (shouldApplyFullCPUProtection()) {
 return;
 }
 %orig;
@@ -1599,7 +1557,11 @@ if (g_restoringFullPower) {
 %orig;
 return;
 }
-if (shouldApplyFullCPUProtection() || shouldApplyLowPowerLimit()) {
+if (shouldApplyLowPowerLimit()) {
+applyLowPowerLimitToController(self);
+return;
+}
+if (shouldApplyFullCPUProtection()) {
 return;
 }
 %orig;
@@ -1610,7 +1572,11 @@ if (g_restoringFullPower) {
 %orig;
 return;
 }
-if (shouldApplyFullCPUProtection() || shouldApplyLowPowerLimit()) {
+if (shouldApplyLowPowerLimit()) {
+applyLowPowerLimitToController(self);
+return;
+}
+if (shouldApplyFullCPUProtection()) {
 return;
 }
 %orig;
@@ -1796,7 +1762,7 @@ if (powerSaveParams) {
 [powerSaveParams setObject:[NSNumber numberWithInt:lowPowerTargetValue()] forKey:S("CPULowPowerTarget")];
 [lowPowerConfig setObject:powerSaveParams forKey:S("powerSaveParams")];
 }
-CPUthermalDebugLog(@"[CPUthermal] 已应用稳帧配置: %@ target:%d (%lld-%lldMHz)", key, lowPowerTargetValue(), kLowPowerMinFrequencyMHz, kLowPowerMaxFrequencyMHz);
+CPUthermalDebugLog(@"[CPUthermal] 已应用低功耗配置: %@ target:%d (%lld-%lldMHz)", key, lowPowerTargetValue(), kLowPowerMinFrequencyMHz, kLowPowerMaxFrequencyMHz);
 return [lowPowerConfig copy];
 }
 
@@ -1924,45 +1890,33 @@ return patched;
 
 %end
 
-// ============================================================================
-// Puppet 事件（由 Preferences 面板触发 — 模拟热级别切换）
-// ============================================================================
-static void executePuppetEvent(void) {
-if (!g_commonProduct) return;
-@autoreleasepool {
-NSDictionary *prefs = readPrefsDictionary();
-NSString *level = prefs[S("thermalPuppetValue")] ?: S("nominal");
-[g_commonProduct putDeviceInThermalSimulationMode:level];
-NSLog(@"[CPUthermal] Puppet 事件: 热模式设为 %@", level);
+static void scheduleLowPowerReapplyBurst(void) {
+if (!shouldApplyLowPowerLimit()) return;
+int64_t delaysMs[] = {100, 350, 800, 1500, 2500};
+for (size_t i = 0; i < sizeof(delaysMs) / sizeof(delaysMs[0]); i++) {
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, delaysMs[i] * NSEC_PER_MSEC), dispatch_get_main_queue(), ^{
+loadPrefs();
+if (shouldApplyLowPowerLimit()) {
+applyLowPowerToCommonProduct();
+applyLowPowerLimitsToTrackedControllers();
+startContinuousTimer();
 }
+});
 }
-
-static void onPuppetEvent(CFNotificationCenterRef center, void *observer, CFNotificationName name, const void *object, CFDictionaryRef userInfo) {
-executePuppetEvent();
 }
 
 static void onPowerModeChanged(CFNotificationCenterRef center, void *observer, CFNotificationName name, const void *object, CFDictionaryRef userInfo) {
 loadPrefs();
 applyPowerModeToRuntime(NO);
-// Powercuff: 功率模式切换时同步应用/关闭热模拟
-if (isLowPowerMode() && g_commonProduct) {
-NSString *pcLevel = powercuffReadLevel();
-if (pcLevel) {
-powercuffApply(g_commonProduct, pcLevel);
-CPUthermalDebugLog(@"[CPUthermal][Powercuff] 稳帧降温模式已同步热模拟: %@", pcLevel);
-} else {
-CPUthermalDebugLog(@"[CPUthermal][Powercuff] 稳帧降温模式但 powercuff 未启用");
-}
-} else if (g_commonProduct) {
-// 切换到防温控模式 — 如果不关闭热模拟，initProduct 那边已经重置为 nominal 了
-}
-NSLog(@"[CPUthermal] 功率模式已切换: %@", isLowPowerMode() ? S("稳帧降温") : S("极限防温控"));
+scheduleLowPowerReapplyBurst();
+NSLog(@"[CPUthermal] 功率模式已切换: %@", isLowPowerMode() ? S("低功耗") : S("解除温控"));
 }
 
 static void onSettingsChanged(CFNotificationCenterRef center, void *observer, CFNotificationName name, const void *object, CFDictionaryRef userInfo) {
 loadPrefs();
 if (g_enabled) {
 applyPowerModeToRuntime(NO);
+scheduleLowPowerReapplyBurst();
 } else {
 stopContinuousTimer();
 }
@@ -2022,15 +1976,9 @@ NSLog(@"[CPUthermal] 温控防护已激活 — 安全阀:%d°C CPU性能:%d 亮�
 g_cpuProtection, g_brightnessProtection,
 g_suppressThermalNotifications, (int)kContinuousTimerIntervalMs);
 
-// 注意: 配置仅在进程启动时加载一次
-// 修改设置后需重启 thermalmonitord 才生效
-
-// 模拟热级别监听（独立功能，不影响配置重载）
+// 设置通知会即时重载并补写当前功率模式；重启 thermalmonitord 作为兜底。
 CFNotificationCenterRef c = CFNotificationCenterGetDarwinNotifyCenter();
 if (c) {
-CFNotificationCenterAddObserver(c, NULL, onPuppetEvent,
-(__bridge CFStringRef)S("com.huayuarc.CPUthermal.puppet"),
-NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 CFNotificationCenterAddObserver(c, NULL, onSettingsChanged,
 (__bridge CFStringRef)S(kCPUthermalSettingsChangedNotifC),
 NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
