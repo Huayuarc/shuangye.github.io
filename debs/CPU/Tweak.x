@@ -251,7 +251,6 @@ static void loadPrefs(void);
 static void applyCurrentPowerModeToRuntime(void);
 static void applyPowerModeToRuntime(BOOL respectBootGuard);
 static void scheduleDeferredRuntimeApply(double delay);
-static NSNumber *protectedDisplayRefreshNumberForKey(NSString *key, NSNumber *originalNumber);
 
 static NSString *controllerKey(id controller, const char *name) {
 return [NSString stringWithFormat:S("%p:%s"), controller, name];
@@ -493,7 +492,7 @@ if ([controller respondsToSelector:@selector(updateGPU)]) {
 if ([controller respondsToSelector:@selector(updatePackage)]) {
 ((void (*)(id, SEL))objc_msgSend)(controller, @selector(updatePackage));
 }
-NSLog(@"[CPUthermal] 已主动下发低功耗 CPU/GPU 限制: %lld-%dMHz(level:%d ceiling:%d, fps>=%lld) controller:%@", kLowPowerMinFrequencyMHz, lowPowerTargetValue(), lowPowerCPULevelValue(), lowPowerPowerCeilingValue(), kMinimumDisplayRefreshRateHz, controller);
+NSLog(@"[CPUthermal] 已主动下发低功耗 CPU/GPU 限制: %lld-%dMHz(level:%d ceiling:%d) controller:%@", kLowPowerMinFrequencyMHz, lowPowerTargetValue(), lowPowerCPULevelValue(), lowPowerPowerCeilingValue(), controller);
 } @catch (NSException *exception) {
 NSLog(@"[CPUthermal] 下发低功耗 CPU 限制失败: %@", exception);
 } @finally {
@@ -754,8 +753,6 @@ return [NSNumber numberWithLongLong:replacement];
 
 static id patchedLowPowerConfigObject(id object, NSString *keyHint) {
 if ([object isKindOfClass:[NSNumber class]]) {
-NSNumber *refreshRate = protectedDisplayRefreshNumberForKey(keyHint, (NSNumber *)object);
-if (refreshRate) return refreshRate;
 NSNumber *patched = lowPowerNumberForKey(keyHint, (NSNumber *)object);
 return patched ?: object;
 }
@@ -826,55 +823,6 @@ return [lower containsString:S("thermal")] ||
 [lower containsString:S("sunlight")] ||
 [lower containsString:S("pressure")] ||
 [lower containsString:S("hot")];
-}
-
-static BOOL keyMatchesDisplayRefreshRate(NSString *key) {
-if (!key) return NO;
-NSString *lower = [key lowercaseString];
-if ([lower containsString:S("enable")] ||
-[lower containsString:S("disable")] ||
-[lower containsString:S("supported")] ||
-[lower containsString:S("capability")] ||
-[lower containsString:S("active")] ||
-[lower containsString:S("token")] ||
-[lower containsString:S("state")] ||
-[lower containsString:S("duration")] ||
-[lower containsString:S("interval")] ||
-[lower containsString:S("period")]) {
-return NO;
-}
-BOOL isDisplayKey = [lower containsString:S("display")] ||
-[lower containsString:S("screen")] ||
-[lower containsString:S("panel")] ||
-[lower containsString:S("framebuffer")] ||
-[lower containsString:S("promotion")];
-BOOL isRefreshKey = [lower containsString:S("refresh")] ||
-[lower containsString:S("framerate")] ||
-[lower containsString:S("frame-rate")] ||
-[lower containsString:S("frame_rate")] ||
-[lower containsString:S("fps")];
-return isDisplayKey && isRefreshKey;
-}
-
-static CFTypeRef copyProtectedDisplayRefreshRateValueForKey(NSString *key, CFTypeRef originalValue) {
-if (!keyMatchesDisplayRefreshRate(key) || !originalValue || CFGetTypeID(originalValue) != CFNumberGetTypeID()) return NULL;
-double original = 0;
-if (!CFNumberGetValue((CFNumberRef)originalValue, kCFNumberDoubleType, &original)) return NULL;
-if (original <= 1.0 || original >= (double)kMinimumDisplayRefreshRateHz) return NULL;
-
-if (CFNumberIsFloatType((CFNumberRef)originalValue)) {
-double replacement = (double)kMinimumDisplayRefreshRateHz;
-return CFNumberCreate(kCFAllocatorDefault, kCFNumberDoubleType, &replacement);
-}
-int64_t replacement = kMinimumDisplayRefreshRateHz;
-return CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &replacement);
-}
-
-static NSNumber *protectedDisplayRefreshNumberForKey(NSString *key, NSNumber *originalNumber) {
-if (!keyMatchesDisplayRefreshRate(key) || !originalNumber) return nil;
-double original = [originalNumber doubleValue];
-if (original <= 1.0 || original >= (double)kMinimumDisplayRefreshRateHz) return nil;
-return [NSNumber numberWithLongLong:kMinimumDisplayRefreshRateHz];
 }
 
 static BOOL keyLooksChargingRelated(NSString *key) {
@@ -1029,14 +977,6 @@ return orig_IOServiceSetProperty(service, key, value);
 }
 
 NSString *ks = (__bridge NSString *)key;
-if (g_cpuProtection) {
-CFTypeRef refreshReplacement = copyProtectedDisplayRefreshRateValueForKey(ks, value);
-if (refreshReplacement) {
-kern_return_t ret = orig_IOServiceSetProperty(service, key, refreshReplacement);
-CFRelease(refreshReplacement);
-return ret;
-}
-}
 if (g_cpuProtection && !g_restoringFullPower && shouldBlockCPUProperty(ks)) {
 if (isFullPowerMode()) {
 // 解除温控模式: 放行 IOKit 写入。
