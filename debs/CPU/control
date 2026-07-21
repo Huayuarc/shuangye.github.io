@@ -1,7 +1,7 @@
 Package: com.huayuarc.cputhermal
 Name: CPU 去温控
 Depends: mobilesubstrate (>= 0.9.5000), preferenceloader, com.opa334.ccsupport
-Version: 3.0.5
+Version: 3.0.6
 Architecture: iphoneos-arm
 Description: CPU 温控管理 — 默认解除温控 / 2016MHz低功耗
 Maintainer: YAS
