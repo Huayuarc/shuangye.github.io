@@ -20,6 +20,9 @@ static const char *kCPUthermalSettingsChangedNotifC = "com.huayuarc.CPUthermal/s
 static const char *kCPUthermalPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeChanged";
 static const char *kCPUthermalDisableHotInPocketKeyC = "disableHotInPocket";
 static const char *kCPUthermalLockSunlightExposureKeyC = "lockSunlightExposure";
+static const char *kCPUthermalLowPowerModeC = "lowPower";
+static const char *kCPUthermalFullPowerModeC = "fullPower";
+static const char *kCPUthermalDefaultPowerModeC = "fullPower";
 static const NSInteger kCPUthermalDefaultLowPowerFrequencyMHz = 2016;
 static const NSInteger kCPUthermalDefaultMaxPCoreFrequencyMHz = 3240;
 
@@ -42,6 +45,20 @@ static inline NSInteger CPUthermalNativeMaxPCoreFrequencyMHzForHardware(NSString
     }
 
     // 型号.txt: hardwareModel -> 性能大核最高主频(MHz)
+    if ([hardware isEqualToString:S("iPhone10,1")] ||
+        [hardware isEqualToString:S("iPhone10,2")] ||
+        [hardware isEqualToString:S("iPhone10,3")] ||
+        [hardware isEqualToString:S("iPhone10,4")] ||
+        [hardware isEqualToString:S("iPhone10,5")] ||
+        [hardware isEqualToString:S("iPhone10,6")]) {
+        return 2390;
+    }
+    if ([hardware isEqualToString:S("iPhone11,2")] ||
+        [hardware isEqualToString:S("iPhone11,4")] ||
+        [hardware isEqualToString:S("iPhone11,6")] ||
+        [hardware isEqualToString:S("iPhone11,8")]) {
+        return 2490;
+    }
     if ([hardware isEqualToString:S("iPhone12,1")] ||
         [hardware isEqualToString:S("iPhone12,3")] ||
         [hardware isEqualToString:S("iPhone12,5")]) {

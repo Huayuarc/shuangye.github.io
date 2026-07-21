@@ -46,8 +46,6 @@ return d;
 }
 
 - (void)savePrefs:(NSMutableDictionary *)prefs {
-[prefs removeObjectForKey:S("powercuffEnabled")];
-[prefs removeObjectForKey:S("powercuffLevel")];
 CPUthermalWritePrefs(prefs);
 notify_post(kCPUthermalSettingsChangedNotifC);
 }
@@ -63,11 +61,11 @@ CPUthermalSpawnRootDetached(toolPath, args);
 - (NSString *)powerModeValue {
 id value = [self prefs][S("powerMode")];
 if ([value isKindOfClass:[NSString class]]) return value;
-return S("lowPower");
+return S(kCPUthermalDefaultPowerModeC);
 }
 
 - (NSString *)powerModeTitle:(NSString *)mode {
-if ([mode isEqualToString:S("lowPower")]) return S("低功耗");
+if ([mode isEqualToString:S(kCPUthermalLowPowerModeC)]) return S("低功耗");
 return S("解除温控");
 }
 
@@ -101,7 +99,7 @@ prefs[S(kCPUthermalDeviceLockKeyC)] = chipKey;
 } else {
 [prefs removeObjectForKey:S(kCPUthermalDeviceLockKeyC)];
 }
-prefs[S("powerMode")] = S("lowPower");
+
 [self savePrefs:prefs];
 notify_post(kCPUthermalPowerModeChangedNotifC);
 [self restartThermalmonitord];
@@ -150,7 +148,7 @@ popover.permittedArrowDirections = 0;
 
 - (void)savePowerMode:(NSString *)mode {
 NSMutableDictionary *prefs = [self prefs];
-prefs[S("powerMode")] = mode ?: S("lowPower");
+prefs[S("powerMode")] = mode ?: S(kCPUthermalDefaultPowerModeC);
 prefs[S("enabled")] = [NSNumber numberWithBool:YES];
 [self savePrefs:prefs];
 notify_post(kCPUthermalPowerModeChangedNotifC);
@@ -223,19 +221,19 @@ return;
 - (void)showPowerModePicker {
 UIAlertController *alert = [UIAlertController
 alertControllerWithTitle:S("功率模式")
-message:S("低功耗 = 所有机型统一限制 CPU 最高 2016MHz 并限制 GPU 峰值，减少发热后卡顿\n解除温控 = 性能优先，可能明显发热，仅短时间使用")
+message:S("解除温控 = 默认模式，性能优先，可能明显发热，仅短时间使用\n低功耗 = 原生频率高于3000MHz默认2016MHz，否则默认1380MHz，并限制GPU峰值")
 preferredStyle:UIAlertControllerStyleActionSheet];
 
 NSString *currentMode = [self powerModeValue];
 UIAlertAction *low = [UIAlertAction actionWithTitle:S("低功耗")
 style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
-[self savePowerMode:S("lowPower")];
+[self savePowerMode:S(kCPUthermalLowPowerModeC)];
 }];
 UIAlertAction *full = [UIAlertAction actionWithTitle:S("解除温控")
 style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
-[self savePowerMode:S("fullPower")];
+[self savePowerMode:S(kCPUthermalFullPowerModeC)];
 }];
-if ([currentMode isEqualToString:S("lowPower")]) {
+if ([currentMode isEqualToString:S(kCPUthermalLowPowerModeC)]) {
 [low setValue:@YES forKey:S("checked")];
 } else {
 [full setValue:@YES forKey:S("checked")];
@@ -394,7 +392,7 @@ PSSpecifier *master = [self switchSpecifier:S("启用 CPU 去温控") key:S("ena
 // ===================== 第2组: 功率模式 =====================
 group = [PSSpecifier emptyGroupSpecifier];
 [group setProperty:S("功率模式") forKey:S("label")];
-[group setProperty:S("默认低功耗，优先降低发热和长期卡顿；解除温控会提高功耗和温度，仅建议短时间测试。") forKey:S("footerText")];
+[group setProperty:S("默认解除温控，优先避免降频；低功耗按原生频率分档限频：高于3000MHz用2016MHz，否则用1380MHz。") forKey:S("footerText")];
 [specs addObject:group];
 
 [specs addObject:[self powerModeSpecifier]];
@@ -402,7 +400,7 @@ group = [PSSpecifier emptyGroupSpecifier];
 // ===================== 第3组: CPU频率锁定 =====================
 group = [PSSpecifier emptyGroupSpecifier];
 [group setProperty:S("CPU频率锁定") forKey:S("label")];
-[group setProperty:S("低功耗模式下所有设备统一默认 2016MHz；选择芯片代际仅作为解除温控模式的原生高频参考。") forKey:S("footerText")];
+[group setProperty:S("低功耗模式按当前机型原生频率分档：高于3000MHz目标2016MHz，否则目标1380MHz；选择芯片代际可修正识别结果。") forKey:S("footerText")];
 [specs addObject:group];
 
 [specs addObject:[self deviceLockSpecifier]];

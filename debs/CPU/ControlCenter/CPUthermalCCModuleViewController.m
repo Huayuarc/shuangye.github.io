@@ -61,7 +61,7 @@ static const CGFloat kCPUthermalCCSubtitleFontSize = 11.0;
     if ([mode isKindOfClass:[NSString class]] && [mode length] > 0) {
         return mode;
     }
-    return S("lowPower"); // 默认低功耗
+    return S(kCPUthermalDefaultPowerModeC); // 默认解除温控
 }
 
 - (BOOL)isTweakEnabled {
@@ -86,7 +86,7 @@ static const CGFloat kCPUthermalCCSubtitleFontSize = 11.0;
 - (void)savePowerMode:(NSString *)mode {
     NSMutableDictionary *prefs = CPUthermalReadMutablePrefs();
     if (!prefs) prefs = [NSMutableDictionary dictionary];
-    prefs[S("powerMode")] = mode ?: S("lowPower");
+    prefs[S("powerMode")] = mode ?: S(kCPUthermalDefaultPowerModeC);
     prefs[S("enabled")] = [NSNumber numberWithBool:YES];
 
     CPUthermalWritePrefs(prefs);
@@ -103,15 +103,15 @@ static const CGFloat kCPUthermalCCSubtitleFontSize = 11.0;
 - (instancetype)init {
     self = [super init];
     if (self) {
-        _modeValues = @[S("lowPower"), S("fullPower")];
+        _modeValues = @[S(kCPUthermalLowPowerModeC), S(kCPUthermalFullPowerModeC)];
         _modeTitles = @[S("低功耗"), S("解除温控")];
-        _modeSubtitles = @[S("默认 2016MHz"), S("短时满性能")];
+        _modeSubtitles = @[S("2016/1380MHz"), S("默认满性能")];
 
         // 读取当前设置的模式
         NSString *currentMode = [self currentPowerMode];
         _selectedIndex = [_modeValues indexOfObject:currentMode];
         if (_selectedIndex == NSNotFound) {
-            _selectedIndex = 0; // 默认选中"低功耗"
+            _selectedIndex = [_modeValues indexOfObject:S(kCPUthermalDefaultPowerModeC)];
         }
     }
     return self;
@@ -217,7 +217,7 @@ static const CGFloat kCPUthermalCCSubtitleFontSize = 11.0;
 
 - (void)setupModeButtons {
     NSString *currentMode = [self currentPowerMode];
-    BOOL isFullPower = [currentMode isEqualToString:S("fullPower")];
+    BOOL isFullPower = [currentMode isEqualToString:S(kCPUthermalFullPowerModeC)];
     NSUInteger itemCount = MIN(self.modeValues.count, self.modeTitles.count);
 
     NSMutableArray *items = [NSMutableArray arrayWithCapacity:itemCount];
@@ -424,7 +424,7 @@ static const CGFloat kCPUthermalCCSubtitleFontSize = 11.0;
     NSString *currentMode = [self currentPowerMode];
     NSInteger newIndex = [self.modeValues indexOfObject:currentMode];
     if (newIndex == NSNotFound) {
-        newIndex = 0;
+        newIndex = [self.modeValues indexOfObject:S(kCPUthermalDefaultPowerModeC)];
     }
     _selectedIndex = newIndex;
 }
@@ -494,7 +494,7 @@ static const CGFloat kCPUthermalCCSubtitleFontSize = 11.0;
 
     if ([self respondsToSelector:@selector(setSelectedGlyphColor:)]) {
         NSString *currentMode = [self currentPowerMode];
-        UIColor *glyphColor = [currentMode isEqualToString:S("lowPower")] ? [UIColor systemGreenColor] : [UIColor systemOrangeColor];
+        UIColor *glyphColor = [currentMode isEqualToString:S(kCPUthermalLowPowerModeC)] ? [UIColor systemGreenColor] : [UIColor systemOrangeColor];
         [self setSelectedGlyphColor:glyphColor];
     }
 }

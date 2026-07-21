@@ -147,7 +147,7 @@
 // ============================================================================
 // 配置
 // ============================================================================
-static BOOL g_enabled               = YES; // 总开关（默认开启，安装后默认进入低功耗）
+static BOOL g_enabled               = YES; // 总开关（默认开启，安装后默认进入解除温控）
 static BOOL g_cpuProtection         = NO; // CPU 性能保护(降频/决策树/控制力度/配置表)
 static BOOL g_brightnessProtection  = NO; // 屏幕亮度保护(降亮度/背光配置)
 static BOOL g_suppressThermalNotifications = NO; // 默认屏蔽误触发高温通知
@@ -163,10 +163,6 @@ NSLogv(format, args);
 va_end(args);
 }
 
-BOOL CPUthermalDebugLoggingEnabled(void) {
-return g_debugLogging;
-}
-
 typedef enum {
 CPUthermalPowerModeFull = 0,
 CPUthermalPowerModeLow  = 1
@@ -176,11 +172,14 @@ static CPUthermalPowerMode g_powerMode = CPUthermalPowerModeFull;
 
 // CPU频率锁定 — 手动选择芯片代际锁定频率(MHz)，0=无锁定
 static NSInteger g_deviceLockMHz = 0;
+static int g_lowPowerTargetMHz = 0;
 
 // 低功耗模式 CPU 频率限制（MHz）
-// 所有设备与机型默认统一限制到 2016MHz；只限制上限，不强制抬高最低频。
-static const int64_t kLowPowerMinFrequencyMHz = 600;
-static const int64_t kLowPowerMaxFrequencyMHz = 2016;
+// 原生大核频率 >3000MHz 时默认 2016MHz，否则默认 1380MHz。
+static const int64_t kLowPowerMinFrequencyMHz = 900;
+static const int64_t kLowPowerNativeThresholdMHz = 3000;
+static const int64_t kLowPowerHighNativeTargetMHz = 2016;
+static const int64_t kLowPowerLowNativeTargetMHz = 1380;
 
 // 温度安全阀 — 超过此值不拦截任何保护
 // 100°C 后优先交还系统温控，并始终放行 0x60-0x6F 紧急保护。
@@ -201,7 +200,7 @@ static BOOL g_deferredRuntimeApplyScheduled = NO;
 // 仅低功耗模式需要低频补写；防温控模式不再周期性拉满功率，避免越刷越热。
 // ============================================================================
 static dispatch_source_t g_continuousTimer = NULL;
-static const int64_t kContinuousTimerIntervalMs = 1500;
+static const int64_t kContinuousTimerIntervalMs = 5000;
 
 static void stopContinuousTimer(void);
 
@@ -293,16 +292,28 @@ static BOOL shouldApplyLowPowerLimit(void) {
 return g_enabled && g_cpuProtection && isLowPowerMode();
 }
 
+static int computeLowPowerTargetValue(NSInteger lockedFrequencyMHz) {
+int64_t nativeFrequency = lockedFrequencyMHz > 0 ? (int64_t)lockedFrequencyMHz : (int64_t)CPUthermalNativeMaxPCoreFrequencyMHz();
+if (nativeFrequency <= 0) return (int)kCPUthermalDefaultLowPowerFrequencyMHz;
+
+int64_t target = nativeFrequency > kLowPowerNativeThresholdMHz
+? kLowPowerHighNativeTargetMHz
+: kLowPowerLowNativeTargetMHz;
+return (int)MIN(target, nativeFrequency);
+}
+
 static int lowPowerTargetValue(void) {
-return (int)kLowPowerMaxFrequencyMHz;
+if (g_lowPowerTargetMHz > 0) return g_lowPowerTargetMHz;
+g_lowPowerTargetMHz = computeLowPowerTargetValue(g_deviceLockMHz);
+return g_lowPowerTargetMHz;
 }
 
 static int lowPowerPowerCeilingValue(void) {
-return 35;
+return 80;
 }
 
 static int lowPowerGPUPowerCeilingValue(void) {
-return 65;
+return 85;
 }
 
 static int lowPowerPackagePowerCeilingValue(void) {
@@ -491,12 +502,6 @@ static void applyLowPowerLimitToController(id controller) {
 if (!controller || !shouldApplyLowPowerLimit() || g_applyingLowPower) return;
 @try {
 g_applyingLowPower = YES;
-if ([controller respondsToSelector:@selector(setPowerSaveActive:)]) {
-((void (*)(id, SEL, BOOL))objc_msgSend)(controller, @selector(setPowerSaveActive:), YES);
-}
-if ([controller respondsToSelector:@selector(setPowerSaveToken:)]) {
-sendSetPowerSaveToken(controller, 1);
-}
 if ([controller respondsToSelector:@selector(setCPULowPowerTarget:)]) {
 ((void (*)(id, SEL, int))objc_msgSend)(controller, @selector(setCPULowPowerTarget:), lowPowerTargetValue());
 }
@@ -508,9 +513,6 @@ if ([controller respondsToSelector:@selector(setCPUPowerCeiling:fromDecisionSour
 }
 if ([controller respondsToSelector:@selector(setCPUPowerZoneTarget:)]) {
 ((void (*)(id, SEL, int))objc_msgSend)(controller, @selector(setCPUPowerZoneTarget:), lowPowerTargetValue());
-}
-if ([controller respondsToSelector:@selector(setPackageLowPowerTarget)]) {
-((void (*)(id, SEL))objc_msgSend)(controller, @selector(setPackageLowPowerTarget));
 }
 if ([controller respondsToSelector:@selector(setMaxGPUPowerTarget:useLegacyPath:setProperty:)]) {
 sendSetMaxGPUPowerTarget(controller, lowPowerGPUPowerCeilingValue(), NO);
@@ -533,7 +535,7 @@ if ([controller respondsToSelector:@selector(updateGPU)]) {
 if ([controller respondsToSelector:@selector(updatePackage)]) {
 ((void (*)(id, SEL))objc_msgSend)(controller, @selector(updatePackage));
 }
-CPUthermalDebugLog(@"[CPUthermal] 已主动下发低功耗限制: CPU %lld-%lldMHz GPU ceiling:%d controller:%@", kLowPowerMinFrequencyMHz, kLowPowerMaxFrequencyMHz, lowPowerGPUPowerCeilingValue(), controller);
+CPUthermalDebugLog(@"[CPUthermal] 已主动下发低功耗限制: CPU %lld-%dMHz GPU ceiling:%d controller:%@", kLowPowerMinFrequencyMHz, lowPowerTargetValue(), lowPowerGPUPowerCeilingValue(), controller);
 } @catch (NSException *exception) {
 NSLog(@"[CPUthermal] 下发低功耗 CPU 限制失败: %@", exception);
 } @finally {
@@ -729,7 +731,7 @@ return mhz;
 }
 
 static int64_t lowPowerTargetFrequencyValue(int64_t originalValue) {
-return frequencyValueFromMHz(kLowPowerMaxFrequencyMHz, originalValue);
+return frequencyValueFromMHz((int64_t)lowPowerTargetValue(), originalValue);
 }
 
 static CFTypeRef copyLowPowerFrequencyValueForKey(NSString *key, CFTypeRef originalValue) {
@@ -740,7 +742,7 @@ BOOL isMinKey = [key localizedCaseInsensitiveContainsString:S("min")] ||
 BOOL isFrequencyKey = [lower containsString:S("freq")] ||
 [lower containsString:S("frequency")];
 
-int64_t original = kLowPowerMaxFrequencyMHz;
+int64_t original = (int64_t)lowPowerTargetValue();
 if (originalValue && CFGetTypeID(originalValue) == CFNumberGetTypeID()) {
 CFNumberGetValue((CFNumberRef)originalValue, kCFNumberSInt64Type, &original);
 } else if (isMinKey && isFrequencyKey) {
@@ -761,7 +763,7 @@ BOOL isMinKey = [key localizedCaseInsensitiveContainsString:S("min")] ||
 BOOL isFrequencyKey = [lower containsString:S("freq")] ||
 [lower containsString:S("frequency")];
 
-int64_t original = originalNumber ? [originalNumber longLongValue] : kLowPowerMaxFrequencyMHz;
+int64_t original = originalNumber ? [originalNumber longLongValue] : (int64_t)lowPowerTargetValue();
 int64_t replacement = (isMinKey && isFrequencyKey)
 ? frequencyValueFromMHz(kLowPowerMinFrequencyMHz, original)
 : lowPowerTargetFrequencyValue(original);
@@ -907,12 +909,13 @@ NSDictionary *d = readPrefsDictionary() ?: [NSDictionary dictionary];
 	NSLog(@"[CPUthermal] OSThermalStatus 写入失败: %d", thermalPrefsResult);
 	}
 
-NSString *mode = d[S("powerMode")] ?: S("lowPower");
-g_powerMode = [mode isEqualToString:S("lowPower")] ? CPUthermalPowerModeLow : CPUthermalPowerModeFull;
+NSString *mode = d[S("powerMode")] ?: S(kCPUthermalDefaultPowerModeC);
+g_powerMode = [mode isEqualToString:S(kCPUthermalLowPowerModeC)] ? CPUthermalPowerModeLow : CPUthermalPowerModeFull;
 
 // CPU频率锁定
 NSString *chipKey = d[S(kCPUthermalDeviceLockKeyC)];
 g_deviceLockMHz = CPUthermalFrequencyForChipKey(chipKey);
+g_lowPowerTargetMHz = computeLowPowerTargetValue(g_deviceLockMHz);
 }
 }
 
@@ -1141,9 +1144,6 @@ return res;
 if (g_restoringFullPower) {
 return %orig;
 }
-if (shouldApplyLowPowerLimit()) {
-return YES;
-}
 if (shouldApplyFullCPUProtection()) {
 return NO;
 }
@@ -1153,10 +1153,6 @@ return %orig;
 - (void)setPowerSaveActive:(BOOL)active {
 if (g_restoringFullPower) {
 %orig(active);
-return;
-}
-if (shouldApplyLowPowerLimit()) {
-%orig(YES);
 return;
 }
 if (shouldApplyFullCPUProtection()) {
@@ -1311,10 +1307,6 @@ return;
 - (void)setPowerSaveToken:(int)token {
 if (g_restoringFullPower) {
 %orig(token);
-return;
-}
-if (shouldApplyLowPowerLimit()) {
-%orig(1);
 return;
 }
 if (shouldApplyFullCPUProtection()) {
@@ -1542,10 +1534,6 @@ if (g_restoringFullPower) {
 %orig;
 return;
 }
-if (shouldApplyLowPowerLimit()) {
-applyLowPowerLimitToController(self);
-return;
-}
 if (shouldApplyFullCPUProtection()) {
 return;
 }
@@ -1557,10 +1545,6 @@ if (g_restoringFullPower) {
 %orig;
 return;
 }
-if (shouldApplyLowPowerLimit()) {
-applyLowPowerLimitToController(self);
-return;
-}
 if (shouldApplyFullCPUProtection()) {
 return;
 }
@@ -1570,10 +1554,6 @@ return;
 - (void)computePowerTarget {
 if (g_restoringFullPower) {
 %orig;
-return;
-}
-if (shouldApplyLowPowerLimit()) {
-applyLowPowerLimitToController(self);
 return;
 }
 if (shouldApplyFullCPUProtection()) {
@@ -1762,7 +1742,7 @@ if (powerSaveParams) {
 [powerSaveParams setObject:[NSNumber numberWithInt:lowPowerTargetValue()] forKey:S("CPULowPowerTarget")];
 [lowPowerConfig setObject:powerSaveParams forKey:S("powerSaveParams")];
 }
-CPUthermalDebugLog(@"[CPUthermal] 已应用低功耗配置: %@ target:%d (%lld-%lldMHz)", key, lowPowerTargetValue(), kLowPowerMinFrequencyMHz, kLowPowerMaxFrequencyMHz);
+CPUthermalDebugLog(@"[CPUthermal] 已应用低功耗配置: %@ target:%d (%lld-%dMHz)", key, lowPowerTargetValue(), kLowPowerMinFrequencyMHz, lowPowerTargetValue());
 return [lowPowerConfig copy];
 }
 

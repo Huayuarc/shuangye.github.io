@@ -1,4 +1,4 @@
-THEOS ?= /rootfs/var/mobile/theos
+THEOS ?= /var/mobile/theos
 export THEOS
 export THEOS_PACKAGE_SCHEME = rootless
 export ARCHS = arm64 arm64e
