@@ -61,7 +61,7 @@ static const CGFloat kCPUthermalCCSubtitleFontSize = 11.0;
     if ([mode isKindOfClass:[NSString class]] && [mode length] > 0) {
         return mode;
     }
-    return S("fullPower"); // 默认防温控
+    return S("lowPower"); // 默认稳帧降温
 }
 
 - (BOOL)isTweakEnabled {
@@ -83,7 +83,7 @@ static const CGFloat kCPUthermalCCSubtitleFontSize = 11.0;
 - (void)savePowerMode:(NSString *)mode {
     NSMutableDictionary *prefs = CPUthermalReadMutablePrefs();
     if (!prefs) prefs = [NSMutableDictionary dictionary];
-    prefs[S("powerMode")] = mode ?: S("fullPower");
+    prefs[S("powerMode")] = mode ?: S("lowPower");
     prefs[S("enabled")] = [NSNumber numberWithBool:YES];
 
     CPUthermalWritePrefs(prefs);
@@ -100,14 +100,14 @@ static const CGFloat kCPUthermalCCSubtitleFontSize = 11.0;
     self = [super init];
     if (self) {
         _modeValues = @[S("lowPower"), S("fullPower")];
-        _modeTitles = @[S("低功耗"), S("防温控")];
-        _modeSubtitles = @[S("限制最高频率"), S("防止温控降频")];
+        _modeTitles = @[S("稳帧降温"), S("极限防温控")];
+        _modeSubtitles = @[S("更凉更稳"), S("短时满性能")];
 
         // 读取当前设置的模式
         NSString *currentMode = [self currentPowerMode];
         _selectedIndex = [_modeValues indexOfObject:currentMode];
         if (_selectedIndex == NSNotFound) {
-            _selectedIndex = 1; // 默认选中"防温控"
+            _selectedIndex = 0; // 默认选中"稳帧降温"
         }
     }
     return self;
@@ -420,7 +420,7 @@ static const CGFloat kCPUthermalCCSubtitleFontSize = 11.0;
     NSString *currentMode = [self currentPowerMode];
     NSInteger newIndex = [self.modeValues indexOfObject:currentMode];
     if (newIndex == NSNotFound) {
-        newIndex = 1;
+        newIndex = 0;
     }
     _selectedIndex = newIndex;
 }
