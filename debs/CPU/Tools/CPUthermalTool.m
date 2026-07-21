@@ -30,7 +30,7 @@ static int restartThermalmonitord(void) {
 }
 
 static int restartThermalmonitordDelayed(void) {
-    [NSThread sleepForTimeInterval:0.35];
+    [NSThread sleepForTimeInterval:2.0];
     return restartThermalmonitord();
 }
 

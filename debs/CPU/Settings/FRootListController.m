@@ -61,18 +61,17 @@ CPUthermalSpawnRootDetached(toolPath, args);
 - (NSString *)powerModeValue {
 id value = [self prefs][S("powerMode")];
 if ([value isKindOfClass:[NSString class]]) return value;
-return S(kCPUthermalDefaultPowerModeC);
+return S("fullPower");
 }
 
 - (NSString *)powerModeTitle:(NSString *)mode {
-if ([mode isEqualToString:S(kCPUthermalLowPowerModeC)]) return S("低功耗");
+if ([mode isEqualToString:S("lowPower")]) return S("低功耗");
 return S("解除温控");
 }
 
 - (void)restartThermalmonitord {
 CPUthermalRestartThermalmonitordSoon();
 }
-
 
 #pragma mark - CPU频率锁定
 
@@ -99,7 +98,7 @@ prefs[S(kCPUthermalDeviceLockKeyC)] = chipKey;
 } else {
 [prefs removeObjectForKey:S(kCPUthermalDeviceLockKeyC)];
 }
-
+prefs[S("powerMode")] = S("fullPower");
 [self savePrefs:prefs];
 notify_post(kCPUthermalPowerModeChangedNotifC);
 [self restartThermalmonitord];
@@ -111,7 +110,7 @@ specifier.name = [self deviceLockLabel];
 - (void)showDeviceLockPicker {
 UIAlertController *alert = [UIAlertController
 alertControllerWithTitle:S("CPU频率锁定")
-message:S("选择芯片代际后，低功耗模式会把 CPU 上限限制在更凉的范围内；解除温控模式才会尝试维持原生高频。")
+message:S("选择芯片代际后，CPU最高频率将被锁定为对应机型原生频率。\n锁定后自动切换为防温控模式。")
 preferredStyle:UIAlertControllerStyleActionSheet];
 
 NSString *currentKey = [self deviceLockValue];
@@ -148,9 +147,7 @@ popover.permittedArrowDirections = 0;
 
 - (void)savePowerMode:(NSString *)mode {
 NSMutableDictionary *prefs = [self prefs];
-prefs[S("powerMode")] = mode ?: S(kCPUthermalDefaultPowerModeC);
-prefs[S("enabled")] = [NSNumber numberWithBool:YES];
-prefs[S("cpuProtection")] = [NSNumber numberWithBool:YES];
+prefs[S("powerMode")] = mode ?: S("fullPower");
 [self savePrefs:prefs];
 notify_post(kCPUthermalPowerModeChangedNotifC);
 [self restartThermalmonitord];
@@ -170,9 +167,6 @@ if ([key isEqualToString:S("enabled")] ||
 [key isEqualToString:S(kCPUthermalLockSunlightExposureKeyC)]) {
 [self applyThermalStatusOverrides];
 }
-if ([key isEqualToString:S("enabled")]) {
-[self restartThermalmonitord];
-}
 }
 
 - (id)readPreferenceValue:(PSSpecifier *)spec {
@@ -180,7 +174,7 @@ NSString *key = [spec propertyForKey:S("key")];
 if (!key) return nil;
 id val = [self prefs][key];
 if (val) return val;
-if ([key isEqualToString:S("enabled")]) return [NSNumber numberWithBool:YES];
+if ([key isEqualToString:S("enabled")]) return [NSNumber numberWithBool:NO];
 if ([key isEqualToString:S(kCPUthermalDisableHotInPocketKeyC)] ||
 [key isEqualToString:S(kCPUthermalLockSunlightExposureKeyC)]) {
 return [NSNumber numberWithBool:NO];
@@ -222,19 +216,19 @@ return;
 - (void)showPowerModePicker {
 UIAlertController *alert = [UIAlertController
 alertControllerWithTitle:S("功率模式")
-message:S("解除温控 = 默认模式，性能优先，可能明显发热。\n低功耗 = 固定2016MHz，屏幕不低于60Hz，并限制GPU峰值")
+message:S("防温控 = 性能优先，尽量保持满频满帧\n低功耗 = 限制 CPU 最高 2016MHz，更凉更省电")
 preferredStyle:UIAlertControllerStyleActionSheet];
 
 NSString *currentMode = [self powerModeValue];
 UIAlertAction *low = [UIAlertAction actionWithTitle:S("低功耗")
 style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
-[self savePowerMode:S(kCPUthermalLowPowerModeC)];
+[self savePowerMode:S("lowPower")];
 }];
-UIAlertAction *full = [UIAlertAction actionWithTitle:S("解除温控")
+UIAlertAction *full = [UIAlertAction actionWithTitle:S("防温控")
 style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
-[self savePowerMode:S(kCPUthermalFullPowerModeC)];
+[self savePowerMode:S("fullPower")];
 }];
-if ([currentMode isEqualToString:S(kCPUthermalLowPowerModeC)]) {
+if ([currentMode isEqualToString:S("lowPower")]) {
 [low setValue:@YES forKey:S("checked")];
 } else {
 [full setValue:@YES forKey:S("checked")];
@@ -393,7 +387,7 @@ PSSpecifier *master = [self switchSpecifier:S("启用 CPU 去温控") key:S("ena
 // ===================== 第2组: 功率模式 =====================
 group = [PSSpecifier emptyGroupSpecifier];
 [group setProperty:S("功率模式") forKey:S("label")];
-[group setProperty:S("默认解除温控，优先避免降频；低功耗 = 固定2016MHz，屏幕不低于60Hz，并限制GPU峰值。") forKey:S("footerText")];
+[group setProperty:S("默认防温控，优先性能和帧率；仍保留 100°C 最后过热保护，并始终放行系统紧急保护。") forKey:S("footerText")];
 [specs addObject:group];
 
 [specs addObject:[self powerModeSpecifier]];
@@ -401,7 +395,7 @@ group = [PSSpecifier emptyGroupSpecifier];
 // ===================== 第3组: CPU频率锁定 =====================
 group = [PSSpecifier emptyGroupSpecifier];
 [group setProperty:S("CPU频率锁定") forKey:S("label")];
-[group setProperty:S("低功耗 = 固定2016MHz，屏幕不低于60Hz，并限制GPU峰值；选择芯片代际可修正识别结果。") forKey:S("footerText")];
+[group setProperty:S("默认无锁定（自动）。选择芯片代际后，CPU最高频率将被锁定为对应机型原生频率，阻止温控降频；选锁定时自动切换为防温控模式。") forKey:S("footerText")];
 [specs addObject:group];
 
 [specs addObject:[self deviceLockSpecifier]];

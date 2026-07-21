@@ -20,10 +20,9 @@ static const char *kCPUthermalSettingsChangedNotifC = "com.huayuarc.CPUthermal/s
 static const char *kCPUthermalPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeChanged";
 static const char *kCPUthermalDisableHotInPocketKeyC = "disableHotInPocket";
 static const char *kCPUthermalLockSunlightExposureKeyC = "lockSunlightExposure";
+static const char *kCPUthermalDefaultPowerModeC = "fullPower";
 static const char *kCPUthermalLowPowerModeC = "lowPower";
 static const char *kCPUthermalFullPowerModeC = "fullPower";
-static const char *kCPUthermalDefaultPowerModeC = "fullPower";
-static const NSInteger kCPUthermalDefaultLowPowerFrequencyMHz = 2016;
 static const NSInteger kCPUthermalDefaultMaxPCoreFrequencyMHz = 3240;
 
 static inline NSString *CPUthermalStringFromCPath(const char *path) {
@@ -45,20 +44,6 @@ static inline NSInteger CPUthermalNativeMaxPCoreFrequencyMHzForHardware(NSString
     }
 
     // 型号.txt: hardwareModel -> 性能大核最高主频(MHz)
-    if ([hardware isEqualToString:S("iPhone10,1")] ||
-        [hardware isEqualToString:S("iPhone10,2")] ||
-        [hardware isEqualToString:S("iPhone10,3")] ||
-        [hardware isEqualToString:S("iPhone10,4")] ||
-        [hardware isEqualToString:S("iPhone10,5")] ||
-        [hardware isEqualToString:S("iPhone10,6")]) {
-        return 2390;
-    }
-    if ([hardware isEqualToString:S("iPhone11,2")] ||
-        [hardware isEqualToString:S("iPhone11,4")] ||
-        [hardware isEqualToString:S("iPhone11,6")] ||
-        [hardware isEqualToString:S("iPhone11,8")]) {
-        return 2490;
-    }
     if ([hardware isEqualToString:S("iPhone12,1")] ||
         [hardware isEqualToString:S("iPhone12,3")] ||
         [hardware isEqualToString:S("iPhone12,5")]) {
@@ -110,15 +95,15 @@ static inline NSInteger CPUthermalFrequencyForChipKey(NSString *chipKey) {
     // A12 (iPhone XS / XS Max / XR)
     if ([chipKey isEqualToString:S("A12")]) return 2490;
     // A13 (iPhone 11 / 11 Pro / Pro Max)
-    if ([chipKey isEqualToString:S("A13")]) return 2650;
+    if ([chipKey isEqualToString:S("A13")]) return 2660;
     // A14 (iPhone 12 mini / 12 / 12 Pro / Pro Max)
-    if ([chipKey isEqualToString:S("A14")]) return 3090;
+    if ([chipKey isEqualToString:S("A14")]) return 3100;
     // A15 (iPhone 13 / 14 / 14+)
-    if ([chipKey isEqualToString:S("A15")]) return 3230;
+    if ([chipKey isEqualToString:S("A15")]) return 3240;
     // A16 (iPhone 14 Pro / 15 / 15+)
     if ([chipKey isEqualToString:S("A16")]) return 3460;
     // A17 Pro (iPhone 15 Pro / Pro Max)
-    if ([chipKey isEqualToString:S("A17Pro")]) return 3780;
+    if ([chipKey isEqualToString:S("A17Pro")]) return 3700;
     return 0;
 }
 
@@ -293,13 +278,13 @@ static inline void CPUthermalRestartThermalmonitordSoon(void) {
     NSString *toolPath = CPUthermalToolPath();
     if (toolPath.length > 0 && [[NSFileManager defaultManager] isExecutableFileAtPath:toolPath]) {
         char *args[] = {(char *)"CPUthermalTool", (char *)"restart-thermalmonitord-delayed", NULL};
-        CPUthermalSpawnRootDetached(toolPath, args);
+        CPUthermalSpawnDetached(toolPath, args);
         return;
     }
 
     NSString *killallPath = CPUthermalKillallPath();
     if (killallPath.length > 0) {
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.35 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
             CPUthermalRestartThermalmonitordNow();
         });
     }
