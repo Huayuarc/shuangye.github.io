@@ -167,11 +167,11 @@ static CPUthermalPowerMode g_powerMode = CPUthermalPowerModeFull;
 static NSInteger g_deviceLockMHz = 0;
 
 // 低功耗模式 CPU 频率限制（MHz）
-// 原生大核 > 3000MHz 的机型限制到 2016MHz，其余机型限制到 1380MHz。
+// 固定限制到 2016MHz，避免旧机型被压到 1380MHz 后滑动掉帧。
 static const int64_t kLowPowerMinFrequencyMHz = 600;
-static const int64_t kLowPowerBalancedFrequencyMHz = 1380;
-static const int64_t kLowPowerMaxFrequencyMHz = 2016;
-static const int64_t kLowPowerFastChipThresholdMHz = 3000;
+static const int64_t kLowPowerTargetFrequencyMHz = 2016;
+static const int kLowPowerPowerCeilingPercent = 70;
+static const int64_t kMinimumDisplayRefreshRateHz = 60;
 
 // 温度安全阀 — 超过此值不拦截任何保护
 // 100°C 后优先交还系统温控，并始终放行 0x60-0x6F 紧急保护。
@@ -252,6 +252,7 @@ static void loadPrefs(void);
 static void applyCurrentPowerModeToRuntime(void);
 static void applyPowerModeToRuntime(BOOL respectBootGuard);
 static void scheduleDeferredRuntimeApply(double delay);
+static NSNumber *protectedDisplayRefreshNumberForKey(NSString *key, NSNumber *originalNumber);
 
 static NSString *controllerKey(id controller, const char *name) {
 return [NSString stringWithFormat:S("%p:%s"), controller, name];
@@ -299,17 +300,15 @@ return (int)CPUthermalNativeMaxPCoreFrequencyMHz();
 }
 
 static int lowPowerTargetValue(void) {
-return lowPowerNativeFrequencyValue() > kLowPowerFastChipThresholdMHz
-? (int)kLowPowerMaxFrequencyMHz
-: (int)kLowPowerBalancedFrequencyMHz;
+return (int)kLowPowerTargetFrequencyMHz;
 }
 
 static int lowPowerPowerCeilingValue(void) {
-return 40;
+return kLowPowerPowerCeilingPercent;
 }
 
 static int lowPowerCPULevelValue(void) {
-return lowPowerTargetValue() <= kLowPowerBalancedFrequencyMHz ? 2 : 1;
+return 1;
 }
 
 static int lowPowerPowerFloorValue(void) {
@@ -453,12 +452,12 @@ static void applyLowPowerLimitToController(id controller) {
 if (!controller || !shouldApplyLowPowerLimit()) return;
 @try {
 g_applyingLowPower = YES;
-if ([controller respondsToSelector:@selector(setPowerSaveActive:)]) {
-((void (*)(id, SEL, BOOL))objc_msgSend)(controller, @selector(setPowerSaveActive:), YES);
-}
-if ([controller respondsToSelector:@selector(setPowerSaveToken:)]) {
-sendSetPowerSaveToken(controller, 1);
-}
+	if ([controller respondsToSelector:@selector(setPowerSaveActive:)]) {
+	((void (*)(id, SEL, BOOL))objc_msgSend)(controller, @selector(setPowerSaveActive:), NO);
+	}
+	if ([controller respondsToSelector:@selector(setPowerSaveToken:)]) {
+	sendSetPowerSaveToken(controller, 0);
+	}
 if ([controller respondsToSelector:@selector(setCPULowPowerTarget:)]) {
 ((void (*)(id, SEL, int))objc_msgSend)(controller, @selector(setCPULowPowerTarget:), lowPowerTargetValue());
 }
@@ -495,7 +494,7 @@ if ([controller respondsToSelector:@selector(updateGPU)]) {
 if ([controller respondsToSelector:@selector(updatePackage)]) {
 ((void (*)(id, SEL))objc_msgSend)(controller, @selector(updatePackage));
 }
-NSLog(@"[CPUthermal] 已主动下发低功耗 CPU/GPU 限制: %lld-%dMHz(level:%d ceiling:%d) controller:%@", kLowPowerMinFrequencyMHz, lowPowerTargetValue(), lowPowerCPULevelValue(), lowPowerPowerCeilingValue(), controller);
+NSLog(@"[CPUthermal] 已主动下发低功耗 CPU/GPU 限制: %lld-%dMHz(level:%d ceiling:%d, fps>=%lld) controller:%@", kLowPowerMinFrequencyMHz, lowPowerTargetValue(), lowPowerCPULevelValue(), lowPowerPowerCeilingValue(), kMinimumDisplayRefreshRateHz, controller);
 } @catch (NSException *exception) {
 NSLog(@"[CPUthermal] 下发低功耗 CPU 限制失败: %@", exception);
 } @finally {
@@ -753,6 +752,8 @@ return [NSNumber numberWithLongLong:replacement];
 
 static id patchedLowPowerConfigObject(id object, NSString *keyHint) {
 if ([object isKindOfClass:[NSNumber class]]) {
+NSNumber *refreshRate = protectedDisplayRefreshNumberForKey(keyHint, (NSNumber *)object);
+if (refreshRate) return refreshRate;
 NSNumber *patched = lowPowerNumberForKey(keyHint, (NSNumber *)object);
 return patched ?: object;
 }
@@ -823,6 +824,55 @@ return [lower containsString:S("thermal")] ||
 [lower containsString:S("sunlight")] ||
 [lower containsString:S("pressure")] ||
 [lower containsString:S("hot")];
+}
+
+static BOOL keyMatchesDisplayRefreshRate(NSString *key) {
+if (!key) return NO;
+NSString *lower = [key lowercaseString];
+if ([lower containsString:S("enable")] ||
+[lower containsString:S("disable")] ||
+[lower containsString:S("supported")] ||
+[lower containsString:S("capability")] ||
+[lower containsString:S("active")] ||
+[lower containsString:S("token")] ||
+[lower containsString:S("state")] ||
+[lower containsString:S("duration")] ||
+[lower containsString:S("interval")] ||
+[lower containsString:S("period")]) {
+return NO;
+}
+BOOL isDisplayKey = [lower containsString:S("display")] ||
+[lower containsString:S("screen")] ||
+[lower containsString:S("panel")] ||
+[lower containsString:S("framebuffer")] ||
+[lower containsString:S("promotion")];
+BOOL isRefreshKey = [lower containsString:S("refresh")] ||
+[lower containsString:S("framerate")] ||
+[lower containsString:S("frame-rate")] ||
+[lower containsString:S("frame_rate")] ||
+[lower containsString:S("fps")];
+return isDisplayKey && isRefreshKey;
+}
+
+static CFTypeRef copyProtectedDisplayRefreshRateValueForKey(NSString *key, CFTypeRef originalValue) {
+if (!keyMatchesDisplayRefreshRate(key) || !originalValue || CFGetTypeID(originalValue) != CFNumberGetTypeID()) return NULL;
+double original = 0;
+if (!CFNumberGetValue((CFNumberRef)originalValue, kCFNumberDoubleType, &original)) return NULL;
+if (original <= 1.0 || original >= (double)kMinimumDisplayRefreshRateHz) return NULL;
+
+if (CFNumberIsFloatType((CFNumberRef)originalValue)) {
+double replacement = (double)kMinimumDisplayRefreshRateHz;
+return CFNumberCreate(kCFAllocatorDefault, kCFNumberDoubleType, &replacement);
+}
+int64_t replacement = kMinimumDisplayRefreshRateHz;
+return CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &replacement);
+}
+
+static NSNumber *protectedDisplayRefreshNumberForKey(NSString *key, NSNumber *originalNumber) {
+if (!keyMatchesDisplayRefreshRate(key) || !originalNumber) return nil;
+double original = [originalNumber doubleValue];
+if (original <= 1.0 || original >= (double)kMinimumDisplayRefreshRateHz) return nil;
+return [NSNumber numberWithLongLong:kMinimumDisplayRefreshRateHz];
 }
 
 static BOOL keyLooksChargingRelated(NSString *key) {
@@ -977,6 +1027,14 @@ return orig_IOServiceSetProperty(service, key, value);
 }
 
 NSString *ks = (__bridge NSString *)key;
+if (g_cpuProtection) {
+CFTypeRef refreshReplacement = copyProtectedDisplayRefreshRateValueForKey(ks, value);
+if (refreshReplacement) {
+kern_return_t ret = orig_IOServiceSetProperty(service, key, refreshReplacement);
+CFRelease(refreshReplacement);
+return ret;
+}
+}
 if (g_cpuProtection && !g_restoringFullPower && shouldBlockCPUProperty(ks)) {
 if (isFullPowerMode()) return KERN_SUCCESS;
 if (shouldApplyLowPowerLimit()) {
@@ -1292,7 +1350,7 @@ if (g_restoringFullPower) {
 return %orig;
 }
 if (shouldApplyLowPowerLimit()) {
-return YES;
+return NO;
 }
 if (shouldApplyFullCPUProtection()) {
 return NO;
@@ -1306,7 +1364,7 @@ if (g_restoringFullPower) {
 return;
 }
 if (shouldApplyLowPowerLimit()) {
-%orig(YES);
+%orig(NO);
 return;
 }
 if (shouldApplyFullCPUProtection()) {
@@ -1322,7 +1380,7 @@ if (g_restoringFullPower) {
 return;
 }
 if (shouldApplyLowPowerLimit()) {
-%orig([NSNumber numberWithInt:1]);
+%orig(nil);
 return;
 }
 if (shouldApplyFullCPUProtection()) {
@@ -1430,7 +1488,7 @@ if (g_restoringFullPower) {
 return %orig;
 }
 if (shouldApplyLowPowerLimit()) {
-return YES;
+return NO;
 }
 if (shouldApplyFullCPUProtection()) {
 return NO;
@@ -1444,7 +1502,7 @@ if (g_restoringFullPower) {
 return;
 }
 if (shouldApplyLowPowerLimit()) {
-%orig(YES);
+%orig(NO);
 return;
 }
 if (shouldApplyFullCPUProtection()) {
@@ -1460,7 +1518,7 @@ if (g_restoringFullPower) {
 return;
 }
 if (shouldApplyLowPowerLimit()) {
-%orig(1);
+%orig(0);
 return;
 }
 if (shouldApplyFullCPUProtection()) {
