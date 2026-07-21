@@ -1,4 +1,5 @@
-export THEOS = /rootfs/var/mobile/theos
+THEOS ?= /rootfs/var/mobile/theos
+export THEOS
 export THEOS_PACKAGE_SCHEME = rootless
 export ARCHS = arm64 arm64e
 export TARGET = iphone:clang:16.5:15.0
