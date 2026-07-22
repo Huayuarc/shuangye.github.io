@@ -293,7 +293,7 @@ PSSpecifier *master = [self switchSpecifier:S("启用 CPU 去温控") key:S("ena
 // ===================== 第2组: 功率模式 =====================
 group = [PSSpecifier emptyGroupSpecifier];
 [group setProperty:S("功率模式") forKey:S("label")];
-[group setProperty:S("默认防温控，优先性能和帧率；仍保留 100°C 最后过热保护，并始终放行系统紧急保护。") forKey:S("footerText")];
+[group setProperty:S("默认解除温控，优先性能和帧率；仍保留 100°C 最后过热保护，并始终放行系统紧急保护。") forKey:S("footerText")];
 [specs addObject:group];
 
 [specs addObject:[self powerModeSpecifier]];
