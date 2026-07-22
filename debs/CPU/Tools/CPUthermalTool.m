@@ -45,23 +45,6 @@ static int rebootUserspace(void) {
     return runExecutable(launchctlPath, args);
 }
 
-static int setThermalPressure(NSString *value) {
-    if (value.length == 0) {
-        return 64;
-    }
-
-    NSInteger pressure = [value integerValue];
-    if (pressure < kCPUthermalThermalPressureLevelNominal || pressure >= kCPUthermalThermalPressureLevelUnknown) {
-        return 65;
-    }
-
-    return CPUthermalSetThermalPressureLevel((CPUthermalThermalPressureLevel)pressure);
-}
-
-static int resetThermalNotification(void) {
-    return CPUthermalSetThermalNotificationRawLevel(0);
-}
-
 int main(int argc, char *argv[]) {
     @autoreleasepool {
         if (argc > 1) {
@@ -78,13 +61,6 @@ int main(int argc, char *argv[]) {
             if ([command isEqualToString:S("userspace-reboot")]) {
                 return rebootUserspace();
             }
-            if ([command isEqualToString:S("set-thermal-pressure")]) {
-                NSString *value = argc > 2 ? [NSString stringWithUTF8String:argv[2]] : nil;
-                return setThermalPressure(value);
-            }
-            if ([command isEqualToString:S("reset-thermal-notification")]) {
-                return resetThermalNotification();
-            }
         }
 
         printf("CPUthermalTool commands:\n");
@@ -92,8 +68,6 @@ int main(int argc, char *argv[]) {
         printf("  restart-thermalmonitord-delayed\n");
         printf("  sbreload\n");
         printf("  userspace-reboot\n");
-        printf("  set-thermal-pressure <0-5>\n");
-        printf("  reset-thermal-notification\n");
     }
     return 0;
 }

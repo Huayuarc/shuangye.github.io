@@ -4,11 +4,10 @@
 #import <Foundation/Foundation.h>
 #include <roothide.h>
 #include <dispatch/dispatch.h>
+#include <notify.h>
 #include <spawn.h>
-#include <limits.h>
 #include <sys/sysctl.h>
 #include <sys/wait.h>
-#include <notify.h>
 
 #define S(str) [NSString stringWithUTF8String:(str)]
 
@@ -16,50 +15,185 @@ static const char *kCPUthermalPrefRootFSPathC = "/var/mobile/Library/Preferences
 static const char *kCPUthermalOldJBPrefRelativePathC = "Library/Preferences/com.huayuarc.CPUthermal.plist";
 static const char *kCPUthermalSettingsChangedNotifC = "com.huayuarc.CPUthermal/settingsChanged";
 static const char *kCPUthermalPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeChanged";
-static const char *kCPUthermalThermalPressureChangedNotifC = "com.huayuarc.CPUthermal/thermalPressureChanged";
-static const char *kCPUthermalThermalPressureNotifyBypassC = "com.huayuarc.CPUthermal/thermalPressureNotifyBypass";
-static const char *kCPUthermalThermalPressureKeyC = "thermalPressureLevel";
-static const char *kCPUthermalThermalNotificationKeyC = "thermalNotificationLevel";
-static const char *kCPUthermalThermalNotificationNotifyBypassC = "com.huayuarc.CPUthermal/thermalNotificationNotifyBypass";
 static const NSInteger kCPUthermalDefaultMaxPCoreFrequencyMHz = 3240;
 
-static inline NSDictionary *CPUthermalReadPrefs(void);
-static inline NSString *CPUthermalToolPath(void);
-static inline BOOL CPUthermalRunAndWait(NSString *path, char *const args[]);
+// ============================================================================
+// 温控等级调校 — 从 Battman Thermal Tunes 移植
+// ============================================================================
+#pragma mark - Thermal Level Control
 
+// 偏好键
+static const char *kCPUthermalThermalLevelControlEnabledC = "thermalLevelControlEnabled";
+static const char *kCPUthermalManualThermalPressureC      = "manualThermalPressure";
+static const char *kCPUthermalManualThermalNotifLevelC     = "manualThermalNotifLevel";
+
+// 热压力级别枚举（与 Battman 一致）
 typedef enum {
-    kCPUthermalThermalPressureLevelError = -1,
-    kCPUthermalThermalPressureLevelNominal,
-    kCPUthermalThermalPressureLevelLight,
-    kCPUthermalThermalPressureLevelModerate,
-    kCPUthermalThermalPressureLevelHeavy,
-    kCPUthermalThermalPressureLevelTrapping,
-    kCPUthermalThermalPressureLevelSleeping,
+    kBattmanThermalPressureLevelError = -1,
+    kBattmanThermalPressureLevelNominal,    // 0 正常
+    kBattmanThermalPressureLevelLight,      // 1 轻微
+    kBattmanThermalPressureLevelModerate,   // 2 中等
+    kBattmanThermalPressureLevelHeavy,      // 3 严重
+    kBattmanThermalPressureLevelTrapping,   // 4 临界
+    kBattmanThermalPressureLevelSleeping,   // 5 休眠
+    kBattmanThermalPressureLevelUnknown     // 6 未知
+} CPUthermalThermalPressure;
 
-    kCPUthermalThermalPressureLevelUnknown
-} CPUthermalThermalPressureLevel;
-
+// 热通知级别枚举（与 Battman 一致）
 typedef enum {
-    kCPUthermalThermalNotificationLevelAny = -1,
-    kCPUthermalThermalNotificationLevelNormal,
-    kCPUthermalThermalNotificationLevel70PercentTorch,
-    kCPUthermalThermalNotificationLevel70PercentBacklight,
-    kCPUthermalThermalNotificationLevel50PercentTorch,
-    kCPUthermalThermalNotificationLevel50PercentBacklight,
-    kCPUthermalThermalNotificationLevelDisableTorch,
-    kCPUthermalThermalNotificationLevel25PercentBacklight,
-    kCPUthermalThermalNotificationLevelDisableMapsHalo,
-    kCPUthermalThermalNotificationLevelAppTerminate,
-    kCPUthermalThermalNotificationLevelDeviceRestart,
-    kCPUthermalThermalNotificationLevelThermalTableReady,
+    kBattmanThermalNotificationLevelAny = -1,
+    kBattmanThermalNotificationLevelNormal,               // 0
+    kBattmanThermalNotificationLevel70PercentTorch,        // 1
+    kBattmanThermalNotificationLevel70PercentBacklight,    // 2
+    kBattmanThermalNotificationLevel50PercentTorch,        // 3
+    kBattmanThermalNotificationLevel50PercentBacklight,    // 4
+    kBattmanThermalNotificationLevelDisableTorch,          // 5
+    kBattmanThermalNotificationLevel25PercentBacklight,    // 6
+    kBattmanThermalNotificationLevelDisableMapsHalo,       // 7
+    kBattmanThermalNotificationLevelAppTerminate,          // 8
+    kBattmanThermalNotificationLevelDeviceRestart,         // 9
+    kBattmanThermalNotificationLevelThermalTableReady,     // 10
+    kBattmanThermalNotificationLevelUnknown                // 11
+} CPUthermalThermalNotifLevel;
 
-    kCPUthermalThermalNotificationLevelUnknown
-} CPUthermalThermalNotificationLevel;
+static const char *CPUthermalPressureDisplayNames[] = {
+    "正常 (Nominal)",
+    "轻微 (Light)",
+    "中等 (Moderate)",
+    "严重 (Heavy)",
+    "临界 (Trapping)",
+    "休眠 (Sleeping)"
+};
 
-__attribute__((weak_import)) extern const char *const kOSThermalNotificationPressureLevelName;
-__attribute__((weak_import)) extern const char *const kOSThermalNotificationName;
-__attribute__((weak_import)) int OSThermalNotificationCurrentLevel(void);
-__attribute__((weak_import)) int _OSThermalNotificationLevelForBehavior(int behavior);
+static const char *CPUthermalNotifLevelDisplayNames[] = {
+    "正常 (Normal)",
+    "70% 闪光灯",
+    "70% 背光",
+    "50% 闪光灯",
+    "50% 背光",
+    "禁用闪光灯",
+    "25% 背光",
+    "禁用 Maps 光晕",
+    "终止应用",
+    "重启设备",
+    "热表就绪"
+};
+
+// 热压力级别字符串（用于 notify API）
+static const char *CPUthermalPressureLevelStrings[] = {
+    "nominal",
+    "light",
+    "moderate",
+    "heavy",
+    "trapping",
+    "sleeping"
+};
+
+#pragma mark - 热等级 notify API 辅助函数
+
+static inline CPUthermalThermalPressure CPUthermalReadThermalPressure(void) {
+    int token;
+    uint64_t level;
+
+    if (notify_register_check("com.apple.system.thermalpressurelevel", &token)) {
+        return kBattmanThermalPressureLevelError;
+    }
+    if (notify_get_state(token, &level)) {
+        notify_cancel(token);
+        return kBattmanThermalPressureLevelError;
+    }
+    notify_cancel(token);
+
+    // OSThermalPressureLevel 映射
+    if (level == 0) return kBattmanThermalPressureLevelNominal;
+
+    if (level < 10) {
+        switch (level) {
+            case 1: return kBattmanThermalPressureLevelModerate;
+            case 2: return kBattmanThermalPressureLevelHeavy;
+            case 3: return kBattmanThermalPressureLevelTrapping;
+            case 4: return kBattmanThermalPressureLevelSleeping;
+            default: return kBattmanThermalPressureLevelUnknown;
+        }
+    } else {
+        switch (level) {
+            case 10: return kBattmanThermalPressureLevelLight;
+            case 20: return kBattmanThermalPressureLevelModerate;
+            case 30: return kBattmanThermalPressureLevelHeavy;
+            case 40: return kBattmanThermalPressureLevelTrapping;
+            case 50: return kBattmanThermalPressureLevelSleeping;
+            default: return kBattmanThermalPressureLevelUnknown;
+        }
+    }
+}
+
+static inline int CPUthermalSetThermalPressure(CPUthermalThermalPressure pressure) {
+    int token;
+    uint64_t level = 0;
+
+    if (notify_register_check("com.apple.system.thermalpressurelevel", &token))
+        return -1;
+
+    switch (pressure) {
+        case kBattmanThermalPressureLevelLight:     level = 10; break;
+        case kBattmanThermalPressureLevelModerate:  level = 20; break;
+        case kBattmanThermalPressureLevelHeavy:     level = 30; break;
+        case kBattmanThermalPressureLevelTrapping:  level = 40; break;
+        case kBattmanThermalPressureLevelSleeping:  level = 50; break;
+        default:                                    level = 0;  break;
+    }
+
+    if (notify_set_state(token, level))
+        return 1;
+
+    notify_post("com.apple.system.thermalpressurelevel");
+    return 0;
+}
+
+static inline CPUthermalThermalNotifLevel CPUthermalReadThermalNotifLevel(void) {
+    // 使用 notify API 读取热通知级别
+    int token;
+    uint64_t state;
+
+    if (notify_register_check("com.apple.system.thermalnotification", &token))
+        return kBattmanThermalNotificationLevelAny;
+    if (notify_get_state(token, &state)) {
+        notify_cancel(token);
+        return kBattmanThermalNotificationLevelAny;
+    }
+    notify_cancel(token);
+
+    int rawLevel = (int)state;
+    if (rawLevel < 0 || rawLevel > kBattmanThermalNotificationLevelUnknown)
+        return kBattmanThermalNotificationLevelUnknown;
+
+    return (CPUthermalThermalNotifLevel)rawLevel;
+}
+
+static inline int CPUthermalSetThermalNotifLevel(CPUthermalThermalNotifLevel level) {
+    int token;
+
+    if (notify_register_check("com.apple.system.thermalnotification", &token))
+        return -1;
+
+    if (notify_set_state(token, (uint64_t)level))
+        return 1;
+
+    notify_post("com.apple.system.thermalnotification");
+    return 0;
+}
+
+static inline NSString *CPUthermalPressureDisplayString(CPUthermalThermalPressure pressure) {
+    if (pressure < kBattmanThermalPressureLevelNominal || pressure >= kBattmanThermalPressureLevelUnknown)
+        return S("未知");
+    return S(CPUthermalPressureDisplayNames[pressure]);
+}
+
+static inline NSString *CPUthermalNotifLevelDisplayString(CPUthermalThermalNotifLevel level) {
+    if (level <= kBattmanThermalNotificationLevelAny || level >= kBattmanThermalNotificationLevelUnknown)
+        return S("未知");
+    return S(CPUthermalNotifLevelDisplayNames[level]);
+}
 
 static inline NSString *CPUthermalStringFromCPath(const char *path) {
     return path ? [NSString stringWithUTF8String:path] : nil;
@@ -116,319 +250,6 @@ static inline NSInteger CPUthermalNativeMaxPCoreFrequencyMHzForHardware(NSString
 static inline NSInteger CPUthermalNativeMaxPCoreFrequencyMHz(void) {
     NSInteger frequency = CPUthermalNativeMaxPCoreFrequencyMHzForHardware(CPUthermalHardwareIdentifier());
     return frequency > 0 ? frequency : kCPUthermalDefaultMaxPCoreFrequencyMHz;
-}
-
-static inline const char *CPUthermalOSThermalPressureNotificationName(void) {
-    if (&kOSThermalNotificationPressureLevelName != NULL && kOSThermalNotificationPressureLevelName != NULL) {
-        return kOSThermalNotificationPressureLevelName;
-    }
-    return "com.apple.system.thermalpressurelevel";
-}
-
-static inline const char *CPUthermalOSThermalNotificationName(void) {
-    if (&kOSThermalNotificationName != NULL && kOSThermalNotificationName != NULL) {
-        return kOSThermalNotificationName;
-    }
-    return NULL;
-}
-
-static inline NSString *CPUthermalThermalPressureTitle(CPUthermalThermalPressureLevel pressure) {
-    switch (pressure) {
-        case kCPUthermalThermalPressureLevelNominal:
-            return S("正常");
-        case kCPUthermalThermalPressureLevelLight:
-            return S("轻微");
-        case kCPUthermalThermalPressureLevelModerate:
-            return S("中等");
-        case kCPUthermalThermalPressureLevelHeavy:
-            return S("严重");
-        case kCPUthermalThermalPressureLevelTrapping:
-            return S("锁定");
-        case kCPUthermalThermalPressureLevelSleeping:
-            return S("睡眠");
-        case kCPUthermalThermalPressureLevelError:
-            return S("不可用");
-        case kCPUthermalThermalPressureLevelUnknown:
-        default:
-            return S("未知");
-    }
-}
-
-static inline uint64_t CPUthermalRawOSThermalPressureLevel(CPUthermalThermalPressureLevel pressure) {
-    switch (pressure) {
-        case kCPUthermalThermalPressureLevelLight:
-            return 10;
-        case kCPUthermalThermalPressureLevelModerate:
-            return 20;
-        case kCPUthermalThermalPressureLevelHeavy:
-            return 30;
-        case kCPUthermalThermalPressureLevelTrapping:
-            return 40;
-        case kCPUthermalThermalPressureLevelSleeping:
-            return 50;
-        case kCPUthermalThermalPressureLevelNominal:
-        default:
-            return 0;
-    }
-}
-
-static inline CPUthermalThermalPressureLevel CPUthermalPressureLevelFromRawOSThermalValue(uint64_t level) {
-    if (level == 0) {
-        return kCPUthermalThermalPressureLevelNominal;
-    }
-
-    if (level < 10) {
-        switch (level) {
-            case 1:
-                return kCPUthermalThermalPressureLevelModerate;
-            case 2:
-                return kCPUthermalThermalPressureLevelHeavy;
-            case 3:
-                return kCPUthermalThermalPressureLevelTrapping;
-            case 4:
-                return kCPUthermalThermalPressureLevelSleeping;
-            default:
-                return kCPUthermalThermalPressureLevelUnknown;
-        }
-    }
-
-    switch (level) {
-        case 10:
-            return kCPUthermalThermalPressureLevelLight;
-        case 20:
-            return kCPUthermalThermalPressureLevelModerate;
-        case 30:
-            return kCPUthermalThermalPressureLevelHeavy;
-        case 40:
-            return kCPUthermalThermalPressureLevelTrapping;
-        case 50:
-            return kCPUthermalThermalPressureLevelSleeping;
-        default:
-            return kCPUthermalThermalPressureLevelUnknown;
-    }
-}
-
-static inline CPUthermalThermalPressureLevel CPUthermalCurrentThermalPressureLevel(void) {
-    int token = 0;
-    uint64_t level = 0;
-    const char *name = CPUthermalOSThermalPressureNotificationName();
-
-    if (notify_register_check(name, &token) != NOTIFY_STATUS_OK) {
-        return kCPUthermalThermalPressureLevelError;
-    }
-    if (notify_get_state(token, &level) != NOTIFY_STATUS_OK) {
-        notify_cancel(token);
-        return kCPUthermalThermalPressureLevelError;
-    }
-    if (notify_cancel(token) != NOTIFY_STATUS_OK) {
-        return kCPUthermalThermalPressureLevelError;
-    }
-
-    return CPUthermalPressureLevelFromRawOSThermalValue(level);
-}
-
-static inline int CPUthermalSetThermalPressureLevel(CPUthermalThermalPressureLevel pressure) {
-    int token = 0;
-    const char *name = CPUthermalOSThermalPressureNotificationName();
-
-    if (pressure < kCPUthermalThermalPressureLevelNominal || pressure >= kCPUthermalThermalPressureLevelUnknown) {
-        return 3;
-    }
-    if (notify_register_check(name, &token) != NOTIFY_STATUS_OK) {
-        return -1;
-    }
-    if (notify_set_state(token, CPUthermalRawOSThermalPressureLevel(pressure)) != NOTIFY_STATUS_OK) {
-        notify_cancel(token);
-        return 1;
-    }
-    notify_post(kCPUthermalThermalPressureNotifyBypassC);
-    if (notify_post(name) != NOTIFY_STATUS_OK) {
-        notify_cancel(token);
-        return 2;
-    }
-    notify_cancel(token);
-    return 0;
-}
-
-static inline BOOL CPUthermalGetSavedThermalPressureLevel(CPUthermalThermalPressureLevel *pressureOut) {
-    NSDictionary *prefs = CPUthermalReadPrefs();
-    id value = prefs[S(kCPUthermalThermalPressureKeyC)];
-    if ([value respondsToSelector:@selector(integerValue)]) {
-        NSInteger pressure = [value integerValue];
-        if (pressure >= kCPUthermalThermalPressureLevelNominal && pressure < kCPUthermalThermalPressureLevelUnknown) {
-            if (pressureOut) {
-                *pressureOut = (CPUthermalThermalPressureLevel)pressure;
-            }
-            return YES;
-        }
-    }
-
-    return NO;
-}
-
-static inline BOOL CPUthermalSavedPowerModeIsFullPower(void) {
-    NSDictionary *prefs = CPUthermalReadPrefs();
-    id mode = prefs[S("powerMode")];
-    return ![mode isKindOfClass:[NSString class]] || ![(NSString *)mode isEqualToString:S("lowPower")];
-}
-
-static inline CPUthermalThermalPressureLevel CPUthermalSavedThermalPressureLevel(void) {
-    CPUthermalThermalPressureLevel pressure = kCPUthermalThermalPressureLevelNominal;
-    if (CPUthermalGetSavedThermalPressureLevel(&pressure)) {
-        return pressure;
-    }
-    return kCPUthermalThermalPressureLevelNominal;
-}
-
-static inline int CPUthermalApplySavedThermalPressureLevel(void) {
-    CPUthermalThermalPressureLevel pressure = kCPUthermalThermalPressureLevelNominal;
-    if (!CPUthermalGetSavedThermalPressureLevel(&pressure)) {
-        return CPUthermalSavedPowerModeIsFullPower() ? CPUthermalSetThermalPressureLevel(kCPUthermalThermalPressureLevelNominal) : 0;
-    }
-    return CPUthermalSetThermalPressureLevel(pressure);
-}
-
-static inline int CPUthermalApplyThermalPressureLevelViaTool(CPUthermalThermalPressureLevel pressure) {
-    int directRet = CPUthermalSetThermalPressureLevel(pressure);
-    if (directRet == 0) {
-        return 0;
-    }
-
-    NSString *toolPath = CPUthermalToolPath();
-    if (toolPath.length > 0 && [[NSFileManager defaultManager] isExecutableFileAtPath:toolPath]) {
-        NSString *pressureArg = [NSString stringWithFormat:S("%ld"), (long)pressure];
-        char *args[] = {
-            (char *)"CPUthermalTool",
-            (char *)"set-thermal-pressure",
-            (char *)[pressureArg UTF8String],
-            NULL
-        };
-        pid_t pid = 0;
-        int status = 0;
-        if (posix_spawn(&pid, [toolPath fileSystemRepresentation], NULL, NULL, args, NULL) == 0 && waitpid(pid, &status, 0) >= 0) {
-            if (WIFEXITED(status)) {
-                return WEXITSTATUS(status);
-            }
-            return status;
-        }
-    }
-    return directRet;
-}
-
-static inline NSString *CPUthermalThermalNotificationTitle(CPUthermalThermalNotificationLevel level) {
-    switch (level) {
-        case kCPUthermalThermalNotificationLevelNormal:
-            return S("正常");
-        case kCPUthermalThermalNotificationLevel70PercentTorch:
-            return S("手电筒 70%");
-        case kCPUthermalThermalNotificationLevel70PercentBacklight:
-            return S("背光 70%");
-        case kCPUthermalThermalNotificationLevel50PercentTorch:
-            return S("手电筒 50%");
-        case kCPUthermalThermalNotificationLevel50PercentBacklight:
-            return S("背光 50%");
-        case kCPUthermalThermalNotificationLevelDisableTorch:
-            return S("禁用手电筒");
-        case kCPUthermalThermalNotificationLevel25PercentBacklight:
-            return S("背光 25%");
-        case kCPUthermalThermalNotificationLevelDisableMapsHalo:
-            return S("禁用地图光晕");
-        case kCPUthermalThermalNotificationLevelAppTerminate:
-            return S("终止 App");
-        case kCPUthermalThermalNotificationLevelDeviceRestart:
-            return S("设备重启");
-        case kCPUthermalThermalNotificationLevelThermalTableReady:
-            return S("就绪");
-        case kCPUthermalThermalNotificationLevelAny:
-            return S("不可用");
-        case kCPUthermalThermalNotificationLevelUnknown:
-        default:
-            return S("未知");
-    }
-}
-
-static inline int CPUthermalCurrentThermalNotificationRawLevel(void) {
-    if (&OSThermalNotificationCurrentLevel == NULL) {
-        return INT_MIN;
-    }
-    return OSThermalNotificationCurrentLevel();
-}
-
-static inline CPUthermalThermalNotificationLevel CPUthermalCurrentThermalNotificationLevel(void) {
-    const char *name = CPUthermalOSThermalNotificationName();
-    if (!name || &OSThermalNotificationCurrentLevel == NULL) {
-        return kCPUthermalThermalNotificationLevelAny;
-    }
-
-    int rawLevel = OSThermalNotificationCurrentLevel();
-    if (rawLevel == 0) {
-        return kCPUthermalThermalNotificationLevelNormal;
-    }
-    if (&_OSThermalNotificationLevelForBehavior != NULL) {
-        for (int i = 0; i < kCPUthermalThermalNotificationLevelUnknown; i++) {
-            if (_OSThermalNotificationLevelForBehavior(i) == rawLevel) {
-                return (CPUthermalThermalNotificationLevel)i;
-            }
-        }
-    }
-
-    return kCPUthermalThermalNotificationLevelUnknown;
-}
-
-static inline NSString *CPUthermalThermalNotificationLabel(void) {
-    CPUthermalThermalNotificationLevel level = CPUthermalCurrentThermalNotificationLevel();
-    int rawLevel = CPUthermalCurrentThermalNotificationRawLevel();
-    if (level == kCPUthermalThermalNotificationLevelAny || rawLevel == INT_MIN) {
-        return CPUthermalThermalNotificationTitle(kCPUthermalThermalNotificationLevelAny);
-    }
-    return [NSString stringWithFormat:S("%@ (%d)"), CPUthermalThermalNotificationTitle(level), rawLevel];
-}
-
-static inline int CPUthermalSetThermalNotificationRawLevel(int level) {
-    int token = 0;
-    const char *name = CPUthermalOSThermalNotificationName();
-    if (!name) {
-        return -1;
-    }
-    if (notify_register_check(name, &token) != NOTIFY_STATUS_OK) {
-        return -1;
-    }
-    if (notify_set_state(token, level) != NOTIFY_STATUS_OK) {
-        notify_cancel(token);
-        return 1;
-    }
-    notify_post(kCPUthermalThermalNotificationNotifyBypassC);
-    if (notify_post(name) != NOTIFY_STATUS_OK) {
-        notify_cancel(token);
-        return 2;
-    }
-    notify_cancel(token);
-    return 0;
-}
-
-static inline int CPUthermalResetThermalNotificationViaTool(void) {
-    int directRet = CPUthermalSetThermalNotificationRawLevel(0);
-    if (directRet == 0) {
-        return 0;
-    }
-
-    NSString *toolPath = CPUthermalToolPath();
-    if (toolPath.length > 0 && [[NSFileManager defaultManager] isExecutableFileAtPath:toolPath]) {
-        char *args[] = {
-            (char *)"CPUthermalTool",
-            (char *)"reset-thermal-notification",
-            NULL
-        };
-        pid_t pid = 0;
-        int status = 0;
-        if (posix_spawn(&pid, [toolPath fileSystemRepresentation], NULL, NULL, args, NULL) == 0 && waitpid(pid, &status, 0) >= 0) {
-            if (WIFEXITED(status)) {
-                return WEXITSTATUS(status);
-            }
-            return status;
-        }
-    }
-    return directRet;
 }
 
 // ============================================================================
