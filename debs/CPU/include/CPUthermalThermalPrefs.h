@@ -86,30 +86,16 @@ static inline void CPUthermalRemoveOSThermalKey(SCPreferencesRef prefs, const ch
     CFRelease(cfKey);
 }
 
-static inline int CPUthermalApplyManagedThermalStatusOverrides(BOOL manageHotInPocket,
-                                                              BOOL disableHotInPocket,
-                                                              BOOL manageSunlightExposure,
+static inline int CPUthermalApplyManagedThermalStatusOverrides(BOOL manageSunlightExposure,
                                                               BOOL lockSunlightExposure,
                                                               BOOL manageLowBatterySimulation,
                                                               BOOL simulateLowBattery) {
-    if (!manageHotInPocket && !manageSunlightExposure && !manageLowBatterySimulation) return kSCStatusOK;
+    if (!manageSunlightExposure && !manageLowBatterySimulation) return kSCStatusOK;
 
     SCPreferencesRef prefs = CPUthermalCreateOSThermalPrefs();
     if (!prefs) return kSCStatusFailed;
 
     BOOL ok = YES;
-    if (manageHotInPocket) {
-        if (disableHotInPocket) {
-            ok = CPUthermalSetOSThermalBool(prefs, "simulateHip", NO) && ok;
-            ok = CPUthermalSetOSThermalBool(prefs, "hipOverride", NO) && ok;
-            ok = CPUthermalSetOSThermalBool(prefs, "hipPersistentlyEnabled", YES) && ok;
-        } else {
-            CPUthermalRemoveOSThermalKey(prefs, "simulateHip");
-            CPUthermalRemoveOSThermalKey(prefs, "hipOverride");
-            CPUthermalRemoveOSThermalKey(prefs, "hipPersistentlyEnabled");
-        }
-    }
-
     if (manageSunlightExposure) {
         if (lockSunlightExposure) {
             ok = CPUthermalSetOSThermalBool(prefs, "sunlightOverride", YES) && ok;
@@ -163,19 +149,38 @@ static inline int CPUthermalApplyThermalStatusOverridesFromPrefs(NSDictionary *p
     BOOL enabled = CPUthermalBoolPref(prefs, "enabled", NO);
     BOOL cpuProtection = CPUthermalBoolPref(prefs, "cpuProtection", YES);
     NSString *powerMode = prefs ? [prefs objectForKey:S("powerMode")] : nil;
-    BOOL manageHotInPocket = CPUthermalPrefsContainKey(prefs, kCPUthermalDisableHotInPocketKeyC);
     BOOL manageSunlightExposure = CPUthermalPrefsContainKey(prefs, kCPUthermalLockSunlightExposureKeyC);
     BOOL manageLowBatterySimulation = YES;
-    BOOL disableHotInPocket = enabled && CPUthermalBoolPref(prefs, kCPUthermalDisableHotInPocketKeyC, NO);
     BOOL lockSunlightExposure = enabled && CPUthermalBoolPref(prefs, kCPUthermalLockSunlightExposureKeyC, NO);
     BOOL simulateLowBattery = enabled && cpuProtection && [powerMode isKindOfClass:[NSString class]] && [powerMode isEqualToString:S(kCPUthermalLowPowerModeC)];
 
-    return CPUthermalApplyManagedThermalStatusOverrides(manageHotInPocket,
-                                                       disableHotInPocket,
-                                                       manageSunlightExposure,
+    return CPUthermalApplyManagedThermalStatusOverrides(manageSunlightExposure,
                                                        lockSunlightExposure,
                                                        manageLowBatterySimulation,
                                                        simulateLowBattery);
 }
+
+// ============================================================================
+// 温控监控偏好键名 (温控等级: 热压/通知/重置)
+// ============================================================================
+
+/// 温控压力监控开关 (BOOL): 在 thermalmonitord 中周期性读取并记录热压
+static const char *const kCPUthermalPressureMonitorKeyC = "pressureMonitor";
+
+/// 通知级别监控开关 (BOOL): 跟踪系统热通知级别变化
+static const char *const kCPUthermalNotificationMonitorKeyC = "notificationMonitor";
+
+/// 重置热通知 (BOOL): 设置为 YES 时触发一次通知级别重置
+static const char *const kCPUthermalResetNotifKeyC = "resetThermalNotifications";
+
+/// 热压覆盖值 (NSString): "nominal"/"light"/"moderate"/"heavy"/"trapping"/"sleeping"
+/// 设置后 thermalmonitord 会调用 CPUthermalSetPressure 覆盖系统热压
+static const char *const kCPUthermalPressureOverrideKeyC = "thermalPressureOverride";
+
+/// 热压覆盖开关 (BOOL): 启用后才应用热压覆盖值
+static const char *const kCPUthermalPressureOverrideEnabledKeyC = "pressureOverrideEnabled";
+
+/// 通知: 温控监控状态变更
+static const char *const kCPUthermalMonitorNotifC = "com.huayuarc.CPUthermal/thermalMonitorChanged";
 
 #endif

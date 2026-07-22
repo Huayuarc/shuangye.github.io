@@ -3,6 +3,7 @@
 #import <sys/wait.h>
 #import <CPUthermalPaths.h>
 #import <CPUthermalThermalPrefs.h>
+#import <CPUthermalMonitor.h>
 
 static int runExecutable(NSString *path, char *const argv[]) {
     if (path.length == 0) {
@@ -70,6 +71,31 @@ int main(int argc, char *argv[]) {
             if ([command isEqualToString:S("apply-thermal-overrides")]) {
                 return applyThermalOverrides();
             }
+            if ([command isEqualToString:S("reset-thermal-notifications")]) {
+                int ret = CPUthermalResetNotifLevel();
+                printf("reset-thermal-notifications: %d\n", ret);
+                return ret;
+            }
+            if ([command isEqualToString:S("read-thermal-state")]) {
+                CPUthermalPressureLevel pressure = CPUthermalPressure();
+                CPUthermalNotifLevel notif = CPUthermalCurrentNotifLevel();
+                float maxTemp = CPUthermalMaxTriggerTemperature();
+                int solar = CPUthermalSolarState();
+
+                printf("Thermal State:\n");
+                printf("  Pressure: %s (%d)\n", CPUthermalPressureString(pressure), (int)pressure);
+                printf("  Notification: %s\n", CPUthermalNotifLevelString(notif, true));
+                printf("  Max Trigger Temp: %.1f°C\n", maxTemp);
+                printf("  Solar State: %d\n", solar);
+                return 0;
+            }
+            if ([command isEqualToString:S("set-thermal-pressure")] && argc > 2) {
+                int value = atoi(argv[2]);
+                CPUthermalPressureLevel pressure = (CPUthermalPressureLevel)value;
+                int ret = CPUthermalSetPressure(pressure);
+                printf("set-thermal-pressure %d: %d\n", value, ret);
+                return ret;
+            }
         }
 
         printf("CPUthermalTool commands:\n");
@@ -78,6 +104,9 @@ int main(int argc, char *argv[]) {
         printf("  sbreload\n");
         printf("  userspace-reboot\n");
         printf("  apply-thermal-overrides\n");
+        printf("  read-thermal-state\n");
+        printf("  reset-thermal-notifications\n");
+        printf("  set-thermal-pressure <value>\n");
     }
     return 0;
 }

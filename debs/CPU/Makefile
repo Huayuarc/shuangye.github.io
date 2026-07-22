@@ -9,7 +9,7 @@ INSTALL_TARGET_PROCESSES = thermalmonitord
 
 TWEAK_NAME = CPUthermal CPUthermalPrefHook
 
-CPUthermal_FILES = Tweak.x ThermalPatcher_supplement.x
+CPUthermal_FILES = Tweak.x ThermalPatcher_supplement.x ThermalMonitor/CPUthermalMonitor.c
 CPUthermal_CFLAGS = -fobjc-arc -Iinclude -Wno-deprecated-declarations -DTHEOS_INSIDE
 CPUthermal_FRAMEWORKS = Foundation UIKit CoreFoundation IOKit SystemConfiguration
 ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
@@ -41,7 +41,7 @@ include $(THEOS_MAKE_PATH)/tweak.mk
 # CPUthermalSettings: 偏好设置面板
 
 # PreferenceBundle: 设置面板
-CPUthermalSettings_FILES = Settings/FRootListController.m
+CPUthermalSettings_FILES = Settings/FRootListController.m ThermalMonitor/CPUthermalMonitor.c
 CPUthermalSettings_INSTALL_PATH = /Library/PreferenceBundles
 CPUthermalSettings_CFLAGS = -fobjc-arc -Iinclude
 CPUthermalSettings_CODESIGN_FLAGS = -SSettings/Settings.entitlements
@@ -55,7 +55,7 @@ include $(THEOS_MAKE_PATH)/bundle.mk
 
 # 用户空间重启工具
 TOOL_NAME = CPUthermalTool
-CPUthermalTool_FILES = Tools/CPUthermalTool.m
+CPUthermalTool_FILES = Tools/CPUthermalTool.m ThermalMonitor/CPUthermalMonitor.c
 CPUthermalTool_CFLAGS = -fobjc-arc -Iinclude
 CPUthermalTool_CODESIGN_FLAGS = -STools/CPUthermalTool.entitlements
 CPUthermalTool_INSTALL_PATH = /usr/local/bin

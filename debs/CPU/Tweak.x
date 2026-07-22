@@ -10,6 +10,7 @@
 #import <objc/runtime.h>
 #include <CPUthermalPaths.h>
 #include <CPUthermalThermalPrefs.h>
+#include <CPUthermalMonitor.h>
 #import <IOKit/IOKitLib.h>
 
 // ============================================================================
@@ -136,8 +137,16 @@ static BOOL g_enabled               = NO;  // 总开关（默认关闭，安装�
 static BOOL g_cpuProtection         = NO; // CPU 性能保护(降频/决策树/控制力度/配置表)
 static BOOL g_brightnessProtection  = NO; // 屏幕亮度保护(降亮度/背光配置)
 static BOOL g_suppressThermalNotifications = NO; // 默认屏蔽误触发高温通知
-static BOOL g_disableHotInPocket    = NO; // 禁用系统 Hot-In-Pocket 口袋高温模式
 static BOOL g_lockSunlightExposure  = NO; // 锁定系统阳光暴晒状态
+
+// ============================================================================
+// 温控监控（移植自 Battman 温控等级: 热压/通知/重置）
+// ============================================================================
+static BOOL g_pressureMonitor       = NO; // 热压监控开关
+static BOOL g_notificationMonitor   = NO; // 通知级别监控开关
+static BOOL g_pressureOverrideEnabled = NO; // 热压覆盖开关
+static int  g_pressureOverrideValue = 0;   // 热压覆盖值 (10/20/30/40/50)
+static dispatch_source_t g_thermalMonitorTimer = NULL; // 温控监控定时器
 
 typedef enum {
 CPUthermalPowerModeFull = 0,
@@ -146,16 +155,18 @@ CPUthermalPowerModeLow  = 1
 
 static CPUthermalPowerMode g_powerMode = CPUthermalPowerModeFull;
 
-// 低功耗模式 CPU 峰值限制（MHz）
-// 使用设备原生最高频率的温和比例，不再固定 2016MHz，避免游戏/高刷场景明显掉帧。
+// 低功耗模式 CPU 频率限制
+// kLowPowerMinimumCapMHz = 1380 MHz 最低安全频率
+// IOKit 限频值統一使用 lowPowerTargetValue()（设备原生最高频率70%，clamp 2016-2400）
 static const int64_t kLowPowerMinimumCapMHz = 1380;
-static const int64_t kLowPowerMaximumCapMHz = 1428;
 static const int64_t kMinimumSafeCPUFrequencyMHz = 1380;
 
 // 温度安全阀 — 超过此值不拦截任何保护
 // 100°C 后优先交还系统温控，并始终放行 0x60-0x6F 紧急保护。
 static const int64_t kSafetyTempThreshold = 100000;
 static const int64_t kThermalThresholdRaise = 15000;
+
+// 唤醒爆发恢复参数（使用 burst 写入，无需自适应定时器）
 
 // A15 降频操作 selector 范围:
 //   0x10-0x1F: 温度传感器读取
@@ -178,6 +189,10 @@ static BOOL g_deferredRuntimeApplyScheduled = NO;
 static BOOL g_transitioningPowerMode = NO;
 static os_unfair_lock g_controllerLock = OS_UNFAIR_LOCK_INIT;
 
+// 喚醒追蹤狀態
+static volatile CFAbsoluteTime g_lastWakeTime = 0;
+static BOOL g_wakeBurstInProgress = NO;
+
 // ============================================================================
 // 运行时维护定时器
 // 低功耗只保活系统 Low-SOC / PowerSave 状态；解除温控仍补写满性能状态。
@@ -198,6 +213,12 @@ static void applyLowPowerToCommonProduct(void);
 static void applyLowPowerLimitsToTrackedControllers(void);
 static void applyFullPowerToCommonProduct(void);
 static void restoreFullPowerToTrackedControllers(void);
+static void beginWakeRecovery(void);
+static void loadPrefs(void);
+static void applyCurrentPowerModeToRuntime(void);
+static void applyPowerModeToRuntime(BOOL respectBootGuard);
+static void scheduleDeferredRuntimeApply(double delay);
+static NSDictionary *readPrefsDictionary(void);
 
 static void startContinuousTimer(void) {
 if (g_continuousTimer) return;
@@ -239,11 +260,111 @@ NSLog(@"[CPUthermal] 性能维护定时器已停止");
 }
 }
 
-static void loadPrefs(void);
-static void applyCurrentPowerModeToRuntime(void);
-static void applyPowerModeToRuntime(BOOL respectBootGuard);
-static void scheduleDeferredRuntimeApply(double delay);
-static NSDictionary *readPrefsDictionary(void);
+// ============================================================================
+// 温控监控定时器（移植自 Battman — 热压/通知级别读取日志）
+// ============================================================================
+static const int64_t kThermalMonitorIntervalMs = 3000; // 3 秒间隔
+
+static void startThermalMonitorTimer(void);
+static void stopThermalMonitorTimer(void);
+
+static void startThermalMonitorTimer(void) {
+if (g_thermalMonitorTimer) return;
+if (!g_enabled) return;
+if (!g_pressureMonitor && !g_notificationMonitor) return;
+
+g_thermalMonitorTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, dispatch_get_main_queue());
+dispatch_source_set_timer(g_thermalMonitorTimer,
+dispatch_time(DISPATCH_TIME_NOW, (int64_t)(kThermalMonitorIntervalMs * NSEC_PER_MSEC)),
+(uint64_t)(kThermalMonitorIntervalMs * NSEC_PER_MSEC),
+(uint64_t)(50 * NSEC_PER_MSEC));
+dispatch_source_set_event_handler(g_thermalMonitorTimer, ^{
+@autoreleasepool {
+if (!g_enabled) {
+stopThermalMonitorTimer();
+return;
+}
+
+if (g_pressureMonitor) {
+CPUthermalPressureLevel pressure = CPUthermalPressure();
+static CPUthermalPressureLevel lastPressure = kCPUthermalPressureError;
+if (pressure != lastPressure) {
+NSLog(@"[CPUthermalMonitor] 热压级别: %s (%d)",
+CPUthermalPressureString(pressure), (int)pressure);
+lastPressure = pressure;
+}
+}
+
+if (g_notificationMonitor) {
+CPUthermalNotifLevel notif = CPUthermalCurrentNotifLevel();
+static CPUthermalNotifLevel lastNotif = kCPUthermalNotifNone;
+if (notif != lastNotif) {
+NSLog(@"[CPUthermalMonitor] 热通知级别: %s",
+CPUthermalNotifLevelString(notif, true));
+lastNotif = notif;
+}
+}
+}
+});
+dispatch_resume(g_thermalMonitorTimer);
+NSLog(@"[CPUthermal] 温控监控定时器已启动 (热压:%d 通知:%d 间隔:%lldms)",
+g_pressureMonitor, g_notificationMonitor, kThermalMonitorIntervalMs);
+}
+
+static void stopThermalMonitorTimer(void) {
+if (g_thermalMonitorTimer) {
+dispatch_source_cancel(g_thermalMonitorTimer);
+g_thermalMonitorTimer = NULL;
+NSLog(@"[CPUthermal] 温控监控定时器已停止");
+}
+}
+
+// 前向声明 — 供 onSettingsChanged 使用
+// ============================================================================
+// 唤醒爆发恢复
+// 设备唤醒后系统会重设CPU频率目标，通过多次爆发写入确保频率锁定不被覆盖。
+// 时序: 0ms(同步) + 100ms + 300ms + 800ms + 1500ms
+// ============================================================================
+static void beginWakeRecovery(void) {
+if (!g_enabled || !g_cpuProtection) return;
+if (g_wakeBurstInProgress) return;
+g_wakeBurstInProgress = YES;
+g_lastWakeTime = CFAbsoluteTimeGetCurrent();
+
+// 同步写入
+dispatch_async(dispatch_get_main_queue(), ^{
+@autoreleasepool {
+loadPrefs();
+applyPowerModeToRuntime(NO);
+}
+});
+
+// 爆发写入延迟序列 — 覆盖系统恢复后的多次频率重设
+const double burstDelays[] = {0.1, 0.3, 0.8, 1.5};
+for (size_t i = 0; i < sizeof(burstDelays)/sizeof(burstDelays[0]); i++) {
+double delay = burstDelays[i];
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+@autoreleasepool {
+if (!g_enabled || !g_cpuProtection || g_transitioningPowerMode) return;
+if (shouldApplyLowPowerLimit()) {
+applyCurrentBatterySimulation();
+applyLowPowerToCommonProduct();
+applyLowPowerLimitsToTrackedControllers();
+NSLog(@"[CPUthermal] 唤醒爆发写入 +%.1fs (低功耗)", delay);
+} else if (shouldApplyFullCPUProtection()) {
+applyCurrentBatterySimulation();
+applyFullPowerToCommonProduct();
+restoreFullPowerToTrackedControllers();
+NSLog(@"[CPUthermal] 唤醒爆发写入 +%.1fs (解除温控)", delay);
+}
+}
+});
+}
+
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+g_wakeBurstInProgress = NO;
+});
+}
 
 NSInteger lowPowerTargetValue(void) {
     NSInteger nativeMax = CPUthermalNativeMaxPCoreFrequencyMHz();
@@ -644,10 +765,12 @@ applyCurrentPowerModeToRuntime();
 
 static void scheduleWakeRuntimeApply(void) {
 if (!g_enabled || !g_cpuProtection) return;
+g_lastWakeTime = CFAbsoluteTimeGetCurrent();
 dispatch_async(dispatch_get_main_queue(), ^{
 loadPrefs();
 applyPowerModeToRuntime(NO);
 startContinuousTimer();
+beginWakeRecovery();
 });
 }
 
@@ -686,8 +809,9 @@ return mhz;
 
 static int64_t clampLowPowerFrequencyValue(int64_t value) {
 int64_t mhz = frequencyMHzFromValue(value);
+int64_t maxCap = (int64_t)lowPowerTargetValue();
 if (mhz < kLowPowerMinimumCapMHz) mhz = kLowPowerMinimumCapMHz;
-if (mhz > kLowPowerMaximumCapMHz) mhz = kLowPowerMaximumCapMHz;
+if (mhz > maxCap) mhz = maxCap;
 return frequencyValueFromMHz(mhz, value);
 }
 
@@ -699,7 +823,7 @@ BOOL isMinKey = [key localizedCaseInsensitiveContainsString:S("min")] ||
 BOOL isFrequencyKey = [lower containsString:S("freq")] ||
 [lower containsString:S("frequency")];
 
-int64_t original = kLowPowerMaximumCapMHz;
+int64_t original = (int64_t)lowPowerTargetValue();
 if (originalValue && CFGetTypeID(originalValue) == CFNumberGetTypeID()) {
 CFNumberGetValue((CFNumberRef)originalValue, kCFNumberSInt64Type, &original);
 } else if (isMinKey && isFrequencyKey) {
@@ -720,7 +844,7 @@ BOOL isMinKey = [key localizedCaseInsensitiveContainsString:S("min")] ||
 BOOL isFrequencyKey = [lower containsString:S("freq")] ||
 [lower containsString:S("frequency")];
 
-int64_t original = originalNumber ? [originalNumber longLongValue] : kLowPowerMaximumCapMHz;
+int64_t original = originalNumber ? [originalNumber longLongValue] : (int64_t)lowPowerTargetValue();
 int64_t replacement = (isMinKey && isFrequencyKey)
 ? frequencyValueFromMHz(kLowPowerMinimumCapMHz, original)
 : clampLowPowerFrequencyValue(original);
@@ -853,8 +977,33 @@ g_enabled               = [d[S("enabled")] ?: [NSNumber numberWithBool:NO] boolV
 	g_cpuProtection         = [d[S("cpuProtection")] ?: [NSNumber numberWithBool:YES] boolValue];
 	g_brightnessProtection  = [d[S("brightnessProtection")] ?: [NSNumber numberWithBool:YES] boolValue];
 	g_suppressThermalNotifications = [d[S("suppressThermalNotifications")] ?: [NSNumber numberWithBool:YES] boolValue];
-	g_disableHotInPocket    = [d[S(kCPUthermalDisableHotInPocketKeyC)] ?: [NSNumber numberWithBool:NO] boolValue];
 	g_lockSunlightExposure  = [d[S(kCPUthermalLockSunlightExposureKeyC)] ?: [NSNumber numberWithBool:NO] boolValue];
+
+	// 温控监控偏好（移植自 Battman）
+	g_pressureMonitor       = [d[S(kCPUthermalPressureMonitorKeyC)] ?: [NSNumber numberWithBool:NO] boolValue];
+	g_notificationMonitor   = [d[S(kCPUthermalNotificationMonitorKeyC)] ?: [NSNumber numberWithBool:NO] boolValue];
+	g_pressureOverrideEnabled = [d[S(kCPUthermalPressureOverrideEnabledKeyC)] ?: [NSNumber numberWithBool:NO] boolValue];
+	NSNumber *overrideVal   = d[S(kCPUthermalPressureOverrideKeyC)];
+	g_pressureOverrideValue = overrideVal ? [overrideVal intValue] : 0;
+
+	// 重置热通知请求
+	BOOL resetNotifs = [d[S(kCPUthermalResetNotifKeyC)] ?: [NSNumber numberWithBool:NO] boolValue];
+	if (resetNotifs) {
+		int ret = CPUthermalResetNotifLevel();
+		NSLog(@"[CPUthermal] 热通知级别重置请求: result=%d", ret);
+	}
+
+	// 热压覆盖
+	if (g_enabled && g_pressureOverrideEnabled && g_pressureOverrideValue > 0) {
+		CPUthermalPressureLevel pressure = (CPUthermalPressureLevel)g_pressureOverrideValue;
+		int ret = CPUthermalSetPressure(pressure);
+		NSLog(@"[CPUthermal] 热压覆盖: %s (%d) result=%d",
+			CPUthermalPressureString(pressure), g_pressureOverrideValue, ret);
+	} else if (g_enabled && !g_pressureOverrideEnabled && g_pressureOverrideValue > 0) {
+		// 覆盖关闭但之前有残留值 — 重置为 Nominal
+		CPUthermalResetPressure();
+		NSLog(@"[CPUthermal] 热压覆盖已关闭，重置为 Nominal");
+	}
 
 	int thermalPrefsResult = CPUthermalApplyThermalStatusOverridesFromPrefs(d);
 	if (thermalPrefsResult != kSCStatusOK) {
@@ -864,7 +1013,12 @@ g_enabled               = [d[S("enabled")] ?: [NSNumber numberWithBool:NO] boolV
 	NSString *mode = d[S("powerMode")] ?: S("fullPower");
 g_powerMode = [mode isEqualToString:S("lowPower")] ? CPUthermalPowerModeLow : CPUthermalPowerModeFull;
 
-// CPU频率锁定已移除（面板中不再提供此开关）
+// 管理温控监控定时器
+if (g_enabled && (g_pressureMonitor || g_notificationMonitor)) {
+	startThermalMonitorTimer();
+} else {
+	stopThermalMonitorTimer();
+}
 }
 }
 
@@ -985,7 +1139,8 @@ int64_t numVal = 0;
 if (value && CFGetTypeID(value) == CFNumberGetTypeID() && CFNumberGetValue((CFNumberRef)value, kCFNumberSInt64Type, &numVal)) {
     int64_t mhz = frequencyMHzFromValue(numVal);
     if (mhz < kLowPowerMinimumCapMHz) {
-        replacement = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &kLowPowerMaximumCapMHz);
+        int64_t capAtMin = (int64_t)kLowPowerMinimumCapMHz;
+        replacement = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &capAtMin);
     }
 }
 if (replacement) {
@@ -1172,6 +1327,45 @@ static kern_return_t hooked_IOServiceSetProperties(io_service_t service, CFDicti
     return %orig;
 }
 
+// --- IOConnectCallAsyncMethod — 拦截非同步降频操作 ---
+// thermalmonitord 可能通过异步 IOConnect 路径执行热缓解操作
+%hookf(kern_return_t, IOConnectCallAsyncMethod, mach_port_t connection, uint32_t selector, mach_port_t wakePort, uint64_t *reference, uint32_t referenceCnt, const uint64_t *input, uint32_t inputCnt, const void *inputStruct, size_t inputStructCnt, uint64_t *output, uint32_t *outputCnt, void *outputStruct, size_t *outputStructCnt) {
+if (!g_enabled || !isThermalConnection(connection)) {
+return %orig;
+}
+
+// 恢复满功率期间 — 放行所有调用
+if (g_restoringFullPower) {
+return %orig;
+}
+
+// 紧急保护 — 任何情况都不拦截 (安全阀)
+if (SELECTOR_IS_CRITICAL(selector)) {
+return %orig;
+}
+
+// 超过安全阀温度时放行所有保护
+if (isTemperatureAboveSafetyCeiling()) {
+return %orig;
+}
+
+// 温度传感器读取拦截 — 返回 30°C
+if (g_enabled && g_cpuProtection && SELECTOR_IS_TEMP(selector)) {
+if (output && outputCnt && *outputCnt > 0) {
+for (uint32_t i = 0; i < MIN(*outputCnt, 4); i++) {
+output[i] = 30000;
+}
+}
+return KERN_SUCCESS;
+}
+
+// 拦截降频/功率控制操作
+if (shouldApplyFullCPUProtection() && SELECTOR_IS_MITIGATION(selector)) {
+return KERN_SUCCESS;
+}
+return %orig;
+}
+
 // --- notify_post — 拦截高温广播 ---
 %hookf(uint32_t, notify_post, const char *name) {
 if (g_enabled && g_suppressThermalNotifications && name) {
@@ -1210,7 +1404,7 @@ if ([ks localizedCaseInsensitiveContainsString:S("freq")] ||
 [ks localizedCaseInsensitiveContainsString:S("speed")] ||
 [ks localizedCaseInsensitiveContainsString:S("frequency")]) {
 BOOL isMinKey = [ks localizedCaseInsensitiveContainsString:S("min")];
-int64_t lowPowerValue = isMinKey ? (int64_t)kLowPowerMinimumCapMHz : (int64_t)kLowPowerMaximumCapMHz;
+int64_t lowPowerValue = isMinKey ? (int64_t)kLowPowerMinimumCapMHz : (int64_t)lowPowerTargetValue();
 return CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &lowPowerValue);
 }
 }
@@ -1556,7 +1750,20 @@ return;
 // --- ApplePPMCPU: 低功耗时限制 CPU P-state 档位 ---
 %hook ApplePPMCPU
 
+// init — 追踪新实例，防止唤醒后重新初始化丢失追踪
+- (id)init {
+id res = %orig;
+if (res) {
+trackPowerController(res);
+}
+return res;
+}
+
 - (void)setCPULevel:(int)level {
+// 追踪未注册的实例（init 可能不被调用或已存在实例）
+if (![g_mitigationControllers containsObject:self]) {
+trackPowerController(self);
+}
 if (g_restoringFullPower) {
 %orig(level);
 return;
@@ -1924,7 +2131,7 @@ if (powerSaveParams) {
 [powerSaveParams removeObjectForKey:S("powerSaveMaxSGX")];
 [modified setObject:powerSaveParams forKey:S("powerSaveParams")];
 }
-NSLog(@"[CPUthermal] 已应用低功耗 CPU-only 配置: %@ target:%d (%lld-%lldMHz)", key, (int)lowPowerTargetValue(), kLowPowerMinimumCapMHz, kLowPowerMaximumCapMHz);
+NSLog(@"[CPUthermal] 已应用低功耗 CPU-only 配置: %@ target:%d (%lld-%lldMHz)", key, (int)lowPowerTargetValue(), kLowPowerMinimumCapMHz, (int64_t)lowPowerTargetValue());
 
 // 低功耗也应用亮度/背光保护补丁
 patchThermalPlistDict(modified);
@@ -2149,10 +2356,11 @@ installRuntimeHooksIfNeeded();
 applyPowerModeToRuntime(NO);
 } else {
 stopContinuousTimer();
+stopThermalMonitorTimer();
 }
-	NSLog(@"[CPUthermal] 设置已重载 enabled:%d CPU:%d 亮度:%d 通知:%d 口袋:%d 暴晒:%d",
+	NSLog(@"[CPUthermal] 设置已重载 enabled:%d CPU:%d 亮度:%d 通知:%d 暴晒:%d 热压监控:%d 通知监控:%d 覆盖:%d",
 	g_enabled, g_cpuProtection, g_brightnessProtection, g_suppressThermalNotifications,
-	g_disableHotInPocket, g_lockSunlightExposure);
+	g_lockSunlightExposure, g_pressureMonitor, g_notificationMonitor, g_pressureOverrideEnabled);
 	}
 
 static void onWakeRuntimeEvent(CFNotificationCenterRef center, void *observer, CFNotificationName name, const void *object, CFDictionaryRef userInfo) {
@@ -2222,6 +2430,12 @@ CFNotificationCenterAddObserver(c, NULL, onWakeRuntimeEvent,
 NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 CFNotificationCenterAddObserver(c, NULL, onWakeRuntimeEvent,
 (__bridge CFStringRef)S("com.apple.system.awake"),
+NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+CFNotificationCenterAddObserver(c, NULL, onWakeRuntimeEvent,
+(__bridge CFStringRef)S("com.apple.system.power.SleepWakeState"),
+NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+CFNotificationCenterAddObserver(c, NULL, onSettingsChanged,
+(__bridge CFStringRef)S(kCPUthermalMonitorNotifC),
 NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 NSLog(@"[CPUthermal] Darwin 通知监听已注册");
 }

@@ -18,7 +18,6 @@ static const char *kCPUthermalPrefRootFSPathC = "/var/mobile/Library/Preferences
 static const char *kCPUthermalOldJBPrefRelativePathC = "Library/Preferences/com.huayuarc.CPUthermal.plist";
 static const char *kCPUthermalSettingsChangedNotifC = "com.huayuarc.CPUthermal/settingsChanged";
 static const char *kCPUthermalPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeChanged";
-static const char *kCPUthermalDisableHotInPocketKeyC = "disableHotInPocket";
 static const char *kCPUthermalLockSunlightExposureKeyC = "lockSunlightExposure";
 static const char *kCPUthermalDefaultPowerModeC = "fullPower";
 static const char *kCPUthermalLowPowerModeC = "lowPower";

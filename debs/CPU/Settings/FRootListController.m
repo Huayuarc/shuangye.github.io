@@ -6,6 +6,8 @@
 #import <notify.h>
 #import <dlfcn.h>
 #import <CPUthermalPaths.h>
+#import <CPUthermalThermalPrefs.h>
+#import <CPUthermalMonitor.h>
 
 // ============================================================
 // 注意: 禁止使用 @"" ObjC 字符串常量
@@ -95,7 +97,6 @@ prefs[key] = value;
 [self savePrefs:prefs];
 if ([key isEqualToString:S("enabled")] ||
 [key isEqualToString:S("cpuProtection")] ||
-[key isEqualToString:S(kCPUthermalDisableHotInPocketKeyC)] ||
 [key isEqualToString:S(kCPUthermalLockSunlightExposureKeyC)]) {
 [self applyThermalStatusOverrides];
 }
@@ -107,8 +108,7 @@ if (!key) return nil;
 id val = [self prefs][key];
 if (val) return val;
 if ([key isEqualToString:S("enabled")]) return [NSNumber numberWithBool:NO];
-if ([key isEqualToString:S(kCPUthermalDisableHotInPocketKeyC)] ||
-[key isEqualToString:S(kCPUthermalLockSunlightExposureKeyC)]) {
+if ([key isEqualToString:S(kCPUthermalLockSunlightExposureKeyC)]) {
 return [NSNumber numberWithBool:NO];
 }
 return [NSNumber numberWithBool:YES];
@@ -241,6 +241,115 @@ waitpid(pid, NULL, 0);
 [self presentViewController:alert animated:YES completion:nil];
 }
 
+#pragma mark - 温控监控
+
+- (void)resetThermalNotifications {
+	NSMutableDictionary *prefs = [self prefs];
+	prefs[S(kCPUthermalResetNotifKeyC)] = @YES;
+	[self savePrefs:prefs];
+	// 通过 CPUthermalTool 执行通知重置
+	NSString *toolPath = CPUthermalToolPath();
+	if (toolPath.length > 0 && [[NSFileManager defaultManager] isExecutableFileAtPath:toolPath]) {
+		char *args[] = {"CPUthermalTool", "reset-thermal-notifications", NULL};
+		CPUthermalSpawnRootDetached(toolPath, args);
+	}
+	// 弹出提示
+	[self showSimpleAlertWithTitle:S("温控监控")
+						   message:S("热通知级别重置指令已发送，等待 thermalmonitord 响应。")];
+	// 重置完成后清除标记
+	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+		NSMutableDictionary *prefs2 = [self prefs];
+		[prefs2 removeObjectForKey:S(kCPUthermalResetNotifKeyC)];
+		[self savePrefs:prefs2];
+	});
+}
+
+- (void)showThermalState {
+	// 拼接当前热状态文本
+	CPUthermalPressureLevel pressure = CPUthermalPressure();
+	CPUthermalNotifLevel notif = CPUthermalCurrentNotifLevel();
+	float maxTemp = CPUthermalMaxTriggerTemperature();
+	int solar = CPUthermalSolarState();
+
+	NSString *msg = [NSString stringWithFormat:S(
+		"热压级别: %s (%d)\n"
+		"通知级别: %s\n"
+		"最大触发温度: %.1f°C\n"
+		"阳光暴晒: %@"),
+		CPUthermalPressureString(pressure), (int)pressure,
+		CPUthermalNotifLevelString(notif, true),
+		maxTemp,
+		solar ? S("是") : S("否")];
+
+	[self showSimpleAlertWithTitle:S("当前热状态") message:msg];
+}
+
+- (void)openPressureOverridePicker {
+	UIAlertController *alert = [UIAlertController
+		alertControllerWithTitle:S("热压覆盖")
+		message:S("手动设定热压级别，thermalmonitord 将按此级别执行温控策略。\n设为 Nominal 可解除降频。")
+		preferredStyle:UIAlertControllerStyleActionSheet];
+
+	NSDictionary *levels = @{
+		S("Nominal（正常）"):  @(kCPUthermalPressureNominal),
+		S("Light（轻度）"):    @(kCPUthermalPressureLight),
+		S("Moderate（中度）"): @(kCPUthermalPressureModerate),
+		S("Heavy（重度）"):    @(kCPUthermalPressureHeavy),
+		S("Trapping（抑制）"): @(kCPUthermalPressureTrapping),
+		S("Sleeping（休眠）"): @(kCPUthermalPressureSleeping),
+	};
+
+	NSMutableDictionary *prefs = [self prefs];
+	NSNumber *currentVal = prefs[S(kCPUthermalPressureOverrideKeyC)];
+	int currentInt = currentVal ? [currentVal intValue] : 0;
+
+	for (NSString *title in levels) {
+		int val = [levels[title] intValue];
+		UIAlertAction *action = [UIAlertAction actionWithTitle:title
+			style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+				NSMutableDictionary *p = [self prefs];
+				p[S(kCPUthermalPressureOverrideKeyC)] = @(val);
+				p[S(kCPUthermalPressureOverrideEnabledKeyC)] = @YES;
+				[self savePrefs:p];
+				[self applyThermalStatusOverrides];
+				// 通知 thermalmonitord 重载偏好
+				notify_post(kCPUthermalMonitorNotifC);
+				[self showSimpleAlertWithTitle:S("热压覆盖")
+					message:[NSString stringWithFormat:S("热压已设为 %@ (值: %d)"), title, val]];
+			}];
+		if (val == currentInt) {
+			[action setValue:@YES forKey:S("checked")];
+		}
+		[alert addAction:action];
+	}
+
+	// 如果当前启用了覆盖，添加"关闭覆盖"选项
+	if (currentVal) {
+		UIAlertAction *disableAction = [UIAlertAction actionWithTitle:S("关闭覆盖")
+			style:UIAlertActionStyleDestructive handler:^(UIAlertAction *action) {
+				NSMutableDictionary *p = [self prefs];
+				[p removeObjectForKey:S(kCPUthermalPressureOverrideKeyC)];
+				p[S(kCPUthermalPressureOverrideEnabledKeyC)] = @NO;
+				[self savePrefs:p];
+				[self applyThermalStatusOverrides];
+				notify_post(kCPUthermalMonitorNotifC);
+				CPUthermalResetPressure();
+				[self showSimpleAlertWithTitle:S("热压覆盖") message:S("热压覆盖已关闭，恢复系统自动管理。")];
+			}];
+		[alert addAction:disableAction];
+	}
+
+	[alert addAction:[UIAlertAction actionWithTitle:S("取消") style:UIAlertActionStyleCancel handler:nil]];
+
+	UIPopoverPresentationController *popover = alert.popoverPresentationController;
+	if (popover) {
+		popover.sourceView = self.view;
+		popover.sourceRect = self.view.bounds;
+		popover.permittedArrowDirections = 0;
+	}
+	[self presentViewController:alert animated:YES completion:nil];
+}
+
 #pragma mark - Specifier 构建
 
 - (PSSpecifier *)switchSpecifier:(NSString *)label key:(NSString *)key {
@@ -304,10 +413,9 @@ group = [PSSpecifier emptyGroupSpecifier];
 // ===================== 第3组: 环境状态 =====================
 group = [PSSpecifier emptyGroupSpecifier];
 [group setProperty:S("环境状态") forKey:S("label")];
-[group setProperty:S("口袋过热 (Hot-in-Pocket) 保护在屏幕关闭且不播放任何媒体时自动降低 CPU 与 GPU活动，避免设备在口袋中积热。") forKey:S("footerText")];
+[group setProperty:S("锁定阳光暴晒影响 CPU 性能调度。") forKey:S("footerText")];
 [specs addObject:group];
 
-[specs addObject:[self switchSpecifier:S("禁用口袋高温") key:S(kCPUthermalDisableHotInPocketKeyC)]];
 [specs addObject:[self switchSpecifier:S("锁定阳光暴晒") key:S(kCPUthermalLockSunlightExposureKeyC)]];
 
 // ===================== 第4组: 核心保护（整合） =====================
@@ -319,7 +427,25 @@ group = [PSSpecifier emptyGroupSpecifier];
 [specs addObject:[self switchSpecifier:S("屏幕亮度保护") key:S("brightnessProtection")]];
 [specs addObject:[self switchSpecifier:S("屏蔽温度计通知") key:S("suppressThermalNotifications")]];
 
-// ===================== 第5组: 操作 =====================
+// ===================== 第5组: 温控监控（移植自 Battman 温控等级） =====================
+group = [PSSpecifier emptyGroupSpecifier];
+[group setProperty:S("温控监控") forKey:S("label")];
+[group setProperty:S("读取和控制系统热压/通知级别，热压覆盖需 platform-application 权限。") forKey:S("footerText")];
+[specs addObject:group];
+
+[specs addObject:[self switchSpecifier:S("热压监控") key:S(kCPUthermalPressureMonitorKeyC)]];
+[specs addObject:[self switchSpecifier:S("通知级别监控") key:S(kCPUthermalNotificationMonitorKeyC)]];
+[specs addObject:[self buttonSpecifier:S("查看当前热状态")
+action:@selector(showThermalState)
+identifier:S("showThermalState")]];
+[specs addObject:[self buttonSpecifier:S("热压覆盖")
+action:@selector(openPressureOverridePicker)
+identifier:S("pressureOverride")]];
+[specs addObject:[self buttonSpecifier:S("重置热通知级别")
+action:@selector(resetThermalNotifications)
+identifier:S("resetNotifs")]];
+
+// ===================== 第6组: 操作 =====================
 group = [PSSpecifier emptyGroupSpecifier];
 [group setProperty:S("操作") forKey:S("label")];
 [specs addObject:group];
