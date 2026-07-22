@@ -2,7 +2,6 @@
 #import <spawn.h>
 #import <sys/wait.h>
 #import <CPUthermalPaths.h>
-#import <CPUthermalMonitor.h>
 
 static int runExecutable(NSString *path, char *const argv[]) {
     if (path.length == 0) {
@@ -46,9 +45,21 @@ static int rebootUserspace(void) {
     return runExecutable(launchctlPath, args);
 }
 
-static int applyThermalOverrides(void) {
-    // 热状态覆盖功能已移除（原为阳光暴晒锁定）
-    return 0;
+static int setThermalPressure(NSString *value) {
+    if (value.length == 0) {
+        return 64;
+    }
+
+    NSInteger pressure = [value integerValue];
+    if (pressure < kCPUthermalThermalPressureLevelNominal || pressure >= kCPUthermalThermalPressureLevelUnknown) {
+        return 65;
+    }
+
+    return CPUthermalSetThermalPressureLevel((CPUthermalThermalPressureLevel)pressure);
+}
+
+static int resetThermalNotification(void) {
+    return CPUthermalSetThermalNotificationRawLevel(0);
 }
 
 int main(int argc, char *argv[]) {
@@ -67,31 +78,12 @@ int main(int argc, char *argv[]) {
             if ([command isEqualToString:S("userspace-reboot")]) {
                 return rebootUserspace();
             }
-            if ([command isEqualToString:S("apply-thermal-overrides")]) {
-                return applyThermalOverrides();
+            if ([command isEqualToString:S("set-thermal-pressure")]) {
+                NSString *value = argc > 2 ? [NSString stringWithUTF8String:argv[2]] : nil;
+                return setThermalPressure(value);
             }
-            if ([command isEqualToString:S("reset-thermal-notifications")]) {
-                int ret = CPUthermalResetNotifLevel();
-                printf("reset-thermal-notifications: %d\n", ret);
-                return ret;
-            }
-            if ([command isEqualToString:S("read-thermal-state")]) {
-                CPUthermalPressureLevel pressure = CPUthermalPressure();
-                CPUthermalNotifLevel notif = CPUthermalCurrentNotifLevel();
-                float maxTemp = CPUthermalMaxTriggerTemperature();
-
-                printf("Thermal State:\n");
-                printf("  Pressure: %s (%d)\n", CPUthermalPressureString(pressure), (int)pressure);
-                printf("  Notification: %s\n", CPUthermalNotifLevelString(notif, true));
-                printf("  Max Trigger Temp: %.1f°C\n", maxTemp);
-                return 0;
-            }
-            if ([command isEqualToString:S("set-thermal-pressure")] && argc > 2) {
-                int value = atoi(argv[2]);
-                CPUthermalPressureLevel pressure = (CPUthermalPressureLevel)value;
-                int ret = CPUthermalSetPressure(pressure);
-                printf("set-thermal-pressure %d: %d\n", value, ret);
-                return ret;
+            if ([command isEqualToString:S("reset-thermal-notification")]) {
+                return resetThermalNotification();
             }
         }
 
@@ -100,10 +92,8 @@ int main(int argc, char *argv[]) {
         printf("  restart-thermalmonitord-delayed\n");
         printf("  sbreload\n");
         printf("  userspace-reboot\n");
-        printf("  apply-thermal-overrides\n");
-        printf("  read-thermal-state\n");
-        printf("  reset-thermal-notifications\n");
-        printf("  set-thermal-pressure <value>\n");
+        printf("  set-thermal-pressure <0-5>\n");
+        printf("  reset-thermal-notification\n");
     }
     return 0;
 }

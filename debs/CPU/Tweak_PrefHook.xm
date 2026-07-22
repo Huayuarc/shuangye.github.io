@@ -1,3 +1,15 @@
+//
+//  Tweak_PrefHook.xm
+//  CPUthermalPrefHook
+//
+//  适配自 fuckThermal (逆向还原)
+//  目标: com.apple.Preferences 中的 ThermalManager
+//  Hook: getBatteryServiceSuggestion:
+//  功能: 拦截系统散热/电池服务建议, 使用 CPUthermal 的偏好设置作为开关
+//
+//  编译: clang + -fobjc-arc -lsubstrate -framework Foundation -framework CoreFoundation
+//
+
 #import <Foundation/Foundation.h>
 #import <substrate.h>
 #import <notify.h>
@@ -5,10 +17,13 @@
 #import <objc/runtime.h>
 #import <syslog.h>
 
-@interface ThermalManager : NSObject
-- (id)getBatteryServiceSuggestion:(id)suggestion;
-@end
-
+// ============================================================
+// CPUthermal 偏好设置路径 (与主 tweak 共享)
+// 注意: 必须用 C 字符串，不能用 @"" 常量
+// roothide 重映射 dylib 后会破坏 __cfstring 的内部指针
+// 导致加载时直接 SIGBUS (EXC_BAD_ACCESS)
+// ============================================================
+// ============================================================
 // 全局状态
 // ============================================================
 static BOOL gEnabled = NO;
@@ -30,8 +45,8 @@ static void loadPrefs(void) {
         if (d) {
             id enabledVal = [d objectForKey:S("enabled")];
             id suppressVal = [d objectForKey:S("suppressThermalNotifications")];
-            BOOL enabled = enabledVal ? [enabledVal boolValue] : NO;
-            BOOL suppress = suppressVal ? [suppressVal boolValue] : YES;
+            BOOL enabled = enabledVal ? [enabledVal boolValue] : YES;
+            BOOL suppress = suppressVal ? [suppressVal boolValue] : NO;
             gEnabled = enabled && suppress;
         } else {
             gEnabled = NO;
