@@ -195,7 +195,7 @@ static void applyFullPowerToCommonProduct(void);
 static void restoreFullPowerToTrackedControllers(void);
 static void beginWakeRecovery(void);
 static void loadPrefs(void);
-static void scheduleDeferredRuntimeApply(double delay);
+__attribute__((unused)) static void scheduleDeferredRuntimeApply(double delay);
 static NSDictionary *readPrefsDictionary(void);
 
 static void startContinuousTimer(void) {
@@ -552,7 +552,7 @@ g_restoringFullPower = NO;
 }
 }
 
-static void scheduleDeferredRuntimeApply(double delay) {
+__attribute__((unused)) static void scheduleDeferredRuntimeApply(double delay) {
 if (g_deferredRuntimeApplyScheduled) return;
 g_deferredRuntimeApplyScheduled = YES;
 dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
@@ -1034,7 +1034,7 @@ NSString *ks = (__bridge NSString *)key;
 if ([ks localizedCaseInsensitiveContainsString:S("temperature")] ||
 [ks localizedCaseInsensitiveContainsString:S("thermal-level")] ||
 [ks localizedCaseInsensitiveContainsString:S("hot-level")] ||
-[ks localizedCaseInsensitiveContainsString:S("thermalstate")])) {
+[ks localizedCaseInsensitiveContainsString:S("thermalstate")]) {
 int zero = 0;
 return CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &zero);
 }
