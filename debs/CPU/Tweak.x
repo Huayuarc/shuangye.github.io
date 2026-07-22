@@ -236,6 +236,8 @@ return;
 }
 if (shouldApplyLowPowerLimit()) {
 applyLowPowerThermalPressure();
+applyLowPowerToCommonProduct();
+applyLowPowerLimitsToTrackedControllers();
 } else if (shouldApplyFullCPUProtection()) {
 clearLowPowerThermalPressure();
 applyFullPowerToCommonProduct();
@@ -583,8 +585,54 @@ if (remembered > lowPowerTargetValue()) return remembered;
 return fullPowerTargetForController(controller);
 }
 
+static void applyLowPowerToController(id controller) {
+    if (!controller || !shouldApplyLowPowerLimit()) return;
+    @try {
+        g_applyingLowPower = YES;
+        NSInteger target = lowPowerTargetValue();
+        if ([controller respondsToSelector:@selector(setPowerSaveActive:)]) {
+            ((void (*)(id, SEL, BOOL))objc_msgSend)(controller, @selector(setPowerSaveActive:), YES);
+        }
+        if ([controller respondsToSelector:@selector(setPowerSaveToken:)]) {
+            sendSetPowerSaveToken(controller, 1);
+        }
+        if ([controller respondsToSelector:@selector(setCPULowPowerTarget:)]) {
+            ((void (*)(id, SEL, int))objc_msgSend)(controller, @selector(setCPULowPowerTarget:), (int)target);
+        }
+        if ([controller respondsToSelector:@selector(setMaxCPUPowerTarget:useLegacyPath:setProperty:)]) {
+            sendSetMaxCPUPowerTarget(controller, (int)target, NO);
+        }
+        if ([controller respondsToSelector:@selector(setCPUPowerCeiling:fromDecisionSource:)]) {
+            ((void (*)(id, SEL, int, uintptr_t))objc_msgSend)(controller, @selector(setCPUPowerCeiling:fromDecisionSource:), (int)target, 0);
+        }
+        if ([controller respondsToSelector:@selector(setCPUPowerZoneTarget:)]) {
+            ((void (*)(id, SEL, int))objc_msgSend)(controller, @selector(setCPUPowerZoneTarget:), (int)target);
+        }
+        if ([controller respondsToSelector:@selector(updateCPU)]) {
+            ((void (*)(id, SEL))objc_msgSend)(controller, @selector(updateCPU));
+        }
+        if ([controller respondsToSelector:@selector(setCPMSMitigationState:)]) {
+            ((void (*)(id, SEL, int))objc_msgSend)(controller, @selector(setCPMSMitigationState:), 1);
+        }
+        if ([controller respondsToSelector:@selector(setCPMSMitigationsEnabled:)]) {
+            ((void (*)(id, SEL, BOOL))objc_msgSend)(controller, @selector(setCPMSMitigationsEnabled:), YES);
+        }
+        NSLog(@"[CPUthermal] 低功耗: 已应用功率上限 %ld MHz → controller:%@", (long)target, controller);
+    } @catch (NSException *exception) {
+        NSLog(@"[CPUthermal] 低功耗: 套用功率上限失败: %@", exception);
+    } @finally {
+        g_applyingLowPower = NO;
+    }
+}
+
 static void applyLowPowerLimitsToTrackedControllers(void) {
-// 低功耗模式不直接操作功率控制器，系统根据 Moderate 热压力自动降频
+    if (!shouldApplyLowPowerLimit()) return;
+    @autoreleasepool {
+        NSArray *controllers = [g_mitigationControllers copy];
+        for (id controller in controllers) {
+            applyLowPowerToController(controller);
+        }
+    }
 }
 
 static void restoreFullPowerToController(id controller) {
@@ -664,11 +712,24 @@ g_restoringFullPower = NO;
 
 static void applyLowPowerToCommonProduct(void) {
 if (!g_commonProduct || !shouldApplyLowPowerLimit()) return;
-// 低功耗模式只通过 Moderate 热压力覆盖触发系统自然降频，不直接操作 CPU 限制
+// 低功耗: 设置 Moderate 热压力 + 限制 CPU 级别和功率上限
 @try {
 g_applyingLowPower = YES;
 applyLowPowerThermalPressure();
-NSLog(@"[CPUthermal] 低功耗: 已应用 Moderate 热压力覆盖");
+NSInteger target = lowPowerTargetValue();
+if ([g_commonProduct respondsToSelector:@selector(setCPULevel:)]) {
+((void (*)(id, SEL, int))objc_msgSend)(g_commonProduct, @selector(setCPULevel:), (int)target);
+}
+if ([g_commonProduct respondsToSelector:@selector(setCPUPowerCeiling:fromDecisionSource:)]) {
+((void (*)(id, SEL, int, id))objc_msgSend)(g_commonProduct, @selector(setCPUPowerCeiling:fromDecisionSource:), (int)target, S("CPUthermal"));
+}
+if ([g_commonProduct respondsToSelector:@selector(setPackagePowerCeiling:fromDecisionSource:)]) {
+((void (*)(id, SEL, int, id))objc_msgSend)(g_commonProduct, @selector(setPackagePowerCeiling:fromDecisionSource:), (int)target, S("CPUthermal"));
+}
+if ([g_commonProduct respondsToSelector:@selector(setThermalState:)]) {
+((void (*)(id, SEL, id))objc_msgSend)(g_commonProduct, @selector(setThermalState:), [NSNumber numberWithInt:1]);
+}
+NSLog(@"[CPUthermal] 低功耗: 已应用 CPU 上限 %ld MHz + Moderate 热压力", (long)target);
 } @catch (NSException *exception) {
 NSLog(@"[CPUthermal] 套用低功耗状态失败: %@", exception);
 } @finally {
@@ -685,6 +746,8 @@ if (!g_enabled || !g_cpuProtection) return;
 g_transitioningPowerMode = YES;
 if (isLowPowerMode()) {
 applyLowPowerThermalPressure();
+applyLowPowerToCommonProduct();
+applyLowPowerLimitsToTrackedControllers();
 startContinuousTimer();
 g_transitioningPowerMode = NO;
 return;
@@ -1132,7 +1195,8 @@ static kern_return_t hooked_IOServiceSetProperties(io_service_t service, CFDicti
 
     // 温度传感器读取拦截 — 返回 30°C，让 thermalmonitord 认为设备凉爽
     // 从根本上阻止其内部状态机进入高压热级别
-    if (g_enabled && g_cpuProtection && SELECTOR_IS_TEMP(selector)) {
+    // 低功耗模式下放行真实温度，让系统根据实际温度自然降频
+    if (g_enabled && g_cpuProtection && !isLowPowerMode() && SELECTOR_IS_TEMP(selector)) {
         if (output && outputCnt && *outputCnt > 0) {
             for (uint32_t i = 0; i < MIN(*outputCnt, 4); i++) {
                 output[i] = 30000;  // 30°C (毫摄氏度)
@@ -1171,7 +1235,8 @@ return %orig;
 }
 
 // 温度传感器读取拦截 — 返回 30°C
-if (g_enabled && g_cpuProtection && SELECTOR_IS_TEMP(selector)) {
+// 低功耗模式下放行真实温度
+if (g_enabled && g_cpuProtection && !isLowPowerMode() && SELECTOR_IS_TEMP(selector)) {
 if (output && outputCnt && *outputCnt > 0) {
 for (uint32_t i = 0; i < MIN(*outputCnt, 4); i++) {
 output[i] = 30000;
@@ -1210,11 +1275,12 @@ if (isTemperatureAboveSafetyCeiling()) return %orig;
 // 恢复满功率期间 — 放行
 if (g_restoringFullPower) return %orig;
 
+// 低功耗模式: 放行真实温度读取，让系统自然降频
 NSString *ks = (__bridge NSString *)key;
-if ([ks localizedCaseInsensitiveContainsString:S("temperature")] ||
+if (!isLowPowerMode() && ([ks localizedCaseInsensitiveContainsString:S("temperature")] ||
 [ks localizedCaseInsensitiveContainsString:S("thermal-level")] ||
 [ks localizedCaseInsensitiveContainsString:S("hot-level")] ||
-[ks localizedCaseInsensitiveContainsString:S("thermalstate")]) {
+[ks localizedCaseInsensitiveContainsString:S("thermalstate")])) {
 int zero = 0;
 return CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &zero);
 }
@@ -1862,7 +1928,7 @@ static NSDictionary* (*orig_getConfigurationFor)(NSString *key) = NULL;
 
 static NSDictionary* new_getConfigurationFor(NSString *key) {
 NSDictionary *config = orig_getConfigurationFor(key);
-if (!g_enabled || !g_cpuProtection || !config) return config;
+if (!shouldApplyFullCPUProtection() || !config) return config;
 
 @autoreleasepool {
 NSMutableDictionary *modified = [config mutableCopy];
@@ -1949,7 +2015,8 @@ NSLog(@"[CPUthermal] plist: 已应用 CPUthermal backlightComponentControl 补�
 }
 
 // 提高 CPU 最大缓解档位 — 阻止系统进入深度降频
-if (g_cpuProtection) {
+// 仅在全功率取消温控模式生效，低功耗模式放行系统原始配置
+if (shouldApplyFullCPUProtection()) {
 NSNumber *maxCPU = dict[S("maxCPULevel")];
 if (maxCPU && [maxCPU intValue] < 3) {
 dict[S("maxCPULevel")] = @3;
