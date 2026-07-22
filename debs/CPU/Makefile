@@ -1,26 +1,11 @@
 export THEOS ?= /var/mobile/theos
 export PATH := $(THEOS)/bin:$(PATH)
-export TARGET = iphone:clang:16.5:15.0
 THEOS_PACKAGE_SCHEME = rootless
+export TARGET = iphone:clang:16.5:15.0
 include $(THEOS)/makefiles/common.mk
 INSTALL_TARGET_PROCESSES = thermalmonitord
-# 注意: postinst 也在 configure 阶段 killall thermalmonitord。
-# INSTALL_TARGET_PROCESSES 作为 make install 时的兜底（包管理器安装靠 postinst）
-export ARCHS = arm64 arm64e
-# ========== 双方案构建 ==========
-# make                        → 构建 rootless (默认)
-# make SCHEME=roothide        → 构建 roothide
-# THEOS_PACKAGE_SCHEME=roothide make  → 构建 roothide (CI 环境变量方式)
-# make build-all              → 同时构建 rootless + roothide
 
-ifeq ($(SCHEME),roothide)
-export THEOS_PACKAGE_SCHEME := roothide
-else ifeq ($(THEOS_PACKAGE_SCHEME),)
-# 未通过 SCHEME 或环境变量指定时，默认 rootless
-export THEOS_PACKAGE_SCHEME := rootless
-endif
-
-TWEAK_NAME = CPUthermal CPUthermalPrefHook CPUthermalSB
+TWEAK_NAME = CPUthermal CPUthermalPrefHook
 
 CPUthermal_FILES = Tweak.x ThermalPatcher_supplement.x
 CPUthermal_CFLAGS = -fobjc-arc -Iinclude -Wno-deprecated-declarations -DTHEOS_INSIDE
@@ -49,14 +34,6 @@ ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
 CPUthermalPrefHook_LDFLAGS += -lroothide
 endif
 
-# CPUthermalSB: SpringBoard 亮度/热状态拦截
-CPUthermalSB_FILES = Tweak_SB.x
-CPUthermalSB_CFLAGS = -fobjc-arc -Iinclude -Wno-deprecated-declarations
-CPUthermalSB_FRAMEWORKS = Foundation UIKit
-CPUthermalSB_LDFLAGS = -lsubstrate
-ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
-CPUthermalSB_LDFLAGS += -lroothide
-endif
 include $(THEOS_MAKE_PATH)/tweak.mk
 
 # CPUthermalSettings: 偏好设置面板
