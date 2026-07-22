@@ -72,7 +72,7 @@ return S("解除温控");
 }
 
 - (void)restartThermalmonitord {
-CPUthermalRestartThermalmonitordSoon();
+CPUthermalRestartThermalmonitordNow();
 }
 
 // CPU频率锁定已移除 — 低功耗模式改用模拟热压力 + CPU 温和限频，不限制 GPU。
@@ -82,8 +82,8 @@ prefs[S("powerMode")] = mode ?: S("fullPower");
 [self savePrefs:prefs];
 notify_post(kCPUthermalPowerModeChangedNotifC);
 [self applyThermalStatusOverrides];
-// 重启 thermalmonitord 使 _getConfigurationFor/plist 补丁生效
-CPUthermalRestartThermalmonitordSoon();
+// 立即杀死 thermalmonitord 使功率模式生效，launchd 自动重启
+CPUthermalRestartThermalmonitordNow();
 PSSpecifier *specifier = [self specifierForID:S("powerMode")];
 specifier.name = [self powerModeLabel];
 [self reloadSpecifierID:S("powerMode") animated:YES];
@@ -253,9 +253,11 @@ waitpid(pid, NULL, 0);
 		char *args[] = {"CPUthermalTool", "reset-thermal-notifications", NULL};
 		CPUthermalSpawnRootDetached(toolPath, args);
 	}
+	// 立即杀死 thermalmonitord，无需等待其响应，launchd 会自动重启
+	CPUthermalRestartThermalmonitordNow();
 	// 弹出提示
 	[self showSimpleAlertWithTitle:S("温控监控")
-						   message:S("热通知级别重置指令已发送，等待 thermalmonitord 响应。")];
+						   message:S("热通知级别已重置，thermalmonitord 重启中。")];
 	// 重置完成后清除标记
 	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
 		NSMutableDictionary *prefs2 = [self prefs];

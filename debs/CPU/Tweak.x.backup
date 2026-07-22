@@ -374,7 +374,7 @@ static NSString *controllerKey(id controller, const char *name) {
 return [NSString stringWithFormat:S("%p:%s"), controller, name];
 }
 
-__attribute__((unused)) static void rememberOriginalIntValue(id controller, const char *name, int value) {
+static void rememberOriginalIntValue(id controller, const char *name, int value) {
 if (!controller || g_restoringFullPower || g_applyingLowPower || !shouldApplyLowPowerLimit()) return;
 if (value <= lowPowerTargetValue()) return;
 if (!g_originalControllerValues) g_originalControllerValues = [NSMutableDictionary dictionary];
@@ -411,14 +411,14 @@ return g_enabled && g_cpuProtection && isLowPowerMode();
 }
 
 static void applyLowPowerThermalPressure(void) {
-// 低功耗模式下设置 Moderate 热压力级别，触发系统自然降频机制
-int result = CPUthermalSetPressure(kCPUthermalPressureModerate);
+// 低功耗模式下设置 Light 热压力级别，触发系统自然降频机制
+int result = CPUthermalSetPressure(kCPUthermalPressureLight);
 if (result != KERN_SUCCESS) {
-NSLog(@"[CPUthermal] 低功耗热压力写入失败: %d (下次将重试)", result);
+NSLog(@"[CPUthermal] 低功耗热压力模拟写入失败: %d (下次将重试)", result);
 } else {
 static BOOL g_lastThermalPressureApplied = NO;
 if (!g_lastThermalPressureApplied) {
-NSLog(@"[CPUthermal] 低功耗: 设为 Moderate (%d)", kCPUthermalPressureModerate);
+NSLog(@"[CPUthermal] 低功耗热压力模拟: 设为 Light (%d)", kCPUthermalPressureLight);
 g_lastThermalPressureApplied = YES;
 }
 }
@@ -584,7 +584,7 @@ return fullPowerTargetForController(controller);
 }
 
 static void applyLowPowerLimitsToTrackedControllers(void) {
-// 低功耗模式不直接操作功率控制器，系统根据 Moderate 热压力自动降频
+// 低功耗模式不直接操作功率控制器，系统根据 Light 热压力自动降频
 }
 
 static void restoreFullPowerToController(id controller) {
@@ -664,11 +664,11 @@ g_restoringFullPower = NO;
 
 static void applyLowPowerToCommonProduct(void) {
 if (!g_commonProduct || !shouldApplyLowPowerLimit()) return;
-// 低功耗模式只通过 Moderate 热压力覆盖触发系统自然降频，不直接操作 CPU 限制
+// 低功耗模式只通过 Light 热压力覆盖触发系统自然降频，不直接操作 CPU 限制
 @try {
 g_applyingLowPower = YES;
 applyLowPowerThermalPressure();
-NSLog(@"[CPUthermal] 低功耗: 已应用 Moderate 热压力覆盖");
+NSLog(@"[CPUthermal] 低功耗: 已应用 Light 热压力覆盖");
 } @catch (NSException *exception) {
 NSLog(@"[CPUthermal] 套用低功耗状态失败: %@", exception);
 } @finally {
@@ -723,21 +723,6 @@ applyPowerModeToRuntime(NO);
 startContinuousTimer();
 beginWakeRecovery();
 });
-}
-
-// ============================================================================
-// 以下两个频率转换函数供全功率恢复安全钳位使用
-// ============================================================================
-static int64_t frequencyMHzFromValue(int64_t value) {
-if (value >= 1000000000LL) return value / 1000000LL;
-if (value >= 1000000LL) return value / 1000LL;
-return value;
-}
-
-static int64_t frequencyValueFromMHz(int64_t mhz, int64_t originalValue) {
-if (originalValue >= 1000000000LL) return mhz * 1000000LL;
-if (originalValue >= 1000000LL) return mhz * 1000LL;
-return mhz;
 }
 
 static BOOL isThermalNotificationName(NSString *name) {
@@ -990,6 +975,7 @@ return orig_IOServiceSetProperty(service, key, value);
 return KERN_SUCCESS;
 }
 return KERN_SUCCESS;
+}
 }
 }
 if (shouldBlockLowPowerDisplayProperty(ks)) {
@@ -1568,7 +1554,7 @@ if (g_restoringFullPower) {
 return;
 }
 if (shouldApplyLowPowerLimit()) {
-// 让系统根据 Moderate 热压力自行决定 CPU 级别
+// 让系统根据 Light 热压力自行决定 CPU 级别
 %orig(level);
 return;
 }
