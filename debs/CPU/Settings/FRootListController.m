@@ -75,7 +75,7 @@ return S("解除温控");
 CPUthermalRestartThermalmonitordSoon();
 }
 
-// CPU频率锁定已移除 — 低功耗模式改用低电量模拟 + CPU 温和限频，不限制 GPU。
+// CPU频率锁定已移除 — 低功耗模式改用模拟热压力 + CPU 温和限频，不限制 GPU。
 - (void)savePowerMode:(NSString *)mode {
 NSMutableDictionary *prefs = [self prefs];
 prefs[S("powerMode")] = mode ?: S("fullPower");
@@ -143,7 +143,7 @@ return;
 - (void)showPowerModePicker {
 UIAlertController *alert = [UIAlertController
 alertControllerWithTitle:S("功率模式")
-message:S("解除温控 = 性能优先，尽量保持满频满帧\n低功耗 = 模拟低电量触发 CPU 温和降频")
+message:S("解除温控 = 性能优先，尽量保持满频满帧\n低功耗 = 模拟热压力触发 CPU 温和降频")
 preferredStyle:UIAlertControllerStyleActionSheet];
 
 NSString *currentMode = [self powerModeValue];

@@ -113,7 +113,7 @@ static const CGFloat kCPUthermalCCSubtitleFontSize = 11.0;
     if (self) {
         _modeValues = @[S(kCPUthermalLowPowerModeC), S(kCPUthermalFullPowerModeC)];
         _modeTitles = @[S("低功耗"), S("解除温控")];
-        _modeSubtitles = @[S("低电量降频，不限制 GPU"), S("恢复设备原生满频")];
+        _modeSubtitles = @[S("模拟热压力降频，不限制 GPU"), S("恢复设备原生满频")];
 
         // 读取当前设置的模式
         NSString *currentMode = [self currentPowerMode];

@@ -22,7 +22,7 @@
 //
 // 冲突避免原则:
 //   - 传感器读数拦截只走 IOKit，不走 ObjC
-//   - 不再主动调用热级别模拟接口，低功耗改用低电量模拟
+//   - 不再主动调用热级别模拟接口，低功耗改用模拟热压力级别触发系统自然降频
 //   - 所有新增 hook 有独立开关
 //   - 保留系统紧急热保护安全阀 (100°C+，并始终放行紧急 selector)
 //
@@ -181,7 +181,6 @@ static CommonProduct *g_commonProduct = nil;
 static NSMutableArray *g_mitigationControllers = nil;
 static BOOL g_restoringFullPower = NO;
 static BOOL g_applyingLowPower = NO;
-static BOOL g_lowBatterySimulationActive = NO;
 static NSMutableDictionary *g_originalControllerValues = nil;
 static CFAbsoluteTime g_processStartTime = 0;
 static const double kFullPowerBootGuardDuration = 1.0;
@@ -195,7 +194,7 @@ static BOOL g_wakeBurstInProgress = NO;
 
 // ============================================================================
 // 运行时维护定时器
-// 低功耗只保活系统 Low-SOC / PowerSave 状态；解除温控仍补写满性能状态。
+// 低功耗保活热压力模拟 + PowerSave 状态；解除温控仍补写满性能状态。
 // ============================================================================
 static dispatch_source_t g_continuousTimer = NULL;
 static const int64_t kContinuousTimerIntervalMs = 1500;
@@ -208,7 +207,8 @@ static BOOL isFullPowerMode(void);
 static BOOL fullPowerBootGuardActive(void);
 static BOOL shouldApplyFullCPUProtection(void);
 static BOOL shouldApplyLowPowerLimit(void);
-static void applyCurrentBatterySimulation(void);
+static void applyLowPowerThermalPressure(void);
+static void clearLowPowerThermalPressure(void);
 static void applyLowPowerToCommonProduct(void);
 static void applyLowPowerLimitsToTrackedControllers(void);
 static void applyFullPowerToCommonProduct(void);
@@ -238,11 +238,11 @@ stopContinuousTimer();
 return;
 }
 if (shouldApplyLowPowerLimit()) {
-applyCurrentBatterySimulation();
+applyLowPowerThermalPressure();
 applyLowPowerToCommonProduct();
 applyLowPowerLimitsToTrackedControllers();
 } else if (shouldApplyFullCPUProtection()) {
-applyCurrentBatterySimulation();
+clearLowPowerThermalPressure();
 applyFullPowerToCommonProduct();
 restoreFullPowerToTrackedControllers();
 }
@@ -347,12 +347,12 @@ dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC))
 @autoreleasepool {
 if (!g_enabled || !g_cpuProtection || g_transitioningPowerMode) return;
 if (shouldApplyLowPowerLimit()) {
-applyCurrentBatterySimulation();
+applyLowPowerThermalPressure();
 applyLowPowerToCommonProduct();
 applyLowPowerLimitsToTrackedControllers();
 NSLog(@"[CPUthermal] 唤醒爆发写入 +%.1fs (低功耗)", delay);
 } else if (shouldApplyFullCPUProtection()) {
-applyCurrentBatterySimulation();
+clearLowPowerThermalPressure();
 applyFullPowerToCommonProduct();
 restoreFullPowerToTrackedControllers();
 NSLog(@"[CPUthermal] 唤醒爆发写入 +%.1fs (解除温控)", delay);
@@ -426,18 +426,31 @@ static int lowPowerPowerFloorValue(void) {
 return kLowPowerMinimumCapMHz;
 }
 
-static void applyCurrentBatterySimulation(void) {
-BOOL shouldSimulate = shouldApplyLowPowerLimit();
-// 每次定时器触发都重新写入，防止系统恢复后低电量模拟丢失
-NSDictionary *prefs = readPrefsDictionary() ?: [NSDictionary dictionary];
-int result = CPUthermalApplyThermalStatusOverridesFromPrefs(prefs);
-if (result == kSCStatusOK) {
-if (g_lowBatterySimulationActive != shouldSimulate) {
-NSLog(@"[CPUthermal] %@低电量模拟 (%ld%%)", shouldSimulate ? S("启用") : S("关闭"), (long)kCPUthermalLowBatterySimulationSOCPct);
-}
-g_lowBatterySimulationActive = shouldSimulate;
+static void applyLowPowerThermalPressure(void) {
+// 低功耗模式下设置 Moderate 热压力级别，触发系统自然降频机制
+int result = CPUthermalSetPressure(kCPUthermalPressureModerate);
+if (result != KERN_SUCCESS) {
+NSLog(@"[CPUthermal] 低功耗热压力模拟写入失败: %d (下次将重试)", result);
 } else {
-NSLog(@"[CPUthermal] 低电量模拟写入失败: %d (下次将重试)", result);
+static BOOL g_lastThermalPressureApplied = NO;
+if (!g_lastThermalPressureApplied) {
+NSLog(@"[CPUthermal] 低功耗热压力模拟: 设为 Moderate (%d)", kCPUthermalPressureModerate);
+g_lastThermalPressureApplied = YES;
+}
+}
+}
+
+static void clearLowPowerThermalPressure(void) {
+// 退出低功耗模式时清除热压力模拟，恢复 Nominal
+int result = CPUthermalResetPressure();
+if (result == KERN_SUCCESS) {
+static BOOL g_lastThermalPressureCleared = NO;
+if (!g_lastThermalPressureCleared) {
+NSLog(@"[CPUthermal] 低功耗热压力模拟: 已清除 (恢复 Nominal)");
+g_lastThermalPressureCleared = YES;
+}
+} else {
+NSLog(@"[CPUthermal] 清除热压力模拟失败: %d", result);
 }
 }
 
@@ -706,7 +719,7 @@ static void applyLowPowerToCommonProduct(void) {
 if (!g_commonProduct || !shouldApplyLowPowerLimit()) return;
 @try {
 g_applyingLowPower = YES;
-applyCurrentBatterySimulation();
+applyLowPowerThermalPressure();
 if ([g_commonProduct respondsToSelector:@selector(setCPULevel:)]) {
 ((void (*)(id, SEL, int))objc_msgSend)(g_commonProduct, @selector(setCPULevel:), 2);
 }
@@ -731,7 +744,7 @@ static void applyPowerModeToRuntime(BOOL respectBootGuard) {
 if (!g_enabled || !g_cpuProtection) return;
 g_transitioningPowerMode = YES;
 if (isLowPowerMode()) {
-applyCurrentBatterySimulation();
+applyLowPowerThermalPressure();
 applyLowPowerToCommonProduct();
 applyLowPowerLimitsToTrackedControllers();
 startContinuousTimer();
@@ -739,7 +752,7 @@ g_transitioningPowerMode = NO;
 return;
 }
 if (isFullPowerMode()) {
-applyCurrentBatterySimulation();
+clearLowPowerThermalPressure();
 if (respectBootGuard && fullPowerBootGuardActive()) {
 double elapsed = CFAbsoluteTimeGetCurrent() - g_processStartTime;
 double remaining = kFullPowerBootGuardDuration - elapsed;
@@ -1491,7 +1504,7 @@ return;
 // 冲突避免说明:
 //   - 传感器读数 getHighestSkinTemp/dieTempFilteredMaxAverage/thermalSensorValuesMaxFromIndexSet
 //     不在此处 hook (IOKit 层已拦截)
-//   - 低功耗不走热级别模拟，避免高热状态连带掉帧
+//   - 低功耗改为模拟 Moderate 热压力级别，触发系统自然频率调控
 // ============================================================================
 
 // --- ThermalManager: hook 决策树和热压力升级 ---

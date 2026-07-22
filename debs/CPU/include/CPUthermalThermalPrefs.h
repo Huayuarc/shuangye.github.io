@@ -87,10 +87,8 @@ static inline void CPUthermalRemoveOSThermalKey(SCPreferencesRef prefs, const ch
 }
 
 static inline int CPUthermalApplyManagedThermalStatusOverrides(BOOL manageSunlightExposure,
-                                                              BOOL lockSunlightExposure,
-                                                              BOOL manageLowBatterySimulation,
-                                                              BOOL simulateLowBattery) {
-    if (!manageSunlightExposure && !manageLowBatterySimulation) return kSCStatusOK;
+                                                              BOOL lockSunlightExposure) {
+    if (!manageSunlightExposure) return kSCStatusOK;
 
     SCPreferencesRef prefs = CPUthermalCreateOSThermalPrefs();
     if (!prefs) return kSCStatusFailed;
@@ -103,29 +101,6 @@ static inline int CPUthermalApplyManagedThermalStatusOverrides(BOOL manageSunlig
         } else {
             CPUthermalRemoveOSThermalKey(prefs, "sunlightOverride");
             CPUthermalRemoveOSThermalKey(prefs, "sunlightOverridePersistentlyEnabled");
-        }
-    }
-
-    if (manageLowBatterySimulation) {
-        if (simulateLowBattery) {
-            int simulatedSOC = kCPUthermalLowBatterySimulationSOCPct;
-            ok = CPUthermalSetOSThermalInt(prefs, "kBatteryPercentRemainingKey", simulatedSOC) && ok;
-            ok = CPUthermalSetOSThermalInt(prefs, "kBatteryRawGasGaugeSOCKey", simulatedSOC) && ok;
-            ok = CPUthermalSetOSThermalInt(prefs, "kBatteryChemSOCKey", simulatedSOC) && ok;
-            ok = CPUthermalSetOSThermalBool(prefs, "kBatteryPercentRemainingKeyPersistentlyEnabled", YES) && ok;
-            ok = CPUthermalSetOSThermalBool(prefs, "kBatteryRawGasGaugeSOCKeyPersistentlyEnabled", YES) && ok;
-            ok = CPUthermalSetOSThermalBool(prefs, "kBatteryChemSOCKeyPersistentlyEnabled", YES) && ok;
-            ok = CPUthermalSetOSThermalBool(prefs, "kOnChargerStatusKey", NO) && ok;
-            ok = CPUthermalSetOSThermalBool(prefs, "kOnChargerStatusKeyPersistentlyEnabled", YES) && ok;
-        } else {
-            CPUthermalRemoveOSThermalKey(prefs, "kBatteryPercentRemainingKey");
-            CPUthermalRemoveOSThermalKey(prefs, "kBatteryRawGasGaugeSOCKey");
-            CPUthermalRemoveOSThermalKey(prefs, "kBatteryChemSOCKey");
-            CPUthermalRemoveOSThermalKey(prefs, "kBatteryPercentRemainingKeyPersistentlyEnabled");
-            CPUthermalRemoveOSThermalKey(prefs, "kBatteryRawGasGaugeSOCKeyPersistentlyEnabled");
-            CPUthermalRemoveOSThermalKey(prefs, "kBatteryChemSOCKeyPersistentlyEnabled");
-            CPUthermalRemoveOSThermalKey(prefs, "kOnChargerStatusKey");
-            CPUthermalRemoveOSThermalKey(prefs, "kOnChargerStatusKeyPersistentlyEnabled");
         }
     }
 
@@ -147,17 +122,11 @@ static inline BOOL CPUthermalBoolPref(NSDictionary *prefs, const char *key, BOOL
 
 static inline int CPUthermalApplyThermalStatusOverridesFromPrefs(NSDictionary *prefs) {
     BOOL enabled = CPUthermalBoolPref(prefs, "enabled", NO);
-    BOOL cpuProtection = CPUthermalBoolPref(prefs, "cpuProtection", YES);
-    NSString *powerMode = prefs ? [prefs objectForKey:S("powerMode")] : nil;
     BOOL manageSunlightExposure = CPUthermalPrefsContainKey(prefs, kCPUthermalLockSunlightExposureKeyC);
-    BOOL manageLowBatterySimulation = YES;
     BOOL lockSunlightExposure = enabled && CPUthermalBoolPref(prefs, kCPUthermalLockSunlightExposureKeyC, NO);
-    BOOL simulateLowBattery = enabled && cpuProtection && [powerMode isKindOfClass:[NSString class]] && [powerMode isEqualToString:S(kCPUthermalLowPowerModeC)];
 
     return CPUthermalApplyManagedThermalStatusOverrides(manageSunlightExposure,
-                                                       lockSunlightExposure,
-                                                       manageLowBatterySimulation,
-                                                       simulateLowBattery);
+                                                       lockSunlightExposure);
 }
 
 // ============================================================================

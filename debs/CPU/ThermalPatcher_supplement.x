@@ -91,9 +91,9 @@ static NSInteger imp_maxSupportedFreq(id self, SEL _cmd) {
     return result;
 }
 
-// DVFSController — 拦截温控降频调用
+// DVFSController — 拦截温控降频调用（仅解除温控模式下拦截，低功耗放行以响应热压力模拟）
 static void imp_applyThrottle(id self, SEL _cmd) {
-    if (gSup_enabled && gSup_cpuProtection) {
+    if (gSup_enabled && gSup_cpuProtection && [gSup_powerMode isEqualToString:S("fullPower")]) {
         CT_LOG(@"拦截 DVFS 温控降频调用");
         return;
     }
