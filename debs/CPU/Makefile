@@ -1,6 +1,8 @@
 export THEOS ?= /var/mobile/theos
 export PATH := $(THEOS)/bin:$(PATH)
 THEOS_PACKAGE_SCHEME = rootless
+ARCHS = arm64 arm64e
+export ARCHS
 export TARGET = iphone:clang:16.5:15.0
 include $(THEOS)/makefiles/common.mk
 INSTALL_TARGET_PROCESSES = thermalmonitord

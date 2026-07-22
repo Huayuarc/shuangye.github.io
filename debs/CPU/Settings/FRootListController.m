@@ -143,7 +143,7 @@ return;
 - (void)showPowerModePicker {
 UIAlertController *alert = [UIAlertController
 alertControllerWithTitle:S("功率模式")
-message:S("解除温控 = 性能优先，尽量保持满频满帧\n低功耗 = 模拟低电量触发 CPU 温和降频，不限制 GPU")
+message:S("解除温控 = 性能优先，尽量保持满频满帧\n低功耗 = 模拟低电量触发 CPU 温和降频")
 preferredStyle:UIAlertControllerStyleActionSheet];
 
 NSString *currentMode = [self powerModeValue];
