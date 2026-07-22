@@ -80,7 +80,7 @@ static id imp_thermalMitigationData(id self, SEL _cmd) {
     return orig_thermalMitigationData ? orig_thermalMitigationData(self, _cmd) : nil;
 }
 
-// DVFSController — 锁定原生最高频率（防温控模式下）
+// DVFSController — 锁定原生最高频率（解除温控模式下）
 static NSInteger imp_maxSupportedFreq(id self, SEL _cmd) {
     NSInteger result = orig_maxSupportedFreq ? orig_maxSupportedFreq(self, _cmd) : 0;
     if (gSup_enabled && gSup_cpuProtection && [gSup_powerMode isEqualToString:S("fullPower")]) {

@@ -34,12 +34,12 @@
 // ============================================================================
 @interface CommonProduct : NSObject
 - (id)initProduct:(id)arg1;
+- (void)putDeviceInThermalSimulationMode:(id)arg1;
 - (void)tryTakeAction;
 - (void)simulateLightThermalPressure;
 - (void)updatePowerzoneTelemetry;
 - (void)setCPULevel:(int)level;
 - (void)setCPUPowerCeiling:(int)ceiling fromDecisionSource:(id)source;
-- (void)setGPUPowerCeiling:(int)ceiling fromDecisionSource:(id)source;
 - (void)setPackagePowerCeiling:(int)ceiling fromDecisionSource:(id)source;
 - (void)setThermalState:(id)state;
 @end
@@ -84,15 +84,9 @@
 - (void)updateCPU;
 @end
 
-@interface ApplePPMGPU : NSObject
-- (void)setGPULevel:(int)level;
-- (void)updateGPU;
-@end
-
 @interface MitigationController : NSObject
 - (id)initForFastLoop:(BOOL)fastLoop noDisplay:(BOOL)noDisplay powerSaveParams:(id)saveParams powerZoneParams:(id)zoneParams;
 - (void)updateCPU;
-- (void)updateGPU;
 - (void)updatePackage;
 - (void)setCPULowPowerTarget:(int)target;
 - (void)setPackageLowPowerTarget;
@@ -101,11 +95,6 @@
 - (void)setCPUPowerCeiling:(int)ceiling forDVD1Contributor:(uintptr_t)contributor;
 - (void)setCPUPowerFloor:(int)floor fromDecisionSource:(uintptr_t)source;
 - (void)setCPUPowerZoneTarget:(int)target;
-// GPU 功率管理（A15 游戏场景关键）
-- (void)setMaxGPUPowerTarget:(int)target useLegacyPath:(BOOL)legacy setProperty:(uintptr_t)property;
-- (void)setGPUPowerCeiling:(int)ceiling fromDecisionSource:(uintptr_t)source;
-- (void)setGPUPowerFloor:(int)floor fromDecisionSource:(uintptr_t)source;
-- (void)setGPUPowerZoneTarget:(int)target;
 - (BOOL)powerSaveActive;
 - (void)setPowerSaveActive:(BOOL)active;
 - (void)setPowerSaveToken:(int)token;
@@ -126,9 +115,6 @@
 @end
 
 @interface FormulaDrivenLowTempController_CPU : FormulaDrivenLowTempController
-@end
-
-@interface FormulaDrivenLowTempController_GPU : FormulaDrivenLowTempController
 @end
 
 @interface ThermalDecisionTable : NSObject
@@ -194,7 +180,7 @@ static os_unfair_lock g_controllerLock = OS_UNFAIR_LOCK_INIT;
 
 // ============================================================================
 // 运行时维护定时器
-// 低功耗只保活系统 Low-SOC / PowerSave 状态；防温控仍补写满性能状态。
+// 低功耗只保活系统 Low-SOC / PowerSave 状态；解除温控仍补写满性能状态。
 // ============================================================================
 static dispatch_source_t g_continuousTimer = NULL;
 static const int64_t kContinuousTimerIntervalMs = 1500;
@@ -355,7 +341,7 @@ static int lowTempLimitedOutputValue(int original) {
 return MIN(original, lowPowerTargetValue());
 }
 
-static BOOL keyLooksLowPowerDisplayOrGPUProperty(NSString *key) {
+static BOOL keyLooksLowPowerDisplayProperty(NSString *key) {
 if (!key) return NO;
 NSString *lower = [key lowercaseString];
 BOOL isDisplayKey = [lower containsString:S("backlight")] ||
@@ -365,14 +351,11 @@ BOOL isDisplayKey = [lower containsString:S("backlight")] ||
 [lower containsString:S("refresh")] ||
 [lower containsString:S("framerate")] ||
 [lower containsString:S("frame-rate")];
-BOOL isGPUKey = [lower containsString:S("gpu")] ||
-[lower containsString:S("sgx")] ||
-[lower containsString:S("agx")];
-return isDisplayKey || isGPUKey;
+return isDisplayKey;
 }
 
-static BOOL shouldBlockLowPowerDisplayOrGPUProperty(NSString *key) {
-return shouldApplyLowPowerLimit() && keyLooksLowPowerDisplayOrGPUProperty(key);
+static BOOL shouldBlockLowPowerDisplayProperty(NSString *key) {
+return shouldApplyLowPowerLimit() && keyLooksLowPowerDisplayProperty(key);
 }
 
 static CFStringRef cpuMaxPowerPropertyName(void) {
@@ -548,30 +531,15 @@ if ([controller respondsToSelector:@selector(setCPUPowerFloor:fromDecisionSource
 if ([controller respondsToSelector:@selector(setCPUPowerZoneTarget:)]) {
 ((void (*)(id, SEL, int))objc_msgSend)(controller, @selector(setCPUPowerZoneTarget:), fullPowerZoneTargetForController(controller));
 }
-if ([controller respondsToSelector:@selector(setMaxGPUPowerTarget:useLegacyPath:setProperty:)]) {
-((void (*)(id, SEL, int, BOOL, uintptr_t))objc_msgSend)(controller, @selector(setMaxGPUPowerTarget:useLegacyPath:setProperty:), fullPowerTargetValue(), NO, setMaxCPUPowerPropertyArgument(controller));
-}
-if ([controller respondsToSelector:@selector(setGPUPowerCeiling:fromDecisionSource:)]) {
-((void (*)(id, SEL, int, uintptr_t))objc_msgSend)(controller, @selector(setGPUPowerCeiling:fromDecisionSource:), fullPowerTargetValue(), 0);
-}
-if ([controller respondsToSelector:@selector(setGPUPowerZoneTarget:)]) {
-((void (*)(id, SEL, int))objc_msgSend)(controller, @selector(setGPUPowerZoneTarget:), fullPowerTargetValue());
-}
-if ([controller respondsToSelector:@selector(setGPUPowerFloor:fromDecisionSource:)]) {
-((void (*)(id, SEL, int, uintptr_t))objc_msgSend)(controller, @selector(setGPUPowerFloor:fromDecisionSource:), fullPowerTargetValue(), 0);
-}
 if ([controller respondsToSelector:@selector(updateCPU)]) {
 ((void (*)(id, SEL))objc_msgSend)(controller, @selector(updateCPU));
-}
-if ([controller respondsToSelector:@selector(updateGPU)]) {
-((void (*)(id, SEL))objc_msgSend)(controller, @selector(updateGPU));
 }
 if ([controller respondsToSelector:@selector(updatePackage)]) {
 ((void (*)(id, SEL))objc_msgSend)(controller, @selector(updatePackage));
 }
-NSLog(@"[CPUthermal] 已主动恢复防温控功率上限 (CPU+GPU) controller:%@", controller);
+NSLog(@"[CPUthermal] 已主动恢复解除温控功率上限 controller:%@", controller);
 } @catch (NSException *exception) {
-NSLog(@"[CPUthermal] 恢复防温控 CPU 上限失败: %@", exception);
+NSLog(@"[CPUthermal] 恢复解除温控 CPU 上限失败: %@", exception);
 } @finally {
 g_restoringFullPower = NO;
 }
@@ -601,14 +569,13 @@ if ([g_commonProduct respondsToSelector:@selector(setCPULevel:)]) {
 ((void (*)(id, SEL, int))objc_msgSend)(g_commonProduct, @selector(setCPULevel:), 0);
 }
 setCommonProductCeiling(@selector(setCPUPowerCeiling:fromDecisionSource:), 0);
-setCommonProductCeiling(@selector(setGPUPowerCeiling:fromDecisionSource:), 0);
 setCommonProductCeiling(@selector(setPackagePowerCeiling:fromDecisionSource:), 0);
 if ([g_commonProduct respondsToSelector:@selector(setThermalState:)]) {
 ((void (*)(id, SEL, id))objc_msgSend)(g_commonProduct, @selector(setThermalState:), [NSNumber numberWithInt:0]);
 }
-NSLog(@"[CPUthermal] 已主动套用防温控 CommonProduct 状态");
+NSLog(@"[CPUthermal] 已主动套用解除温控 CommonProduct 状态");
 } @catch (NSException *exception) {
-NSLog(@"[CPUthermal] 套用防温控 CommonProduct 状态失败: %@", exception);
+NSLog(@"[CPUthermal] 套用解除温控 CommonProduct 状态失败: %@", exception);
 } @finally {
 g_restoringFullPower = NO;
 }
@@ -623,7 +590,6 @@ if ([g_commonProduct respondsToSelector:@selector(setCPULevel:)]) {
 ((void (*)(id, SEL, int))objc_msgSend)(g_commonProduct, @selector(setCPULevel:), 2);
 }
 setCommonProductCeiling(@selector(setCPUPowerCeiling:fromDecisionSource:), lowPowerPowerCeilingValue());
-setCommonProductCeiling(@selector(setGPUPowerCeiling:fromDecisionSource:), 0);
 setCommonProductCeiling(@selector(setPackagePowerCeiling:fromDecisionSource:), 0);
 if ([g_commonProduct respondsToSelector:@selector(setThermalState:)]) {
 ((void (*)(id, SEL, id))objc_msgSend)(g_commonProduct, @selector(setThermalState:), [NSNumber numberWithInt:1]);
@@ -688,11 +654,6 @@ startContinuousTimer();
 static BOOL keyMatchesLowPowerLimit(NSString *key) {
 if (!key) return NO;
 NSString *lower = [key lowercaseString];
-if ([lower containsString:S("gpu")] ||
-[lower containsString:S("sgx")] ||
-[lower containsString:S("agx")]) {
-return NO;
-}
 BOOL isCPUKey = [lower containsString:S("cpu")] ||
 [lower containsString:S("ppm")] ||
 [lower containsString:S("processor")];
@@ -859,7 +820,6 @@ static BOOL shouldBlockCPUProperty(NSString *key) {
 if (!key || keyLooksChargingRelated(key)) return NO;
 NSString *lower = [key lowercaseString];
 BOOL isComputeKey = [lower containsString:S("cpu")] ||
-[lower containsString:S("gpu")] ||
 [lower containsString:S("clpc")] ||
 [lower containsString:S("ppm")] ||
 [lower containsString:S("processor")] ||
@@ -916,9 +876,7 @@ static const char *g_hotServices[] = {
     "AppleSPU", "AppleSPU.original",
     "AppleARMPlatform",
     "pmu", "ApplePMGR",
-    "AGXKext", "AGXKextA15",
     "AppleCLPC", "AppleCLPCv2",
-    "ANECompilerService",
     NULL
 };
 
@@ -959,7 +917,7 @@ static BOOL serviceIsThermal(io_service_t service) {
 // 读取失败时不放行（NO），保持保护激活；同时检查多个温度源以确保安全
 static BOOL isTemperatureAboveSafetyCeiling(void) {
     // 尝试从多个温度源读取，任何一个超过安全值则返回 YES
-    const char *tempServices[] = {"AppleARMPlatform", "AGXKext", NULL};
+    const char *tempServices[] = {"AppleARMPlatform", NULL};
 
     for (int i = 0; tempServices[i]; i++) {
         CFMutableDictionaryRef matching = IOServiceMatching(tempServices[i]);
@@ -1037,7 +995,7 @@ return ret;
 }
 }
 }
-if (shouldBlockLowPowerDisplayOrGPUProperty(ks)) {
+if (shouldBlockLowPowerDisplayProperty(ks)) {
 return KERN_SUCCESS;
 }
 if (g_brightnessProtection && shouldBlockBrightnessProperty(ks, value)) {
@@ -1111,7 +1069,7 @@ static kern_return_t hooked_IOServiceSetProperties(io_service_t service, CFDicti
                     replacementDict = [NSMutableDictionary dictionary];
                     for (CFIndex j = 0; j < count; j++) {
                         NSString *otherKey = (__bridge NSString *)keys[j];
-                        if (otherKey && shouldBlockLowPowerDisplayOrGPUProperty(otherKey)) {
+                        if (otherKey && shouldBlockLowPowerDisplayProperty(otherKey)) {
                             needsFilter = YES;
                             continue;
                         }
@@ -1130,13 +1088,13 @@ static kern_return_t hooked_IOServiceSetProperties(io_service_t service, CFDicti
             }
         }
 
-        if (!needsBlock && shouldBlockLowPowerDisplayOrGPUProperty(ks)) {
+        if (!needsBlock && shouldBlockLowPowerDisplayProperty(ks)) {
             needsFilter = YES;
             if (!replacementDict) {
                 replacementDict = [NSMutableDictionary dictionary];
                 for (CFIndex j = 0; j < count; j++) {
                     NSString *otherKey = (__bridge NSString *)keys[j];
-                    if (otherKey && shouldBlockLowPowerDisplayOrGPUProperty(otherKey)) {
+                    if (otherKey && shouldBlockLowPowerDisplayProperty(otherKey)) {
                         continue;
                     }
                     if (otherKey) {
@@ -1196,18 +1154,18 @@ static kern_return_t hooked_IOServiceSetProperties(io_service_t service, CFDicti
         return %orig;
     }
 
-    // 温度传感器读取拦截 — 返回 36°C，让 thermalmonitord 认为设备凉爽
+    // 温度传感器读取拦截 — 返回 30°C，让 thermalmonitord 认为设备凉爽
     // 从根本上阻止其内部状态机进入高压热级别
     if (g_enabled && g_cpuProtection && SELECTOR_IS_TEMP(selector)) {
         if (output && outputCnt && *outputCnt > 0) {
             for (uint32_t i = 0; i < MIN(*outputCnt, 4); i++) {
-                output[i] = 36000;  // 36°C (毫摄氏度)
+                output[i] = 30000;  // 30°C (毫摄氏度)
             }
         }
         return KERN_SUCCESS;
     }
 
-    // 防温控模式下拦截所有降频/功率控制操作
+    // 解除温控模式下拦截所有降频/功率控制操作
     if (shouldApplyFullCPUProtection() && SELECTOR_IS_MITIGATION(selector)) {
         return KERN_SUCCESS;
     }
@@ -1283,7 +1241,7 @@ if ([self respondsToSelector:@selector(setThermalState:)]) {
 ((void (*)(id, SEL, id))objc_msgSend)(self, @selector(setThermalState:), [NSNumber numberWithInt:0]);
 }
 applyCurrentPowerModeToRuntime();
-NSLog(@"[CPUthermal] CommonProduct init, 已复位 nominal 状态, 功率模式:%@", isLowPowerMode() ? S("低功耗") : S("防温控"));
+NSLog(@"[CPUthermal] CommonProduct init, 已复位 nominal 状态, 功率模式:%@", isLowPowerMode() ? S("低功耗") : S("解除温控"));
 }
 return res;
 }
@@ -1305,7 +1263,9 @@ return;
 
 - (void)updatePowerzoneTelemetry {
 if (shouldApplyFullCPUProtection()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 return;
+}
 }
 %orig;
 }
@@ -1355,8 +1315,10 @@ return;
 // 热通知 — 可选择性阻断
 - (void)updateThermalNotification:(id)notification {
 if (g_enabled && g_suppressThermalNotifications) {
+if (!isTemperatureAboveSafetyCeiling()) {
 NSLog(@"[CPUthermal] 阻止热通知: %@", notification);
 return;
+}
 }
 %orig;
 }
@@ -1364,8 +1326,10 @@ return;
 // 获取组件释放速率 — 游戏场景直接归零，避免任何降频释放
 - (float)getReleaseRateForComponent:(id)component {
 if (shouldApplyFullCPUProtection()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 NSLog(@"[CPUthermal] 阻止组件释放速率: %@", component);
 return 0.01f;
+}
 }
 return %orig(component);
 }
@@ -1375,8 +1339,10 @@ return %orig(component);
 - (id)getBatteryServiceSuggestion:(id)suggestion {
 id result = %orig(suggestion);
 if (g_enabled && g_suppressThermalNotifications) {
+if (!isTemperatureAboveSafetyCeiling()) {
 NSLog(@"[CPUthermal] 拦截 ThermalManager 散热建议");
 return nil;
+}
 }
 return result;
 }
@@ -1384,9 +1350,11 @@ return result;
 // 热压力升级通知 — 阻止系统升级热压力级别（CPUQ 移植）
 - (void)updateThermalPressureLevelNotification:(id)notification shouldForceThermalPressure:(BOOL)force {
 if (g_enabled && g_cpuProtection) {
+if (!isTemperatureAboveSafetyCeiling()) {
 NSLog(@"[CPUthermal] 阻止热压力升级: %@ force:%d", notification, force);
 %orig(notification, NO);
 return;
+}
 }
 %orig;
 }
@@ -1394,8 +1362,10 @@ return;
 // 是否应执行轻度热压力 — 阻止（CPUQ 移植）
 - (BOOL)shouldEnforceLightThermalPressure {
 if (g_enabled && g_cpuProtection) {
+if (!isTemperatureAboveSafetyCeiling()) {
 NSLog(@"[CPUthermal] 阻止 enforceLightThermalPressure");
 return NO;
+}
 }
 return %orig;
 }
@@ -1403,7 +1373,10 @@ return %orig;
 // 获取强制热级别 — 返回最低 nominal 级（CPUQ 移植）
 - (int)getPotentialForcedThermalLevel:(id)component {
 if (g_enabled && g_cpuProtection) {
+if (!isTemperatureAboveSafetyCeiling()) {
+NSLog(@"[CPUthermal] 覆盖强制热级别: %@ -> 0 (nominal)", component);
 return 0; // kThermalLevelNominal
+}
 }
 return %orig(component);
 }
@@ -1411,7 +1384,10 @@ return %orig(component);
 // 获取强制热压力级别 — 返回最低（CPUQ 移植）
 - (int)getPotentialForcedThermalPressureLevel {
 if (g_enabled && g_cpuProtection) {
+if (!isTemperatureAboveSafetyCeiling()) {
+NSLog(@"[CPUthermal] 覆盖强制热压力级别 -> 0");
 return 0;
+}
 }
 return %orig;
 }
@@ -1488,18 +1464,19 @@ return;
 // soften 模式下减半但不归零，保留基础调节能力
 - (float)calculateControlEffort:(id)trigger trigger:(id)arg2 {
 if (shouldApplyFullCPUProtection()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 float effort = %orig(trigger, arg2);
 float newEffort = effort * 0.5f;
 if (newEffort < 0 && effort > 0) newEffort = 0;
 NSLog(@"[CPUthermal] 软化控制力度: %.2f -> %.2f", effort, newEffort);
 return newEffort;
 }
+}
 return %orig(trigger, arg2);
 }
 
 // ===============================================================
-// 传感器温度读取拦截（核心改进 v3.1）
-// 在防温控模式下让 thermalmonitord 读到"假低温"，
+// 在解除温控模式下让 thermalmonitord 读到"假低温"，
 // 阻止其内部状态机进入高压热级别，从根本上避免降频决策。
 // 安全阀: 真实温度超过 100°C 时不拦截，确保紧急热保护有效。
 // ===============================================================
@@ -1530,7 +1507,7 @@ return 30000.0f;
 return temp;
 }
 
-// 传感器组最大值 — GPU/NAND/充电等组件温度
+// 传感器组最大值 — NAND/充电等组件温度
 - (float)thermalSensorValuesMaxFromIndexSet:(id)indexSet {
 float temp = %orig(indexSet);
 if (shouldApplyFullCPUProtection() && temp > 0) {
@@ -1554,8 +1531,10 @@ return;
 // actionComponentControl — 组件控制动作
 - (void)actionComponentControl {
 if (shouldApplyFullCPUProtection()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 NSLog(@"[CPUthermal] 阻止 actionComponentControl");
 return;
+}
 }
 %orig;
 }
@@ -1563,8 +1542,10 @@ return;
 // readReleaseRateForAllComponents — 全组件释放速率
 - (void)readReleaseRateForAllComponents {
 if (shouldApplyFullCPUProtection()) {
+if (!isTemperatureAboveSafetyCeiling()) {
 NSLog(@"[CPUthermal] 阻止 readReleaseRateForAllComponents");
 return;
+}
 }
 %orig;
 }
@@ -1599,26 +1580,6 @@ if (g_restoringFullPower) {
 %orig;
 return;
 }
-if (shouldApplyFullCPUProtection()) {
-return;
-}
-%orig;
-}
-
-%end
-
-// --- ApplePPMGPU: GPU P-state / 频率管理（A15 游戏场景关键） ---
-%hook ApplePPMGPU
-
-- (void)setGPULevel:(int)level {
-if (shouldApplyFullCPUProtection()) {
-%orig(0);
-return;
-}
-%orig(level);
-}
-
-- (void)updateGPU {
 if (shouldApplyFullCPUProtection()) {
 return;
 }
@@ -1685,17 +1646,6 @@ return;
 }
 
 - (void)updateCPU {
-if (g_restoringFullPower) {
-%orig;
-return;
-}
-if (shouldApplyFullCPUProtection()) {
-return;
-}
-%orig;
-}
-
-- (void)updateGPU {
 if (g_restoringFullPower) {
 %orig;
 return;
@@ -1832,55 +1782,6 @@ return;
 %orig;
 }
 
-// ======================== GPU 功率管理（A15 游戏关键） ========================
-
-- (void)setMaxGPUPowerTarget:(int)target useLegacyPath:(BOOL)legacy setProperty:(uintptr_t)property {
-if (g_restoringFullPower) {
-%orig(target, legacy, property);
-return;
-}
-if (shouldApplyFullCPUProtection()) {
-%orig(fullPowerTargetValue(), legacy, property);
-return;
-}
-%orig;
-}
-
-- (void)setGPUPowerCeiling:(int)ceiling fromDecisionSource:(uintptr_t)source {
-if (g_restoringFullPower) {
-%orig(ceiling, source);
-return;
-}
-if (shouldApplyFullCPUProtection()) {
-%orig(fullPowerTargetValue(), source);
-return;
-}
-%orig;
-}
-
-- (void)setGPUPowerFloor:(int)floor fromDecisionSource:(uintptr_t)source {
-if (g_restoringFullPower) {
-%orig(floor, source);
-return;
-}
-if (shouldApplyFullCPUProtection()) {
-%orig(fullPowerTargetValue(), source);
-return;
-}
-%orig;
-}
-
-- (void)setGPUPowerZoneTarget:(int)target {
-if (g_restoringFullPower) {
-%orig(target);
-return;
-}
-if (shouldApplyFullCPUProtection()) {
-%orig(fullPowerTargetValue());
-return;
-}
-%orig;
-}
 
 - (void)updatePowerTarget {
 if (g_restoringFullPower) {
@@ -1987,18 +1888,6 @@ return MAX(original, lowTempFullPowerOutputValue());
 }
 if (shouldApplyLowPowerLimit()) {
 return lowTempLimitedOutputValue(original);
-}
-return original;
-}
-
-%end
-
-%hook FormulaDrivenLowTempController_GPU
-
-- (int)outputForBatteryTemperature:(int)temperature stateOfCharge:(int)soc batteryRaValue:(int)ra {
-int original = %orig(temperature, soc, ra);
-if (shouldApplyFullCPUProtection()) {
-return MAX(original, lowTempFullPowerOutputValue());
 }
 return original;
 }
@@ -2122,17 +2011,12 @@ dict[S("backlightComponentControl")] = backlightComponentControl;
 NSLog(@"[CPUthermal] plist: 已应用 CPUthermal backlightComponentControl 补丁 power:%d", thermalPower);
 }
 
-// 提高 CPU/GPU 最大缓解档位 — 阻止系统进入深度降频
+// 提高 CPU 最大缓解档位 — 阻止系统进入深度降频
 if (g_cpuProtection) {
 NSNumber *maxCPU = dict[S("maxCPULevel")];
 if (maxCPU && [maxCPU intValue] < 3) {
 dict[S("maxCPULevel")] = @3;
 NSLog(@"[CPUthermal] plist: maxCPULevel %d → 3", [maxCPU intValue]);
-}
-NSNumber *maxGPU = dict[S("maxGPULevel")];
-if (maxGPU && [maxGPU intValue] < 3) {
-dict[S("maxGPULevel")] = @3;
-NSLog(@"[CPUthermal] plist: maxGPULevel %d → 3", [maxGPU intValue]);
 }
 
 // 移除/提高 Hotspot 温度阈值
@@ -2195,10 +2079,29 @@ return patched;
 
 %end
 
+// ============================================================================
+// Puppet 事件（由 Preferences 面板触发 — 模拟热级别切换）
+// ============================================================================
+static void executePuppetEvent(void) {
+if (!g_commonProduct) return;
+@autoreleasepool {
+NSDictionary *prefs = readPrefsDictionary();
+NSString *level = prefs[S("thermalPuppetValue")] ?: S("nominal");
+if ([g_commonProduct respondsToSelector:@selector(putDeviceInThermalSimulationMode:)]) {
+((void (*)(id, SEL, id))objc_msgSend)(g_commonProduct, @selector(putDeviceInThermalSimulationMode:), level);
+}
+NSLog(@"[CPUthermal] Puppet 事件: 热模式设为 %@", level);
+}
+}
+
+static void onPuppetEvent(CFNotificationCenterRef center, void *observer, CFNotificationName name, const void *object, CFDictionaryRef userInfo) {
+executePuppetEvent();
+}
+
 static void onPowerModeChanged(CFNotificationCenterRef center, void *observer, CFNotificationName name, const void *object, CFDictionaryRef userInfo) {
 loadPrefs();
 applyPowerModeToRuntime(NO);
-NSLog(@"[CPUthermal] 功率模式已切换: %@", isLowPowerMode() ? S("低功耗") : S("防温控"));
+NSLog(@"[CPUthermal] 功率模式已切换: %@", isLowPowerMode() ? S("低功耗") : S("解除温控"));
 }
 
 // IOKit 钩子是否已安装的标志
@@ -2304,6 +2207,9 @@ CFNotificationCenterAddObserver(c, NULL, onSettingsChanged,
 NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 CFNotificationCenterAddObserver(c, NULL, onPowerModeChanged,
 (__bridge CFStringRef)S(kCPUthermalPowerModeChangedNotifC),
+NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+CFNotificationCenterAddObserver(c, NULL, onPuppetEvent,
+(__bridge CFStringRef)S("com.huayuarc.CPUthermal.puppet"),
 NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 CFNotificationCenterAddObserver(c, NULL, onWakeRuntimeEvent,
 (__bridge CFStringRef)S("com.apple.springboard.hasFinishedUnblankingScreen"),

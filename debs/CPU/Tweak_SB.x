@@ -8,9 +8,8 @@
 // CPUthermalSB — SpringBoard 专用钩子
 //
 // 用途：
-//   1. 拦截 SBBrightnessController 温控自动降亮度 (reason=3)
-//   2. 屏蔽 CSDevice 热状态限制
-//   3. 防止 Launchd 因温控终止后台服务
+//   1. 屏蔽 CSDevice 热状态限制
+//   2. 防止 Launchd 因温控终止后台服务
 //
 // 注意：禁止使用 @"" ObjC 字符串常量（roothide 重映射问题）
 // ============================================================================
@@ -18,10 +17,6 @@
 // ============================================================================
 // 私有类声明
 // ============================================================================
-@interface SBBrightnessController : NSObject
-- (void)setBrightnessLevel:(float)level forReason:(int)reason;
-@end
-
 @interface CSDevice : NSObject
 - (BOOL)_isThermalStateRestricted;
 - (BOOL)_shouldReducePerformance;
@@ -35,8 +30,6 @@
 // 静态变量（通过 CFNotificationCenter Darwin 通知更新）
 // ============================================================================
 static BOOL gSB_enabled = NO;
-static BOOL gSB_brightnessProtection = NO;
-static BOOL gSB_suppressThermalNotifications = NO;
 
 // ============================================================================
 // 偏好设置读取
@@ -50,10 +43,8 @@ static void SB_loadPrefs(void) {
     @autoreleasepool {
         NSDictionary *d = SB_readPrefs();
         gSB_enabled = [d[S("enabled")] ?: [NSNumber numberWithBool:NO] boolValue];
-        gSB_brightnessProtection = gSB_enabled && [d[S("brightnessProtection")] ?: [NSNumber numberWithBool:YES] boolValue];
-        gSB_suppressThermalNotifications = gSB_enabled && [d[S("suppressThermalNotifications")] ?: [NSNumber numberWithBool:YES] boolValue];
-        NSLog(@"[CPUthermalSB] 设置已加载: enabled=%d brightness=%d suppressNotif=%d",
-              gSB_enabled, gSB_brightnessProtection, gSB_suppressThermalNotifications);
+        NSLog(@"[CPUthermalSB] 设置已加载: enabled=%d",
+              gSB_enabled);
     }
 }
 
@@ -70,22 +61,6 @@ static void SB_onSettingsChanged(CFNotificationCenterRef center, void *observer,
 // ============================================================================
 // Hook 实现
 // ============================================================================
-
-#pragma mark - SBBrightnessController: 拦截温控降亮度
-static void (*orig_setBrightness)(id self, SEL _cmd, float level, int reason);
-
-static void SB_imp_setBrightness(id self, SEL _cmd, float level, int reason) {
-    // reason == 3 是温控热降亮度标记（CoreBrightness 使用）
-    if (gSB_brightnessProtection && reason == 3) {
-        // 放行亮度升高（用户手动调高），只拦截降低
-        float currentBrightness = [UIScreen mainScreen].brightness;
-        if (level < currentBrightness) {
-            NSLog(@"[CPUthermalSB] 拦截温控降亮度: %.2f -> %.2f (reason=%d)", currentBrightness, level, reason);
-            return;
-        }
-    }
-    orig_setBrightness(self, _cmd, level, reason);
-}
 
 #pragma mark - CSDevice: 屏蔽热状态限制
 static BOOL (*orig_isThermalRestrict)(id self, SEL _cmd);
@@ -121,23 +96,10 @@ __attribute__((constructor)) static void initSBHooks(void) {
     @autoreleasepool {
         SB_loadPrefs();
 
-        Class SBBrightnessController = objc_getClass("SBBrightnessController");
         Class CSDevice = objc_getClass("CSDevice");
         Class Launchd = objc_getClass("Launchd");
 
-        // 1. SBBrightnessController — 拦截系统温控自动降亮度
-        if (SBBrightnessController) {
-            Method m = class_getInstanceMethod(SBBrightnessController, @selector(setBrightnessLevel:forReason:));
-            if (m) {
-                orig_setBrightness = (void (*)(id, SEL, float, int))method_getImplementation(m);
-                method_setImplementation(m, (IMP)SB_imp_setBrightness);
-                NSLog(@"[CPUthermalSB] SBBrightnessController.setBrightnessLevel:forReason: hook 已安装");
-            } else {
-                NSLog(@"[CPUthermalSB] 未找到 SBBrightnessController.setBrightnessLevel:forReason:");
-            }
-        }
-
-        // 2. CSDevice — 屏蔽系统热状态限制
+        // 1. CSDevice — 屏蔽系统热状态限制
         if (CSDevice) {
             Method m1 = class_getInstanceMethod(CSDevice, @selector(_isThermalStateRestricted));
             if (m1) {
@@ -153,7 +115,7 @@ __attribute__((constructor)) static void initSBHooks(void) {
             }
         }
 
-        // 3. Launchd — 防止温控终止后台服务
+        // 2. Launchd — 防止温控终止后台服务
         if (Launchd) {
             Method m = class_getInstanceMethod(Launchd, @selector(shouldKeepRunningService:));
             if (m) {
@@ -163,7 +125,7 @@ __attribute__((constructor)) static void initSBHooks(void) {
             }
         }
 
-        // 4. 注册 Darwin 通知监听 — 设置变更时同步
+        // 3. 注册 Darwin 通知监听 — 设置变更时同步
         CFNotificationCenterRef c = CFNotificationCenterGetDarwinNotifyCenter();
         if (c) {
             CFNotificationCenterAddObserver(c, NULL, SB_onSettingsChanged,
@@ -174,7 +136,6 @@ __attribute__((constructor)) static void initSBHooks(void) {
                 NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
         }
 
-        NSLog(@"[CPUthermalSB] 初始化完成 — brightness=%d suppressNotif=%d",
-              gSB_brightnessProtection, gSB_suppressThermalNotifications);
+        NSLog(@"[CPUthermalSB] 初始化完成");
     }
 }
