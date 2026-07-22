@@ -140,7 +140,7 @@ return;
 - (void)showPowerModePicker {
 UIAlertController *alert = [UIAlertController
 alertControllerWithTitle:S("功率模式")
-message:S("防温控 = 性能优先，尽量保持满频满帧\n低功耗 = 限制 CPU 最高 2016MHz，更凉更省电")
+message:S("解除温控 = 性能优先，尽量保持满频满帧\n低功耗 = 限制 CPU 最高 2016MHz，更凉更省电")
 preferredStyle:UIAlertControllerStyleActionSheet];
 
 NSString *currentMode = [self powerModeValue];
@@ -148,7 +148,7 @@ UIAlertAction *low = [UIAlertAction actionWithTitle:S("低功耗")
 style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
 [self savePowerMode:S("lowPower")];
 }];
-UIAlertAction *full = [UIAlertAction actionWithTitle:S("防温控")
+UIAlertAction *full = [UIAlertAction actionWithTitle:S("解除温控")
 style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
 [self savePowerMode:S("fullPower")];
 }];
