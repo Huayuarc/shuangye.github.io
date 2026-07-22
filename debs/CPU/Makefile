@@ -22,7 +22,10 @@ BUNDLE_NAME = CPUthermalSettings
 CPUthermalPrefHook_FILES = Tweak_PrefHook.x
 CPUthermalPrefHook_CFLAGS = -fobjc-arc -Iinclude -Wno-deprecated-declarations
 CPUthermalPrefHook_FRAMEWORKS = Foundation CoreFoundation
-CPUthermalPrefHook_LDFLAGS = -lsubstrate -lc++
+CPUthermalPrefHook_LDFLAGS = -lc++
+ifeq ($(THEOS_PACKAGE_SCHEME),rootless)
+CPUthermalPrefHook_LDFLAGS += -lsubstrate
+endif
 ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
 CPUthermalPrefHook_LDFLAGS += -lroothide
 endif
