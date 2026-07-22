@@ -38,7 +38,6 @@ static void imp_applyThrottle(id self, SEL _cmd);
 // ============================================================================
 static BOOL gSup_enabled = NO;
 static BOOL gSup_cpuProtection = NO;
-static NSString *gSup_powerMode = nil;
 
 // ============================================================================
 // Hook 原函数指针
@@ -55,7 +54,6 @@ static void Sup_loadPrefs(void) {
         NSDictionary *d = CPUthermalReadPrefs() ?: [NSDictionary dictionary];
         gSup_enabled = [d[S("enabled")] ?: [NSNumber numberWithBool:NO] boolValue];
         gSup_cpuProtection = gSup_enabled && [d[S("cpuProtection")] ?: [NSNumber numberWithBool:YES] boolValue];
-        gSup_powerMode = [d[S("powerMode")] isKindOfClass:[NSString class]] ? d[S("powerMode")] : S("fullPower");
     }
 }
 
@@ -63,8 +61,8 @@ static void Sup_onSettingsChanged(CFNotificationCenterRef center, void *observer
                                    CFNotificationName name, const void *object,
                                    CFDictionaryRef userInfo) {
     Sup_loadPrefs();
-    CT_LOG(@"设置已重载: enabled=%d cpuProtection=%d powerMode=%@",
-           gSup_enabled, gSup_cpuProtection, gSup_powerMode);
+    CT_LOG(@"设置已重载: enabled=%d cpuProtection=%d",
+           gSup_enabled, gSup_cpuProtection);
 }
 
 // ============================================================================
@@ -73,17 +71,17 @@ static void Sup_onSettingsChanged(CFNotificationCenterRef center, void *observer
 
 // ThermalMonitor — 热缓解策略数据拦截
 static id imp_thermalMitigationData(id self, SEL _cmd) {
-    if (gSup_enabled && gSup_cpuProtection && [gSup_powerMode isEqualToString:S("fullPower")]) {
+    if (gSup_enabled && gSup_cpuProtection) {
         CT_LOG(@"已屏蔽系统热缓解策略数据");
         return nil;
     }
     return orig_thermalMitigationData ? orig_thermalMitigationData(self, _cmd) : nil;
 }
 
-// DVFSController — 锁定原生最高频率（解除温控模式下）
+// DVFSController — 锁定原生最高频率
 static NSInteger imp_maxSupportedFreq(id self, SEL _cmd) {
     NSInteger result = orig_maxSupportedFreq ? orig_maxSupportedFreq(self, _cmd) : 0;
-    if (gSup_enabled && gSup_cpuProtection && [gSup_powerMode isEqualToString:S("fullPower")]) {
+    if (gSup_enabled && gSup_cpuProtection) {
         NSInteger nativeMax = CPUthermalNativeMaxPCoreFrequencyMHz();
         CT_LOG(@"DVFS 最大频率 %ld -> %ld (原生)", (long)result, (long)nativeMax);
         return nativeMax;
@@ -91,9 +89,9 @@ static NSInteger imp_maxSupportedFreq(id self, SEL _cmd) {
     return result;
 }
 
-// DVFSController — 拦截温控降频调用（仅解除温控模式下拦截，低功耗放行以响应热压力模拟）
+// DVFSController — 拦截温控降频调用
 static void imp_applyThrottle(id self, SEL _cmd) {
-    if (gSup_enabled && gSup_cpuProtection && [gSup_powerMode isEqualToString:S("fullPower")]) {
+    if (gSup_enabled && gSup_cpuProtection) {
         CT_LOG(@"拦截 DVFS 温控降频调用");
         return;
     }
@@ -134,12 +132,9 @@ static void __attribute__((constructor)) initThermalSupplementHook(void) {
             CFNotificationCenterAddObserver(c, NULL, Sup_onSettingsChanged,
                 (__bridge CFStringRef)S(kCPUthermalSettingsChangedNotifC),
                 NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
-            CFNotificationCenterAddObserver(c, NULL, Sup_onSettingsChanged,
-                (__bridge CFStringRef)S(kCPUthermalPowerModeChangedNotifC),
-                NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
         }
 
-        CT_LOG(@"初始化完成: enabled=%d cpuProtection=%d powerMode=%@",
-               gSup_enabled, gSup_cpuProtection, gSup_powerMode);
+        CT_LOG(@"初始化完成: enabled=%d cpuProtection=%d",
+               gSup_enabled, gSup_cpuProtection);
     }
 }

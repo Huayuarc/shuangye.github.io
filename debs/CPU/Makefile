@@ -16,16 +16,7 @@ ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
 CPUthermal_LDFLAGS += -lroothide
 endif
 
-BUNDLE_NAME = CPUthermalCC CPUthermalSettings
-
-# CPUthermalCC: 控制中心模块
-CPUthermalCC_FILES = \
-	ControlCenter/CPUthermalCCModule.m \
-	ControlCenter/CPUthermalCCModuleViewController.m
-CPUthermalCC_CFLAGS = -fobjc-arc -Iinclude
-CPUthermalCC_FRAMEWORKS = UIKit ControlCenterUIKit
-CPUthermalCC_INSTALL_PATH = /Library/ControlCenter/Bundles/
-CPUthermalCC_RESOURCE_DIRS = ControlCenter/resources
+BUNDLE_NAME = CPUthermalSettings
 
 # ThermalManager hook (Preferences 中的散热建议拦截)
 CPUthermalPrefHook_FILES = Tweak_PrefHook.x

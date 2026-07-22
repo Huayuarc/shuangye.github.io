@@ -86,49 +86,6 @@ static inline void CPUthermalRemoveOSThermalKey(SCPreferencesRef prefs, const ch
     CFRelease(cfKey);
 }
 
-static inline int CPUthermalApplyManagedThermalStatusOverrides(BOOL manageSunlightExposure,
-                                                              BOOL lockSunlightExposure) {
-    if (!manageSunlightExposure) return kSCStatusOK;
-
-    SCPreferencesRef prefs = CPUthermalCreateOSThermalPrefs();
-    if (!prefs) return kSCStatusFailed;
-
-    BOOL ok = YES;
-    if (manageSunlightExposure) {
-        if (lockSunlightExposure) {
-            ok = CPUthermalSetOSThermalBool(prefs, "sunlightOverride", YES) && ok;
-            ok = CPUthermalSetOSThermalBool(prefs, "sunlightOverridePersistentlyEnabled", YES) && ok;
-        } else {
-            CPUthermalRemoveOSThermalKey(prefs, "sunlightOverride");
-            CPUthermalRemoveOSThermalKey(prefs, "sunlightOverridePersistentlyEnabled");
-        }
-    }
-
-    int result = ok ? CPUthermalSaveOSThermalPrefs(prefs) : kSCStatusFailed;
-    CFRelease(prefs);
-    return result;
-}
-
-static inline BOOL CPUthermalPrefsContainKey(NSDictionary *prefs, const char *key) {
-    if (!prefs || !key) return NO;
-    return [prefs objectForKey:S(key)] != nil;
-}
-
-static inline BOOL CPUthermalBoolPref(NSDictionary *prefs, const char *key, BOOL defaultValue) {
-    if (!prefs || !key) return defaultValue;
-    id value = [prefs objectForKey:S(key)];
-    return value ? [value boolValue] : defaultValue;
-}
-
-static inline int CPUthermalApplyThermalStatusOverridesFromPrefs(NSDictionary *prefs) {
-    BOOL enabled = CPUthermalBoolPref(prefs, "enabled", NO);
-    BOOL manageSunlightExposure = CPUthermalPrefsContainKey(prefs, kCPUthermalLockSunlightExposureKeyC);
-    BOOL lockSunlightExposure = enabled && CPUthermalBoolPref(prefs, kCPUthermalLockSunlightExposureKeyC, NO);
-
-    return CPUthermalApplyManagedThermalStatusOverrides(manageSunlightExposure,
-                                                       lockSunlightExposure);
-}
-
 // ============================================================================
 // 温控监控偏好键名 (温控等级: 热压/通知/重置)
 // ============================================================================

@@ -109,10 +109,6 @@ static inline int CPUthermalResetPressure(void) {
 /// @return 摄氏度 (float)，失败返回 -1.0
 float CPUthermalMaxTriggerTemperature(void);
 
-/// 读取阳光暴晒状态 (thermalmonitord 设置)
-/// @return 0=未暴晒, >0=暴晒中
-int CPUthermalSolarState(void);
-
 // ============================================================================
 // 热通知写入
 // ============================================================================

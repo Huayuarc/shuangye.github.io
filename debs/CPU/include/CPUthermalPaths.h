@@ -17,15 +17,7 @@ extern int posix_spawnattr_set_persona_gid_np(const posix_spawnattr_t *__restric
 static const char *kCPUthermalPrefRootFSPathC = "/var/mobile/Library/Preferences/com.huayuarc.CPUthermal.plist";
 static const char *kCPUthermalOldJBPrefRelativePathC = "Library/Preferences/com.huayuarc.CPUthermal.plist";
 static const char *kCPUthermalSettingsChangedNotifC = "com.huayuarc.CPUthermal/settingsChanged";
-static const char *kCPUthermalPowerModeChangedNotifC = "com.huayuarc.CPUthermal/powerModeChanged";
-static const char *kCPUthermalLockSunlightExposureKeyC = "lockSunlightExposure";
-static const char *kCPUthermalDefaultPowerModeC = "fullPower";
-static const char *kCPUthermalLowPowerModeC = "lowPower";
-static const char *kCPUthermalFullPowerModeC = "fullPower";
 static const NSInteger kCPUthermalDefaultMaxPCoreFrequencyMHz = 3240;
-
-// 低功耗模式目标限制频率MHz（通过模拟熱压力触发系统降频，定义见 Tweak.x）
-NSInteger lowPowerTargetValue(void);
 
 static inline NSString *CPUthermalStringFromCPath(const char *path) {
     return path ? [NSString stringWithUTF8String:path] : nil;

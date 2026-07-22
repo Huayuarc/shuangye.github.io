@@ -2,7 +2,6 @@
 #import <spawn.h>
 #import <sys/wait.h>
 #import <CPUthermalPaths.h>
-#import <CPUthermalThermalPrefs.h>
 #import <CPUthermalMonitor.h>
 
 static int runExecutable(NSString *path, char *const argv[]) {
@@ -48,8 +47,8 @@ static int rebootUserspace(void) {
 }
 
 static int applyThermalOverrides(void) {
-    NSDictionary *prefs = CPUthermalReadPrefs();
-    return CPUthermalApplyThermalStatusOverridesFromPrefs(prefs ?: [NSDictionary dictionary]);
+    // 热状态覆盖功能已移除（原为阳光暴晒锁定）
+    return 0;
 }
 
 int main(int argc, char *argv[]) {
@@ -80,13 +79,11 @@ int main(int argc, char *argv[]) {
                 CPUthermalPressureLevel pressure = CPUthermalPressure();
                 CPUthermalNotifLevel notif = CPUthermalCurrentNotifLevel();
                 float maxTemp = CPUthermalMaxTriggerTemperature();
-                int solar = CPUthermalSolarState();
 
                 printf("Thermal State:\n");
                 printf("  Pressure: %s (%d)\n", CPUthermalPressureString(pressure), (int)pressure);
                 printf("  Notification: %s\n", CPUthermalNotifLevelString(notif, true));
                 printf("  Max Trigger Temp: %.1f°C\n", maxTemp);
-                printf("  Solar State: %d\n", solar);
                 return 0;
             }
             if ([command isEqualToString:S("set-thermal-pressure")] && argc > 2) {

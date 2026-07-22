@@ -302,18 +302,3 @@ float CPUthermalMaxTriggerTemperature(void) {
 	return (float)level / 100.0f;
 }
 
-int CPUthermalSolarState(void) {
-	int token;
-	uint64_t level;
-
-	if (notify_register_check("com.apple.system.thermalsunlightstate", &token)) {
-		return 0;
-	}
-	if (notify_get_state(token, &level)) {
-		notify_cancel(token);
-		return 0;
-	}
-	notify_cancel(token);
-
-	return (int)level;
-}
