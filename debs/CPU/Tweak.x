@@ -58,8 +58,6 @@
 @end
 
 @interface ThermalControl : NSObject
-- (float)calculateControlEffort:(id)trigger;
-- (float)calculateControlEffort:(id)trigger trigger:(id)arg2;
 - (id)findCC:(id)component;
 - (float)dieTempFilteredMaxAverage;
 - (float)getHighestSkinTemp;
@@ -129,10 +127,6 @@
 - (id)initDecisionTable:(id)table;
 @end
 
-@interface PIDController : NSObject
-- (id)initPIDWith:(id)params;
-@end
-
 @interface HotspotController : NSObject
 - (id)initWithParams:(id)params aggdController:(id)aggd;
 @end
@@ -158,15 +152,25 @@ CPUthermalPowerModeLow  = 1
 
 static CPUthermalPowerMode g_powerMode = CPUthermalPowerModeFull;
 
-// 低功耗模式 CPU 频率限制（MHz）
-// 只限制上限，不强制抬高最低频，避免轻负载锁 2016MHz 导致发热。
-static const int64_t kLowPowerMinFrequencyMHz = 1380;
-static const int64_t kLowPowerMaxFrequencyMHz = 2016;
+// 低功耗模式 CPU 峰值限制（MHz）
+// 使用设备原生最高频率的温和比例，不再固定 2016MHz，避免游戏/高刷场景明显掉帧。
+static const int64_t kLowPowerMinimumCapMHz = 2200;
+static const int64_t kLowPowerMaximumCapMHz = 2200;
+static const int64_t kLowPowerCapPercent = 78;
 
 // 温度安全阀 — 超过此值不拦截任何保护
 // 100°C 后优先交还系统温控，并始终放行 0x60-0x6F 紧急保护。
 static const int64_t kSafetyTempThreshold = 100000;
 static const int64_t kThermalThresholdRaise = 15000;
+
+// A15 降频操作 selector 范围:
+//   0x10-0x1F: 温度传感器读取
+//   0x20-0x2F: 电源域状态查询（A15 新增）
+//   0x30-0x5F: 降频/功率控制（含 A15 新增范围）
+//   0x60-0x6F: 紧急保护 — 永不拦截
+#define SELECTOR_IS_TEMP(s)        ((s) >= 0x10 && (s) <= 0x1F)
+#define SELECTOR_IS_MITIGATION(s)  ((s) >= 0x20 && (s) <= 0x5F)
+#define SELECTOR_IS_CRITICAL(s)    ((s) >= 0x60 && (s) <= 0x6F)
 
 static CommonProduct *g_commonProduct = nil;
 static NSMutableArray *g_mitigationControllers = nil;
@@ -182,7 +186,7 @@ static BOOL g_deferredRuntimeApplyScheduled = NO;
 // 防温控模式下低频率补写满性能状态，避免 0.8s 高频刷写造成额外卡顿。
 // ============================================================================
 static dispatch_source_t g_continuousTimer = NULL;
-static const int64_t kContinuousTimerIntervalMs = 500;
+static const int64_t kContinuousTimerIntervalMs = 2000;
 
 static void stopContinuousTimer(void);
 
@@ -280,12 +284,18 @@ return g_enabled && g_cpuProtection && isLowPowerMode();
 }
 
 static int lowPowerTargetValue(void) {
-// 低功耗模式固定使用上限频率，不受 deviceLock 影响
-return (int)kLowPowerMaxFrequencyMHz;
+int64_t native = CPUthermalNativeMaxPCoreFrequencyMHz();
+if (native <= 0) native = kCPUthermalDefaultMaxPCoreFrequencyMHz;
+
+int64_t cap = (native * kLowPowerCapPercent) / 100;
+if (cap < kLowPowerMinimumCapMHz) cap = MIN(native, kLowPowerMinimumCapMHz);
+if (cap > kLowPowerMaximumCapMHz) cap = kLowPowerMaximumCapMHz;
+if (cap > native) cap = native;
+return (int)cap;
 }
 
 static int lowPowerPowerCeilingValue(void) {
-return 40;
+return 85;
 }
 
 static int lowPowerPowerFloorValue(void) {
@@ -310,8 +320,7 @@ return fullPowerPercentValue();
 }
 
 static int lowTempLimitedOutputValue(int original) {
-// 低功耗模式下不受 deviceLock 影响，固定使用 2016MHz 上限
-return MIN(original, (int)kLowPowerMaxFrequencyMHz);
+return MIN(original, lowPowerTargetValue());
 }
 
 static CFStringRef cpuMaxPowerPropertyName(void) {
@@ -469,7 +478,7 @@ if ([controller respondsToSelector:@selector(setGPUPowerZoneTarget:)]) {
 if ([controller respondsToSelector:@selector(updateGPU)]) {
 ((void (*)(id, SEL))objc_msgSend)(controller, @selector(updateGPU));
 }
-NSLog(@"[CPUthermal] 已主动下发低功耗 CPU+GPU 限制: %lld-%lldMHz controller:%@", kLowPowerMinFrequencyMHz, kLowPowerMaxFrequencyMHz, controller);
+NSLog(@"[CPUthermal] 已主动下发低功耗 CPU+GPU 限制: %lld-%lldMHz controller:%@", kLowPowerMinimumCapMHz, kLowPowerMaximumCapMHz, controller);
 } @catch (NSException *exception) {
 NSLog(@"[CPUthermal] 下发低功耗 CPU 限制失败: %@", exception);
 } @finally {
@@ -671,8 +680,8 @@ return mhz;
 
 static int64_t clampLowPowerFrequencyValue(int64_t value) {
 int64_t mhz = frequencyMHzFromValue(value);
-if (mhz < kLowPowerMinFrequencyMHz) mhz = kLowPowerMinFrequencyMHz;
-if (mhz > kLowPowerMaxFrequencyMHz) mhz = kLowPowerMaxFrequencyMHz;
+if (mhz < kLowPowerMinimumCapMHz) mhz = kLowPowerMinimumCapMHz;
+if (mhz > kLowPowerMaximumCapMHz) mhz = kLowPowerMaximumCapMHz;
 return frequencyValueFromMHz(mhz, value);
 }
 
@@ -684,15 +693,15 @@ BOOL isMinKey = [key localizedCaseInsensitiveContainsString:S("min")] ||
 BOOL isFrequencyKey = [lower containsString:S("freq")] ||
 [lower containsString:S("frequency")];
 
-int64_t original = kLowPowerMaxFrequencyMHz;
+int64_t original = kLowPowerMaximumCapMHz;
 if (originalValue && CFGetTypeID(originalValue) == CFNumberGetTypeID()) {
 CFNumberGetValue((CFNumberRef)originalValue, kCFNumberSInt64Type, &original);
 } else if (isMinKey && isFrequencyKey) {
-original = kLowPowerMinFrequencyMHz;
+original = kLowPowerMinimumCapMHz;
 }
 
 int64_t replacement = isMinKey && isFrequencyKey
-? frequencyValueFromMHz(kLowPowerMinFrequencyMHz, original)
+? frequencyValueFromMHz(kLowPowerMinimumCapMHz, original)
 : clampLowPowerFrequencyValue(original);
 return CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &replacement);
 }
@@ -705,9 +714,9 @@ BOOL isMinKey = [key localizedCaseInsensitiveContainsString:S("min")] ||
 BOOL isFrequencyKey = [lower containsString:S("freq")] ||
 [lower containsString:S("frequency")];
 
-int64_t original = originalNumber ? [originalNumber longLongValue] : kLowPowerMaxFrequencyMHz;
+int64_t original = originalNumber ? [originalNumber longLongValue] : kLowPowerMaximumCapMHz;
 int64_t replacement = (isMinKey && isFrequencyKey)
-? frequencyValueFromMHz(kLowPowerMinFrequencyMHz, original)
+? frequencyValueFromMHz(kLowPowerMinimumCapMHz, original)
 : clampLowPowerFrequencyValue(original);
 return [NSNumber numberWithLongLong:replacement];
 }
@@ -858,6 +867,76 @@ g_powerMode = [mode isEqualToString:S("lowPower")] ? CPUthermalPowerModeLow : CP
 }
 
 
+// ============================================================================
+// IOKit connection 追踪 + 温度安全阀
+// ============================================================================
+static const char *g_hotServices[] = {
+    "AppleSPU", "AppleSPU.original",
+    "AppleARMPlatform",
+    "pmu", "ApplePMGR",
+    "AGXKext", "AGXKextA15",
+    "AppleCLPC", "AppleCLPCv2",
+    "ANECompilerService",
+    NULL
+};
+
+#define MAX_CONN 64
+
+typedef struct {
+    io_connect_t conn;
+    BOOL         isThermal;
+} ConnEntry;
+
+static ConnEntry g_conns[MAX_CONN];
+static int g_connCount = 0;
+
+static void trackConnection(io_connect_t conn, BOOL thermal) {
+    if (g_connCount >= MAX_CONN) return;
+    g_conns[g_connCount].conn     = conn;
+    g_conns[g_connCount].isThermal = thermal;
+    g_connCount++;
+}
+
+static BOOL isThermalConnection(io_connect_t conn) {
+    for (int i = 0; i < g_connCount; i++) {
+        if (g_conns[i].conn == conn) return g_conns[i].isThermal;
+    }
+    return NO;
+}
+
+static BOOL serviceIsThermal(io_service_t service) {
+    io_name_t name;
+    if (IORegistryEntryGetName(service, name) != KERN_SUCCESS) return NO;
+    for (int i = 0; g_hotServices[i]; i++) {
+        if (strcmp(name, g_hotServices[i]) == 0) return YES;
+    }
+    return NO;
+}
+
+// 温度安全阀 — 超过 100°C 或读温失败时放行所有保护
+static BOOL isTemperatureAboveSafetyCeiling(void) {
+    CFMutableDictionaryRef matching = IOServiceMatching("AppleARMPlatform");
+    if (!matching) return YES;
+
+    io_service_t service = IOServiceGetMatchingService(kIOMasterPortDefault, matching);
+    if (!service) return YES;
+
+    CFStringRef tempKey = CFStringCreateWithCString(kCFAllocatorDefault, "temperature", kCFStringEncodingUTF8);
+    CFTypeRef temp = tempKey ? IORegistryEntryCreateCFProperty(service, tempKey, kCFAllocatorDefault, 0) : NULL;
+    if (tempKey) CFRelease(tempKey);
+    IOObjectRelease(service);
+
+    BOOL above = YES;
+    if (temp && CFGetTypeID(temp) == CFNumberGetTypeID()) {
+        int64_t tempVal = 0;
+        if (CFNumberGetValue((CFNumberRef)temp, kCFNumberSInt64Type, &tempVal)) {
+            above = tempVal >= kSafetyTempThreshold;
+        }
+    }
+    if (temp) CFRelease(temp);
+    return above;
+}
+
 // --- IOServiceSetProperty — 阻止写降频/降亮度属性 ---
 static kern_return_t (*orig_IOServiceSetProperty)(io_service_t, CFStringRef, CFTypeRef) = NULL;
 
@@ -974,6 +1053,43 @@ static kern_return_t hooked_IOServiceSetProperties(io_service_t service, CFDicti
     }
 
     return orig_IOServiceSetProperties(service, properties);
+}
+
+// --- IOServiceOpen — 追踪 thermal connection ---
+%hookf(kern_return_t, IOServiceOpen, io_service_t service, task_t task, uint32_t type, io_connect_t *connect) {
+    kern_return_t ret = %orig;
+    if (ret == KERN_SUCCESS) {
+        trackConnection(*connect, serviceIsThermal(service));
+    }
+    return ret;
+}
+
+// --- IOConnectCallMethod — 拦截温度读取 + 降频操作 ---
+%hookf(kern_return_t, IOConnectCallMethod, mach_port_t connection, uint32_t selector, const uint64_t *input, uint32_t inputCnt, const void *inputStruct, size_t inputStructCnt, uint64_t *output, uint32_t *outputCnt, void *outputStruct, size_t *outputStructCnt) {
+    if (!g_enabled || !isThermalConnection(connection)) {
+        return %orig;
+    }
+
+    // 恢复满功率期间 — 放行所有调用
+    if (g_restoringFullPower) {
+        return %orig;
+    }
+
+    // 紧急保护 — 任何情况都不拦截 (安全阀)
+    if (SELECTOR_IS_CRITICAL(selector)) {
+        return %orig;
+    }
+
+    // 超过安全阀温度时放行所有保护
+    if (isTemperatureAboveSafetyCeiling()) {
+        return %orig;
+    }
+
+    // 防温控模式下拦截所有降频/功率控制操作
+    if (shouldApplyFullCPUProtection() && SELECTOR_IS_MITIGATION(selector)) {
+        return KERN_SUCCESS;
+    }
+    return %orig;
 }
 
 // --- notify_post — 拦截高温广播 ---
@@ -1154,23 +1270,6 @@ if (shouldApplyFullCPUProtection()) {
 return;
 }
 %orig;
-}
-
-// 计算控制力度 — 游戏场景下直接归零，阻止 PID 降频
-- (float)calculateControlEffort:(id)trigger {
-if (shouldApplyFullCPUProtection()) {
-NSLog(@"[CPUthermal] 阻止 PID 控制力度 (iOS 15 单参数路径)");
-return 0.0f;
-}
-return %orig(trigger);
-}
-
-- (float)calculateControlEffort:(id)trigger trigger:(id)arg2 {
-if (shouldApplyFullCPUProtection()) {
-NSLog(@"[CPUthermal] 阻止 PID 控制力度 (游戏防降频)");
-return 0.0f;
-}
-return %orig(trigger, arg2);
 }
 
 // ===============================================================
@@ -1727,7 +1826,7 @@ if (powerSaveParams) {
 [powerSaveParams setObject:[NSNumber numberWithInt:lowPowerTargetValue()] forKey:S("CPULowPowerTarget")];
 [lowPowerConfig setObject:powerSaveParams forKey:S("powerSaveParams")];
 }
-NSLog(@"[CPUthermal] 已应用低功耗配置: %@ target:%d (%lld-%lldMHz)", key, lowPowerTargetValue(), kLowPowerMinFrequencyMHz, kLowPowerMaxFrequencyMHz);
+NSLog(@"[CPUthermal] 已应用低功耗配置: %@ target:%d (%lld-%lldMHz)", key, lowPowerTargetValue(), kLowPowerMinimumCapMHz, kLowPowerMaximumCapMHz);
 return [lowPowerConfig copy];
 }
 
