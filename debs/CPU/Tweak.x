@@ -44,6 +44,11 @@
 - (void)setThermalState:(id)state;
 @end
 
+@interface HidSensors : NSObject
++ (id)sharedInstance;
+- (void)handleTemperatureEvent:(int)temperature service:(id)service;
+@end
+
 // ============================================================================
 // 新增: 分析发现的额外类声明
 // ============================================================================
@@ -156,7 +161,7 @@ static CPUthermalPowerMode g_powerMode = CPUthermalPowerModeFull;
 // 使用设备原生最高频率的温和比例，不再固定 2016MHz，避免游戏/高刷场景明显掉帧。
 static const int64_t kLowPowerMinimumCapMHz = 2200;
 static const int64_t kLowPowerMaximumCapMHz = 2200;
-static const int64_t kLowPowerCapPercent = 78;
+static const int64_t kLowPowerCapPercent = 90;
 
 // 温度安全阀 — 超过此值不拦截任何保护
 // 100°C 后优先交还系统温控，并始终放行 0x60-0x6F 紧急保护。
@@ -186,7 +191,7 @@ static BOOL g_deferredRuntimeApplyScheduled = NO;
 // 防温控模式下低频率补写满性能状态，避免 0.8s 高频刷写造成额外卡顿。
 // ============================================================================
 static dispatch_source_t g_continuousTimer = NULL;
-static const int64_t kContinuousTimerIntervalMs = 2000;
+static const int64_t kContinuousTimerIntervalMs = 1000;
 
 static void stopContinuousTimer(void);
 
@@ -242,6 +247,7 @@ static void loadPrefs(void);
 static void applyCurrentPowerModeToRuntime(void);
 static void applyPowerModeToRuntime(BOOL respectBootGuard);
 static void scheduleDeferredRuntimeApply(double delay);
+static NSDictionary *readPrefsDictionary(void);
 
 static NSString *controllerKey(id controller, const char *name) {
 return [NSString stringWithFormat:S("%p:%s"), controller, name];
@@ -1154,6 +1160,18 @@ return;
 
 %end
 
+// --- HidSensors: 适配 insulation，静默传感器温度事件 ---
+%hook HidSensors
+
+- (void)handleTemperatureEvent:(int)arg1 service:(id)arg2 {
+if (shouldApplyFullCPUProtection()) {
+return;
+}
+%orig(arg1, arg2);
+}
+
+%end
+
 // ============================================================================
 // ObjC 类钩子（第2层: ThermalManager 决策层 — 新增自 1.dylib 分析）
 //
@@ -1881,6 +1899,38 @@ static void patchThermalPlistDict(NSMutableDictionary *dict) {
 if (!g_enabled) return;
 
 @autoreleasepool {
+// insulation 移植: 修补 ThermalMonitor 的 backlightComponentControl，
+// 将各热级别背光功率/亮度保持在首档，避免发热状态连带触发亮度和功率回退。
+NSMutableDictionary *backlightComponentControl = [dict[S("backlightComponentControl")] mutableCopy];
+if (backlightComponentControl && (g_cpuProtection || g_brightnessProtection)) {
+NSArray *backlightKeys = @[S("BacklightBrightness"), S("BacklightPower")];
+for (NSString *key in backlightKeys) {
+id originalValues = backlightComponentControl[key];
+if (![originalValues isKindOfClass:[NSArray class]]) {
+continue;
+}
+NSMutableArray *values = [originalValues mutableCopy];
+if (values.count > 0) {
+id firstValue = values[0];
+for (NSUInteger i = 1; i < values.count; i++) {
+values[i] = firstValue;
+}
+backlightComponentControl[key] = values;
+}
+}
+
+backlightComponentControl[S("expectsCPMSSupport")] = @NO;
+
+int thermalPower = shouldApplyFullCPUProtection() ? fullPowerTargetValue() : 0;
+if (thermalPower > 0) {
+backlightComponentControl[S("maxThermalPower")] = [NSNumber numberWithInt:thermalPower];
+backlightComponentControl[S("minThermalPower")] = [NSNumber numberWithInt:thermalPower];
+}
+
+dict[S("backlightComponentControl")] = backlightComponentControl;
+NSLog(@"[CPUthermal] plist: 已应用 insulation backlightComponentControl 补丁 power:%d", thermalPower);
+}
+
 // 提高 CPU/GPU 最大缓解档位 — 阻止系统进入深度降频
 if (g_cpuProtection) {
 NSNumber *maxCPU = dict[S("maxCPULevel")];
@@ -1933,12 +1983,12 @@ dict[S("ThermalControlConfig")] = thermalCtrl;
 }
 
 // --- NSDictionary: 拦截 thermal plist 加载并修补 ---
-// 注意: hook 系统类有风险，仅在亮度保护开启时实际执行
+// 注意: hook 系统类有风险，仅在 CPU/亮度保护开启时实际执行
 %hook NSDictionary
 
 + (id)dictionaryWithContentsOfFile:(id)path {
 id res = %orig;
-if (g_enabled && g_brightnessProtection && [path isKindOfClass:[NSString class]]) {
+if (g_enabled && (g_cpuProtection || g_brightnessProtection) && [path isKindOfClass:[NSString class]]) {
 NSString *pathStr = (NSString *)path;
 if ([pathStr containsString:S("/System/Library/ThermalMonitor/")]) {
 NSMutableDictionary *patched = [res mutableCopy];
