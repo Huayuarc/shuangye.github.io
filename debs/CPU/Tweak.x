@@ -321,16 +321,16 @@ return kLowPowerMinimumCapMHz;
 
 static void applyCurrentBatterySimulation(void) {
 BOOL shouldSimulate = shouldApplyLowPowerLimit();
-if (g_lowBatterySimulationActive == shouldSimulate) {
-return;
-}
+// 每次定时器触发都重新写入，防止系统恢复后低电量模拟丢失
 NSDictionary *prefs = readPrefsDictionary() ?: [NSDictionary dictionary];
 int result = CPUthermalApplyThermalStatusOverridesFromPrefs(prefs);
 if (result == kSCStatusOK) {
-g_lowBatterySimulationActive = shouldSimulate;
+if (g_lowBatterySimulationActive != shouldSimulate) {
 NSLog(@"[CPUthermal] %@低电量模拟 (%ld%%)", shouldSimulate ? S("启用") : S("关闭"), (long)kCPUthermalLowBatterySimulationSOCPct);
+}
+g_lowBatterySimulationActive = shouldSimulate;
 } else {
-NSLog(@"[CPUthermal] 低电量模拟写入失败: %d", result);
+NSLog(@"[CPUthermal] 低电量模拟写入失败: %d (下次将重试)", result);
 }
 }
 
@@ -955,28 +955,39 @@ static BOOL serviceIsThermal(io_service_t service) {
     return NO;
 }
 
-// 温度安全阀 — 超过 100°C 或读温失败时放行所有保护
+// 温度安全阀 — 超过 100°C 时放行所有保护
+// 读取失败时不放行（NO），保持保护激活；同时检查多个温度源以确保安全
 static BOOL isTemperatureAboveSafetyCeiling(void) {
-    CFMutableDictionaryRef matching = IOServiceMatching("AppleARMPlatform");
-    if (!matching) return YES;
+    // 尝试从多个温度源读取，任何一个超过安全值则返回 YES
+    const char *tempServices[] = {"AppleARMPlatform", "AGXKext", NULL};
 
-    io_service_t service = IOServiceGetMatchingService(kIOMasterPortDefault, matching);
-    if (!service) return YES;
+    for (int i = 0; tempServices[i]; i++) {
+        CFMutableDictionaryRef matching = IOServiceMatching(tempServices[i]);
+        if (!matching) continue;
 
-    CFStringRef tempKey = CFStringCreateWithCString(kCFAllocatorDefault, "temperature", kCFStringEncodingUTF8);
-    CFTypeRef temp = tempKey ? IORegistryEntryCreateCFProperty(service, tempKey, kCFAllocatorDefault, 0) : NULL;
-    if (tempKey) CFRelease(tempKey);
-    IOObjectRelease(service);
+        io_service_t service = IOServiceGetMatchingService(kIOMasterPortDefault, matching);
+        if (!service) continue;
 
-    BOOL above = YES;
-    if (temp && CFGetTypeID(temp) == CFNumberGetTypeID()) {
-        int64_t tempVal = 0;
-        if (CFNumberGetValue((CFNumberRef)temp, kCFNumberSInt64Type, &tempVal)) {
-            above = tempVal >= kSafetyTempThreshold;
+        CFStringRef tempKey = CFStringCreateWithCString(kCFAllocatorDefault, "temperature", kCFStringEncodingUTF8);
+        CFTypeRef temp = tempKey ? IORegistryEntryCreateCFProperty(service, tempKey, kCFAllocatorDefault, 0) : NULL;
+        if (tempKey) CFRelease(tempKey);
+        IOObjectRelease(service);
+
+        if (temp && CFGetTypeID(temp) == CFNumberGetTypeID()) {
+            int64_t tempVal = 0;
+            if (CFNumberGetValue((CFNumberRef)temp, kCFNumberSInt64Type, &tempVal)) {
+                if (tempVal >= kSafetyTempThreshold) {
+                    if (temp) CFRelease(temp);
+                    NSLog(@"[CPUthermal] 温度安全阀触发: %.1f°C (源: %s)", (double)tempVal / 1000.0, tempServices[i]);
+                    return YES;
+                }
+            }
         }
+        if (temp) CFRelease(temp);
     }
-    if (temp) CFRelease(temp);
-    return above;
+
+    // 所有温度源均低于安全值，或读取失败（保持保护）
+    return NO;
 }
 
 // --- IOServiceSetProperty — 阻止写降频/降亮度属性 ---
@@ -1185,6 +1196,17 @@ static kern_return_t hooked_IOServiceSetProperties(io_service_t service, CFDicti
         return %orig;
     }
 
+    // 温度传感器读取拦截 — 返回 36°C，让 thermalmonitord 认为设备凉爽
+    // 从根本上阻止其内部状态机进入高压热级别
+    if (g_enabled && g_cpuProtection && SELECTOR_IS_TEMP(selector)) {
+        if (output && outputCnt && *outputCnt > 0) {
+            for (uint32_t i = 0; i < MIN(*outputCnt, 4); i++) {
+                output[i] = 36000;  // 36°C (毫摄氏度)
+            }
+        }
+        return KERN_SUCCESS;
+    }
+
     // 防温控模式下拦截所有降频/功率控制操作
     if (shouldApplyFullCPUProtection() && SELECTOR_IS_MITIGATION(selector)) {
         return KERN_SUCCESS;
@@ -1201,6 +1223,48 @@ if (isThermalNotificationName(ns)) {
 return NOTIFY_STATUS_OK;
 }
 }
+return %orig;
+}
+
+// --- IORegistryEntryCreateCFProperty — 返回假温度/频率/亮度值 ---
+// 第2层温度欺骗: 拦截 IOKit 属性读取，确保所有路径都返回假低温
+%hookf(CFTypeRef, IORegistryEntryCreateCFProperty, io_registry_entry_t entry, CFStringRef key, CFAllocatorRef allocator, IOOptionBits options) {
+if (!g_enabled || !g_cpuProtection) return %orig;
+
+// 安全阀
+if (isTemperatureAboveSafetyCeiling()) return %orig;
+
+// 恢复满功率期间 — 放行
+if (g_restoringFullPower) return %orig;
+
+NSString *ks = (__bridge NSString *)key;
+if ([ks localizedCaseInsensitiveContainsString:S("temperature")] ||
+[ks localizedCaseInsensitiveContainsString:S("thermal-level")] ||
+[ks localizedCaseInsensitiveContainsString:S("hot-level")] ||
+[ks localizedCaseInsensitiveContainsString:S("thermalstate")]) {
+int zero = 0;
+return CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &zero);
+}
+
+// 低功耗模式下返回限频值
+if (shouldApplyLowPowerLimit()) {
+if ([ks localizedCaseInsensitiveContainsString:S("freq")] ||
+[ks localizedCaseInsensitiveContainsString:S("speed")] ||
+[ks localizedCaseInsensitiveContainsString:S("frequency")]) {
+BOOL isMinKey = [ks localizedCaseInsensitiveContainsString:S("min")];
+int64_t lowPowerValue = isMinKey ? (int64_t)kLowPowerMinimumCapMHz : (int64_t)kLowPowerMaximumCapMHz;
+return CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &lowPowerValue);
+}
+}
+
+// 亮度保护
+if (g_brightnessProtection && (
+[ks localizedCaseInsensitiveContainsString:S("brightness")] ||
+[ks localizedCaseInsensitiveContainsString:S("backlight")])) {
+float one = 1.0;
+return CFNumberCreate(kCFAllocatorDefault, kCFNumberFloatType, &one);
+}
+
 return %orig;
 }
 
@@ -1317,6 +1381,41 @@ return nil;
 return result;
 }
 
+// 热压力升级通知 — 阻止系统升级热压力级别（CPUQ 移植）
+- (void)updateThermalPressureLevelNotification:(id)notification shouldForceThermalPressure:(BOOL)force {
+if (g_enabled && g_cpuProtection) {
+NSLog(@"[CPUthermal] 阻止热压力升级: %@ force:%d", notification, force);
+%orig(notification, NO);
+return;
+}
+%orig;
+}
+
+// 是否应执行轻度热压力 — 阻止（CPUQ 移植）
+- (BOOL)shouldEnforceLightThermalPressure {
+if (g_enabled && g_cpuProtection) {
+NSLog(@"[CPUthermal] 阻止 enforceLightThermalPressure");
+return NO;
+}
+return %orig;
+}
+
+// 获取强制热级别 — 返回最低 nominal 级（CPUQ 移植）
+- (int)getPotentialForcedThermalLevel:(id)component {
+if (g_enabled && g_cpuProtection) {
+return 0; // kThermalLevelNominal
+}
+return %orig(component);
+}
+
+// 获取强制热压力级别 — 返回最低（CPUQ 移植）
+- (int)getPotentialForcedThermalPressureLevel {
+if (g_enabled && g_cpuProtection) {
+return 0;
+}
+return %orig;
+}
+
 %end
 
 // --- ThermalControl: hook 控制力度计算 ---
@@ -1383,6 +1482,19 @@ if (shouldApplyFullCPUProtection()) {
 return;
 }
 %orig;
+}
+
+// 计算控制力度 — throttle 量的核心（CPUQ 移植）
+// soften 模式下减半但不归零，保留基础调节能力
+- (float)calculateControlEffort:(id)trigger trigger:(id)arg2 {
+if (shouldApplyFullCPUProtection()) {
+float effort = %orig(trigger, arg2);
+float newEffort = effort * 0.5f;
+if (newEffort < 0 && effort > 0) newEffort = 0;
+NSLog(@"[CPUthermal] 软化控制力度: %.2f -> %.2f", effort, newEffort);
+return newEffort;
+}
+return %orig(trigger, arg2);
 }
 
 // ===============================================================
@@ -2089,9 +2201,48 @@ applyPowerModeToRuntime(NO);
 NSLog(@"[CPUthermal] 功率模式已切换: %@", isLowPowerMode() ? S("低功耗") : S("防温控"));
 }
 
+// IOKit 钩子是否已安装的标志
+static BOOL g_iokitHooksInstalled = NO;
+static BOOL g_getConfigHookInstalled = NO;
+
+// 在运行中安装 IOKit 钩子（从 disabled → enabled 时需要）
+static void installRuntimeHooksIfNeeded(void) {
+    if (g_iokitHooksInstalled) return;
+
+    // 确保 IOKit 已加载
+    void *iokit = dlopen("/System/Library/Frameworks/IOKit.framework/IOKit", RTLD_NOW | RTLD_GLOBAL);
+    if (iokit) {
+        kern_return_t (*ptr)(io_service_t, CFStringRef, CFTypeRef) = (kern_return_t (*)(io_service_t, CFStringRef, CFTypeRef))dlsym(iokit, "IOServiceSetProperty");
+        if (ptr) {
+            MSHookFunction((void *)ptr, (void *)hooked_IOServiceSetProperty, (void **)&orig_IOServiceSetProperty);
+            NSLog(@"[CPUthermal] 运行时: IOServiceSetProperty hook 已安装");
+        }
+        kern_return_t (*ptrSetProps)(io_service_t, CFDictionaryRef) = (kern_return_t (*)(io_service_t, CFDictionaryRef))dlsym(iokit, "IOServiceSetProperties");
+        if (ptrSetProps) {
+            MSHookFunction((void *)ptrSetProps, (void *)hooked_IOServiceSetProperties, (void **)&orig_IOServiceSetProperties);
+            NSLog(@"[CPUthermal] 运行时: IOServiceSetProperties hook 已安装");
+        }
+        g_iokitHooksInstalled = YES;
+    }
+
+    if (!g_getConfigHookInstalled) {
+        void *monitor = dlopen("/System/Library/PrivateFrameworks/DeviceMonitor.framework/DeviceMonitor", RTLD_NOW | RTLD_GLOBAL);
+        if (monitor) {
+            void *getConfig = dlsym(monitor, "_getConfigurationFor");
+            if (getConfig) {
+                MSHookFunction(getConfig, (void *)new_getConfigurationFor, (void **)&orig_getConfigurationFor);
+                NSLog(@"[CPUthermal] 运行时: _getConfigurationFor hook 已安装");
+                g_getConfigHookInstalled = YES;
+            }
+        }
+    }
+}
+
 static void onSettingsChanged(CFNotificationCenterRef center, void *observer, CFNotificationName name, const void *object, CFDictionaryRef userInfo) {
 loadPrefs();
 if (g_enabled) {
+// 如果 IOKit 钩子尚未安装（进程启动时 g_enabled=NO），现在安装
+installRuntimeHooksIfNeeded();
 applyPowerModeToRuntime(NO);
 } else {
 stopContinuousTimer();
@@ -2144,9 +2295,39 @@ os_unfair_lock_unlock(&g_controllerLock);
 @autoreleasepool {
 g_processStartTime = CFAbsoluteTimeGetCurrent();
 atexit(pluginCleanup); // 注册退出清理
+
+// 始终注册通知监听（即使当前未启用），以便运行时收到启用指令后激活
+CFNotificationCenterRef c = CFNotificationCenterGetDarwinNotifyCenter();
+if (c) {
+CFNotificationCenterAddObserver(c, NULL, onSettingsChanged,
+(__bridge CFStringRef)S(kCPUthermalSettingsChangedNotifC),
+NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+CFNotificationCenterAddObserver(c, NULL, onPowerModeChanged,
+(__bridge CFStringRef)S(kCPUthermalPowerModeChangedNotifC),
+NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+CFNotificationCenterAddObserver(c, NULL, onWakeRuntimeEvent,
+(__bridge CFStringRef)S("com.apple.springboard.hasFinishedUnblankingScreen"),
+NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+CFNotificationCenterAddObserver(c, NULL, onWakeRuntimeEvent,
+(__bridge CFStringRef)S("com.apple.springboard.lockstate"),
+NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+CFNotificationCenterAddObserver(c, NULL, onWakeRuntimeEvent,
+(__bridge CFStringRef)S("com.apple.iokit.hid.displayStatus"),
+NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+CFNotificationCenterAddObserver(c, NULL, onWakeRuntimeEvent,
+(__bridge CFStringRef)S("com.apple.system.awake"),
+NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+NSLog(@"[CPUthermal] Darwin 通知监听已注册");
+}
+
 loadPrefs();
+if (isTemperatureAboveSafetyCeiling()) {
+NSLog(@"[CPUthermal] 安全阀检测到极高温度，跳过保护激活");
+return;
+}
+
 if (!g_enabled) {
-NSLog(@"[CPUthermal] 配置关闭，跳过加载");
+NSLog(@"[CPUthermal] 配置关闭，跳过加载（通知监听已注册，可在运行中激活）");
 return;
 }
 
@@ -2169,6 +2350,7 @@ NSLog(@"[CPUthermal] IOServiceSetProperties hook 已安装");
 } else {
 NSLog(@"[CPUthermal] 警告: 未找到 IOServiceSetProperties");
 }
+g_iokitHooksInstalled = YES;
 }
 
 // _getConfigurationFor — C 函数钩子
@@ -2178,6 +2360,7 @@ void *getConfig = dlsym(monitor, "_getConfigurationFor");
 if (getConfig) {
 MSHookFunction(getConfig, (void *)new_getConfigurationFor, (void **)&orig_getConfigurationFor);
 NSLog(@"[CPUthermal] _getConfigurationFor hook 已安装");
+g_getConfigHookInstalled = YES;
 } else {
 NSLog(@"[CPUthermal] 未找到 _getConfigurationFor (非致命)");
 }
@@ -2189,30 +2372,5 @@ NSLog(@"[CPUthermal] 温控防护已激活 — 安全阀:%d°C CPU性能:%d 亮�
 (int)(kSafetyTempThreshold / 1000),
 g_cpuProtection, g_brightnessProtection,
 g_suppressThermalNotifications, (int)kContinuousTimerIntervalMs);
-
-// 设置变更通过 Darwin 通知在线生效，避免切换低功耗时重启 thermalmonitord。
-
-// 设置和功率模式监听
-CFNotificationCenterRef c = CFNotificationCenterGetDarwinNotifyCenter();
-if (c) {
-CFNotificationCenterAddObserver(c, NULL, onSettingsChanged,
-(__bridge CFStringRef)S(kCPUthermalSettingsChangedNotifC),
-NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
-CFNotificationCenterAddObserver(c, NULL, onPowerModeChanged,
-(__bridge CFStringRef)S(kCPUthermalPowerModeChangedNotifC),
-NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
-CFNotificationCenterAddObserver(c, NULL, onWakeRuntimeEvent,
-(__bridge CFStringRef)S("com.apple.springboard.hasFinishedUnblankingScreen"),
-NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
-CFNotificationCenterAddObserver(c, NULL, onWakeRuntimeEvent,
-(__bridge CFStringRef)S("com.apple.springboard.lockstate"),
-NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
-CFNotificationCenterAddObserver(c, NULL, onWakeRuntimeEvent,
-(__bridge CFStringRef)S("com.apple.iokit.hid.displayStatus"),
-NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
-CFNotificationCenterAddObserver(c, NULL, onWakeRuntimeEvent,
-(__bridge CFStringRef)S("com.apple.system.awake"),
-NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
-}
 }
 }

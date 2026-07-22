@@ -1,11 +1,21 @@
 #import <Foundation/Foundation.h>
-#import <UIKit/UIKit.h>
 #import <substrate.h>
+#import <objc/runtime.h>
 #include <IOKit/IOKitLib.h>
 #include "CPUthermalPaths.h"
 
 // ============================================================================
-// 私有类声明（运行时存在时才 hook）
+// ThermalPatcher_supplement — thermalmonitord 进程补充钩子
+//
+// 本文件使用 C 函数手动 MSHookMessageEx，不依赖 Theos %hook 语法。
+// 仅包含 thermalmonitord 进程内有效的类钩子。
+//
+// SpringBoard 专属钩子（SBBrightnessController / CSDevice / Launchd）
+// 已移至 Tweak_SB.x。
+// ============================================================================
+
+// ============================================================================
+// 私有类声明
 // ============================================================================
 @interface ThermalMonitor : NSObject
 - (id)thermalMitigationData;
@@ -16,29 +26,19 @@
 - (void)applyThermalThrottling;
 @end
 
-@interface SBBrightnessController : NSObject
-- (void)setBrightnessLevel:(float)level forReason:(int)reason;
-@end
-
-@interface Launchd : NSObject
-- (BOOL)shouldKeepRunningService:(id)service;
-@end
-
-@interface CSDevice : NSObject
-- (BOOL)_isThermalStateRestricted;
-- (BOOL)_shouldReducePerformance;
-@end
-
 // ============================================================================
-// Hook 实现前向声明（定义在文件后半部分）
+// Hook 实现前向声明
 // ============================================================================
 static id imp_thermalMitigationData(id self, SEL _cmd);
 static NSInteger imp_maxSupportedFreq(id self, SEL _cmd);
 static void imp_applyThrottle(id self, SEL _cmd);
-static void imp_setBrightness(id self, SEL _cmd, float level, int reason);
-static BOOL imp_keepService(id self, SEL _cmd, id service);
-static BOOL imp_isThermalRestrict(id self, SEL _cmd);
-static BOOL imp_reducePerf(id self, SEL _cmd);
+
+// ============================================================================
+// 全局变量（同步主 tweak 状态）
+// ============================================================================
+static BOOL gSup_enabled = NO;
+static BOOL gSup_cpuProtection = NO;
+static NSString *gSup_powerMode = nil;
 
 // ============================================================================
 // Hook 原函数指针
@@ -46,107 +46,100 @@ static BOOL imp_reducePerf(id self, SEL _cmd);
 static id (*orig_thermalMitigationData)(id self, SEL _cmd);
 static NSInteger (*orig_maxSupportedFreq)(id self, SEL _cmd);
 static void (*orig_applyThrottle)(id self, SEL _cmd);
-static void (*orig_setBrightness)(id self, SEL _cmd, float level, int reason);
-static BOOL (*orig_keepService)(id self, SEL _cmd, id service);
-static BOOL (*orig_isThermalRestrict)(id self, SEL _cmd);
-static BOOL (*orig_reducePerf)(id self, SEL _cmd);
 
-// 日志开关
-#define CPUTHERMAL_LOG_ENABLE 1
-#if CPUTHERMAL_LOG_ENABLE
+// 日志
 #define CT_LOG(fmt, ...) NSLog(@"[CPUthermal-supplement] " fmt, ##__VA_ARGS__)
-#else
-#define CT_LOG(fmt, ...)
-#endif
 
-static void __attribute__((constructor)) initThermalSupplementHook(void) {
-    Class ThermalMonitor = objc_getClass("ThermalMonitor");
-    Class DVFSController = objc_getClass("DVFSController");
-    Class SBBrightnessController = objc_getClass("SBBrightnessController");
-    Class Launchd = objc_getClass("Launchd");
-    Class CSDevice = objc_getClass("CSDevice");
-
-    // ========== 1. ThermalMonitor 热缓解数据拦截 ==========
-    if (ThermalMonitor) {
-        MSHookMessageEx(ThermalMonitor, @selector(thermalMitigationData), (IMP)imp_thermalMitigationData, (IMP *)&orig_thermalMitigationData);
-    }
-
-    // ========== 2. DVFSController 调频/温控降频拦截 ==========
-    if (DVFSController) {
-        MSHookMessageEx(DVFSController, @selector(maxSupportedFrequency), (IMP)imp_maxSupportedFreq, (IMP *)&orig_maxSupportedFreq);
-        MSHookMessageEx(DVFSController, @selector(applyThermalThrottling), (IMP)imp_applyThrottle, (IMP *)&orig_applyThrottle);
-    }
-
-    // ========== 3. SBBrightness 温控自动降亮度拦截 ==========
-    if (SBBrightnessController) {
-        MSHookMessageEx(SBBrightnessController, @selector(setBrightnessLevel:forReason:), (IMP)imp_setBrightness, (IMP *)&orig_setBrightness);
-    }
-
-    // ========== 4. Launchd 后台服务温控查杀拦截 ==========
-    if (Launchd) {
-        MSHookMessageEx(Launchd, @selector(shouldKeepRunningService:), (IMP)imp_keepService, (IMP *)&orig_keepService);
-    }
-
-    // ========== 5. CSDevice 性能限制状态屏蔽 ==========
-    if (CSDevice) {
-        MSHookMessageEx(CSDevice, @selector(_isThermalStateRestricted), (IMP)imp_isThermalRestrict, (IMP *)&orig_isThermalRestrict);
-        MSHookMessageEx(CSDevice, @selector(_shouldReducePerformance), (IMP)imp_reducePerf, (IMP *)&orig_reducePerf);
+static void Sup_loadPrefs(void) {
+    @autoreleasepool {
+        NSDictionary *d = CPUthermalReadPrefs() ?: [NSDictionary dictionary];
+        gSup_enabled = [d[S("enabled")] ?: [NSNumber numberWithBool:NO] boolValue];
+        gSup_cpuProtection = gSup_enabled && [d[S("cpuProtection")] ?: [NSNumber numberWithBool:YES] boolValue];
+        gSup_powerMode = [d[S("powerMode")] isKindOfClass:[NSString class]] ? d[S("powerMode")] : S("fullPower");
     }
 }
 
-// ---------------------- Hook 实现 ----------------------
+static void Sup_onSettingsChanged(CFNotificationCenterRef center, void *observer,
+                                   CFNotificationName name, const void *object,
+                                   CFDictionaryRef userInfo) {
+    Sup_loadPrefs();
+    CT_LOG(@"设置已重载: enabled=%d cpuProtection=%d powerMode=%@",
+           gSup_enabled, gSup_cpuProtection, gSup_powerMode);
+}
+
+// ============================================================================
+// Hook 实现
+// ============================================================================
+
+// ThermalMonitor — 热缓解策略数据拦截
 static id imp_thermalMitigationData(id self, SEL _cmd) {
-    NSDictionary *prefs = CPUthermalReadPrefs();
-    BOOL disableThermalMitigate = [prefs[@"disableThermalMitigate"] boolValue];
-    if (disableThermalMitigate) {
-        CT_LOG(@"屏蔽系统热缓解策略");
+    if (gSup_enabled && gSup_cpuProtection && [gSup_powerMode isEqualToString:S("fullPower")]) {
+        CT_LOG(@"已屏蔽系统热缓解策略数据");
         return nil;
     }
-    return orig_thermalMitigationData(self, _cmd);
+    return orig_thermalMitigationData ? orig_thermalMitigationData(self, _cmd) : nil;
 }
 
+// DVFSController — 锁定原生最高频率（防温控模式下）
 static NSInteger imp_maxSupportedFreq(id self, SEL _cmd) {
-    NSDictionary *prefs = CPUthermalReadPrefs();
-    BOOL lockMaxFreq = [prefs[@"lockNativeMaxFreq"] boolValue];
-    NSInteger nativeMax = CPUthermalNativeMaxPCoreFrequencyMHz();
-    if (lockMaxFreq) {
-        CT_LOG(@"锁定原生大核最高频率: %ld MHz", nativeMax);
+    NSInteger result = orig_maxSupportedFreq ? orig_maxSupportedFreq(self, _cmd) : 0;
+    if (gSup_enabled && gSup_cpuProtection && [gSup_powerMode isEqualToString:S("fullPower")]) {
+        NSInteger nativeMax = CPUthermalNativeMaxPCoreFrequencyMHz();
+        CT_LOG(@"DVFS 最大频率 %ld -> %ld (原生)", (long)result, (long)nativeMax);
         return nativeMax;
     }
-    return orig_maxSupportedFreq(self, _cmd);
+    return result;
 }
 
+// DVFSController — 拦截温控降频调用
 static void imp_applyThrottle(id self, SEL _cmd) {
-    NSDictionary *prefs = CPUthermalReadPrefs();
-    BOOL blockDVFSThrottle = [prefs[@"blockDVFSThrottle"] boolValue];
-    if (!blockDVFSThrottle) {
-        orig_applyThrottle(self, _cmd);
-    } else {
-        CT_LOG(@"拦截DVFS温控降频调用");
-    }
-}
-
-static void imp_setBrightness(id self, SEL _cmd, float level, int reason) {
-    NSDictionary *prefs = CPUthermalReadPrefs();
-    BOOL blockThermalDim = [prefs[@"blockThermalDim"] boolValue];
-    // reason=温控降亮度标记
-    if (blockThermalDim && reason == 3) {
-        CT_LOG(@"拦截温控自动降低屏幕亮度");
+    if (gSup_enabled && gSup_cpuProtection) {
+        CT_LOG(@"拦截 DVFS 温控降频调用");
         return;
     }
-    orig_setBrightness(self, _cmd, level, reason);
+    if (orig_applyThrottle) {
+        orig_applyThrottle(self, _cmd);
+    }
 }
 
-static BOOL imp_keepService(id self, SEL _cmd, id service) {
-    return YES;
-}
+// ============================================================================
+// 初始化
+// ============================================================================
+static void __attribute__((constructor)) initThermalSupplementHook(void) {
+    @autoreleasepool {
+        Sup_loadPrefs();
 
-static BOOL imp_isThermalRestrict(id self, SEL _cmd) {
-    return NO;
-}
+        Class ThermalMonitor = objc_getClass("ThermalMonitor");
+        Class DVFSController = objc_getClass("DVFSController");
 
-static BOOL imp_reducePerf(id self, SEL _cmd) {
-    NSDictionary *prefs = CPUthermalReadPrefs();
-    BOOL fullPerfMode = [prefs[@"fullPerformance"] boolValue];
-    return fullPerfMode ? NO : orig_reducePerf(self, _cmd);
+        // 1. ThermalMonitor — 热缓解数据拦截
+        if (ThermalMonitor) {
+            MSHookMessageEx(ThermalMonitor, @selector(thermalMitigationData),
+                (IMP)imp_thermalMitigationData, (IMP *)&orig_thermalMitigationData);
+            CT_LOG(@"ThermalMonitor.thermalMitigationData hook 已安装");
+        }
+
+        // 2. DVFSController — 调频/温控降频拦截
+        if (DVFSController) {
+            MSHookMessageEx(DVFSController, @selector(maxSupportedFrequency),
+                (IMP)imp_maxSupportedFreq, (IMP *)&orig_maxSupportedFreq);
+            MSHookMessageEx(DVFSController, @selector(applyThermalThrottling),
+                (IMP)imp_applyThrottle, (IMP *)&orig_applyThrottle);
+            CT_LOG(@"DVFSController hooks 已安装");
+        }
+
+        // 3. 注册通知监听
+        CFNotificationCenterRef c = CFNotificationCenterGetDarwinNotifyCenter();
+        if (c) {
+            CFNotificationCenterAddObserver(c, NULL, Sup_onSettingsChanged,
+                (__bridge CFStringRef)S(kCPUthermalSettingsChangedNotifC),
+                NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+            CFNotificationCenterAddObserver(c, NULL, Sup_onSettingsChanged,
+                (__bridge CFStringRef)S(kCPUthermalPowerModeChangedNotifC),
+                NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+        }
+
+        CT_LOG(@"初始化完成: enabled=%d cpuProtection=%d powerMode=%@",
+               gSup_enabled, gSup_cpuProtection, gSup_powerMode);
+    }
 }
