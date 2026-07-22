@@ -2,6 +2,7 @@
 #import <dlfcn.h>
 #import <notify.h>
 #import <limits.h>
+#import <os/lock.h>
 #import <stdint.h>
 #import <stdlib.h>
 #import <string.h>
@@ -60,6 +61,7 @@
 - (void)readReleaseRateForAllComponents;
 - (float)getReleaseRateForComponent:(id)component;
 - (void)updateThermalNotification:(id)notification;
+- (id)getBatteryServiceSuggestion:(id)suggestion;
 @end
 
 @interface ThermalControl : NSObject
@@ -68,6 +70,8 @@
 - (float)getHighestSkinTemp;
 - (float)thermalSensorValuesMaxFromIndexSet:(id)indexSet;
 - (void)copyDieTempSensorIndexSetForFourthChar:(char)c sensors:(id)sensors;
+- (void)actionComponentControl;
+- (void)readReleaseRateForAllComponents;
 - (BOOL)powerSaveActive;
 - (void)setPowerSaveActive:(BOOL)active;
 - (void)setPowerSaveToken:(id)token;
@@ -159,9 +163,8 @@ static CPUthermalPowerMode g_powerMode = CPUthermalPowerModeFull;
 
 // 低功耗模式 CPU 峰值限制（MHz）
 // 使用设备原生最高频率的温和比例，不再固定 2016MHz，避免游戏/高刷场景明显掉帧。
-static const int64_t kLowPowerMinimumCapMHz = 2200;
-static const int64_t kLowPowerMaximumCapMHz = 2200;
-static const int64_t kLowPowerCapPercent = 90;
+static const int64_t kLowPowerMinimumCapMHz = 2016;
+static const int64_t kLowPowerMaximumCapMHz = 2016;
 
 // 温度安全阀 — 超过此值不拦截任何保护
 // 100°C 后优先交还系统温控，并始终放行 0x60-0x6F 紧急保护。
@@ -185,13 +188,14 @@ static NSMutableDictionary *g_originalControllerValues = nil;
 static CFAbsoluteTime g_processStartTime = 0;
 static const double kFullPowerBootGuardDuration = 1.0;
 static BOOL g_deferredRuntimeApplyScheduled = NO;
+static os_unfair_lock g_controllerLock = OS_UNFAIR_LOCK_INIT;
 
 // ============================================================================
 // 运行时维护定时器
 // 防温控模式下低频率补写满性能状态，避免 0.8s 高频刷写造成额外卡顿。
 // ============================================================================
 static dispatch_source_t g_continuousTimer = NULL;
-static const int64_t kContinuousTimerIntervalMs = 1000;
+static const int64_t kContinuousTimerIntervalMs = 500;
 
 static void stopContinuousTimer(void);
 
@@ -214,7 +218,7 @@ g_continuousTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, dis
 dispatch_source_set_timer(g_continuousTimer,
 dispatch_time(DISPATCH_TIME_NOW, (int64_t)(kContinuousTimerIntervalMs * NSEC_PER_MSEC)),
 (uint64_t)(kContinuousTimerIntervalMs * NSEC_PER_MSEC),
-(uint64_t)(50 * NSEC_PER_MSEC));
+(uint64_t)(20 * NSEC_PER_MSEC));
 dispatch_source_set_event_handler(g_continuousTimer, ^{
 @autoreleasepool {
 if (!g_enabled || !g_cpuProtection) {
@@ -242,12 +246,23 @@ NSLog(@"[CPUthermal] 性能维护定时器已停止");
 }
 }
 
-static int lowPowerTargetValue(void);
 static void loadPrefs(void);
 static void applyCurrentPowerModeToRuntime(void);
 static void applyPowerModeToRuntime(BOOL respectBootGuard);
 static void scheduleDeferredRuntimeApply(double delay);
 static NSDictionary *readPrefsDictionary(void);
+
+NSInteger lowPowerTargetValue(void) {
+    NSInteger nativeMax = CPUthermalNativeMaxPCoreFrequencyMHz();
+    // 低功耗取原生70%，区间锁定 2016~2400MHz，兼顾游戏不掉帧+控温
+    NSInteger dynamicCap = nativeMax * 0.7;
+    if (dynamicCap < 2016) dynamicCap = 2016;
+    if (dynamicCap > 2400) dynamicCap = 2400;
+    return dynamicCap;
+}
+__attribute__((unused)) static NSInteger lowPowerMinimumCapMHz(void) {
+    return CPUthermalNativeMaxPCoreFrequencyMHz() * 0.7;
+}
 
 static NSString *controllerKey(id controller, const char *name) {
 return [NSString stringWithFormat:S("%p:%s"), controller, name];
@@ -289,23 +304,12 @@ static BOOL shouldApplyLowPowerLimit(void) {
 return g_enabled && g_cpuProtection && isLowPowerMode();
 }
 
-static int lowPowerTargetValue(void) {
-int64_t native = CPUthermalNativeMaxPCoreFrequencyMHz();
-if (native <= 0) native = kCPUthermalDefaultMaxPCoreFrequencyMHz;
-
-int64_t cap = (native * kLowPowerCapPercent) / 100;
-if (cap < kLowPowerMinimumCapMHz) cap = MIN(native, kLowPowerMinimumCapMHz);
-if (cap > kLowPowerMaximumCapMHz) cap = kLowPowerMaximumCapMHz;
-if (cap > native) cap = native;
-return (int)cap;
-}
-
 static int lowPowerPowerCeilingValue(void) {
 return 85;
 }
 
 static int lowPowerPowerFloorValue(void) {
-return 0;
+return kLowPowerMinimumCapMHz;
 }
 
 static int fullPowerTargetValue(void) {
@@ -965,6 +969,13 @@ return KERN_SUCCESS;
 }
 if (!g_restoringFullPower && shouldApplyLowPowerLimit()) {
 CFTypeRef replacement = copyLowPowerFrequencyValueForKey(ks, value);
+int64_t numVal = 0;
+if (value && CFGetTypeID(value) == CFNumberGetTypeID() && CFNumberGetValue((CFNumberRef)value, kCFNumberSInt64Type, &numVal)) {
+    int64_t mhz = frequencyMHzFromValue(numVal);
+    if (mhz < kLowPowerMinimumCapMHz) {
+        replacement = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &kLowPowerMaximumCapMHz);
+    }
+}
 if (replacement) {
 kern_return_t ret = orig_IOServiceSetProperty(service, key, replacement);
 CFRelease(replacement);
@@ -1160,7 +1171,6 @@ return;
 
 %end
 
-// --- HidSensors: 适配 insulation，静默传感器温度事件 ---
 %hook HidSensors
 
 - (void)handleTemperatureEvent:(int)arg1 service:(id)arg2 {
@@ -1844,7 +1854,7 @@ if (powerSaveParams) {
 [powerSaveParams setObject:[NSNumber numberWithInt:lowPowerTargetValue()] forKey:S("CPULowPowerTarget")];
 [lowPowerConfig setObject:powerSaveParams forKey:S("powerSaveParams")];
 }
-NSLog(@"[CPUthermal] 已应用低功耗配置: %@ target:%d (%lld-%lldMHz)", key, lowPowerTargetValue(), kLowPowerMinimumCapMHz, kLowPowerMaximumCapMHz);
+NSLog(@"[CPUthermal] 已应用低功耗配置: %@ target:%d (%lld-%lldMHz)", key, (int)lowPowerTargetValue(), kLowPowerMinimumCapMHz, kLowPowerMaximumCapMHz);
 return [lowPowerConfig copy];
 }
 
@@ -1893,13 +1903,11 @@ return [modified copy];
 }
 
 // ============================================================================
-// 热配置 plist 修补（适配自 insulation 的 IDictHepler）
-// ============================================================================
+
 static void patchThermalPlistDict(NSMutableDictionary *dict) {
 if (!g_enabled) return;
 
 @autoreleasepool {
-// insulation 移植: 修补 ThermalMonitor 的 backlightComponentControl，
 // 将各热级别背光功率/亮度保持在首档，避免发热状态连带触发亮度和功率回退。
 NSMutableDictionary *backlightComponentControl = [dict[S("backlightComponentControl")] mutableCopy];
 if (backlightComponentControl && (g_cpuProtection || g_brightnessProtection)) {
@@ -1928,7 +1936,7 @@ backlightComponentControl[S("minThermalPower")] = [NSNumber numberWithInt:therma
 }
 
 dict[S("backlightComponentControl")] = backlightComponentControl;
-NSLog(@"[CPUthermal] plist: 已应用 insulation backlightComponentControl 补丁 power:%d", thermalPower);
+NSLog(@"[CPUthermal] plist: 已应用 CPUthermal backlightComponentControl 补丁 power:%d", thermalPower);
 }
 
 // 提高 CPU/GPU 最大缓解档位 — 阻止系统进入深度降频
@@ -2048,11 +2056,40 @@ NSLog(S("[CPUthermal] 收到唤醒/亮屏事件，准备恢复当前功率模式
 }
 
 // ============================================================================
+// 退出清理
+// ============================================================================
+static void freeStaticCFStrings(void) {
+static dispatch_once_t once;
+dispatch_once(&once, ^{
+__block CFStringRef name = NULL;
+static dispatch_once_t innerOnce;
+dispatch_once(&innerOnce, ^{
+name = cpuMaxPowerPropertyName();
+});
+if (name) CFRelease(name);
+});
+}
+
+static void pluginCleanup(void) {
+stopContinuousTimer();
+CFNotificationCenterRef c = CFNotificationCenterGetDarwinNotifyCenter();
+if (c) {
+CFNotificationCenterRemoveEveryObserver(c, NULL);
+}
+freeStaticCFStrings();
+os_unfair_lock_lock(&g_controllerLock);
+[g_mitigationControllers removeAllObjects];
+[g_originalControllerValues removeAllObjects];
+os_unfair_lock_unlock(&g_controllerLock);
+}
+
+// ============================================================================
 // %ctor — 构造函数（配置仅在进程启动时加载一次）
 // ============================================================================
 %ctor {
 @autoreleasepool {
 g_processStartTime = CFAbsoluteTimeGetCurrent();
+atexit(pluginCleanup); // 注册退出清理
 loadPrefs();
 if (!g_enabled) {
 NSLog(@"[CPUthermal] 配置关闭，跳过加载");

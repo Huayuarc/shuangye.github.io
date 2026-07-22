@@ -3,7 +3,7 @@ export PATH := $(THEOS)/bin:$(PATH)
 export TARGET = iphone:clang:16.5:15.0
 THEOS_PACKAGE_SCHEME = rootless
 include $(THEOS)/makefiles/common.mk
-INSTALL_TARGET_PROCESSES = thermalmonitord
+INSTALL_TARGET_PROCESSES = SpringBoard thermalmonitord
 # 注意: postinst 也在 configure 阶段 killall thermalmonitord。
 # INSTALL_TARGET_PROCESSES 作为 make install 时的兜底（包管理器安装靠 postinst）
 export ARCHS = arm64 arm64e
@@ -22,7 +22,7 @@ endif
 
 TWEAK_NAME = CPUthermal CPUthermalPrefHook
 
-CPUthermal_FILES = Tweak.x
+CPUthermal_FILES = Tweak.x ThermalPatcher_supplement.x
 CPUthermal_CFLAGS = -fobjc-arc -Iinclude -Wno-deprecated-declarations -DTHEOS_INSIDE
 CPUthermal_FRAMEWORKS = Foundation UIKit CoreFoundation IOKit SystemConfiguration
 ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
@@ -41,7 +41,7 @@ CPUthermalCC_INSTALL_PATH = /Library/ControlCenter/Bundles/
 CPUthermalCC_RESOURCE_DIRS = ControlCenter/resources
 
 # ThermalManager hook (Preferences 中的散热建议拦截)
-CPUthermalPrefHook_FILES = Tweak_PrefHook.xm
+CPUthermalPrefHook_FILES = Tweak_PrefHook.x
 CPUthermalPrefHook_CFLAGS = -fobjc-arc -Iinclude -Wno-deprecated-declarations
 CPUthermalPrefHook_FRAMEWORKS = Foundation CoreFoundation
 CPUthermalPrefHook_LDFLAGS = -lsubstrate -lc++

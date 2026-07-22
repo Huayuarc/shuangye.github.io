@@ -25,6 +25,9 @@ static const char *kCPUthermalLowPowerModeC = "lowPower";
 static const char *kCPUthermalFullPowerModeC = "fullPower";
 static const NSInteger kCPUthermalDefaultMaxPCoreFrequencyMHz = 3240;
 
+// 低功耗模式目标限制频率MHz（定义见 Tweak.x）
+NSInteger lowPowerTargetValue(void);
+
 static inline NSString *CPUthermalStringFromCPath(const char *path) {
     return path ? [NSString stringWithUTF8String:path] : nil;
 }
@@ -80,53 +83,6 @@ static inline NSInteger CPUthermalNativeMaxPCoreFrequencyMHzForHardware(NSString
 static inline NSInteger CPUthermalNativeMaxPCoreFrequencyMHz(void) {
     NSInteger frequency = CPUthermalNativeMaxPCoreFrequencyMHzForHardware(CPUthermalHardwareIdentifier());
     return frequency > 0 ? frequency : kCPUthermalDefaultMaxPCoreFrequencyMHz;
-}
-
-// ============================================================================
-// CPU频率锁定 — 手动选择芯片代际锁定频率
-// ============================================================================
-static const char *kCPUthermalDeviceLockKeyC = "deviceLock";
-
-// 芯片代际 -> 最大频率(MHz) 映射
-static inline NSInteger CPUthermalFrequencyForChipKey(NSString *chipKey) {
-    if (!chipKey || chipKey.length == 0) return 0;
-    // A11 (iPhone 8 / 8+ / X)
-    if ([chipKey isEqualToString:S("A11")]) return 2390;
-    // A12 (iPhone XS / XS Max / XR)
-    if ([chipKey isEqualToString:S("A12")]) return 2490;
-    // A13 (iPhone 11 / 11 Pro / Pro Max)
-    if ([chipKey isEqualToString:S("A13")]) return 2660;
-    // A14 (iPhone 12 mini / 12 / 12 Pro / Pro Max)
-    if ([chipKey isEqualToString:S("A14")]) return 3100;
-    // A15 (iPhone 13 / 14 / 14+)
-    if ([chipKey isEqualToString:S("A15")]) return 3240;
-    // A16 (iPhone 14 Pro / 15 / 15+)
-    if ([chipKey isEqualToString:S("A16")]) return 3460;
-    // A17 Pro (iPhone 15 Pro / Pro Max)
-    if ([chipKey isEqualToString:S("A17Pro")]) return 3700;
-    return 0;
-}
-
-// 芯片代际 -> 显示名称
-static inline NSString *CPUthermalChipDisplayName(NSString *chipKey) {
-    if (!chipKey || chipKey.length == 0) return S("无锁定（自动）");
-    NSInteger freq = CPUthermalFrequencyForChipKey(chipKey);
-    if (freq == 0) return S("无锁定（自动）");
-    if ([chipKey isEqualToString:S("A11")])
-        return [NSString stringWithFormat:S("A11 · %ld MHz (iPhone 8 ~ X)"), (long)freq];
-    if ([chipKey isEqualToString:S("A12")])
-        return [NSString stringWithFormat:S("A12 · %ld MHz (iPhone XS ~ XR)"), (long)freq];
-    if ([chipKey isEqualToString:S("A13")])
-        return [NSString stringWithFormat:S("A13 · %ld MHz (iPhone 11)"), (long)freq];
-    if ([chipKey isEqualToString:S("A14")])
-        return [NSString stringWithFormat:S("A14 · %ld MHz (iPhone 12)"), (long)freq];
-    if ([chipKey isEqualToString:S("A15")])
-        return [NSString stringWithFormat:S("A15 · %ld MHz (iPhone 13 / 14)"), (long)freq];
-    if ([chipKey isEqualToString:S("A16")])
-        return [NSString stringWithFormat:S("A16 · %ld MHz (iPhone 14 Pro / 15)"), (long)freq];
-    if ([chipKey isEqualToString:S("A17Pro")])
-        return [NSString stringWithFormat:S("A17 Pro · %ld MHz (iPhone 15 Pro)"), (long)freq];
-    return S("无锁定（自动）");
 }
 
 static inline NSString *CPUthermalJBRootPathForRootFSPath(const char *path) {
