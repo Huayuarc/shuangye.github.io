@@ -1,11 +1,11 @@
 Package: com.huayuarc.cputhermal
 Name: CPU 去温控
 Author: Huayuarc
-Description: 注入 thermalmonitord 的 iOS 温控管理插件。性能优先版默认防温控，支持低功耗模式限制 CPU 最高 2016MHz，并保留 CPU 性能保护、屏幕亮度保护、高温通知、禁用口袋高温和锁定阳光暴晒开关。
+Description: 注入 thermalmonitord 的 iOS 温控管理插件。性能优先版默认防温控，支持低功耗模式通过低电量模拟触发 CPU 温和降频且不限制 GPU，并保留 CPU 性能保护、屏幕亮度保护、高温通知、禁用口袋高温和锁定阳光暴晒开关。
 Depends: mobilesubstrate, preferenceloader
 Maintainer: Huayuarc
 Section: Tweaks
-Version: 3.1.6
+Version: 3.1.7
 Architecture: iphoneos-arm
 Icon: https://huayuarc.github.io/icon/cputhermal.png
 Sileodepiction: https://huayuarc.github.io/sileodepiction/CPUthermal/js.json

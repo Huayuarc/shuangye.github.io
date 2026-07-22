@@ -13,6 +13,7 @@
 - (void)updateSelectedIndexFromCurrentMode;
 - (BOOL)isTweakEnabled;
 - (void)saveTweakEnabled:(BOOL)enabled;
+- (void)applyThermalStatusOverrides;
 - (void)toggleTweakEnabled;
 - (void)updateModuleSelectedState;
 - (void)selectPowerModeAtIndex:(NSInteger)index;
@@ -77,8 +78,14 @@ static const CGFloat kCPUthermalCCSubtitleFontSize = 11.0;
 
     CPUthermalWritePrefs(prefs);
     notify_post(kCPUthermalSettingsChangedNotifC);
-    if (enabled) {
-        CPUthermalRestartThermalmonitordSoon();
+    [self applyThermalStatusOverrides];
+}
+
+- (void)applyThermalStatusOverrides {
+    NSString *toolPath = CPUthermalToolPath();
+    if (toolPath.length > 0 && [[NSFileManager defaultManager] isExecutableFileAtPath:toolPath]) {
+        char *args[] = {"CPUthermalTool", "apply-thermal-overrides", NULL};
+        CPUthermalSpawnRootDetached(toolPath, args);
     }
 }
 
@@ -91,7 +98,7 @@ static const CGFloat kCPUthermalCCSubtitleFontSize = 11.0;
     CPUthermalWritePrefs(prefs);
     notify_post(kCPUthermalSettingsChangedNotifC);
     notify_post(kCPUthermalPowerModeChangedNotifC);
-    CPUthermalRestartThermalmonitordSoon();
+    [self applyThermalStatusOverrides];
 }
 
 
@@ -104,7 +111,7 @@ static const CGFloat kCPUthermalCCSubtitleFontSize = 11.0;
     if (self) {
         _modeValues = @[S(kCPUthermalLowPowerModeC), S(kCPUthermalFullPowerModeC)];
         _modeTitles = @[S("低功耗"), S("解除温控")];
-        _modeSubtitles = @[S("限制峰值功耗"), S("恢复设备原生满频")];
+        _modeSubtitles = @[S("低电量降频，不限制 GPU"), S("恢复设备原生满频")];
 
         // 读取当前设置的模式
         NSString *currentMode = [self currentPowerMode];

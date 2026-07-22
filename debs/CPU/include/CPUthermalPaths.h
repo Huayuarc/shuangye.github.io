@@ -23,6 +23,7 @@ static const char *kCPUthermalLockSunlightExposureKeyC = "lockSunlightExposure";
 static const char *kCPUthermalDefaultPowerModeC = "fullPower";
 static const char *kCPUthermalLowPowerModeC = "lowPower";
 static const char *kCPUthermalFullPowerModeC = "fullPower";
+static const NSInteger kCPUthermalLowBatterySimulationSOCPct = 20;
 static const NSInteger kCPUthermalDefaultMaxPCoreFrequencyMHz = 3240;
 
 // 低功耗模式目标限制频率MHz（定义见 Tweak.x）

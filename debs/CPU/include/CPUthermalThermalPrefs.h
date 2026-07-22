@@ -63,6 +63,21 @@ static inline BOOL CPUthermalSetOSThermalBool(SCPreferencesRef prefs, const char
     return ok;
 }
 
+static inline BOOL CPUthermalSetOSThermalInt(SCPreferencesRef prefs, const char *key, int value) {
+    if (!prefs || !key) return NO;
+    CFStringRef cfKey = CPUthermalCreateCFString(key);
+    if (!cfKey) return NO;
+    CFNumberRef cfValue = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &value);
+    if (!cfValue) {
+        CFRelease(cfKey);
+        return NO;
+    }
+    BOOL ok = SCPreferencesSetValue(prefs, cfKey, cfValue);
+    CFRelease(cfValue);
+    CFRelease(cfKey);
+    return ok;
+}
+
 static inline void CPUthermalRemoveOSThermalKey(SCPreferencesRef prefs, const char *key) {
     if (!prefs || !key) return;
     CFStringRef cfKey = CPUthermalCreateCFString(key);
@@ -74,8 +89,10 @@ static inline void CPUthermalRemoveOSThermalKey(SCPreferencesRef prefs, const ch
 static inline int CPUthermalApplyManagedThermalStatusOverrides(BOOL manageHotInPocket,
                                                               BOOL disableHotInPocket,
                                                               BOOL manageSunlightExposure,
-                                                              BOOL lockSunlightExposure) {
-    if (!manageHotInPocket && !manageSunlightExposure) return kSCStatusOK;
+                                                              BOOL lockSunlightExposure,
+                                                              BOOL manageLowBatterySimulation,
+                                                              BOOL simulateLowBattery) {
+    if (!manageHotInPocket && !manageSunlightExposure && !manageLowBatterySimulation) return kSCStatusOK;
 
     SCPreferencesRef prefs = CPUthermalCreateOSThermalPrefs();
     if (!prefs) return kSCStatusFailed;
@@ -103,6 +120,29 @@ static inline int CPUthermalApplyManagedThermalStatusOverrides(BOOL manageHotInP
         }
     }
 
+    if (manageLowBatterySimulation) {
+        if (simulateLowBattery) {
+            int simulatedSOC = kCPUthermalLowBatterySimulationSOCPct;
+            ok = CPUthermalSetOSThermalInt(prefs, "kBatteryPercentRemainingKey", simulatedSOC) && ok;
+            ok = CPUthermalSetOSThermalInt(prefs, "kBatteryRawGasGaugeSOCKey", simulatedSOC) && ok;
+            ok = CPUthermalSetOSThermalInt(prefs, "kBatteryChemSOCKey", simulatedSOC) && ok;
+            ok = CPUthermalSetOSThermalBool(prefs, "kBatteryPercentRemainingKeyPersistentlyEnabled", YES) && ok;
+            ok = CPUthermalSetOSThermalBool(prefs, "kBatteryRawGasGaugeSOCKeyPersistentlyEnabled", YES) && ok;
+            ok = CPUthermalSetOSThermalBool(prefs, "kBatteryChemSOCKeyPersistentlyEnabled", YES) && ok;
+            ok = CPUthermalSetOSThermalBool(prefs, "kOnChargerStatusKey", NO) && ok;
+            ok = CPUthermalSetOSThermalBool(prefs, "kOnChargerStatusKeyPersistentlyEnabled", YES) && ok;
+        } else {
+            CPUthermalRemoveOSThermalKey(prefs, "kBatteryPercentRemainingKey");
+            CPUthermalRemoveOSThermalKey(prefs, "kBatteryRawGasGaugeSOCKey");
+            CPUthermalRemoveOSThermalKey(prefs, "kBatteryChemSOCKey");
+            CPUthermalRemoveOSThermalKey(prefs, "kBatteryPercentRemainingKeyPersistentlyEnabled");
+            CPUthermalRemoveOSThermalKey(prefs, "kBatteryRawGasGaugeSOCKeyPersistentlyEnabled");
+            CPUthermalRemoveOSThermalKey(prefs, "kBatteryChemSOCKeyPersistentlyEnabled");
+            CPUthermalRemoveOSThermalKey(prefs, "kOnChargerStatusKey");
+            CPUthermalRemoveOSThermalKey(prefs, "kOnChargerStatusKeyPersistentlyEnabled");
+        }
+    }
+
     int result = ok ? CPUthermalSaveOSThermalPrefs(prefs) : kSCStatusFailed;
     CFRelease(prefs);
     return result;
@@ -121,15 +161,21 @@ static inline BOOL CPUthermalBoolPref(NSDictionary *prefs, const char *key, BOOL
 
 static inline int CPUthermalApplyThermalStatusOverridesFromPrefs(NSDictionary *prefs) {
     BOOL enabled = CPUthermalBoolPref(prefs, "enabled", NO);
+    BOOL cpuProtection = CPUthermalBoolPref(prefs, "cpuProtection", YES);
+    NSString *powerMode = prefs ? [prefs objectForKey:S("powerMode")] : nil;
     BOOL manageHotInPocket = CPUthermalPrefsContainKey(prefs, kCPUthermalDisableHotInPocketKeyC);
     BOOL manageSunlightExposure = CPUthermalPrefsContainKey(prefs, kCPUthermalLockSunlightExposureKeyC);
+    BOOL manageLowBatterySimulation = YES;
     BOOL disableHotInPocket = enabled && CPUthermalBoolPref(prefs, kCPUthermalDisableHotInPocketKeyC, NO);
     BOOL lockSunlightExposure = enabled && CPUthermalBoolPref(prefs, kCPUthermalLockSunlightExposureKeyC, NO);
+    BOOL simulateLowBattery = enabled && cpuProtection && [powerMode isKindOfClass:[NSString class]] && [powerMode isEqualToString:S(kCPUthermalLowPowerModeC)];
 
     return CPUthermalApplyManagedThermalStatusOverrides(manageHotInPocket,
                                                        disableHotInPocket,
                                                        manageSunlightExposure,
-                                                       lockSunlightExposure);
+                                                       lockSunlightExposure,
+                                                       manageLowBatterySimulation,
+                                                       simulateLowBattery);
 }
 
 #endif

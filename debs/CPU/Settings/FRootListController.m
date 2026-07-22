@@ -73,13 +73,13 @@ return S("解除温控");
 CPUthermalRestartThermalmonitordSoon();
 }
 
-// CPU频率锁定已移除 — 低功耗模式固定使用 2016MHz 上限
+// CPU频率锁定已移除 — 低功耗模式改用低电量模拟 + CPU 温和限频，不限制 GPU。
 - (void)savePowerMode:(NSString *)mode {
 NSMutableDictionary *prefs = [self prefs];
 prefs[S("powerMode")] = mode ?: S("fullPower");
 [self savePrefs:prefs];
 notify_post(kCPUthermalPowerModeChangedNotifC);
-[self restartThermalmonitord];
+[self applyThermalStatusOverrides];
 PSSpecifier *specifier = [self specifierForID:S("powerMode")];
 specifier.name = [self powerModeLabel];
 [self reloadSpecifierID:S("powerMode") animated:YES];
@@ -92,6 +92,7 @@ NSMutableDictionary *prefs = [self prefs];
 prefs[key] = value;
 [self savePrefs:prefs];
 if ([key isEqualToString:S("enabled")] ||
+[key isEqualToString:S("cpuProtection")] ||
 [key isEqualToString:S(kCPUthermalDisableHotInPocketKeyC)] ||
 [key isEqualToString:S(kCPUthermalLockSunlightExposureKeyC)]) {
 [self applyThermalStatusOverrides];
@@ -140,7 +141,7 @@ return;
 - (void)showPowerModePicker {
 UIAlertController *alert = [UIAlertController
 alertControllerWithTitle:S("功率模式")
-message:S("解除温控 = 性能优先，尽量保持满频满帧\n低功耗 = 限制 CPU 最高 2016MHz，更凉更省电")
+message:S("解除温控 = 性能优先，尽量保持满频满帧\n低功耗 = 模拟低电量触发 CPU 温和降频，不限制 GPU")
 preferredStyle:UIAlertControllerStyleActionSheet];
 
 NSString *currentMode = [self powerModeValue];
