@@ -162,8 +162,9 @@ static CPUthermalPowerMode g_powerMode = CPUthermalPowerModeFull;
 
 // 低功耗模式 CPU 峰值限制（MHz）
 // 使用设备原生最高频率的温和比例，不再固定 2016MHz，避免游戏/高刷场景明显掉帧。
-static const int64_t kLowPowerMinimumCapMHz = 2016;
-static const int64_t kLowPowerMaximumCapMHz = 2400;
+static const int64_t kLowPowerMinimumCapMHz = 1380;
+static const int64_t kLowPowerMaximumCapMHz = 1428;
+static const int64_t kMinimumSafeCPUFrequencyMHz = 1380;
 
 // 温度安全阀 — 超过此值不拦截任何保护
 // 100°C 后优先交还系统温控，并始终放行 0x60-0x6F 紧急保护。
@@ -188,6 +189,7 @@ static NSMutableDictionary *g_originalControllerValues = nil;
 static CFAbsoluteTime g_processStartTime = 0;
 static const double kFullPowerBootGuardDuration = 1.0;
 static BOOL g_deferredRuntimeApplyScheduled = NO;
+static BOOL g_transitioningPowerMode = NO;
 static os_unfair_lock g_controllerLock = OS_UNFAIR_LOCK_INIT;
 
 // ============================================================================
@@ -222,8 +224,10 @@ dispatch_time(DISPATCH_TIME_NOW, (int64_t)(kContinuousTimerIntervalMs * NSEC_PER
 (uint64_t)(20 * NSEC_PER_MSEC));
 dispatch_source_set_event_handler(g_continuousTimer, ^{
 @autoreleasepool {
+if (!g_enabled || !g_cpuProtection || g_transitioningPowerMode) {
 if (!g_enabled || !g_cpuProtection) {
 stopContinuousTimer();
+}
 return;
 }
 if (shouldApplyLowPowerLimit()) {
@@ -486,6 +490,12 @@ static void applyLowPowerLimitToController(id controller) {
 if (!controller || !shouldApplyLowPowerLimit()) return;
 @try {
 g_applyingLowPower = YES;
+if ([controller respondsToSelector:@selector(setPowerSaveActive:)]) {
+((void (*)(id, SEL, BOOL))objc_msgSend)(controller, @selector(setPowerSaveActive:), YES);
+}
+if ([controller respondsToSelector:@selector(setPowerSaveToken:)]) {
+sendSetPowerSaveToken(controller, 1);
+}
 if ([controller respondsToSelector:@selector(setCPULowPowerTarget:)]) {
 ((void (*)(id, SEL, int))objc_msgSend)(controller, @selector(setCPULowPowerTarget:), lowPowerTargetValue());
 }
@@ -606,7 +616,24 @@ g_restoringFullPower = NO;
 
 static void applyLowPowerToCommonProduct(void) {
 if (!g_commonProduct || !shouldApplyLowPowerLimit()) return;
+@try {
+g_applyingLowPower = YES;
 applyCurrentBatterySimulation();
+if ([g_commonProduct respondsToSelector:@selector(setCPULevel:)]) {
+((void (*)(id, SEL, int))objc_msgSend)(g_commonProduct, @selector(setCPULevel:), 2);
+}
+setCommonProductCeiling(@selector(setCPUPowerCeiling:fromDecisionSource:), lowPowerPowerCeilingValue());
+setCommonProductCeiling(@selector(setGPUPowerCeiling:fromDecisionSource:), 0);
+setCommonProductCeiling(@selector(setPackagePowerCeiling:fromDecisionSource:), 0);
+if ([g_commonProduct respondsToSelector:@selector(setThermalState:)]) {
+((void (*)(id, SEL, id))objc_msgSend)(g_commonProduct, @selector(setThermalState:), [NSNumber numberWithInt:1]);
+}
+NSLog(@"[CPUthermal] 已套用低功耗 CommonProduct 状态: CPULevel=2 Ceiling=%d", lowPowerPowerCeilingValue());
+} @catch (NSException *exception) {
+NSLog(@"[CPUthermal] 套用低功耗 CommonProduct 状态失败: %@", exception);
+} @finally {
+g_applyingLowPower = NO;
+}
 }
 
 static void applyCurrentPowerModeToRuntime(void) {
@@ -615,11 +642,13 @@ applyPowerModeToRuntime(YES);
 
 static void applyPowerModeToRuntime(BOOL respectBootGuard) {
 if (!g_enabled || !g_cpuProtection) return;
+g_transitioningPowerMode = YES;
 if (isLowPowerMode()) {
 applyCurrentBatterySimulation();
 applyLowPowerToCommonProduct();
 applyLowPowerLimitsToTrackedControllers();
 startContinuousTimer();
+g_transitioningPowerMode = NO;
 return;
 }
 if (isFullPowerMode()) {
@@ -627,6 +656,7 @@ applyCurrentBatterySimulation();
 if (respectBootGuard && fullPowerBootGuardActive()) {
 double elapsed = CFAbsoluteTimeGetCurrent() - g_processStartTime;
 double remaining = kFullPowerBootGuardDuration - elapsed;
+g_transitioningPowerMode = NO;
 scheduleDeferredRuntimeApply(MAX(remaining, 0.1) + 0.1);
 return;
 }
@@ -634,6 +664,7 @@ applyFullPowerToCommonProduct();
 restoreFullPowerToTrackedControllers();
 startContinuousTimer();
 }
+g_transitioningPowerMode = NO;
 }
 
 static void scheduleDeferredRuntimeApply(double delay) {
@@ -785,6 +816,7 @@ if (!key) return NO;
 NSString *lower = [key lowercaseString];
 BOOL isBrightnessKey = [lower containsString:S("brightness")] || [lower containsString:S("backlight")];
 if (!isBrightnessKey) return NO;
+// 放行电源/显示状态关键操作
 if ([lower containsString:S("displaystatus")] ||
 [lower containsString:S("blank")] ||
 [lower containsString:S("sleep")] ||
@@ -792,21 +824,17 @@ if ([lower containsString:S("displaystatus")] ||
 [lower containsString:S("powerstate")]) {
 return NO;
 }
+// 放行 0 值（关机/息屏场景）
 if (value && CFGetTypeID(value) == CFNumberGetTypeID()) {
 double numericValue = 0;
 if (CFNumberGetValue((CFNumberRef)value, kCFNumberDoubleType, &numericValue) && numericValue <= 0.01) {
 return NO;
 }
 }
-return [lower containsString:S("thermal")] ||
-[lower containsString:S("mitigat")] ||
-[lower containsString:S("throttle")] ||
-[lower containsString:S("reduce")] ||
-[lower containsString:S("limit")] ||
-[lower containsString:S("target")] ||
-[lower containsString:S("sunlight")] ||
-[lower containsString:S("pressure")] ||
-[lower containsString:S("hot")];
+// 拦截所有 IOKit 层的亮度/背光写操作
+// iOS 用户亮度调节通过 UIScreen/SpringBoard，不走 IOKit IOServiceSetProperty
+// 所以拦截 IOKit 层亮度写操作不影响用户正常调节亮度
+return YES;
 }
 
 static BOOL keyLooksChargingRelated(NSString *key) {
@@ -962,12 +990,23 @@ return orig_IOServiceSetProperty(service, key, value);
 NSString *ks = (__bridge NSString *)key;
 if (g_cpuProtection && shouldBlockCPUProperty(ks)) {
 if (isFullPowerMode()) {
-// 修复: g_restoringFullPower 窗口期内只放行高值恢复写入，拦截降频写入
+// g_restoringFullPower 窗口期内放行高值恢复写入，但钳位最低频率防止归零
 if (g_restoringFullPower && value && CFGetTypeID(value) == CFNumberGetTypeID()) {
 int64_t numVal = 0;
-if (CFNumberGetValue((CFNumberRef)value, kCFNumberSInt64Type, &numVal) && numVal > lowPowerTargetValue()) {
+if (CFNumberGetValue((CFNumberRef)value, kCFNumberSInt64Type, &numVal)) {
+int64_t mhz = frequencyMHzFromValue(numVal);
+if (mhz < kMinimumSafeCPUFrequencyMHz) {
+int64_t safeValueNum = frequencyValueFromMHz(kMinimumSafeCPUFrequencyMHz, numVal);
+CFTypeRef safeValue = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &safeValueNum);
+kern_return_t ret = orig_IOServiceSetProperty(service, key, safeValue);
+if (safeValue) CFRelease(safeValue);
+return ret;
+}
+if (numVal > lowPowerTargetValue()) {
 return orig_IOServiceSetProperty(service, key, value);
 }
+}
+return KERN_SUCCESS;
 }
 return KERN_SUCCESS;
 }
@@ -1025,13 +1064,32 @@ static kern_return_t hooked_IOServiceSetProperties(io_service_t service, CFDicti
 
         if (g_cpuProtection && shouldBlockCPUProperty(ks)) {
             if (isFullPowerMode()) {
-                // 窗口修复: 恢复期只放行高值(>低功耗上限)的写入
+                // 恢复窗口: 放行高值写入，频率过低时钳位至最低安全值
                 if (g_restoringFullPower) {
                     CFTypeRef val = CFDictionaryGetValue(properties, keys[i]);
                     if (val && CFGetTypeID(val) == CFNumberGetTypeID()) {
                         int64_t numVal = 0;
-                        if (CFNumberGetValue((CFNumberRef)val, kCFNumberSInt64Type, &numVal) && numVal > lowPowerTargetValue()) {
-                            continue; // 放行恢复写入
+                        if (CFNumberGetValue((CFNumberRef)val, kCFNumberSInt64Type, &numVal)) {
+                            int64_t mhz = frequencyMHzFromValue(numVal);
+                            if (mhz < kMinimumSafeCPUFrequencyMHz) {
+                                // 钳位至最低安全频率
+                                int64_t safeVal = frequencyValueFromMHz(kMinimumSafeCPUFrequencyMHz, numVal);
+                                if (!replacementDict) {
+                                    replacementDict = [NSMutableDictionary dictionary];
+                                    for (CFIndex j = 0; j < count; j++) {
+                                        NSString *ok = (__bridge NSString *)keys[j];
+                                        if (ok && j != i) {
+                                            CFTypeRef ov = CFDictionaryGetValue(properties, keys[j]);
+                                            if (ov) replacementDict[ok] = (__bridge id)ov;
+                                        }
+                                    }
+                                }
+                                replacementDict[ks] = [NSNumber numberWithLongLong:safeVal];
+                                continue;
+                            }
+                            if (numVal > lowPowerTargetValue()) {
+                                continue; // 放行恢复写入
+                            }
                         }
                     }
                 }
@@ -1286,6 +1344,9 @@ return res;
 if (g_restoringFullPower) {
 return %orig;
 }
+if (shouldApplyLowPowerLimit()) {
+return YES;
+}
 if (shouldApplyFullCPUProtection()) {
 return NO;
 }
@@ -1295,6 +1356,10 @@ return %orig;
 - (void)setPowerSaveActive:(BOOL)active {
 if (g_restoringFullPower) {
 %orig(active);
+return;
+}
+if (shouldApplyLowPowerLimit()) {
+%orig(YES);
 return;
 }
 if (shouldApplyFullCPUProtection()) {
@@ -1307,6 +1372,10 @@ return;
 - (void)setPowerSaveToken:(id)token {
 if (g_restoringFullPower) {
 %orig(token);
+return;
+}
+if (shouldApplyLowPowerLimit()) {
+%orig([NSNumber numberWithInt:1]);
 return;
 }
 if (shouldApplyFullCPUProtection()) {
@@ -1462,6 +1531,9 @@ return res;
 if (g_restoringFullPower) {
 return %orig;
 }
+if (shouldApplyLowPowerLimit()) {
+return YES;
+}
 if (shouldApplyFullCPUProtection()) {
 return NO;
 }
@@ -1471,6 +1543,10 @@ return %orig;
 - (void)setPowerSaveActive:(BOOL)active {
 if (g_restoringFullPower) {
 %orig(active);
+return;
+}
+if (shouldApplyLowPowerLimit()) {
+%orig(YES);
 return;
 }
 if (shouldApplyFullCPUProtection()) {
@@ -1483,6 +1559,10 @@ return;
 - (void)setPowerSaveToken:(int)token {
 if (g_restoringFullPower) {
 %orig(token);
+return;
+}
+if (shouldApplyLowPowerLimit()) {
+%orig(1);
 return;
 }
 if (shouldApplyFullCPUProtection()) {
@@ -1820,6 +1900,9 @@ return original;
 // 来获取热配置字典。通过返回修改后的配置，可以影响所有热管理参数。
 // ============================================================================
 
+// 前向声明 — patchThermalPlistDict 在 _getConfigurationFor 之后定义
+static void patchThermalPlistDict(NSMutableDictionary *dict);
+
 // 原函数类型: NSDictionary* _getConfigurationFor(NSString *key)
 static NSDictionary* (*orig_getConfigurationFor)(NSString *key) = NULL;
 
@@ -1831,21 +1914,23 @@ if (!g_enabled || !g_cpuProtection || !config) return config;
 NSMutableDictionary *modified = [config mutableCopy];
 if (!modified) return config;
 
+// 低功耗: 只修改 CPU powerSave 参数（温和限频），不抬高温控阈值
 if (isLowPowerMode()) {
-NSMutableDictionary *lowPowerConfig = [modified mutableCopy];
-NSMutableDictionary *powerSaveParams = [[lowPowerConfig objectForKey:S("powerSaveParams")] mutableCopy];
+NSMutableDictionary *powerSaveParams = [[modified objectForKey:S("powerSaveParams")] mutableCopy];
 if (powerSaveParams) {
 [powerSaveParams setObject:[NSNumber numberWithInt:lowPowerTargetValue()] forKey:S("CPULowPowerTarget")];
 [powerSaveParams removeObjectForKey:S("PackageLowPowerTarget")];
 [powerSaveParams removeObjectForKey:S("powerSaveMaxSGX")];
-[lowPowerConfig setObject:powerSaveParams forKey:S("powerSaveParams")];
+[modified setObject:powerSaveParams forKey:S("powerSaveParams")];
 }
 NSLog(@"[CPUthermal] 已应用低功耗 CPU-only 配置: %@ target:%d (%lld-%lldMHz)", key, (int)lowPowerTargetValue(), kLowPowerMinimumCapMHz, kLowPowerMaximumCapMHz);
-return [lowPowerConfig copy];
+
+// 低功耗也应用亮度/背光保护补丁
+patchThermalPlistDict(modified);
+return [modified copy];
 }
 
-// 修改系统热配置
-// 增大所有热等级的触发阈值（延迟触发）
+// 修改系统热配置 — 增大所有热等级的触发阈值（延迟触发）
 static NSArray *tempThresholdKeys;
 static dispatch_once_t once;
 dispatch_once(&once, ^{

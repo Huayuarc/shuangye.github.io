@@ -99,6 +99,8 @@ static const CGFloat kCPUthermalCCSubtitleFontSize = 11.0;
     notify_post(kCPUthermalSettingsChangedNotifC);
     notify_post(kCPUthermalPowerModeChangedNotifC);
     [self applyThermalStatusOverrides];
+    // 重启 thermalmonitord 使 _getConfigurationFor/plist 补丁生效
+    CPUthermalRestartThermalmonitordSoon();
 }
 
 

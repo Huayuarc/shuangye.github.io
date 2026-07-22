@@ -80,6 +80,8 @@ prefs[S("powerMode")] = mode ?: S("fullPower");
 [self savePrefs:prefs];
 notify_post(kCPUthermalPowerModeChangedNotifC);
 [self applyThermalStatusOverrides];
+// 重启 thermalmonitord 使 _getConfigurationFor/plist 补丁生效
+CPUthermalRestartThermalmonitordSoon();
 PSSpecifier *specifier = [self specifierForID:S("powerMode")];
 specifier.name = [self powerModeLabel];
 [self reloadSpecifierID:S("powerMode") animated:YES];
