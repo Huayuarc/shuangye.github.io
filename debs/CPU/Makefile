@@ -54,6 +54,9 @@ CPUthermalTool_CFLAGS = -fobjc-arc -Iinclude
 CPUthermalTool_CODESIGN_FLAGS = -STools/CPUthermalTool.entitlements
 CPUthermalTool_INSTALL_PATH = /usr/local/bin
 CPUthermalTool_FRAMEWORKS = Foundation SystemConfiguration
+ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
+CPUthermalTool_LDFLAGS += -lroothide
+endif
 include $(THEOS_MAKE_PATH)/tool.mk
 
 after-stage::
