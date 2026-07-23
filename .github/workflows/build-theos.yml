@@ -8,6 +8,10 @@ on:
       - ".github/workflows/build-theos.yml"
   workflow_dispatch:
 
+concurrency:
+  group: build-theos-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: macos-13
