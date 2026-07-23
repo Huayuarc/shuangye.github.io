@@ -244,7 +244,9 @@ jobs:
             exit 0
           fi
 
-          # 强制添加（绕过 .gitignore，确保只跟踪最新版本）
+          # 清除旧 deb 跟踪，只保留本次构建的最新版本
+          git ls-files 'packages/*.deb' | xargs -r git rm --cached
+          # 强制添加新 deb
           git add -f packages/*.deb
           if git diff --quiet --cached; then
             echo "无变更，跳过提交"
