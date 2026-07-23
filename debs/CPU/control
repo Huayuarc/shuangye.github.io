@@ -1,9 +1,0 @@
-Package: com.huayuarc.cputhermal
-Name: CPUthermal
-Author: Huayuarc
-Description: 温控插件 — 注入 thermalmonitord 阻止高温降频/降亮度。双防护层：IOKit 层拦截传感器读写 + Darwin 通知广播；ObjC 层钩住 ThermalManager/ThermalControl 决策树、控制力度计算、热压力升级。所有钩子有独立开关，100°C 安全阀自动放行紧急保护。支持软化模式（减半不归零）和热配置表修改（+5°C 阈值）。
-Depends: mobilesubstrate, preferenceloader
-Maintainer: Huayuarc
-Section: Tweaks
-Version: 1.3.2
-Architecture: iphoneos-arm
