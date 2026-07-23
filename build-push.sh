@@ -42,7 +42,7 @@ DEBS_DIR="$SCRIPT_DIR/debs"
 cd "$DEBS_DIR"
 
 # 先计算总步骤
-TOTAL=9
+TOTAL=8
 
 step "处理 git safe.directory"
 log "正在检查仓库权限..."
@@ -183,39 +183,6 @@ for p in "${THEOS_PROJECTS[@]}"; do
     [ "$CLEANED" -eq 1 ] && echo "  ✓ $p 缓存已清理" && ((CLEAN_COUNT++))
 done
 [ "$CLEAN_COUNT" -eq 0 ] && echo "  无缓存需要清理"
-echo ""
-
-step "清理旧项目和旧 deb"
-REMOVED_COUNT=0
-# 清除 debs/ 中非本次推送的其他项目源码
-for dir in "$DEBS_DIR"/*/; do
-    dir="${dir%/}"
-    dirname="$(basename "$dir")"
-    # 跳过 .gitkeep
-    [ "$dirname" = ".gitkeep" ] && continue
-    # 检查是否在本次变更列表中
-    FOUND=0
-    for p in "${THEOS_PROJECTS[@]}"; do
-        if [ "$p" = "$dirname" ]; then
-            FOUND=1
-            break
-        fi
-    done
-    if [ "$FOUND" -eq 0 ]; then
-        echo "  ├ 移除旧项目: $dirname"
-        git rm -rf "$DEBS_DIR/$dirname" 2>/dev/null || rm -rf "$DEBS_DIR/$dirname"
-        ((REMOVED_COUNT++))
-    fi
-done
-
-# 清除 packages/ 中旧的 deb 文件
-OLD_DEB_COUNT=$(ls "$SCRIPT_DIR/packages/"*.deb 2>/dev/null | wc -l)
-if [ "$OLD_DEB_COUNT" -gt 0 ]; then
-    echo "  ├ 移除 $OLD_DEB_COUNT 个旧 deb 文件"
-    rm -f "$SCRIPT_DIR/packages/"*.deb
-fi
-
-[ "$REMOVED_COUNT" -eq 0 ] && echo "  无残留项目需要清理"
 echo ""
 
 step "提交变更"
