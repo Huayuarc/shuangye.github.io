@@ -8,12 +8,13 @@ INSTALL_TARGET_PROCESSES = thermalmonitord
 export ARCHS = arm64 arm64e
 
 TWEAK_NAME = CPUthermal
-
 CPUthermal_FILES = Tweak.xm CPUthermalHelper.m
 CPUthermal_CFLAGS = -fobjc-arc -IHeaders
 CPUthermal_PRIVATE_FRAMEWORKS = IOKit
-
 include $(THEOS_MAKE_PATH)/tweak.mk
 
-SUBPROJECTS += CPUthermalPrefs
-include $(THEOS_MAKE_PATH)/aggregate.mk
+BUNDLE_NAME = CPUthermalPrefs
+CPUthermalPrefs_FILES = CPUthermalPrefs/Sources/CPUthermalPrefs.m
+CPUthermalPrefs_INSTALL_PATH = /Library/PreferenceBundles
+CPUthermalPrefs_CFLAGS = -fobjc-arc -I../Headers
+include $(THEOS_MAKE_PATH)/bundle.mk
