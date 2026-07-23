@@ -65,6 +65,7 @@ static const char *CPUthermalPressureDisplayNames[] = {
     "休眠 (Sleeping)"
 };
 
+// 热通知级别显示名称
 static const char *CPUthermalNotifLevelDisplayNames[] = {
     "正常 (Normal)",
     "70% 闪光灯",
@@ -204,6 +205,22 @@ static inline NSString *CPUthermalPressureDisplayString(CPUthermalThermalPressur
     if (pressure < kBattmanThermalPressureLevelNominal || pressure >= kBattmanThermalPressureLevelUnknown)
         return S("未知");
     return S(CPUthermalPressureDisplayNames[pressure]);
+}
+
+// ============================================================================
+// 温控等级常量别名（兼容 kCPUthermal 命名风格 — 与 Snippet / Battman 一致）
+// ============================================================================
+#define kCPUthermalThermalPressureLevelNominal    kBattmanThermalPressureLevelNominal
+#define kCPUthermalThermalPressureLevelLight      kBattmanThermalPressureLevelLight
+#define kCPUthermalThermalPressureLevelModerate   kBattmanThermalPressureLevelModerate
+#define kCPUthermalThermalPressureLevelHeavy      kBattmanThermalPressureLevelHeavy
+#define kCPUthermalThermalPressureLevelTrapping   kBattmanThermalPressureLevelTrapping
+#define kCPUthermalThermalPressureLevelSleeping   kBattmanThermalPressureLevelSleeping
+
+typedef CPUthermalThermalPressure CPUthermalThermalPressureLevel;
+
+static inline NSString *CPUthermalThermalPressureTitle(CPUthermalThermalPressureLevel pressure) {
+    return CPUthermalPressureDisplayString(pressure);
 }
 
 static inline NSString *CPUthermalNotifLevelDisplayString(CPUthermalThermalNotifLevel level) {
@@ -468,6 +485,22 @@ static inline BOOL CPUthermalWritePrefs(NSDictionary *prefs) {
         }
     }
     return ok;
+}
+
+// ============================================================================
+// CPU 功率值（从 insulation 移植 — 用户自定义 CPU 功率锁定）
+// ============================================================================
+typedef NSInteger CPUthermalThermalPowerValue;
+
+static inline CPUthermalThermalPowerValue CPUthermalReadCPUPowerValue(void) {
+    @autoreleasepool {
+        NSDictionary *prefs = CPUthermalReadMutablePrefs();
+        id val = prefs ? prefs[S("cpuMinPowerValue")] : nil;
+        if ([val respondsToSelector:@selector(integerValue)]) {
+            return [val integerValue];
+        }
+        return 0;
+    }
 }
 
 #endif

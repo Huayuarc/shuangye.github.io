@@ -68,24 +68,40 @@ return [NSString stringWithFormat:S("热压力等级：%@"), CPUthermalPressureD
 }
 
 - (void)openThermalPressurePicker {
+// 防温控模式下固定为 Nominal，不显示选择器（对标 Battman 行为）
+if ([[self powerModeValue] isEqualToString:S("fullPower")]) {
+[self saveThermalPressure:kBattmanThermalPressureLevelNominal];
+[self showSimpleAlertWithTitle:S("温控等级") message:S("防温控模式下热压力级别固定为 Nominal（正常）。")];
+return;
+}
+
 UIAlertController *alert = [UIAlertController
 alertControllerWithTitle:S("热压力等级")
-message:S("手动设置系统热压力级别，将影响 CPU/GPU 降频策略、背光和无线充电行为。\n修改后无需重启 thermalmonitord，daemon 定时器会自动应用。")
+message:S("选择后会立即按映射写入系统热压状态。\n严重/临界/休眠可能触发系统高温警告屏幕。")
 preferredStyle:UIAlertControllerStyleActionSheet];
 
-NSInteger currentPressure = [[self thermalPressureValue] integerValue];
+CPUthermalThermalPressure currentPressure = (CPUthermalThermalPressure)[[self thermalPressureValue] integerValue];
 
 for (NSInteger i = kBattmanThermalPressureLevelNominal; i <= kBattmanThermalPressureLevelSleeping; i++) {
-NSString *title = S(CPUthermalPressureDisplayNames[i]);
+NSString *title = CPUthermalPressureDisplayString((CPUthermalThermalPressure)i);
+// Heavy+ 使用销毁样式（对标 Battman）
+UIAlertActionStyle style = (i >= kBattmanThermalPressureLevelHeavy) ? UIAlertActionStyleDestructive : UIAlertActionStyleDefault;
 UIAlertAction *action = [UIAlertAction actionWithTitle:title
-style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
-NSMutableDictionary *prefs = [self prefs];
-prefs[S(kCPUthermalManualThermalPressureC)] = [NSNumber numberWithInteger:i];
-[self savePrefs:prefs];
-// 不重启 thermalmonitord — 定时器每1秒自动 re-apply
-PSSpecifier *spec = [self specifierForID:S("thermalPressure")];
-spec.name = [self thermalPressureLabel];
-[self reloadSpecifierID:S("thermalPressure") animated:YES];
+style:style handler:^(UIAlertAction *action) {
+// Heavy+ 弹出二次确认（对标 Battman sliderChanged 4.0+ 确认）
+if (i >= kBattmanThermalPressureLevelHeavy) {
+UIAlertController *confirm = [UIAlertController
+alertControllerWithTitle:S("确认设置")
+message:[NSString stringWithFormat:S("设置热压力为 %@ 可能触发系统高温警告屏幕，是否继续？"), CPUthermalPressureDisplayString((CPUthermalThermalPressure)i)]
+preferredStyle:UIAlertControllerStyleAlert];
+[confirm addAction:[UIAlertAction actionWithTitle:S("取消") style:UIAlertActionStyleCancel handler:nil]];
+[confirm addAction:[UIAlertAction actionWithTitle:S("确定") style:UIAlertActionStyleDestructive handler:^(UIAlertAction *confirmAction) {
+[self saveThermalPressure:(CPUthermalThermalPressure)i];
+}]];
+[self presentViewController:confirm animated:YES completion:nil];
+} else {
+[self saveThermalPressure:(CPUthermalThermalPressure)i];
+}
 }];
 if (i == currentPressure) [action setValue:@YES forKey:S("checked")];
 [alert addAction:action];
@@ -100,6 +116,16 @@ popover.sourceRect = self.view.bounds;
 popover.permittedArrowDirections = 0;
 }
 [self presentViewController:alert animated:YES completion:nil];
+}
+
+- (void)saveThermalPressure:(CPUthermalThermalPressure)pressure {
+NSMutableDictionary *prefs = [self prefs];
+prefs[S(kCPUthermalManualThermalPressureC)] = [NSNumber numberWithInteger:pressure];
+[self savePrefs:prefs];
+// 不重启 thermalmonitord — 定时器每1秒自动 re-apply
+PSSpecifier *spec = [self specifierForID:S("thermalPressure")];
+spec.name = [self thermalPressureLabel];
+[self reloadSpecifierID:S("thermalPressure") animated:YES];
 }
 
 #pragma mark - 查看当前热状态
@@ -174,6 +200,31 @@ pressureSpec.name = [self thermalPressureLabel];
 [self reloadSpecifierID:S(kCPUthermalThermalLevelControlEnabledC) animated:YES];
 
 [self showSimpleAlertWithTitle:S("已重置") message:S("温控等级已重置为 Nominal，开关已关闭。")];
+}]];
+[self presentViewController:alert animated:YES completion:nil];
+}
+
+#pragma mark - 热通知级别
+
+- (NSString *)thermalNotifLevelLabel {
+CPUthermalThermalNotifLevel level = CPUthermalReadThermalNotifLevel();
+return [NSString stringWithFormat:S("热通知级别：%@"), CPUthermalNotifLevelDisplayString(level)];
+}
+
+- (void)resetThermalNotifLevel {
+UIAlertController *alert = [UIAlertController
+alertControllerWithTitle:S("重置热通知级别")
+message:S("将热通知级别重置为 Normal（正常）？")
+preferredStyle:UIAlertControllerStyleAlert];
+[alert addAction:[UIAlertAction actionWithTitle:S("取消")
+style:UIAlertActionStyleCancel handler:nil]];
+[alert addAction:[UIAlertAction actionWithTitle:S("确定重置")
+style:UIAlertActionStyleDestructive handler:^(UIAlertAction *action) {
+CPUthermalSetThermalNotifLevel(kBattmanThermalNotificationLevelNormal);
+PSSpecifier *spec = [self specifierForID:S("thermalNotifLevel")];
+spec.name = [self thermalNotifLevelLabel];
+[self reloadSpecifierID:S("thermalNotifLevel") animated:YES];
+[self showSimpleAlertWithTitle:S("已重置") message:S("热通知级别已重置为 Normal。")];
 }]];
 [self presentViewController:alert animated:YES completion:nil];
 }
@@ -256,6 +307,11 @@ if ([key isEqualToString:S("viewThermalStatus")]) {
 [self showThermalStatus];
 return;
 }
+if ([key isEqualToString:S("thermalNotifLevel")]) {
+[tableView deselectRowAtIndexPath:indexPath animated:YES];
+[self resetThermalNotifLevel];
+return;
+}
 if ([key isEqualToString:S("resetThermalLevels")]) {
 [tableView deselectRowAtIndexPath:indexPath animated:YES];
 [self resetThermalLevels];
@@ -336,25 +392,6 @@ preferredStyle:UIAlertControllerStyleAlert];
 [self presentViewController:alert animated:YES completion:nil];
 }
 
-
-#pragma mark - 关于我 / 投喂动作
-
-// QQ 测试反馈群
-- (void)openQQFeedbackGroup {
-[self openURLString:S("https://qm.qq.com/q/JvllAQiEwI") fallback:nil];
-}
-
-// 支付宝投喂我
-- (void)openAlipayDonate {
-[self openURLString:S("alipays://platformapi/startapp?appId=20000067&url=https%3A%2F%2Fqr.alipay.com%2Ffkx16683ylwdrfdo8fiuy01")
-fallback:S("https://qr.alipay.com/fkx16683ylwdrfdo8fiuy01")];
-}
-
-// 打开Sileo添加源（优先sileo://协议，否则打开网页）
-- (void)openRepo {
-[self openURLString:S("sileo://source/https://huayuarc.github.io") fallback:S("https://huayuarc.github.io")];
-}
-
 #pragma mark - 重启用户空间
 
 - (void)usreboot {
@@ -428,6 +465,16 @@ target:self set:NULL get:NULL detail:nil cell:PSButtonCell edit:NULL];
 return spec;
 }
 
+- (PSSpecifier *)thermalNotifLevelSpecifier {
+PSSpecifier *spec = [PSSpecifier
+preferenceSpecifierNamed:[self thermalNotifLevelLabel]
+target:self set:NULL get:NULL detail:nil cell:PSButtonCell edit:NULL];
+[spec setIdentifier:S("thermalNotifLevel")];
+[spec setProperty:S("thermalNotifLevel") forKey:S("key")];
+[spec setButtonAction:@selector(resetThermalNotifLevel)];
+return spec;
+}
+
 - (PSSpecifier *)buttonSpecifier:(NSString *)label action:(SEL)action identifier:(NSString *)identifier {
 PSSpecifier *spec = [PSSpecifier
 preferenceSpecifierNamed:label
@@ -466,7 +513,7 @@ group = [PSSpecifier emptyGroupSpecifier];
 
 [specs addObject:[self switchSpecifier:S("CPU 性能保护") key:S("cpuProtection")]];
 [specs addObject:[self switchSpecifier:S("屏幕亮度保护") key:S("brightnessProtection")]];
-[specs addObject:[self switchSpecifier:S("屏蔽高温通知") key:S("suppressThermalNotifications")]];
+[specs addObject:[self switchSpecifier:S("屏蔽温度计高温通知") key:S("suppressThermalNotifications")]];
 
 // ===================== 第4组: 温控等级调校（从 Battman 移植） =====================
 group = [PSSpecifier emptyGroupSpecifier];
@@ -476,6 +523,7 @@ group = [PSSpecifier emptyGroupSpecifier];
 
 [specs addObject:[self switchSpecifier:S("启用温控等级控制") key:S(kCPUthermalThermalLevelControlEnabledC)]];
 [specs addObject:[self thermalPressureSpecifier]];
+[specs addObject:[self thermalNotifLevelSpecifier]];
 
 [specs addObject:[self buttonSpecifier:S("📊 查看当前热状态")
 action:@selector(showThermalStatus)
@@ -493,22 +541,7 @@ group = [PSSpecifier emptyGroupSpecifier];
 action:@selector(usreboot)
 identifier:S("usreboot")]];
 
-// ===================== 第6组: 关于我 （底部） =====================
-group = [PSSpecifier emptyGroupSpecifier];
-[group setProperty:S("关于我 / 投喂") forKey:S("label")];
-[specs addObject:group];
-
-[specs addObject:[self buttonSpecifier:S("📮 QQ 交流反馈群")
-action:@selector(openQQFeedbackGroup)
-identifier:S("qqGroup")]];
-[specs addObject:[self buttonSpecifier:S("💰 支付宝🧧打赏")
-action:@selector(openAlipayDonate)
-identifier:S("alipayDonate")]];
-[specs addObject:[self buttonSpecifier:S("📦 Sileo 添加源")
-action:@selector(openRepo)
-identifier:S("sileoRepo")]];
-
-[self setSpecifiers:specs];
+_specifiers = [specs copy];
 }
 return _specifiers;
 }
