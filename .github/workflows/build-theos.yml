@@ -254,3 +254,30 @@ jobs:
             git commit -m "chore: 自动构建 deb 包 [ci skip]"
             git push
           fi
+
+      - name: Clean up source code after build
+        if: success() && steps.build-rootless.outputs.exit_code == 0
+        run: |
+          set -x
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # 删除 debs 目录中的所有源码（保留 .gitkeep）
+          for dir in debs/*/; do
+            dir="${dir%/}"
+            [ "$(basename "$dir")" = ".gitkeep" ] && continue
+            echo "删除源码: $dir"
+            git rm -rf "$dir" 2>/dev/null || true
+          done
+
+          # 确保 debs/.gitkeep 存在
+          touch debs/.gitkeep
+          git add -f debs/.gitkeep 2>/dev/null || true
+
+          if git diff --quiet --cached; then
+            echo "无变更，跳过提交"
+          else
+            git commit -m "chore: 编译完成，清除源码 [ci skip]"
+            git push
+            echo "源码已清除并推送"
+          fi

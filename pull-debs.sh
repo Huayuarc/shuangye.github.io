@@ -34,6 +34,14 @@ echo "  时间: $TIMESTAMP"
 echo "============================================"
 echo ""
 
+# 解析项目参数
+PROJECT_NAME=""
+if [ $# -ge 1 ]; then
+    PROJECT_NAME="$1"
+    echo "  指定项目: $PROJECT_NAME"
+    echo ""
+fi
+
 TOTAL=3
 
 step "处理 git safe.directory"
@@ -69,22 +77,44 @@ fi
 
 step "查找本地 deb 包"
 echo ""
-# 优先检查 debs/，其次 packages/
 DEB_FOUND=0
+INSTALL_CMDS=""
 for DEB_DIR in "debs" "packages"; do
     DEB_PATH="$SCRIPT_DIR/$DEB_DIR"
-    if [ -d "$DEB_PATH" ]; then
-        DEB_COUNT=$(ls "$DEB_PATH"/*.deb 2>/dev/null | wc -l)
-        if [ "$DEB_COUNT" -gt 0 ]; then
-            echo "  ┌─ 目录: $DEB_DIR/ ($DEB_COUNT 个 deb 包)"
-            for f in "$DEB_PATH"/*.deb; do
-                echo "  ├─ $(basename "$f")  ($(du -h "$f" | cut -f1))"
-            done
-            DEB_FOUND=$((DEB_FOUND + DEB_COUNT))
-            echo "  └─"
-            echo ""
-            echo "  安装命令:"
-            echo "  dpkg -i $DEB_PATH/*.deb"
+    [ -d "$DEB_PATH" ] || continue
+
+    # 收集匹配的 deb
+    MATCHED_DEBS=()
+    for f in "$DEB_PATH"/*.deb; do
+        [ -f "$f" ] || continue
+        fname="$(basename "$f")"
+        if [ -n "$PROJECT_NAME" ]; then
+            # 按项目名过滤: 包名转为小写后匹配项目名
+            fname_lower="$(echo "$fname" | tr '[:upper:]' '[:lower:]')"
+            proj_lower="$(echo "$PROJECT_NAME" | tr '[:upper:]' '[:lower:]')"
+            case "$fname_lower" in
+                *"$proj_lower"*)
+                    MATCHED_DEBS+=("$f")
+                    ;;
+            esac
+        else
+            MATCHED_DEBS+=("$f")
+        fi
+    done
+
+    DEB_COUNT=${#MATCHED_DEBS[@]}
+    if [ "$DEB_COUNT" -gt 0 ]; then
+        echo "  ┌─ 目录: $DEB_DIR/ ($DEB_COUNT 个 deb 包)"
+        for f in "${MATCHED_DEBS[@]}"; do
+            echo "  ├─ $(basename "$f")  ($(du -h "$f" | cut -f1))"
+            INSTALL_CMDS="${INSTALL_CMDS}dpkg -i \"$f\" && "
+        done
+        DEB_FOUND=$((DEB_FOUND + DEB_COUNT))
+        echo "  └─"
+        echo ""
+    else
+        if [ -n "$PROJECT_NAME" ]; then
+            echo "  $DEB_DIR/ 目录下无匹配 [$PROJECT_NAME] 的 deb"
         else
             echo "  $DEB_DIR/ 目录存在但无 deb 文件"
         fi
@@ -100,11 +130,19 @@ if [ "$DEB_FOUND" -eq 0 ]; then
     echo "  ║  1. 把插件源码放入 debs/ 目录                  ║"
     echo "  ║  2. 运行 build-push.sh 推送到 GitHub Actions   ║"
     echo "  ║  3. 等 CI 编译完成(约1~3分钟)                  ║"
-    echo "  ║  4. 再次运行本脚本 pull-debs.sh 拉取 deb       ║"
+    echo "  ║  4. 运行 pull-debs.sh <项目名> 拉取 deb       ║"
     echo "  ║                                               ║"
     echo "  ║  CI 状态:                                     ║"
     echo "  ║  https://github.com/Huayuarc/shuangye.github.io/actions  ║"
     echo "  ╚═══════════════════════════════════════════════╝"
+else
+    echo "  ┌─ 安装命令 ───────────────────────────────"
+    echo "  │"
+    # 移除末尾的 && 并显示安装命令
+    INSTALL_CMD="${INSTALL_CMDS% && }"
+    echo "  │  $INSTALL_CMD"
+    echo "  │"
+    echo "  └──────────────────────────────────────────"
 fi
 
 echo ""
