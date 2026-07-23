@@ -81,7 +81,7 @@ return [NSString stringWithFormat:S("通知等级：%@"), CPUthermalNotifLevelDi
 - (void)openThermalPressurePicker {
 UIAlertController *alert = [UIAlertController
 alertControllerWithTitle:S("热压力等级")
-message:S("手动设置系统热压力级别，将影响 CPU/GPU 降频策略、背光和无线充电行为。")
+message:S("手动设置系统热压力级别，将影响 CPU/GPU 降频策略、背光和无线充电行为。\n修改后无需重启 thermalmonitord，daemon 定时器会自动应用。")
 preferredStyle:UIAlertControllerStyleActionSheet];
 
 NSInteger currentPressure = [[self thermalPressureValue] integerValue];
@@ -93,7 +93,7 @@ style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
 NSMutableDictionary *prefs = [self prefs];
 prefs[S(kCPUthermalManualThermalPressureC)] = [NSNumber numberWithInteger:i];
 [self savePrefs:prefs];
-[self restartThermalmonitord];
+// 不重启 thermalmonitord — 定时器每5秒自动 re-apply
 PSSpecifier *spec = [self specifierForID:S("thermalPressure")];
 spec.name = [self thermalPressureLabel];
 [self reloadSpecifierID:S("thermalPressure") animated:YES];
@@ -128,7 +128,7 @@ style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
 NSMutableDictionary *prefs = [self prefs];
 prefs[S(kCPUthermalManualThermalNotifLevelC)] = [NSNumber numberWithInteger:i];
 [self savePrefs:prefs];
-[self restartThermalmonitord];
+// 不重启 thermalmonitord — 定时器每5秒自动 re-apply
 PSSpecifier *spec = [self specifierForID:S("thermalNotifLevel")];
 spec.name = [self thermalNotifLevelLabel];
 [self reloadSpecifierID:S("thermalNotifLevel") animated:YES];
@@ -163,78 +163,6 @@ return S("防温控");
 CPUthermalRestartThermalmonitordSoon();
 }
 
-#pragma mark - CPU频率锁定
-
-- (NSString *)deviceLockValue {
-NSString *val = [self prefs][S(kCPUthermalDeviceLockKeyC)];
-if ([val isKindOfClass:[NSString class]] && val.length > 0) return val;
-return S("");
-}
-
-- (NSString *)deviceLockLabel {
-NSString *chipKey = [self deviceLockValue];
-if (chipKey.length == 0) return S("CPU频率锁定：无");
-return [NSString stringWithFormat:S("CPU频率锁定：%@"), CPUthermalChipDisplayName(chipKey)];
-}
-
-- (void)openDeviceLockPicker {
-[self showDeviceLockPicker];
-}
-
-- (void)saveDeviceLock:(NSString *)chipKey {
-NSMutableDictionary *prefs = [self prefs];
-if (chipKey.length > 0) {
-prefs[S(kCPUthermalDeviceLockKeyC)] = chipKey;
-} else {
-[prefs removeObjectForKey:S(kCPUthermalDeviceLockKeyC)];
-}
-prefs[S("powerMode")] = S("fullPower");
-[self savePrefs:prefs];
-notify_post(kCPUthermalPowerModeChangedNotifC);
-[self restartThermalmonitord];
-PSSpecifier *specifier = [self specifierForID:S("deviceLock")];
-specifier.name = [self deviceLockLabel];
-[self reloadSpecifierID:S("deviceLock") animated:YES];
-}
-
-- (void)showDeviceLockPicker {
-UIAlertController *alert = [UIAlertController
-alertControllerWithTitle:S("CPU频率锁定")
-message:S("选择芯片代际后，CPU最高频率将被锁定为对应机型原生频率。\n锁定后自动切换为防温控模式。")
-preferredStyle:UIAlertControllerStyleActionSheet];
-
-NSString *currentKey = [self deviceLockValue];
-
-// 无锁定
-UIAlertAction *noneAction = [UIAlertAction actionWithTitle:S("无锁定（自动）")
-style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
-[self saveDeviceLock:S("")];
-}];
-if (currentKey.length == 0) [noneAction setValue:@YES forKey:S("checked")];
-[alert addAction:noneAction];
-
-// A11 ~ A17 Pro
-NSArray *chipKeys = @[S("A11"), S("A12"), S("A13"), S("A14"), S("A15"), S("A16"), S("A17Pro")];
-for (NSString *key in chipKeys) {
-UIAlertAction *action = [UIAlertAction actionWithTitle:CPUthermalChipDisplayName(key)
-style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
-[self saveDeviceLock:key];
-}];
-if ([key isEqualToString:currentKey]) [action setValue:@YES forKey:S("checked")];
-[alert addAction:action];
-}
-
-[alert addAction:[UIAlertAction actionWithTitle:S("取消") style:UIAlertActionStyleCancel handler:nil]];
-
-UIPopoverPresentationController *popover = alert.popoverPresentationController;
-if (popover) {
-popover.sourceView = self.view;
-popover.sourceRect = self.view.bounds;
-popover.permittedArrowDirections = 0;
-}
-[self presentViewController:alert animated:YES completion:nil];
-}
-
 - (void)savePowerMode:(NSString *)mode {
 NSMutableDictionary *prefs = [self prefs];
 prefs[S("powerMode")] = mode ?: S("fullPower");
@@ -260,9 +188,6 @@ if (!key) return nil;
 // 默认保留系统安全通路，避免异常发热、黑屏和不可恢复降亮度。
 id val = [self prefs][key];
 if (val) return val;
-if ([key isEqualToString:S("keepCPMSAlive")]) {
-return [NSNumber numberWithBool:YES];
-}
 if ([key isEqualToString:S("suppressThermalNotifications")]) {
 return [NSNumber numberWithBool:NO];
 }
@@ -289,11 +214,6 @@ NSString *key = [specifier propertyForKey:S("key")];
 if ([key isEqualToString:S("powerMode")]) {
 [tableView deselectRowAtIndexPath:indexPath animated:YES];
 [self showPowerModePicker];
-return;
-}
-if ([key isEqualToString:S("deviceLock")]) {
-[tableView deselectRowAtIndexPath:indexPath animated:YES];
-[self showDeviceLockPicker];
 return;
 }
 if ([key isEqualToString:S("thermalPressure")]) {
@@ -463,21 +383,6 @@ edit:nil];
 return spec;
 }
 
-- (PSSpecifier *)deviceLockSpecifier {
-PSSpecifier *spec = [PSSpecifier
-preferenceSpecifierNamed:[self deviceLockLabel]
-target:self
-set:NULL
-get:NULL
-detail:nil
-cell:PSButtonCell
-edit:nil];
-[spec setIdentifier:S("deviceLock")];
-[spec setProperty:S("deviceLock") forKey:S("key")];
-[spec setButtonAction:@selector(openDeviceLockPicker)];
-return spec;
-}
-
 - (PSSpecifier *)thermalPressureSpecifier {
 PSSpecifier *spec = [PSSpecifier
 preferenceSpecifierNamed:[self thermalPressureLabel]
@@ -528,15 +433,7 @@ group = [PSSpecifier emptyGroupSpecifier];
 
 [specs addObject:[self powerModeSpecifier]];
 
-// ===================== 第3组: CPU频率锁定 =====================
-group = [PSSpecifier emptyGroupSpecifier];
-[group setProperty:S("CPU频率锁定") forKey:S("label")];
-[group setProperty:S("选择芯片代际后，CPU最高频率将被锁定为对应机型原生频率，阻止温控降频。选锁定时自动切换为防温控模式。") forKey:S("footerText")];
-[specs addObject:group];
-
-[specs addObject:[self deviceLockSpecifier]];
-
-// ===================== 第4组: 核心保护（整合） =====================
+// ===================== 第3组: 核心保护（整合） =====================
 group = [PSSpecifier emptyGroupSpecifier];
 [group setProperty:S("核心保护") forKey:S("label")];
 [group setProperty:S("建议保持默认：CPU/亮度保护开启，避免误判温度。") forKey:S("footerText")];
@@ -546,15 +443,7 @@ group = [PSSpecifier emptyGroupSpecifier];
 [specs addObject:[self switchSpecifier:S("屏幕亮度保护") key:S("brightnessProtection")]];
 [specs addObject:[self switchSpecifier:S("屏蔽高温通知") key:S("suppressThermalNotifications")]];
 
-// ===================== 第5组: 高级 =====================
-group = [PSSpecifier emptyGroupSpecifier];
-[group setProperty:S("高级") forKey:S("label")];
-[group setProperty:S("强烈建议开启：温度超过 80°C 或读温失败时放行系统温控，防止异常发热和自动黑屏。") forKey:S("footerText")];
-[specs addObject:group];
-
-[specs addObject:[self switchSpecifier:S("保留 CPMS 紧急保护") key:S("keepCPMSAlive")]];
-
-// ===================== 第6组: 温控等级调校（从 Battman 移植） =====================
+// ===================== 第4组: 温控等级调校（从 Battman 移植） =====================
 group = [PSSpecifier emptyGroupSpecifier];
 [group setProperty:S("温控等级调校") forKey:S("label")];
 [group setProperty:S("通过 notify API 直接设置系统热压力级别和通知级别，覆盖 thermalmonitord 默认行为。谨慎使用，不当设置可能导致异常发热或性能下降。") forKey:S("footerText")];
@@ -564,7 +453,7 @@ group = [PSSpecifier emptyGroupSpecifier];
 [specs addObject:[self thermalPressureSpecifier]];
 [specs addObject:[self thermalNotifLevelSpecifier]];
 
-// ===================== 第7组: 操作 =====================
+// ===================== 第5组: 操作 =====================
 group = [PSSpecifier emptyGroupSpecifier];
 [group setProperty:S("操作") forKey:S("label")];
 [specs addObject:group];
@@ -573,7 +462,7 @@ group = [PSSpecifier emptyGroupSpecifier];
 action:@selector(usreboot)
 identifier:S("usreboot")]];
 
-// ===================== 第8组: 关于我 （底部） =====================
+// ===================== 第6组: 关于我 （底部） =====================
 group = [PSSpecifier emptyGroupSpecifier];
 [group setProperty:S("关于我 / 投喂") forKey:S("label")];
 [specs addObject:group];

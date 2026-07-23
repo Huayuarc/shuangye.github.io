@@ -91,77 +91,82 @@ static const char *CPUthermalPressureLevelStrings[] = {
 
 #pragma mark - 热等级 notify API 辅助函数
 
-static inline CPUthermalThermalPressure CPUthermalReadThermalPressure(void) {
-    int token;
-    uint64_t level;
+// 缓存 token，避免每次设置时重复注册
+static int g_thermalPressureToken = 0;
+static int g_thermalNotifToken = 0;
+static dispatch_once_t g_thermalTokensOnce;
 
-    if (notify_register_check("com.apple.system.thermalpressurelevel", &token)) {
-        return kBattmanThermalPressureLevelError;
+static inline void CPUthermalEnsureThermalTokens(void) {
+    dispatch_once(&g_thermalTokensOnce, ^{
+        notify_register_check("com.apple.system.thermalpressure.level", &g_thermalPressureToken);
+        notify_register_check("com.apple.system.thermalnotification", &g_thermalNotifToken);
+    });
+}
+
+// 热压力级别 notify state 映射 (com.apple.system.thermalpressure.level)
+// iOS 16 使用 0=正常, 10/20/30/40/50 作为热压力级别状态值
+static inline uint64_t CPUthermalPressureLevelToNotifyState(CPUthermalThermalPressure pressure) {
+    switch (pressure) {
+        case kBattmanThermalPressureLevelLight:     return 10;
+        case kBattmanThermalPressureLevelModerate:  return 20;
+        case kBattmanThermalPressureLevelHeavy:     return 30;
+        case kBattmanThermalPressureLevelTrapping:  return 40;
+        case kBattmanThermalPressureLevelSleeping:  return 50;
+        default:                                    return 0;
     }
-    if (notify_get_state(token, &level)) {
-        notify_cancel(token);
+}
+
+static inline CPUthermalThermalPressure CPUthermalReadThermalPressure(void) {
+    CPUthermalEnsureThermalTokens();
+
+    uint64_t level = 0;
+    if (notify_get_state(g_thermalPressureToken, &level) != 0)
         return kBattmanThermalPressureLevelError;
-    }
-    notify_cancel(token);
 
     // OSThermalPressureLevel 映射
-    if (level == 0) return kBattmanThermalPressureLevelNominal;
-
-    if (level < 10) {
-        switch (level) {
-            case 1: return kBattmanThermalPressureLevelModerate;
-            case 2: return kBattmanThermalPressureLevelHeavy;
-            case 3: return kBattmanThermalPressureLevelTrapping;
-            case 4: return kBattmanThermalPressureLevelSleeping;
-            default: return kBattmanThermalPressureLevelUnknown;
-        }
-    } else {
-        switch (level) {
-            case 10: return kBattmanThermalPressureLevelLight;
-            case 20: return kBattmanThermalPressureLevelModerate;
-            case 30: return kBattmanThermalPressureLevelHeavy;
-            case 40: return kBattmanThermalPressureLevelTrapping;
-            case 50: return kBattmanThermalPressureLevelSleeping;
-            default: return kBattmanThermalPressureLevelUnknown;
-        }
+    switch (level) {
+        case 0:  return kBattmanThermalPressureLevelNominal;
+        case 1:  return kBattmanThermalPressureLevelModerate;
+        case 2:  return kBattmanThermalPressureLevelHeavy;
+        case 3:  return kBattmanThermalPressureLevelTrapping;
+        case 4:  return kBattmanThermalPressureLevelSleeping;
+        case 10: return kBattmanThermalPressureLevelLight;
+        case 20: return kBattmanThermalPressureLevelModerate;
+        case 30: return kBattmanThermalPressureLevelHeavy;
+        case 40: return kBattmanThermalPressureLevelTrapping;
+        case 50: return kBattmanThermalPressureLevelSleeping;
+        default: return kBattmanThermalPressureLevelUnknown;
     }
 }
 
 static inline int CPUthermalSetThermalPressure(CPUthermalThermalPressure pressure) {
-    int token;
-    uint64_t level = 0;
+    CPUthermalEnsureThermalTokens();
 
-    if (notify_register_check("com.apple.system.thermalpressurelevel", &token))
-        return -1;
+    uint64_t level = CPUthermalPressureLevelToNotifyState(pressure);
 
-    switch (pressure) {
-        case kBattmanThermalPressureLevelLight:     level = 10; break;
-        case kBattmanThermalPressureLevelModerate:  level = 20; break;
-        case kBattmanThermalPressureLevelHeavy:     level = 30; break;
-        case kBattmanThermalPressureLevelTrapping:  level = 40; break;
-        case kBattmanThermalPressureLevelSleeping:  level = 50; break;
-        default:                                    level = 0;  break;
-    }
-
-    if (notify_set_state(token, level))
+    // 设置主热压力级别 — 这是 iOS 系统实际读取的 key
+    if (notify_set_state(g_thermalPressureToken, level) != 0)
         return 1;
 
-    notify_post("com.apple.system.thermalpressurelevel");
+    // 同时广播到 pearl pressure（热管理子系统也会监听此 key）
+    int pearlToken = 0;
+    if (notify_register_check("com.apple.system.thermalpressure.pearl.pressure", &pearlToken) == 0) {
+        notify_set_state(pearlToken, level);
+        notify_post("com.apple.system.thermalpressure.pearl.pressure");
+        notify_cancel(pearlToken);
+    }
+
+    // 发布主通知唤醒监听者
+    notify_post("com.apple.system.thermalpressure.level");
     return 0;
 }
 
 static inline CPUthermalThermalNotifLevel CPUthermalReadThermalNotifLevel(void) {
-    // 使用 notify API 读取热通知级别
-    int token;
-    uint64_t state;
+    CPUthermalEnsureThermalTokens();
 
-    if (notify_register_check("com.apple.system.thermalnotification", &token))
+    uint64_t state = 0;
+    if (notify_get_state(g_thermalNotifToken, &state) != 0)
         return kBattmanThermalNotificationLevelAny;
-    if (notify_get_state(token, &state)) {
-        notify_cancel(token);
-        return kBattmanThermalNotificationLevelAny;
-    }
-    notify_cancel(token);
 
     int rawLevel = (int)state;
     if (rawLevel < 0 || rawLevel > kBattmanThermalNotificationLevelUnknown)
@@ -171,12 +176,9 @@ static inline CPUthermalThermalNotifLevel CPUthermalReadThermalNotifLevel(void) 
 }
 
 static inline int CPUthermalSetThermalNotifLevel(CPUthermalThermalNotifLevel level) {
-    int token;
+    CPUthermalEnsureThermalTokens();
 
-    if (notify_register_check("com.apple.system.thermalnotification", &token))
-        return -1;
-
-    if (notify_set_state(token, (uint64_t)level))
+    if (notify_set_state(g_thermalNotifToken, (uint64_t)level) != 0)
         return 1;
 
     notify_post("com.apple.system.thermalnotification");
@@ -250,53 +252,6 @@ static inline NSInteger CPUthermalNativeMaxPCoreFrequencyMHzForHardware(NSString
 static inline NSInteger CPUthermalNativeMaxPCoreFrequencyMHz(void) {
     NSInteger frequency = CPUthermalNativeMaxPCoreFrequencyMHzForHardware(CPUthermalHardwareIdentifier());
     return frequency > 0 ? frequency : kCPUthermalDefaultMaxPCoreFrequencyMHz;
-}
-
-// ============================================================================
-// CPU频率锁定 — 手动选择芯片代际锁定频率
-// ============================================================================
-static const char *kCPUthermalDeviceLockKeyC = "deviceLock";
-
-// 芯片代际 -> 最大频率(MHz) 映射
-static inline NSInteger CPUthermalFrequencyForChipKey(NSString *chipKey) {
-    if (!chipKey || chipKey.length == 0) return 0;
-    // A11 (iPhone 8 / 8+ / X)
-    if ([chipKey isEqualToString:S("A11")]) return 2390;
-    // A12 (iPhone XS / XS Max / XR)
-    if ([chipKey isEqualToString:S("A12")]) return 2490;
-    // A13 (iPhone 11 / 11 Pro / Pro Max)
-    if ([chipKey isEqualToString:S("A13")]) return 2660;
-    // A14 (iPhone 12 mini / 12 / 12 Pro / Pro Max)
-    if ([chipKey isEqualToString:S("A14")]) return 3100;
-    // A15 (iPhone 13 / 14 / 14+)
-    if ([chipKey isEqualToString:S("A15")]) return 3240;
-    // A16 (iPhone 14 Pro / 15 / 15+)
-    if ([chipKey isEqualToString:S("A16")]) return 3460;
-    // A17 Pro (iPhone 15 Pro / Pro Max)
-    if ([chipKey isEqualToString:S("A17Pro")]) return 3700;
-    return 0;
-}
-
-// 芯片代际 -> 显示名称
-static inline NSString *CPUthermalChipDisplayName(NSString *chipKey) {
-    if (!chipKey || chipKey.length == 0) return S("无锁定");
-    NSInteger freq = CPUthermalFrequencyForChipKey(chipKey);
-    if (freq == 0) return S("无锁定");
-    if ([chipKey isEqualToString:S("A11")])
-        return [NSString stringWithFormat:S("A11 · %ld MHz (iPhone 8 ~ X)"), (long)freq];
-    if ([chipKey isEqualToString:S("A12")])
-        return [NSString stringWithFormat:S("A12 · %ld MHz (iPhone XS ~ XR)"), (long)freq];
-    if ([chipKey isEqualToString:S("A13")])
-        return [NSString stringWithFormat:S("A13 · %ld MHz (iPhone 11)"), (long)freq];
-    if ([chipKey isEqualToString:S("A14")])
-        return [NSString stringWithFormat:S("A14 · %ld MHz (iPhone 12)"), (long)freq];
-    if ([chipKey isEqualToString:S("A15")])
-        return [NSString stringWithFormat:S("A15 · %ld MHz (iPhone 13 / 14)"), (long)freq];
-    if ([chipKey isEqualToString:S("A16")])
-        return [NSString stringWithFormat:S("A16 · %ld MHz (iPhone 14 Pro / 15)"), (long)freq];
-    if ([chipKey isEqualToString:S("A17Pro")])
-        return [NSString stringWithFormat:S("A17 Pro · %ld MHz (iPhone 15 Pro)"), (long)freq];
-    return S("无锁定");
 }
 
 static inline NSString *CPUthermalJBRootPathForRootFSPath(const char *path) {

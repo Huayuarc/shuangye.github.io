@@ -136,9 +136,6 @@ CPUthermalPowerModeLow  = 1
 
 static CPUthermalPowerMode g_powerMode = CPUthermalPowerModeFull;
 
-// CPU频率锁定 — 手动选择芯片代际锁定频率(MHz)，0=无锁定
-static NSInteger g_deviceLockMHz = 0;
-
 // 低功耗模式 CPU 频率限制（MHz）
 // 只限制上限，不强制抬高最低频，避免轻负载锁 2016MHz 导致发热。
 static const int64_t kLowPowerMinFrequencyMHz = 1380;
@@ -219,7 +216,6 @@ return g_enabled && g_cpuProtection && isLowPowerMode();
 }
 
 static int lowPowerTargetValue(void) {
-if (g_deviceLockMHz > 0) return (int)g_deviceLockMHz;
 return (int)kLowPowerMaxFrequencyMHz;
 }
 
@@ -236,7 +232,6 @@ return 100;
 }
 
 static int fullPowerFrequencyValue(void) {
-if (g_deviceLockMHz > 0) return (int)g_deviceLockMHz;
 return (int)CPUthermalNativeMaxPCoreFrequencyMHz();
 }
 
@@ -780,8 +775,10 @@ if (!d) return;
 g_enabled               = [d[S("enabled")] ?: [NSNumber numberWithBool:YES] boolValue];
 g_cpuProtection         = [d[S("cpuProtection")] ?: [NSNumber numberWithBool:YES] boolValue];
 g_brightnessProtection  = [d[S("brightnessProtection")] ?: [NSNumber numberWithBool:YES] boolValue];
-g_keepCPSMAlive         = [d[S("keepCPMSAlive")] ?: [NSNumber numberWithBool:YES] boolValue];
 g_suppressThermalNotifications = [d[S("suppressThermalNotifications")] ?: [NSNumber numberWithBool:NO] boolValue];
+
+// CPMS 紧急保护始终开启（硬编码保留，用户开关已移除）
+g_keepCPSMAlive = YES;
 
 // ===== 温控等级调校 =====
 g_thermalLevelControlEnabled = [d[S(kCPUthermalThermalLevelControlEnabledC)] ?: [NSNumber numberWithBool:NO] boolValue];
@@ -796,10 +793,6 @@ if (g_manualThermalNotifLevel < kBattmanThermalNotificationLevelNormal || g_manu
 
 NSString *mode = d[S("powerMode")] ?: S("fullPower");
 g_powerMode = [mode isEqualToString:S("lowPower")] ? CPUthermalPowerModeLow : CPUthermalPowerModeFull;
-
-// CPU频率锁定
-NSString *chipKey = d[S(kCPUthermalDeviceLockKeyC)];
-g_deviceLockMHz = CPUthermalFrequencyForChipKey(chipKey);
 }
 }
 
