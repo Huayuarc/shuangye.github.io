@@ -96,6 +96,11 @@ static int g_thermalPressureToken = 0;
 static int g_thermalNotifToken = 0;
 static dispatch_once_t g_thermalTokensOnce;
 
+// notify_set_state 守卫标志 — 由 CPUthermalSetThermalPressure/NotifLevel 设置，
+// 供 Tweak.xm 中的 notify_set_state hook 区分"我们自己的写入"和"thermalmonitord 的覆盖写入"
+// 设置为 static 在每个编译单元独立，Settings app 中不会被 hook 检查，无害
+static BOOL g_CPUthermalOwnNotifyWrite = NO;
+
 static inline void CPUthermalEnsureThermalTokens(void) {
     dispatch_once(&g_thermalTokensOnce, ^{
         notify_register_check("com.apple.system.thermalpressure.level", &g_thermalPressureToken);
@@ -144,14 +149,21 @@ static inline int CPUthermalSetThermalPressure(CPUthermalThermalPressure pressur
 
     uint64_t level = CPUthermalPressureLevelToNotifyState(pressure);
 
+    // 设置守卫标志，使 Tweak.xm 的 notify_set_state hook 放行此次写入
+    g_CPUthermalOwnNotifyWrite = YES;
+
     // 设置主热压力级别 — 这是 iOS 系统实际读取的 key
-    if (notify_set_state(g_thermalPressureToken, level) != 0)
+    int ret = notify_set_state(g_thermalPressureToken, level);
+    g_CPUthermalOwnNotifyWrite = NO;
+    if (ret != 0)
         return 1;
 
     // 同时广播到 pearl pressure（热管理子系统也会监听此 key）
     int pearlToken = 0;
     if (notify_register_check("com.apple.system.thermalpressure.pearl.pressure", &pearlToken) == 0) {
+        g_CPUthermalOwnNotifyWrite = YES;
         notify_set_state(pearlToken, level);
+        g_CPUthermalOwnNotifyWrite = NO;
         notify_post("com.apple.system.thermalpressure.pearl.pressure");
         notify_cancel(pearlToken);
     }
@@ -178,7 +190,10 @@ static inline CPUthermalThermalNotifLevel CPUthermalReadThermalNotifLevel(void) 
 static inline int CPUthermalSetThermalNotifLevel(CPUthermalThermalNotifLevel level) {
     CPUthermalEnsureThermalTokens();
 
-    if (notify_set_state(g_thermalNotifToken, (uint64_t)level) != 0)
+    g_CPUthermalOwnNotifyWrite = YES;
+    int ret = notify_set_state(g_thermalNotifToken, (uint64_t)level);
+    g_CPUthermalOwnNotifyWrite = NO;
+    if (ret != 0)
         return 1;
 
     notify_post("com.apple.system.thermalnotification");

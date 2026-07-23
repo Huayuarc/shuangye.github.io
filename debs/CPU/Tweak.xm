@@ -9,6 +9,10 @@
 #include <CPUthermalPaths.h>
 #import <IOKit/IOKitLib.h>
 
+// notify_get_name 在 iOS 中无公开符号，需 dlsym 运行时查找
+// 若不存在则跳过 notify key 名称过滤，直接放行写入
+static uint32_t (*s_notify_get_name)(int token, char *name, size_t *length) = NULL;
+
 // ============================================================================
 // CPUthermal — 温控插件（完全版）
 //
@@ -829,11 +833,11 @@ static void startThermalLevelTimer(void) {
         return;
     }
 
-    // 每 5 秒重新应用一次，因为 thermalmonitord 可能会重置 notify state
+    // 每 1 秒重新应用一次，防止 thermalmonitord 覆盖 notify state
     dispatch_source_set_timer(g_thermalLevelTimer,
                               dispatch_time(DISPATCH_TIME_NOW, 0),
-                              5 * NSEC_PER_SEC,
-                              0.5 * NSEC_PER_SEC);
+                              1 * NSEC_PER_SEC,
+                              0.1 * NSEC_PER_SEC);
     dispatch_source_set_event_handler(g_thermalLevelTimer, ^{
         applyThermalLevels();
     });
@@ -1040,6 +1044,25 @@ if (!isTemperatureAboveSafetyCeiling()) {
 // 动态创建 NSString 避免 roothide __cfstring 损坏
 NSString *ns = [NSString stringWithUTF8String:name];
 if (isThermalNotificationName(ns)) {
+return NOTIFY_STATUS_OK;
+}
+}
+}
+return %orig;
+}
+
+// --- notify_set_state — 阻止 thermalmonitord 覆盖手动热压力值 ---
+// 当温控等级调校启用时，拦截 thermalmonitord 对 thermal pressure/notification
+// notify key 的 notify_set_state 写入，防止手动设置的 Nominal 被覆盖。
+// 我们自己的写入通过 g_CPUthermalOwnNotifyWrite 标志放行。
+%hookf(uint32_t, notify_set_state, int token, uint64_t state) {
+if (g_thermalLevelControlEnabled && !g_CPUthermalOwnNotifyWrite) {
+char name[256] = {0};
+size_t len = sizeof(name);
+if (s_notify_get_name && s_notify_get_name(token, &name[0], &len) == NOTIFY_STATUS_OK && name[0] != '\0') {
+if (strcmp(name, "com.apple.system.thermalpressure.level") == 0 ||
+strcmp(name, "com.apple.system.thermalnotification") == 0 ||
+strcmp(name, "com.apple.system.thermalpressure.pearl.pressure") == 0) {
 return NOTIFY_STATUS_OK;
 }
 }
@@ -1709,6 +1732,14 @@ loadPrefs();
 if (!g_enabled) {
 NSLog(@"[CPUthermal] 配置关闭，跳过加载");
 return;
+}
+
+// 动态加载 notify_get_name（iOS 无公开符号）
+s_notify_get_name = (uint32_t(*)(int, char*, size_t*))dlsym(RTLD_DEFAULT, "notify_get_name");
+if (s_notify_get_name) {
+NSLog(@"[CPUthermal] notify_get_name 已加载 (dlsym)");
+} else {
+NSLog(@"[CPUthermal] 警告: notify_get_name 不可用，notify_set_state 名称过滤跳过");
 }
 
 // 确保 IOKit 已加载

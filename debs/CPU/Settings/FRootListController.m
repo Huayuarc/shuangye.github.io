@@ -67,17 +67,6 @@ CPUthermalThermalPressure pressure = (CPUthermalThermalPressure)[[self thermalPr
 return [NSString stringWithFormat:S("热压力等级：%@"), CPUthermalPressureDisplayString(pressure)];
 }
 
-- (NSString *)thermalNotifLevelValue {
-id val = [self prefs][S(kCPUthermalManualThermalNotifLevelC)];
-if (val) return [NSString stringWithFormat:S("%ld"), (long)[val integerValue]];
-return [NSString stringWithFormat:S("%d"), kBattmanThermalNotificationLevelNormal];
-}
-
-- (NSString *)thermalNotifLevelLabel {
-CPUthermalThermalNotifLevel level = (CPUthermalThermalNotifLevel)[[self thermalNotifLevelValue] integerValue];
-return [NSString stringWithFormat:S("通知等级：%@"), CPUthermalNotifLevelDisplayString(level)];
-}
-
 - (void)openThermalPressurePicker {
 UIAlertController *alert = [UIAlertController
 alertControllerWithTitle:S("热压力等级")
@@ -93,7 +82,7 @@ style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
 NSMutableDictionary *prefs = [self prefs];
 prefs[S(kCPUthermalManualThermalPressureC)] = [NSNumber numberWithInteger:i];
 [self savePrefs:prefs];
-// 不重启 thermalmonitord — 定时器每5秒自动 re-apply
+// 不重启 thermalmonitord — 定时器每1秒自动 re-apply
 PSSpecifier *spec = [self specifierForID:S("thermalPressure")];
 spec.name = [self thermalPressureLabel];
 [self reloadSpecifierID:S("thermalPressure") animated:YES];
@@ -113,38 +102,79 @@ popover.permittedArrowDirections = 0;
 [self presentViewController:alert animated:YES completion:nil];
 }
 
-- (void)openThermalNotifLevelPicker {
+#pragma mark - 查看当前热状态
+
+- (NSString *)thermalStatusString {
+CPUthermalEnsureThermalTokens();
+CPUthermalThermalPressure pressure = CPUthermalReadThermalPressure();
+
+// 读取最大触发温度
+float maxTemp = -1.0;
+int maxTempToken = 0;
+if (notify_register_check("com.apple.system.maxthermalsensorvalue", &maxTempToken) == 0) {
+uint64_t tempState = 0;
+if (notify_get_state(maxTempToken, &tempState) == 0) {
+maxTemp = (float)tempState / 100.0f;
+}
+notify_cancel(maxTempToken);
+}
+
+// 读取阳光暴晒状态
+int solarState = 0;
+int solarToken = 0;
+if (notify_register_check("com.apple.system.thermalsunlightstate", &solarToken) == 0) {
+uint64_t solarLevel = 0;
+if (notify_get_state(solarToken, &solarLevel) == 0) {
+solarState = (int)solarLevel;
+}
+notify_cancel(solarToken);
+}
+
+NSString *pressureStr = CPUthermalPressureDisplayString(pressure);
+NSString *tempStr = (maxTemp >= 0)
+? [NSString stringWithFormat:S("%.1f°C"), maxTemp]
+: S("不可用");
+NSString *solarStr = solarState ? S("是") : S("否");
+
+return [NSString stringWithFormat:S("热压力: %@\n最高触发温度: %@\n阳光暴晒: %@"),
+pressureStr, tempStr, solarStr];
+}
+
+- (void)showThermalStatus {
+NSString *status = [self thermalStatusString];
 UIAlertController *alert = [UIAlertController
-alertControllerWithTitle:S("通知等级")
-message:S("手动设置系统热通知级别，将影响应用行为、闪光灯可用性和背光。")
-preferredStyle:UIAlertControllerStyleActionSheet];
+alertControllerWithTitle:S("当前热状态")
+message:status
+preferredStyle:UIAlertControllerStyleAlert];
+[alert addAction:[UIAlertAction actionWithTitle:S("好的") style:UIAlertActionStyleDefault handler:nil]];
+[self presentViewController:alert animated:YES completion:nil];
+}
 
-NSInteger currentLevel = [[self thermalNotifLevelValue] integerValue];
-
-for (NSInteger i = kBattmanThermalNotificationLevelNormal; i <= kBattmanThermalNotificationLevelThermalTableReady; i++) {
-NSString *title = S(CPUthermalNotifLevelDisplayNames[i]);
-UIAlertAction *action = [UIAlertAction actionWithTitle:title
-style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+- (void)resetThermalLevels {
+UIAlertController *alert = [UIAlertController
+alertControllerWithTitle:S("重置温控")
+message:S("将热压力重置为 Nominal（正常），并关闭温控等级控制开关？")
+preferredStyle:UIAlertControllerStyleAlert];
+[alert addAction:[UIAlertAction actionWithTitle:S("取消")
+style:UIAlertActionStyleCancel handler:nil]];
+[alert addAction:[UIAlertAction actionWithTitle:S("确定重置")
+style:UIAlertActionStyleDestructive handler:^(UIAlertAction *action) {
 NSMutableDictionary *prefs = [self prefs];
-prefs[S(kCPUthermalManualThermalNotifLevelC)] = [NSNumber numberWithInteger:i];
+prefs[S(kCPUthermalManualThermalPressureC)] = [NSNumber numberWithInt:kBattmanThermalPressureLevelNominal];
+prefs[S(kCPUthermalThermalLevelControlEnabledC)] = [NSNumber numberWithBool:NO];
 [self savePrefs:prefs];
-// 不重启 thermalmonitord — 定时器每5秒自动 re-apply
-PSSpecifier *spec = [self specifierForID:S("thermalNotifLevel")];
-spec.name = [self thermalNotifLevelLabel];
-[self reloadSpecifierID:S("thermalNotifLevel") animated:YES];
-}];
-if (i == currentLevel) [action setValue:@YES forKey:S("checked")];
-[alert addAction:action];
-}
 
-[alert addAction:[UIAlertAction actionWithTitle:S("取消") style:UIAlertActionStyleCancel handler:nil]];
+// 强制通知系统重置热压力
+CPUthermalSetThermalPressure(kBattmanThermalPressureLevelNominal);
 
-UIPopoverPresentationController *popover = alert.popoverPresentationController;
-if (popover) {
-popover.sourceView = self.view;
-popover.sourceRect = self.view.bounds;
-popover.permittedArrowDirections = 0;
-}
+// 刷新 UI
+PSSpecifier *pressureSpec = [self specifierForID:S("thermalPressure")];
+pressureSpec.name = [self thermalPressureLabel];
+[self reloadSpecifierID:S("thermalPressure") animated:YES];
+[self reloadSpecifierID:S(kCPUthermalThermalLevelControlEnabledC) animated:YES];
+
+[self showSimpleAlertWithTitle:S("已重置") message:S("温控等级已重置为 Nominal，开关已关闭。")];
+}]];
 [self presentViewController:alert animated:YES completion:nil];
 }
 
@@ -221,9 +251,14 @@ if ([key isEqualToString:S("thermalPressure")]) {
 [self openThermalPressurePicker];
 return;
 }
-if ([key isEqualToString:S("thermalNotifLevel")]) {
+if ([key isEqualToString:S("viewThermalStatus")]) {
 [tableView deselectRowAtIndexPath:indexPath animated:YES];
-[self openThermalNotifLevelPicker];
+[self showThermalStatus];
+return;
+}
+if ([key isEqualToString:S("resetThermalLevels")]) {
+[tableView deselectRowAtIndexPath:indexPath animated:YES];
+[self resetThermalLevels];
 return;
 }
 }
@@ -393,16 +428,6 @@ target:self set:NULL get:NULL detail:nil cell:PSButtonCell edit:NULL];
 return spec;
 }
 
-- (PSSpecifier *)thermalNotifLevelSpecifier {
-PSSpecifier *spec = [PSSpecifier
-preferenceSpecifierNamed:[self thermalNotifLevelLabel]
-target:self set:NULL get:NULL detail:nil cell:PSButtonCell edit:NULL];
-[spec setIdentifier:S("thermalNotifLevel")];
-[spec setProperty:S("thermalNotifLevel") forKey:S("key")];
-[spec setButtonAction:@selector(openThermalNotifLevelPicker)];
-return spec;
-}
-
 - (PSSpecifier *)buttonSpecifier:(NSString *)label action:(SEL)action identifier:(NSString *)identifier {
 PSSpecifier *spec = [PSSpecifier
 preferenceSpecifierNamed:label
@@ -446,12 +471,18 @@ group = [PSSpecifier emptyGroupSpecifier];
 // ===================== 第4组: 温控等级调校（从 Battman 移植） =====================
 group = [PSSpecifier emptyGroupSpecifier];
 [group setProperty:S("温控等级调校") forKey:S("label")];
-[group setProperty:S("通过 notify API 直接设置系统热压力级别和通知级别，覆盖 thermalmonitord 默认行为。谨慎使用，不当设置可能导致异常发热或性能下降。") forKey:S("footerText")];
+[group setProperty:S("通过 notify API 直接设置系统热压力级别，覆盖 thermalmonitord 默认行为。谨慎使用，不当设置可能导致异常发热或性能下降。") forKey:S("footerText")];
 [specs addObject:group];
 
 [specs addObject:[self switchSpecifier:S("启用温控等级控制") key:S(kCPUthermalThermalLevelControlEnabledC)]];
 [specs addObject:[self thermalPressureSpecifier]];
-[specs addObject:[self thermalNotifLevelSpecifier]];
+
+[specs addObject:[self buttonSpecifier:S("📊 查看当前热状态")
+action:@selector(showThermalStatus)
+identifier:S("viewThermalStatus")]];
+[specs addObject:[self buttonSpecifier:S("🔄 重置温控")
+action:@selector(resetThermalLevels)
+identifier:S("resetThermalLevels")]];
 
 // ===================== 第5组: 操作 =====================
 group = [PSSpecifier emptyGroupSpecifier];
