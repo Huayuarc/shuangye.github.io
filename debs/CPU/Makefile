@@ -16,5 +16,5 @@ include $(THEOS_MAKE_PATH)/tweak.mk
 BUNDLE_NAME = CPUthermalPrefs
 CPUthermalPrefs_FILES = CPUthermalPrefs/Sources/CPUthermalPrefs.m
 CPUthermalPrefs_INSTALL_PATH = /Library/PreferenceBundles
-CPUthermalPrefs_CFLAGS = -fobjc-arc -I../Headers
+CPUthermalPrefs_CFLAGS = -fobjc-arc -IHeaders
 include $(THEOS_MAKE_PATH)/bundle.mk
