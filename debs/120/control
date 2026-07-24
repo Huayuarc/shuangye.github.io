@@ -1,9 +1,0 @@
-Package: com.bgslo.120hz
-Name: 120hz
-Author: bgslo <(null)>
-Description: 120hz
-Depends: mobilesubstrate
-Maintainer: bgslo <(null)>
-Architecture: iphoneos-arm
-Section: Tweaks
-Version: 0.0.1
