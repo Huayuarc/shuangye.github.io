@@ -18,7 +18,5 @@ CPUthermal_FILES = Tweak.xm CPUthermalHelper.m
 CPUthermal_CFLAGS = -fobjc-arc -IHeaders
 CPUthermal_PRIVATE_FRAMEWORKS = IOKit
 
-include $(THEOS)/makefiles/common.mk
-
 SUBPROJECTS += CPUthermalPrefs
 include $(THEOS_MAKE_PATH)/aggregate.mk
