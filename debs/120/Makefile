@@ -1,6 +1,7 @@
 DEBUG=0
 FINALPACKAGE=1
-export THEOS ?= /var/mobile/theos
+THEOS ?= /var/mobile/theos
+export THEOS
 THEOS = /var/mobile/theos
 
 TARGET = iphone:clang:16.5:15.0
