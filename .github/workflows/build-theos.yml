@@ -151,6 +151,9 @@ jobs:
             exit 0
           fi
 
+          # 在切换分支前保存错误日志
+          cp build-errors.txt /tmp/build-errors.txt
+
           git fetch origin build-logs 2>/dev/null || true
           if git show-ref --verify --quiet refs/heads/build-logs; then
             git checkout build-logs
@@ -163,7 +166,7 @@ jobs:
           fi
 
           mkdir -p errors
-          cp "${{ github.workspace }}/build-errors.txt" "errors/build-run-${{ github.run_id }}.txt"
+          cp /tmp/build-errors.txt "errors/build-run-${{ github.run_id }}.txt"
 
           if git diff --quiet && git diff --cached --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]; then
             echo "无新变更，跳过提交"
