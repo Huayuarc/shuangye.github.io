@@ -1,0 +1,12 @@
+=== Build Info ===
+Timestamp: Sat Jul 25 15:37:32 UTC 2026
+THEOS: /Users/runner/theos
+SDK: total 0
+drwxr-xr-x   4 runner  staff  128 Jul 25 15:37 .
+drwxr-xr-x  22 runner  staff  704 Jul 25 15:37 ..
+-rw-r--r--   1 runner  staff    0 Jul 25 15:37 .keep
+drwxr-xr-x   8 runner  staff  256 Nov 23  2023 iPhoneOS16.5.sdk
+
+=== Project: CPU ===
+Exit code: 2
+/Users/runner/theos/makefiles/common.mk:5: *** common.mk has been included multiple times. Please check your makefiles.  Stop.
