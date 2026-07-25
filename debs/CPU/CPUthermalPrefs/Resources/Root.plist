@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>items</key>
+	<array>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>CPU 模式参考</string>
+			<key>footerText</key>
+			<string>防止温控降频：阻止 thermalmonitord 下发降频动作，保持 CPU 全性能运行，最高可达设备原生最大频率。
+模拟低电频率：模拟中度热压力触发系统主动降频，限制 CPU 约 1380~2016 MHz，节电但性能下降。
+两者不宜同时开启。</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.huayuarc.cputhermal-prefs</string>
+			<key>key</key>
+			<string>thermalFullPowerEnabled</string>
+			<key>label</key>
+			<string>防止温控降频</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.cputhermal-prefs</string>
+			<key>key</key>
+			<string>thermalLowPowerEnabled</string>
+			<key>label</key>
+			<string>模拟低电频率</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>屏幕控制</string>
+			<key>footerText</key>
+			<string>开启后阻止系统因温控主动调暗屏幕亮度，保持当前亮度不变。</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.huayuarc.cputhermal-prefs</string>
+			<key>key</key>
+			<string>thermalPreventDimmingEnabled</string>
+			<key>label</key>
+			<string>防温控暗屏</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>系统工具</string>
+			<key>footerText</key>
+			<string>重启用户空间将继续使用当前系统版本，无需重新越狱。此操作会强制关闭所有应用并重新加载系统环境。</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>重启用户空间</string>
+			<key>action</key>
+			<string>userspaceRebootTapped</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>https://github.com/be-huge/insulation</string>
+			<key>label</key>
+			<string>开源代码</string>
+		</dict>
+	</array>
+	<key>title</key>
+	<string>CPU 去温控</string>
+</dict>
+</plist>
