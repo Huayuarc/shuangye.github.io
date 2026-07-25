@@ -1,12 +1,14 @@
 DEBUG=0
 FINALPACKAGE=1
-THEOS ?= /var/mobile/theos
-export THEOS
-THEOS = /var/mobile/theos
+THEOS_PACKAGE_SCHEME = rootless
+
+# 【彻底规避云端make兼容性bug，不要使用 export + ?=】
+ifndef THEOS
+THEOS := /var/mobile/theos
+endif
 
 TARGET = iphone:clang:16.5:15.0
 ARCHS = arm64 arm64e
-export ARCHS
 
 include $(THEOS)/makefiles/common.mk
 
