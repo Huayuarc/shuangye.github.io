@@ -1,0 +1,50 @@
+=== Build Info ===
+Timestamp: Sat Jul 25 15:36:16 UTC 2026
+THEOS: /Users/runner/theos
+SDK: total 0
+drwxr-xr-x   4 runner  staff  128 Jul 25 15:36 .
+drwxr-xr-x  22 runner  staff  704 Jul 25 15:36 ..
+-rw-r--r--   1 runner  staff    0 Jul 25 15:36 .keep
+drwxr-xr-x   8 runner  staff  256 Nov 23  2023 iPhoneOS16.5.sdk
+
+=== Project: CPU ===
+Exit code: 2
+[0;36m==> [1;36mNotice:[m Build may be slow as Theos isn’t using all available CPU cores on this computer. Consider upgrading GNU Make: https://theos.dev/docs/parallel-building
+[1;31m> [1;3;39mMaking all for tweak CPUthermal…[m
+[0;31m==> [1;39mPreprocessing Tweak.xm…[m
+[0;32m==> [1;39mCompiling Tweak.xm (arm64)…[m
+[0;32m==> [1;39mCompiling CPUthermalHelper.m (arm64)…[m
+[0;33m==> [1;39mLinking tweak CPUthermal (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermal…[m
+[0;34m==> [1;39mStripping CPUthermal (arm64)…[m
+[0;31m==> [1;39mPreprocessing Tweak.xm…[m
+[0;32m==> [1;39mCompiling Tweak.xm (arm64e)…[m
+[0;32m==> [1;39mCompiling CPUthermalHelper.m (arm64e)…[m
+[0;33m==> [1;39mLinking tweak CPUthermal (arm64e)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermal…[m
+[0;34m==> [1;39mStripping CPUthermal (arm64e)…[m
+[0;34m==> [1;39mMerging tweak CPUthermal…[m
+[0;34m==> [1;39mSigning CPUthermal…[m
+[1;31m> [1;3;39mMaking all in CPUthermalPrefs…[m
+[0;36m==> [1;36mNotice:[m Build may be slow as Theos isn’t using all available CPU cores on this computer. Consider upgrading GNU Make: https://theos.dev/docs/parallel-building
+[0;33m==> [1;33mWarning:[m Building for iOS 12.2, but the current toolchain can’t produce arm64e binaries for iOS earlier than 14.0. More information: https://theos.dev/docs/arm64e-deployment
+[1;31m> [1;3;39mMaking all for bundle CPUthermalPrefs…[m
+[0;35m==> [1;39mCopying resource directories into the bundle wrapper…[m
+[0;32m==> [1;39mCompiling Sources/CPUthermalPrefs.m (arm64)…[m
+[0;33m==> [1;39mLinking bundle CPUthermalPrefs (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+ld: warning: Could not find or use auto-linked framework 'Preferences': framework 'Preferences' not found
+Undefined symbols for architecture arm64:
+  "_OBJC_CLASS_$_PSListController", referenced from:
+      _OBJC_CLASS_$_CPUthermalPrefs in CPUthermalPrefs.m.1488b5ec.o
+  "_OBJC_METACLASS_$_PSListController", referenced from:
+      _OBJC_METACLASS_$_CPUthermalPrefs in CPUthermalPrefs.m.1488b5ec.o
+ld: symbol(s) not found for architecture arm64
+clang: [0;1;31merror: [0m[1mlinker command failed with exit code 1 (use -v to see invocation)[0m
+make[4]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/CPU/.theos/obj/arm64/CPUthermalPrefs.bundle/CPUthermalPrefs] Error 1
+make[3]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/CPU/.theos/obj/arm64/CPUthermalPrefs.bundle/CPUthermalPrefs] Error 2
+make[2]: *** [internal-bundle-all_] Error 2
+make[1]: *** [CPUthermalPrefs.all.bundle.variables] Error 2
+make: *** [internal-all] Error 2
