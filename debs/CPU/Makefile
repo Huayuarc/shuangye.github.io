@@ -1,4 +1,3 @@
-# 仅本地iOS环境未定义THEOS变量时，才赋值手机路径，云端自动沿用系统环境变量
 ifndef THEOS
 THEOS := /var/mobile/theos
 endif
@@ -19,7 +18,7 @@ CPUthermal_FILES = Tweak.xm CPUthermalHelper.m
 CPUthermal_CFLAGS = -fobjc-arc -IHeaders
 CPUthermal_PRIVATE_FRAMEWORKS = IOKit
 
-include $(THEOS_MAKE_PATH)/tweak.mk
+include $(THEOS)/makefiles/common.mk
 
 SUBPROJECTS += CPUthermalPrefs
 include $(THEOS_MAKE_PATH)/aggregate.mk
