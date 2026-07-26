@@ -45,11 +45,6 @@ __attribute__((visibility("default"))) CommonProduct *g_lp_commonProduct = nil;
 - (void)updateGPU;
 @end
 
-@interface ThermalManager : NSObject
-- (void)updateThermalNotification:(id)notification;
-- (float)getReleaseRateForComponent:(id)component;
-@end
-
 @interface TableDrivenLowTempController : NSObject
 - (int)outputForBatteryTemperature:(int)temperature stateOfCharge:(int)soc batteryRaValue:(int)ra;
 @end
