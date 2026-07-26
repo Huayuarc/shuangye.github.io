@@ -1,0 +1,11 @@
+Package: com.huayuarc.cputhermal
+Name: CPU 去温控
+Author: Huayuarc
+Description: 注入 thermalmonitord 的 iOS 温控管理插件。恢复 Apple 原生温控策略并支持防温控暗屏。
+Depends: mobilesubstrate, firmware (>=15.0), ws.hbang.common
+Maintainer: Huayuarc
+Section: Tweaks
+Version: 6.2.0
+Architecture: iphoneos-arm
+Icon: https://huayuarc.github.io/icon/cputhermal.png
+Sileodepiction: https://huayuarc.github.io/sileodepiction/CPUthermal/js.json
