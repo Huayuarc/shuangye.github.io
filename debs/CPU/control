@@ -5,7 +5,7 @@ Description: 注入 thermalmonitord 的 iOS 温控管理插件。CPU 性能保�
 Depends: mobilesubstrate, preferenceloader, firmware (>=15.0)
 Maintainer: Huayuarc
 Section: Tweaks
-Version: 7.0.0
+Version: 7.0.1
 Architecture: iphoneos-arm
 Icon: https://huayuarc.github.io/icon/cputhermal.png
 Sileodepiction: https://huayuarc.github.io/sileodepiction/CPUthermal/js.json
