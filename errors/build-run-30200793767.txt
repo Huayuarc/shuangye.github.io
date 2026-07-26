@@ -1,0 +1,27 @@
+=== Build Info ===
+Timestamp: Sun Jul 26 11:47:50 UTC 2026
+THEOS: /Users/runner/theos
+SDK: total 0
+drwxr-xr-x   4 runner  staff  128 Jul 26 11:47 .
+drwxr-xr-x  22 runner  staff  704 Jul 26 11:47 ..
+-rw-r--r--   1 runner  staff    0 Jul 26 11:47 .keep
+drwxr-xr-x   8 runner  staff  256 Nov 23  2023 iPhoneOS16.5.sdk
+
+=== Project: CPU ===
+Exit code: 2
+[0;36m==> [1;36mNotice:[m Build may be slow as Theos isn’t using all available CPU cores on this computer. Consider upgrading GNU Make: https://theos.dev/docs/parallel-building
+[1;31m> [1;3;39mMaking all for tweak CPUthermal…[m
+[0;31m==> [1;39mPreprocessing Tweak.x…[m
+[0;32m==> [1;39mCompiling Tweak.x (arm64)…[m
+[1mTweak.x:48:1: [0m[0;1;31merror: [0m[1mduplicate interface definition for class 'ThermalManager'[0m
+@interface ThermalManager : NSObject
+[0;1;32m^
+[0m[1mHeaders/./Power_header/ThermalManager.h:4:12: [0m[0;1;30mnote: [0mprevious definition is here[0m
+@interface ThermalManager : NSObject
+[0;1;32m           ^
+[0m1 error generated.
+make[3]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/CPU/.theos/obj/arm64/Tweak.x.5bf71166.o] Error 1
+rm /Users/runner/work/shuangye.github.io/shuangye.github.io/debs/CPU/.theos/obj/arm64/Tweak.x.m
+make[2]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/CPU/.theos/obj/arm64/CPUthermal.dylib] Error 2
+make[1]: *** [internal-library-all_] Error 2
+make: *** [CPUthermal.all.tweak.variables] Error 2
