@@ -5,7 +5,7 @@ Description: 注入 thermalmonitord 的 iOS 温控管理插件。双防护层架
 Depends: mobilesubstrate, preferenceloader
 Maintainer: Huayuarc
 Section: Tweaks
-Version: 1.3.3
+Version: 1.3.3-1
 Architecture: iphoneos-arm
 Conflicts: com.yourepo.0xash.powercuff, byg.iosios.net.powercuff, com.dao.powercuff, com.rpetrich.powercuff, com.yourepo.0xash.devicemonitor, com.yourepo.0xash.fuckthermal, com.shadow.fuckthermal, com.dao.fuckthermal, byg.iosios.net.monitor, byg.iosios.net.disablethermalmonitord, com.nan.disablethermalmonitord, xyz.cypwn.powercuff, byg.iosios.net.powercuff, cn.zqbb.holdcpu
 Icon: https://huayuarc.github.io/icon/cputhermal.png
