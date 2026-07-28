@@ -153,8 +153,6 @@ static NSMutableArray *g_mitigationControllers = nil;
 static BOOL g_restoringFullPower = NO;
 static BOOL g_applyingLowPower = NO;
 static NSMutableDictionary *g_originalControllerValues = nil;
-static CFAbsoluteTime g_processStartTime = 0;
-static BOOL g_deferredRuntimeApplyScheduled = NO;
 static BOOL g_fullPowerRecoveryPulseScheduled = NO;
 static BOOL g_lowPowerApplyPulseScheduled = NO;
 static BOOL g_wakeRuntimeApplyScheduled = NO;
@@ -171,8 +169,7 @@ static BOOL shouldApplyLowPowerLimit(void);
 static int lowPowerTargetValue(void);
 static void loadPrefs(void);
 static void applyCurrentPowerModeToRuntime(void);
-static void applyPowerModeToRuntime(BOOL respectBootGuard);
-static void scheduleDeferredRuntimeApply(double delay);
+static void applyPowerModeToRuntime(void);
 static void scheduleLowPowerApplyPulse(void);
 static void runLowPowerApplyPulse(int remainingPulses);
 static void scheduleFullPowerRecoveryPulse(void);
@@ -208,14 +205,9 @@ static BOOL isFullPowerMode(void) {
 return g_powerMode == CPUthermalPowerModeFull;
 }
 
-static BOOL fullPowerBootGuardActive(void) {
-if (!isFullPowerMode()) return NO;
-if (g_processStartTime <= 0) return NO;
-return (CFAbsoluteTimeGetCurrent() - g_processStartTime) < kFullPowerBootGuardDuration;
-}
 
 static BOOL shouldApplyFullCPUProtection(void) {
-return g_enabled && g_cpuProtection && isFullPowerMode() && !fullPowerBootGuardActive();
+return g_enabled && g_cpuProtection && isFullPowerMode();
 }
 
 static BOOL shouldApplyLowPowerLimit(void) {
@@ -512,10 +504,10 @@ NSLog(@"[CPUthermal] 套用低功耗 CommonProduct 状态失败: %@", exception)
 }
 
 static void applyCurrentPowerModeToRuntime(void) {
-applyPowerModeToRuntime(YES);
+applyPowerModeToRuntime();
 }
 
-static void applyPowerModeToRuntime(BOOL respectBootGuard) {
+static void applyPowerModeToRuntime(void) {
 if (!g_enabled || !g_cpuProtection) return;
 if (isLowPowerMode()) {
 applyLowPowerToCommonProduct();
@@ -526,25 +518,10 @@ return;
 }
 if (isFullPowerMode()) {
 stopLowPowerKeepAliveTimer();  // 退出低功耗时停止定时器
-if (respectBootGuard && fullPowerBootGuardActive()) {
-double elapsed = CFAbsoluteTimeGetCurrent() - g_processStartTime;
-double remaining = kFullPowerBootGuardDuration - elapsed;
-scheduleDeferredRuntimeApply(MAX(remaining, 0.1) + 0.1);
-return;
-}
 applyFullPowerToCommonProduct();
 restoreFullPowerToTrackedControllers();
 scheduleFullPowerRecoveryPulse();
 }
-}
-
-static void scheduleDeferredRuntimeApply(double delay) {
-if (g_deferredRuntimeApplyScheduled) return;
-g_deferredRuntimeApplyScheduled = YES;
-dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-g_deferredRuntimeApplyScheduled = NO;
-applyCurrentPowerModeToRuntime();
-});
 }
 
 static void scheduleLowPowerApplyPulse(void) {
@@ -609,7 +586,7 @@ g_wakeRuntimeApplyScheduled = NO;
 return;
 }
 loadPrefs();
-applyPowerModeToRuntime(NO);
+applyPowerModeToRuntime();
 if (remainingPulses <= 1) {
 g_wakeRuntimeApplyScheduled = NO;
 return;
@@ -1640,14 +1617,14 @@ executePuppetEvent();
 
 static void onPowerModeChanged(CFNotificationCenterRef center, void *observer, CFNotificationName name, const void *object, CFDictionaryRef userInfo) {
 loadPrefs();
-applyPowerModeToRuntime(NO);
+applyPowerModeToRuntime();
 NSLog(@"[CPUthermal] 功率模式已切换: %@", isLowPowerMode() ? S("低功耗") : S("解除温控"));
 }
 
 static void onSettingsChanged(CFNotificationCenterRef center, void *observer, CFNotificationName name, const void *object, CFDictionaryRef userInfo) {
 loadPrefs();
 if (g_enabled) {
-applyPowerModeToRuntime(NO);
+applyPowerModeToRuntime();
 }
 NSLog(@"[CPUthermal] 设置已重载 enabled:%d CPU:%d 弹窗:%d 防暗屏:%d",
 g_enabled, g_cpuProtection, g_thermalBlockNotifPopup, g_thermalPreventDimmingEnabled);
@@ -1666,11 +1643,10 @@ NSLog(S("[CPUthermal] 收到唤醒/亮屏事件，准备恢复当前功率模式
 // ============================================================================
 %ctor {
 @autoreleasepool {
-g_processStartTime = CFAbsoluteTimeGetCurrent();
 loadPrefs();
 
 // 立即应用功率模式，不等待 CommonProduct init（防止启动窗口期频率失控）
-applyPowerModeToRuntime(NO);
+applyPowerModeToRuntime();
 
 // 确保 IOKit 已加载
 void *iokit = dlopen("/System/Library/Frameworks/IOKit.framework/IOKit", RTLD_NOW | RTLD_GLOBAL);
