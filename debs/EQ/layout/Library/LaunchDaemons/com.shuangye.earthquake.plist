@@ -5,7 +5,7 @@
 	<key>Label</key>
 	<string>com.shuangye.earthquake</string>
 	<key>Program</key>
-	<string>/var/jb/usr/libexec/eqdaemon</string>
+	<string>/var/jb/usr/libexec/eqd</string>
 	<key>RunAtLoad</key>
 	<true/>
 	<key>KeepAlive</key>

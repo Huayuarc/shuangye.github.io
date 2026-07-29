@@ -7,10 +7,10 @@
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
-			<key>label</key>
-			<string>地震预警系统 v1.0.0</string>
 			<key>footerText</key>
 			<string>独立后台运行，无需依赖任何第三方App。支持USGS/CEIC双数据源自动切换。</string>
+			<key>label</key>
+			<string>地震预警系统 v1.0.1</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -19,12 +19,12 @@
 			<true/>
 			<key>defaults</key>
 			<string>com.shuangye.earthquake</string>
+			<key>icon</key>
+			<string></string>
 			<key>key</key>
 			<string>enabled</string>
 			<key>label</key>
 			<string>启用地震预警</string>
-			<key>icon</key>
-			<string></string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -43,16 +43,16 @@
 			<string>minMagnitude</string>
 			<key>label</key>
 			<string>最低震级阈值</string>
-			<key>min</key>
-			<real>0.0</real>
 			<key>max</key>
-			<real>8.0</real>
-			<key>showValue</key>
-			<true/>
-			<key>minValueImage</key>
-			<string></string>
+			<real>8</real>
 			<key>maxValueImage</key>
 			<string></string>
+			<key>min</key>
+			<real>0.0</real>
+			<key>minValueImage</key>
+			<string></string>
+			<key>showValue</key>
+			<true/>
 			<key>unit</key>
 			<string>M</string>
 		</dict>
@@ -67,10 +67,10 @@
 			<string>pollInterval</string>
 			<key>label</key>
 			<string>轮询间隔</string>
-			<key>min</key>
-			<real>10</real>
 			<key>max</key>
 			<real>120</real>
+			<key>min</key>
+			<real>10</real>
 			<key>showValue</key>
 			<true/>
 			<key>unit</key>
@@ -103,20 +103,20 @@
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
-			<key>label</key>
-			<string>数据源配置</string>
 			<key>footerText</key>
 			<string>USGS为默认主数据源(全球覆盖)，CEIC为中国地震台网数据。当主源连续3次请求失败时自动切换。</string>
+			<key>label</key>
+			<string>数据源配置</string>
 		</dict>
 		<dict>
 			<key>cell</key>
 			<string>PSLinkCell</string>
 			<key>detail</key>
 			<string>EQDataSourceController</string>
-			<key>label</key>
-			<string>数据源状态</string>
 			<key>isController</key>
 			<false/>
+			<key>label</key>
+			<string>数据源状态</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -125,34 +125,34 @@
 			<string>工具</string>
 		</dict>
 		<dict>
-			<key>cell</key>
-			<string>PSButtonCell</string>
 			<key>action</key>
 			<string>testAlert</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
 			<key>label</key>
 			<string>📢 发送测试警报</string>
 		</dict>
 		<dict>
-			<key>cell</key>
-			<string>PSButtonCell</string>
 			<key>action</key>
 			<string>showStatus</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
 			<key>label</key>
 			<string>📊 查看运行状态</string>
 		</dict>
 		<dict>
-			<key>cell</key>
-			<string>PSButtonCell</string>
 			<key>action</key>
 			<string>resetEvents</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
 			<key>label</key>
 			<string>🔄 重置已处理事件</string>
 		</dict>
 		<dict>
-			<key>cell</key>
-			<string>PSButtonCell</string>
 			<key>action</key>
 			<string>restartDaemon</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
 			<key>label</key>
 			<string>⏳ 重启后台服务</string>
 		</dict>

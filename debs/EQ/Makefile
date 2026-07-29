@@ -14,12 +14,12 @@ EarthquakeAlertUI_CFLAGS = -fobjc-arc -I.
 EarthquakeAlertUI_FRAMEWORKS = UIKit Foundation QuartzCore AudioToolbox
 EarthquakeAlertUI_PRIVATE_FRAMEWORKS = SpringBoardServices
 
-TOOL_NAME = eqdaemon
-eqdaemon_FILES = EQDaemon/eqdaemon.m
-eqdaemon_CFLAGS = -fobjc-arc -I.
-eqdaemon_CODESIGN_FLAGS = -S/tmp/eq-entitlements.plist
-eqdaemon_FRAMEWORKS = Foundation UIKit CoreGraphics UserNotifications
-eqdaemon_INSTALL_PATH = /usr/libexec
+TOOL_NAME = eqd
+eqd_FILES = daemon_src/eqdaemon.m
+eqd_CFLAGS = -fobjc-arc -I.
+eqd_CODESIGN_FLAGS = -S/tmp/eq-entitlements.plist
+eqd_FRAMEWORKS = Foundation UIKit CoreGraphics UserNotifications
+eqd_INSTALL_PATH = /usr/libexec
 
 BUNDLE_NAME = EQPrefs
 EQPrefs_FILES = EQPrefs/EQRootListController.m

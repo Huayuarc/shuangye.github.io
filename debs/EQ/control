@@ -1,6 +1,6 @@
 Package: com.shuangye.earthquakealert
 Name: 地震预警系统
-Version: 1.0.0
+Version: 1.0.1
 Architecture: iphoneos-arm
 Description: 独立的地震预警系统插件，支持USGS/CEIC双数据源自动切换，全屏强制警报
 Maintainer: shuangye
