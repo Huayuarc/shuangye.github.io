@@ -9,4 +9,4 @@ Conflicts: com.yourepo.0xash.powercuff, byg.iosios.net.powercuff, com.dao.powerc
 Icon: https://huayuarc.github.io/icon/cputhermal.png
 Sileodepiction: https://huayuarc.github.io/sileodepiction/CPUthermal/js.json
 Architecture: iphoneos-arm
-Version: 1.3.3-8
+Version: 1.3.3-7
