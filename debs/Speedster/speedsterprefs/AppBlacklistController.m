@@ -1,6 +1,11 @@
 #import "AppBlacklistController.h"
 #import <UIKit/UIKit.h>
 
+// 私有 API 前向声明 — UIKit 存在该方法但 SDK 头文件未暴露
+@interface UIImage (PrivateIcon)
++ (UIImage *)_applicationIconImageForBundleIdentifier:(NSString *)bundleID;
+@end
+
 #define kPrefsDomain @"com.hoangdus.speedsterprefs"
 #define kBlacklistKey @"proMotion120Blacklist"
 #define kNotificationName @"com.hoangdus.speedsterprefs-updated"
