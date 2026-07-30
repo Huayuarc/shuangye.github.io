@@ -1,0 +1,43 @@
+=== Build Info ===
+Timestamp: Thu Jul 30 05:09:14 UTC 2026
+THEOS: /Users/runner/theos
+SDK: total 0
+drwxr-xr-x   4 runner  staff  128 Jul 30 05:09 .
+drwxr-xr-x  22 runner  staff  704 Jul 30 05:09 ..
+-rw-r--r--   1 runner  staff    0 Jul 30 05:09 .keep
+drwxr-xr-x   8 runner  staff  256 Nov 23  2023 iPhoneOS16.5.sdk
+
+=== Project: Speedster ===
+Exit code: 2
+[0;36m==> [1;36mNotice:[m Build may be slow as Theos isn’t using all available CPU cores on this computer. Consider upgrading GNU Make: https://theos.dev/docs/parallel-building
+[1;31m> [1;3;39mMaking all for tweak Speedster…[m
+[0;31m==> [1;39mPreprocessing Speedster.x…[m
+[0;32m==> [1;39mCompiling Speedster.x (arm64)…[m
+[0;33m==> [1;39mLinking tweak Speedster (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for Speedster…[m
+[0;34m==> [1;39mStripping Speedster (arm64)…[m
+[0;31m==> [1;39mPreprocessing Speedster.x…[m
+[0;32m==> [1;39mCompiling Speedster.x (arm64e)…[m
+[0;33m==> [1;39mLinking tweak Speedster (arm64e)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for Speedster…[m
+[0;34m==> [1;39mStripping Speedster (arm64e)…[m
+[0;34m==> [1;39mMerging tweak Speedster…[m
+[0;34m==> [1;39mSigning Speedster…[m
+[1;31m> [1;3;39mMaking all in speedsterprefs…[m
+[0;36m==> [1;36mNotice:[m Build may be slow as Theos isn’t using all available CPU cores on this computer. Consider upgrading GNU Make: https://theos.dev/docs/parallel-building
+[1;31m> [1;3;39mMaking all for bundle SpeedsterPrefs…[m
+[0;35m==> [1;39mCopying resource directories into the bundle wrapper…[m
+[0;32m==> [1;39mCompiling sdrRootListController.m (arm64)…[m
+[0;32m==> [1;39mCompiling SdrSwitchCell.m (arm64)…[m
+[0;32m==> [1;39mCompiling AppBlacklistController.m (arm64)…[m
+[1mAppBlacklistController.m:134:30: [0m[0;1;31merror: [0m[1mno known class method for selector '_applicationIconImageForBundleIdentifier:'[0m
+    UIImage *icon = [UIImage _applicationIconImageForBundleIdentifier:bundleID];
+[0;1;32m                             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[0m1 error generated.
+make[4]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/Speedster/.theos/obj/arm64/AppBlacklistController.m.92c4da0b.o] Error 1
+make[3]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/Speedster/.theos/obj/arm64/SpeedsterPrefs.bundle/SpeedsterPrefs] Error 2
+make[2]: *** [internal-bundle-all_] Error 2
+make[1]: *** [SpeedsterPrefs.all.bundle.variables] Error 2
+make: *** [internal-all] Error 2
