@@ -52,9 +52,6 @@ CPUthermalCC_INSTALL_PATH = /Library/ControlCenter/Bundles/
 
 include $(THEOS_MAKE_PATH)/bundle.mk
 
-# 用户空间重启工具
-# 注意: CPUthermalTool 是 MH_EXECUTE 可执行文件，allemande 仅支持 dylib，
-# 对 arm64e 切片按 vmaddr==fileoff 寻址会段错误。仅构建 arm64 即可在 arm64e 设备原生运行。
 TOOL_NAME = CPUthermalTool
 CPUthermalTool_FILES = Tools/CPUthermalTool.m
 CPUthermalTool_CFLAGS = -fobjc-arc -Iinclude
