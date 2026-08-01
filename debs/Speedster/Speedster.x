@@ -1669,7 +1669,7 @@ static void pm_applyHighFrameRateToDisplayLink(CADisplayLink *link) {
 %ctor { //More pref
     @autoreleasepool {
         isOnSpringBoard = [[[NSBundle mainBundle] bundleIdentifier] isEqual:@"com.apple.springboard"];
-        // 渲染服务进程：仅 Unseen 底层补丁需要在 backboardd 运行，Speedster 的 UI 相关 hook 全部跳过
+        // backboardd 进程：Speedster 的 UI 相关 hook 全部跳过
         isBackboardd = [[[NSBundle mainBundle] bundleIdentifier] isEqual:@"com.apple.backboardd"];
 
         CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)preferencesthings, CFSTR("com.hoangdus.speedsterprefs-updated"), NULL, CFNotificationSuspensionBehaviorDeliverImmediately);

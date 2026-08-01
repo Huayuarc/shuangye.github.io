@@ -927,70 +927,6 @@
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
-			<key>footerText</key>
-			<string>开源项目 Unseen（Lessica）移植：屏蔽应用对用户截屏/录屏的检测。修改后建议注销生效。</string>
-			<key>label</key>
-			<string>Unseen 防截屏检测</string>
-		</dict>
-		<dict>
-			<key>PostNotification</key>
-			<string>com.hoangdus.speedsterprefs-updated</string>
-			<key>cell</key>
-			<string>PSSwitchCell</string>
-			<key>default</key>
-			<true/>
-			<key>defaults</key>
-			<string>com.hoangdus.speedsterprefs</string>
-			<key>key</key>
-			<string>unseenEnabled</string>
-			<key>label</key>
-			<string>启用 Unseen 功能</string>
-		</dict>
-		<dict>
-			<key>PostNotification</key>
-			<string>com.hoangdus.speedsterprefs-updated</string>
-			<key>cell</key>
-			<string>PSSwitchCell</string>
-			<key>default</key>
-			<true/>
-			<key>defaults</key>
-			<string>com.hoangdus.speedsterprefs</string>
-			<key>key</key>
-			<string>unseenDisableUpdateMaskPatchEnabled</string>
-			<key>label</key>
-			<string>禁用 updateMask 补丁</string>
-		</dict>
-		<dict>
-			<key>PostNotification</key>
-			<string>com.hoangdus.speedsterprefs-updated</string>
-			<key>cell</key>
-			<string>PSSwitchCell</string>
-			<key>default</key>
-			<true/>
-			<key>defaults</key>
-			<string>com.hoangdus.speedsterprefs</string>
-			<key>key</key>
-			<string>unseenScreenshotActionFilterEnabled</string>
-			<key>label</key>
-			<string>拦截截屏动作</string>
-		</dict>
-		<dict>
-			<key>PostNotification</key>
-			<string>com.hoangdus.speedsterprefs-updated</string>
-			<key>cell</key>
-			<string>PSSwitchCell</string>
-			<key>default</key>
-			<true/>
-			<key>defaults</key>
-			<string>com.hoangdus.speedsterprefs</string>
-			<key>key</key>
-			<string>unseenCaptureStateMaskEnabled</string>
-			<key>label</key>
-			<string>清除截屏捕获状态</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSGroupCell</string>
 			<key>label</key>
 			<string>高级</string>
 		</dict>
@@ -1155,22 +1091,6 @@
 			<string>PSButtonCell</string>
 			<key>label</key>
 			<string>注销</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSGroupCell</string>
-			<key>footerText</key>
-			<string>本插件的 Unseen 防截屏检测功能移植自开源项目：</string>
-			<key>label</key>
-			<string>开源致谢</string>
-		</dict>
-		<dict>
-			<key>action</key>
-			<string>openUnseenSource:</string>
-			<key>cell</key>
-			<string>PSButtonCell</string>
-			<key>label</key>
-			<string>Unseen 开源地址：https://github.com/Lessica/Unseen</string>
 		</dict>
 	</array>
 </dict>

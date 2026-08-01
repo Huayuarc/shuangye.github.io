@@ -73,11 +73,6 @@
     posix_spawn(&pid, ROOT_PATH_VAR("/usr/bin/sbreload"), NULL, NULL, NULL, NULL);
 }
 
-- (void)openUnseenSource:(id)sender{ //open the Unseen GitHub open-source page
-    NSURL *url = [NSURL URLWithString:@"https://github.com/Lessica/Unseen"];
-    [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
-}
-
 @end
 
 @implementation SdrHeaderCell
