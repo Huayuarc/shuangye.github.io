@@ -1,0 +1,30 @@
+=== Build Info ===
+Timestamp: Sat Aug  1 14:33:51 UTC 2026
+THEOS: /Users/runner/theos
+SDK: total 0
+drwxr-xr-x   4 runner  staff  128 Aug  1 14:33 .
+drwxr-xr-x  22 runner  staff  704 Aug  1 14:33 ..
+-rw-r--r--   1 runner  staff    0 Aug  1 14:33 .keep
+drwxr-xr-x   8 runner  staff  256 Nov 23  2023 iPhoneOS16.5.sdk
+
+=== Project: Speedster ===
+Exit code: 2
+[0;36m==> [1;36mNotice:[m Build may be slow as Theos isn’t using all available CPU cores on this computer. Consider upgrading GNU Make: https://theos.dev/docs/parallel-building
+[1;31m> [1;3;39mMaking all for tweak Speedster…[m
+[0;31m==> [1;39mPreprocessing Speedster.x…[m
+[0;32m==> [1;39mCompiling Speedster.x (arm64)…[m
+[0;32m==> [1;39mCompiling Unseen.mm (arm64)…[m
+[1mUnseen.mm:687:8: [0m[0;1;31merror: [0m[1mdeclaration of 'atomic_uint' must be imported from module 'Darwin.C.stdatomic' before it is required[0m
+static atomic_uint gMaskedLogCount;
+[0;1;32m       ^
+[0m[1m/Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/../lib/swift/clang/include/stdatomic.h:97:37: [0m[0;1;30mnote: [0mdeclaration here is not visible[0m
+typedef _Atomic(unsigned int)       atomic_uint;
+[0;1;32m                                    ^
+[0m[1mUnseen.mm:750:25: [0m[0;1;31merror: [0m[1muse of undeclared identifier 'atomic_fetch_add'[0m
+    if (hadClonedBit && atomic_fetch_add(&gMaskedLogCount, 1) < 20) {
+[0;1;32m                        ^
+[0m2 errors generated.
+make[3]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/Speedster/.theos/obj/arm64/Unseen.mm.d12b4c90.o] Error 1
+make[2]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/Speedster/.theos/obj/arm64/Speedster.dylib] Error 2
+make[1]: *** [internal-library-all_] Error 2
+make: *** [Speedster.all.tweak.variables] Error 2
