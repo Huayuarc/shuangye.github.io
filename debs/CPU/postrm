@@ -1,19 +1,35 @@
 #!/bin/bash
 
-# CPUthermal postrm
-# 卸载/清除后重启 thermalmonitord（此时 dylib 已删除，进程会以无插件状态启动）
+# CPUthermal postrm — 卸载/清除脚本
+# 卸载：清除温控残留（偏好 plist）+ 重启 thermalmonitord 恢复原生温控
+# （硬件恢复由 prerm 在文件删除前完成）
+
+# 兼容 rootless / roothide / rootful：从各已知路径定位 killall
+resolve_bin() {
+    for p in "$@"; do
+        if [ -x "$p" ]; then
+            printf '%s\n' "$p"
+            return 0
+        fi
+    done
+    printf '%s\n' "$1"
+}
+
+KILLALL="$(resolve_bin /var/jb/usr/bin/killall /var/jb/bin/killall /usr/bin/killall /bin/killall)"
 
 case "$1" in
-    remove)
-        # 文件已删除，杀掉 thermalmonitord 让其以无插件状态重启
-        killall -q thermalmonitord 2>/dev/null || true
-        ;;
-    purge)
-        # 完全清除：删除偏好 + 杀进程
+    remove|purge)
+        # 清除温控残留：当前 + 历史版本偏好 plist
+        rm -f /var/jb/var/mobile/Library/Preferences/com.huayuarc.CPUthermal.plist 2>/dev/null || true
         rm -f /var/mobile/Library/Preferences/com.huayuarc.CPUthermal.plist 2>/dev/null || true
-        killall -q thermalmonitord 2>/dev/null || true
+        rm -f /var/mobile/Library/Preferences/com.huayuarc.cputhermal*.plist 2>/dev/null || true
+        rm -f /var/jb/var/mobile/Library/Preferences/com.huayuarc.cputhermal*.plist 2>/dev/null || true
+        # 恢复原生温控：重启 thermalmonitord（launchd 以无插件状态重启）
+        "$KILLALL" -q thermalmonitord 2>/dev/null || true
         ;;
     upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+        # 升级/中断：保留配置
         ;;
 esac
+
 exit 0

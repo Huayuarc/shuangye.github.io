@@ -45,12 +45,7 @@
 - (void)actionComponentControl;
 - (void)readReleaseRateForAllComponents;
 - (float)getReleaseRateForComponent:(id)component;
-- (int)getPotentialForcedThermalLevel:(id)component;
-- (int)getPotentialForcedThermalPressureLevel;
-- (void)updateThermalPressureLevelNotification:(id)notification shouldForceThermalPressure:(BOOL)force;
 - (void)updateThermalNotification:(id)notification;
-- (BOOL)shouldEnforceLightThermalPressure;
-- (void)setCPMSMitigationState:(int)state;
 @end
 
 @interface ThermalControl : NSObject
@@ -76,7 +71,6 @@
 @interface MitigationController : NSObject
 - (id)initForFastLoop:(BOOL)fastLoop noDisplay:(BOOL)noDisplay powerSaveParams:(id)saveParams powerZoneParams:(id)zoneParams;
 - (void)updateCPU;
-- (void)updateGPU;
 - (void)updatePackage;
 - (void)setCPULowPowerTarget:(int)target;
 - (void)setPackageLowPowerTarget;
@@ -130,14 +124,24 @@ static const char *networkThrottleKeys[] = {
 };
 
 // 判断是否为网络射频限流属性key
+// 热路径优化：小写关键字缓存一次，避免每次 IOServiceSetProperty 调用都重复分配 NSString
 static BOOL isNetworkThrottleProperty(CFStringRef keyRef) {
     if (!keyRef || !g_enabled || !g_blockNetworkThermalThrottle) return NO;
     NSString *key = (__bridge NSString *)keyRef;
     NSString *lowerKey = [key lowercaseString];
 
-    for (int i = 0; networkThrottleKeys[i]; i++) {
-        NSString *k = [NSString stringWithUTF8String:networkThrottleKeys[i]];
-        if ([lowerKey containsString:[k lowercaseString]]) {
+    static NSArray<NSString *> *lowerThrottleKeys;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        NSMutableArray *keys = [NSMutableArray array];
+        for (int i = 0; networkThrottleKeys[i]; i++) {
+            [keys addObject:[[NSString stringWithUTF8String:networkThrottleKeys[i]] lowercaseString]];
+        }
+        lowerThrottleKeys = [keys copy];
+    });
+
+    for (NSString *k in lowerThrottleKeys) {
+        if ([lowerKey containsString:k]) {
             return YES;
         }
     }
@@ -155,260 +159,17 @@ static CPUthermalPowerMode g_powerMode = CPUthermalPowerModeFull;
 static int64_t g_lowPowerMinMHz = 600;
 static int64_t g_lowPowerMaxMHz = 1380;
 
-// 满血模式 CPU 最大频率（MHz）— 0 = 启动时自动检测
+// 满血模式 CPU 最大频率（MHz）— 0 = 未配置（满血锁频跳过）
 static int g_fullPowerMaxMHz = 0;
 
-// 满血无限制功率值（mW）= 65W — 对齐 insulation 反汇编得出的 `_InsulationUnrestrictedPowerLimit` (0xfde8)。
-// CPMS 功率 setter（setCPULowPowerTarget:/setCPUPowerCeiling:/setCPUPowerFloor:/...）单位均为 mW，
-// 满血模式把所有 target/ceiling/floor 抬到该值，防止系统把功率预算压低导致降频。
-static const int kUnrestrictedPowerLimitMW = 65000;
-
-// ============================================================================
-// CPU 型号检测（三重校验）
-// 搭配 getMaxFreqByHardwareModel 做双重校验，规避 cpufamily 虚拟化识别异常
-// ============================================================================
-
-/**
- * 硬件型号字符串 -> SoC 映射表
- */
-static NSDictionary* getDeviceToSoCMapping(void) {
-    return @{
-        // A18 Pro (iPhone 17 Pro / 17 Pro Max)
-        @"iPhone19,1": @"A18 Pro",
-        @"iPhone19,2": @"A18 Pro",
-        @"iPhone19,3": @"A18 Pro",
-        @"iPhone19,4": @"A18 Pro",
-
-        // A18 (iPhone 17 / 17 Plus)
-        @"iPhone19,5": @"A18",
-        @"iPhone19,6": @"A18",
-
-        // A17 Pro (iPhone 16 Pro / 16 Pro Max)
-        @"iPhone18,1": @"A17 Pro",
-        @"iPhone18,2": @"A17 Pro",
-        @"iPhone18,3": @"A17 Pro",
-        @"iPhone18,4": @"A17 Pro",
-
-        // A17 (iPhone 16 / 16 Plus)
-        @"iPhone18,5": @"A17",
-        @"iPhone18,6": @"A17",
-
-        // A16 (iPhone 15 Pro / 15 Pro Max)
-        @"iPhone16,1": @"A16",
-        @"iPhone16,2": @"A16",
-        @"iPhone16,3": @"A16",
-        @"iPhone16,4": @"A16",
-
-        // A15 (iPhone13/14 系列)
-        @"iPhone14,4": @"A15", // 13 mini
-        @"iPhone14,5": @"A15", // 13
-        @"iPhone14,2": @"A15", // 13 Pro
-        @"iPhone14,3": @"A15", // 13 Pro Max
-        @"iPhone15,2": @"A15", // iPhone14
-        @"iPhone15,3": @"A15", // iPhone14 Plus
-
-        // A14 (iPhone12 全系列)
-        @"iPhone13,1": @"A14", // 12 mini
-        @"iPhone13,2": @"A14", // 12
-        @"iPhone13,3": @"A14", // 12 Pro
-        @"iPhone13,4": @"A14", // 12 Pro Max
-
-        // A13
-        @"iPhone12,1": @"A13", // iPhone 11
-        @"iPhone12,3": @"A13", // 11 Pro
-        @"iPhone12,5": @"A13", // 11 Pro Max
-        @"iPhone12,8": @"A13", // SE3
-
-        // A12
-        @"iPhone11,8": @"A12", // XR
-        @"iPhone11,6": @"A12", // XS Max
-        @"iPhone11,4": @"A12", // XS
-
-        // A11
-        @"iPhone10,3": @"A11", // X
-        @"iPhone10,6": @"A11", // X 美版
-        @"iPhone11,1": @"A11", // 8P
-        @"iPhone10,5": @"A11", // 8
-
-        // A10
-        @"iPhone9,1": @"A10",
-        @"iPhone9,3": @"A10",
-        @"iPhone9,2": @"A10",
-        @"iPhone9,4": @"A10",
-
-        // A9
-        @"iPhone8,1": @"A9",
-        @"iPhone8,2": @"A9"
-    };
-}
-
-// 获取设备硬件型号 (iPhonexx,x)
-static NSString* getHardwareModel(void) {
-    char hwbuf[64];
-    size_t len = sizeof(hwbuf);
-    if (sysctlbyname("hw.machine", hwbuf, &len, NULL, 0) == 0) {
-        return [NSString stringWithUTF8String:hwbuf];
-    }
-    return nil;
-}
-
-// 通过机型查表获取标准大核主频 MHz
-static int getMaxFreqByHardwareModel(NSString *hardware) {
-    if (!hardware) return 0;
-    NSDictionary *map = getDeviceToSoCMapping();
-    NSString *soc = map[hardware];
-    if (!soc) return 0;
-
-    if ([soc isEqualToString:@"A18 Pro"]) return 3780;
-    if ([soc isEqualToString:@"A18"])     return 3440;
-    if ([soc isEqualToString:@"A17 Pro"]) return 3690;
-    if ([soc isEqualToString:@"A17"])     return 3200;
-    if ([soc isEqualToString:@"A16"])     return 3200;
-    if ([soc isEqualToString:@"A15"])     return 3200;
-    if ([soc isEqualToString:@"A14"])     return 2998;
-    if ([soc isEqualToString:@"A13"])     return 2650;
-    if ([soc isEqualToString:@"A12"])     return 2490;
-    if ([soc isEqualToString:@"A11"])     return 2390;
-    if ([soc isEqualToString:@"A10"])     return 2340;
-    if ([soc isEqualToString:@"A9"])      return 2240;
-    return 0;
-}
-
-// ============================================================================
-// 运行时读取 IORegistry 实际支持频率档位（MHz），取最高档
-//
-// 逐台真实：优先 AppleCLPC 的 SupportedFrequencies/SupportedFrequency，
-// 其次尝试 ApplePPMCPMS/ApplePPMCPU。同一类下扫描所有实例再取全局最大
-// （覆盖 P/E 集群，取 P 核最高档）。读取失败返回 0，由上层回退静态表检测。
-// 数值可能为 Hz/kHz/MHz，统一归一化为 MHz。
-// ============================================================================
-static int readMaxFrequencyFromIORegistryMHz(void) {
-    static const char *serviceClasses[] = {
-        "AppleCLPC",
-        "ApplePPMCPMS",
-        "ApplePPMCPU",
-        NULL
-    };
-    static CFStringRef freqKeys[] = {
-        CFSTR("SupportedFrequencies"),
-        CFSTR("SupportedFrequency"),
-        NULL
-    };
-
-    int best = 0;
-
-    for (int i = 0; serviceClasses[i]; i++) {
-        io_iterator_t iter = 0;
-        kern_return_t kr = IOServiceGetMatchingServices(kIOMasterPortDefault,
-            IOServiceMatching(serviceClasses[i]), &iter);
-        if (kr != KERN_SUCCESS || !iter) continue;
-
-        io_service_t service;
-        while ((service = IOIteratorNext(iter))) {
-            if (!service) continue;
-
-            for (int k = 0; freqKeys[k]; k++) {
-                CFTypeRef prop = IORegistryEntryCreateCFProperty(service, freqKeys[k], kCFAllocatorDefault, 0);
-                if (!prop) continue;
-
-                CFTypeID type = CFGetTypeID(prop);
-                if (type == CFNumberGetTypeID()) {
-                    int64_t raw = 0;
-                    CFNumberGetValue((CFNumberRef)prop, kCFNumberSInt64Type, &raw);
-                    int mhz = (raw >= 1000000000LL) ? (int)(raw / 1000000LL)
-                           : (raw >= 1000000LL) ? (int)(raw / 1000LL)
-                           : (int)raw;
-                    if (mhz > best) best = mhz;
-                } else if (type == CFArrayGetTypeID()) {
-                    CFArrayRef freqs = (CFArrayRef)prop;
-                    CFIndex count = CFArrayGetCount(freqs);
-                    for (CFIndex j = 0; j < count; j++) {
-                        CFTypeRef val = CFArrayGetValueAtIndex(freqs, j);
-                        if (!val || CFGetTypeID(val) != CFNumberGetTypeID()) continue;
-                        int64_t v = 0;
-                        CFNumberGetValue((CFNumberRef)val, kCFNumberSInt64Type, &v);
-                        int mhz = (v >= 1000000000LL) ? (int)(v / 1000000LL)
-                               : (v >= 1000000LL) ? (int)(v / 1000LL)
-                               : (int)v;
-                        if (mhz > best) best = mhz;
-                    }
-                }
-                CFRelease(prop);
-            }
-
-            IOObjectRelease(service);
-        }
-        IOObjectRelease(iter);
-
-        if (best > 0) break;  // 该类已成功读到实际档位，直接用最高档
-    }
-
-    if (best > 0) {
-        NSLog(@"[CPUthermal] IORegistry 运行时检测到实际支持最高频率: %dMHz", best);
-    }
-    return best;
-}
-
-// 检测 CPU 最大频率
-// 逻辑：优先运行时读 IORegistry 实际支持频率档位（逐台最准）→ cpufamily →
-//       机型查表 → hw.cpufrequency_max 兜底
-static int detectMaxCPUFrequencyMHz(void) {
-    // 第零层：运行时读取 IORegistry 实际支持频率档位，取最高档
-    int runtimeFreq = readMaxFrequencyFromIORegistryMHz();
-    if (runtimeFreq > 0) {
-        return runtimeFreq;
-    }
-
-    uint64_t cpufamily = 0;
-    size_t size = sizeof(cpufamily);
-    int targetFreq = 0;
-
-    // 第一层：cpufamily 识别
-    if (sysctlbyname("hw.cpufamily", &cpufamily, &size, NULL, 0) == 0) {
-        // ref: mach/machine.h CPUFAMILY_ARM_*
-        switch (cpufamily) {
-            case 0x67ce5072: targetFreq = 3780; break; // A18 Pro
-            case 0x72157247: targetFreq = 3440; break; // A18
-            case 0xdb039f81: targetFreq = 3690; break; // A17 Pro
-            case 0x69d11b9d: targetFreq = 3200; break; // A17
-            case 0x2c91a47c: // A16 虚拟标识
-            case 0xda33d83d: targetFreq = 3200; break; // A15/A16
-            case 0x8765edea: targetFreq = 2998; break; // A14
-            case 0x844656f0: targetFreq = 2650; break; // A13
-            case 0x07d34b9f: targetFreq = 2490; break; // A12
-            case 0x43e9c4ee: targetFreq = 2390; break; // A11
-            case 0xeacf212d: targetFreq = 2340; break; // A10
-            case 0x373d6673: targetFreq = 2240; break; // A9
-        }
-    }
-
-    // 第二层：cpufamily 识别失败，使用硬件机型查表
-    if (targetFreq <= 0) {
-        NSString *hw = getHardwareModel();
-        targetFreq = getMaxFreqByHardwareModel(hw);
-    }
-
-    // 第三层：系统原生最大频率兜底
-    if (targetFreq <= 0) {
-        int64_t freq = 0;
-        size = sizeof(freq);
-        if (sysctlbyname("hw.cpufrequency_max", &freq, &size, NULL, 0) == 0 && freq > 0) {
-            targetFreq = (int)(freq / 1000000);
-        }
-    }
-
-    // 未知设备（运行时/静态表均未命中）：返回 0，不猜测频率，由调用方跳过频率锁定
-    return targetFreq;
-}
+// 满血模式功率目标下限（mW）：65W（原依赖外部常量，改为本地定义）
+#define kUnrestrictedPowerLimitMW 65000
 
 static CommonProduct *g_commonProduct = nil;
 static NSHashTable *g_mitigationControllers = nil;  // 弱引用，防止僵尸实例泄漏
 static BOOL g_restoringFullPower = NO;
 static BOOL g_applyingLowPower = NO;
 static NSMutableDictionary *g_originalControllerValues = nil;
-static CFAbsoluteTime g_processStartTime = 0;
-static const double kFullPowerBootGuardDuration = 0.0;
-static BOOL g_deferredRuntimeApplyScheduled = NO;
 static BOOL g_fullPowerRecoveryPulseScheduled = NO;
 static BOOL g_lowPowerApplyPulseScheduled = NO;
 static BOOL g_wakeRuntimeApplyScheduled = NO;
@@ -416,7 +177,11 @@ static BOOL g_wakeRuntimeApplyScheduled = NO;
 // 持久性低功耗保持定时器
 static dispatch_source_t g_lowPowerKeepAliveTimer = NULL;
 static os_unfair_lock g_modeLock = OS_UNFAIR_LOCK_INIT;  // 线程安全：保护g_powerMode
-static const double kLowPowerKeepAliveInterval = 1.0;  // 每1.0s秒重应用一次，缩短周期防止频率漂移
+// 线程安全：保护跨线程共享的可变集合（g_mitigationControllers / g_originalControllerValues / g_applePPMInstances）。
+// thermalmonitord 工作线程的 hook 会写这些集合，主队列保活定时器会读/枚举它们，
+// NSHashTable/NSMutableDictionary 非线程安全，并发读写会导致 EXC_BAD_ACCESS(SIGSEGV)。
+static os_unfair_lock g_stateLock = OS_UNFAIR_LOCK_INIT;
+static const double kLowPowerKeepAliveInterval = 0.3;  // 每0.3s秒重应用一次，缩短周期防止频率漂移
 static NSHashTable *g_applePPMInstances = nil;           // 追踪 ApplePPMCPU 实例（弱引用，防止僵尸实例泄漏）
 
 // 满血模式保活定时器 — 每 1.0 秒重应用一次，防止系统温控恢复
@@ -431,8 +196,7 @@ static BOOL shouldApplyLowPowerLimit(void);
 static int lowPowerTargetValue(void);
 static void loadPrefs(void);
 static void applyCurrentPowerModeToRuntime(void);
-static void applyPowerModeToRuntime(BOOL respectBootGuard);
-static void scheduleDeferredRuntimeApply(double delay);
+static void applyPowerModeToRuntime(void);
 static void scheduleLowPowerApplyPulse(void);
 static void runLowPowerApplyPulse(int remainingPulses);
 static void scheduleFullPowerRecoveryPulse(void);
@@ -454,15 +218,34 @@ return [NSString stringWithFormat:S("%p:%s"), controller, name];
 static void rememberOriginalIntValue(id controller, const char *name, int value) {
 if (!controller || g_restoringFullPower || !shouldApplyLowPowerLimit()) return;
 if (value <= lowPowerTargetValue()) return;
+os_unfair_lock_lock(&g_stateLock);
 if (!g_originalControllerValues) g_originalControllerValues = [NSMutableDictionary dictionary];
 NSString *key = controllerKey(controller, name);
-if (!key || [g_originalControllerValues objectForKey:key]) return;
+if (!key || [g_originalControllerValues objectForKey:key]) {
+os_unfair_lock_unlock(&g_stateLock);
+return;
+}
 [g_originalControllerValues setObject:[NSNumber numberWithInt:value] forKey:key];
+os_unfair_lock_unlock(&g_stateLock);
 }
 
 static int rememberedOriginalIntValue(id controller, const char *name, int fallback) {
+os_unfair_lock_lock(&g_stateLock);
 NSNumber *value = [g_originalControllerValues objectForKey:controllerKey(controller, name)];
+os_unfair_lock_unlock(&g_stateLock);
 return value ? [value intValue] : fallback;
+}
+
+// 节流版强制热压力 Nominal：限制 notify 风暴。
+// tryTakeAction/决策树每轮热循环都会调用 CPUthermalForceNominalCombined（内部 notify_post 系统热通知），
+// 过量通知会重入 thermalmonitord 并饿死主线程（曾出现 unresponsive com.apple.main-thread）。
+// 满血模式每秒至多一次即可维持压力 Nominal，不影响频率锁定（频率由 setCPULevel/功率目标/IORegistry 写入保证）。
+static void CPUthermalForceNominalThrottled(void) {
+static CFAbsoluteTime lastPost = 0;
+CFAbsoluteTime now = CFAbsoluteTimeGetCurrent();
+if (lastPost != 0 && (now - lastPost) < 1.0) return;
+lastPost = now;
+CPUthermalForceNominalCombined();
 }
 
 static BOOL isLowPowerMode(void) {
@@ -479,13 +262,8 @@ static BOOL isFullPowerMode(void) {
 	return res;
 }
 
-static BOOL fullPowerBootGuardActive(void) {
-	// 修复③：关闭开机启动保护测试，排除开机窗口期逻辑干扰
-	return NO;
-}
-
 static BOOL shouldApplyFullCPUProtection(void) {
-return g_enabled && g_cpuProtection && isFullPowerMode() && !fullPowerBootGuardActive();
+return g_enabled && g_cpuProtection && isFullPowerMode();
 }
 
 static BOOL shouldApplyLowPowerLimit(void) {
@@ -497,24 +275,10 @@ return (int)g_lowPowerMaxMHz;
 }
 
 static int fullPowerFrequencyValue(void) {
-// 偏好自定义值优先；未设置（<=0）时自动检测 — 优先机型查表获取标准大核主频
+// 仅使用偏好自定义值；未配置（<=0）时满血锁频跳过
 if (g_fullPowerMaxMHz > 0) return g_fullPowerMaxMHz;
-
-// 1) 机型查表：按硬件型号（iPhonexx,x）查表获取标准大核主频 MHz
-NSString *hw = getHardwareModel();
-g_fullPowerMaxMHz = getMaxFreqByHardwareModel(hw);
-
-// 2) 回退：完整检测链（IORegistry 运行时档位 → cpufamily → 查表 → hw.cpufrequency_max）
-if (g_fullPowerMaxMHz <= 0) {
-    g_fullPowerMaxMHz = detectMaxCPUFrequencyMHz();
-}
-
-if (g_fullPowerMaxMHz > 0) {
-    NSLog(@"[CPUthermal] 满血自动检测 CPU 最高频率: %d MHz (机型:%@)", g_fullPowerMaxMHz, hw ?: S("unknown"));
-} else {
-    NSLog(@"[CPUthermal] 警告: 未能确定设备最高频率，满血锁频将跳过");
-}
-return g_fullPowerMaxMHz;
+NSLog(@"[CPUthermal] 警告: 未配置 fullPowerMaxMHz，满血锁频将跳过");
+return 0;
 }
 
 static CFStringRef cpuMaxPowerPropertyName(void) {
@@ -555,8 +319,10 @@ return;
 
 static void trackPowerController(id controller) {
 if (!controller) return;
+os_unfair_lock_lock(&g_stateLock);
 if (!g_mitigationControllers) g_mitigationControllers = [NSHashTable weakObjectsHashTable];
 [g_mitigationControllers addObject:controller];
+os_unfair_lock_unlock(&g_stateLock);
 }
 
 static BOOL setMaxCPUPowerTargetUsesCFString(id controller) {
@@ -598,7 +364,7 @@ cls = class_getSuperclass(cls);
 return fallback;
 }
 
-// 满血功率目标 — 对齐 insulation `_InsulationFullCPUPower`：
+// 满血功率目标：
 // 取「历史记录的最大功率目标」与 65W 的较大值，绝不返回低于 65W 的目标。
 static int fullPowerTargetForController(id controller) {
 int remembered = rememberedOriginalIntValue(controller, "MaxCPUPowerTarget", 0);
@@ -619,7 +385,7 @@ return MAX(remembered, kUnrestrictedPowerLimitMW);
 }
 
 // 满血功率下限 — 关键修复：原实现返回 0 / 历史值，系统仍可随时把功率压到该值以下导致降频。
-// 对齐 insulation：满血 floor 抬到 65W，热管理想降频也被 floor 顶住。
+// 满血 floor 抬到 65W，热管理想降频也被 floor 顶住。
 static int fullPowerFloorForController(id controller) {
 return kUnrestrictedPowerLimitMW;
 }
@@ -631,12 +397,11 @@ return MAX(remembered, kUnrestrictedPowerLimitMW);
 
 // 仅设置低功耗钳制 setter，不触发 updateCPU/updatePackage。
 // 供保活定时器与 updateCPU/updatePackage 钩子复用，避免递归。
-// 对齐 insulation 反汇编的 lowPower 路径（func_0x53e8）：
-//   核心 = setPowerSaveActive:YES + setCPULevel:2 + updateCPU。
+// 核心 = setPowerSaveActive:YES + setCPULevel:2 + updateCPU。
 // 关键修复：原先把 MHz 频率值（如 1380）传给 mW 功率 setter（setCPULowPowerTarget:/
 // setMaxCPUPowerTarget:/setCPUPowerCeiling:/setCPUPowerZoneTarget:）属单位不匹配，
 // 数值异常会被系统忽略/钳制，这正是「低功耗频率无法锁定」的根因之一。
-// 现在低功耗不再往功率 setter 塞频率值，改由 CPULevel:2 档位直接锁频（insulation 同款）。
+// 现在低功耗不再往功率 setter 塞频率值，改由 CPULevel:2 档位直接锁频。
 static void forceLowPowerSettersOnController(id controller) {
 if (!controller || !shouldApplyLowPowerLimit()) return;
 if ([controller respondsToSelector:@selector(setPowerSaveActive:)]) {
@@ -677,7 +442,11 @@ g_applyingLowPower = NO;
 static void applyLowPowerLimitsToTrackedControllers(void) {
 if (!shouldApplyLowPowerLimit()) return;
 @autoreleasepool {
-NSArray *controllers = [g_mitigationControllers allObjects];
+// 只在锁内取快照，循环在锁外执行，避免 objc_msgSend 回调 hook 时重入死锁
+NSArray *controllers;
+os_unfair_lock_lock(&g_stateLock);
+controllers = [g_mitigationControllers allObjects];
+os_unfair_lock_unlock(&g_stateLock);
 for (id controller in controllers) {
 applyLowPowerLimitToController(controller);
 }
@@ -709,7 +478,7 @@ if ([controller respondsToSelector:@selector(setCPUPowerFloor:fromDecisionSource
 if ([controller respondsToSelector:@selector(setCPUPowerZoneTarget:)]) {
 ((void (*)(id, SEL, int))objc_msgSend)(controller, @selector(setCPUPowerZoneTarget:), fullPowerZoneTargetForController(controller));
 }
-// 对齐 insulation 满血路径：GPU / Package 功率 setter 也抬到 65W，
+// 满血路径：GPU / Package 功率 setter 也抬到 65W，
 // 防止 GPU/包域热管理压低功率后间接拖累 CPU 频率（「高频率可能降频」的次要路径）
 if ([controller respondsToSelector:@selector(setGPUPowerCeiling:fromDecisionSource:)]) {
 ((void (*)(id, SEL, int, uintptr_t))objc_msgSend)(controller, @selector(setGPUPowerCeiling:fromDecisionSource:), kUnrestrictedPowerLimitMW, 0);
@@ -749,11 +518,17 @@ g_restoringFullPower = NO;
 static void restoreFullPowerToTrackedControllers(void) {
 if (!g_enabled || !g_cpuProtection || !isFullPowerMode()) return;
 @autoreleasepool {
-NSArray *controllers = [g_mitigationControllers allObjects];
+// 只在锁内取快照/清空，循环在锁外执行，避免 objc_msgSend 回调 hook 时重入死锁
+NSArray *controllers;
+os_unfair_lock_lock(&g_stateLock);
+controllers = [g_mitigationControllers allObjects];
+os_unfair_lock_unlock(&g_stateLock);
 for (id controller in controllers) {
 restoreFullPowerToController(controller);
 }
+os_unfair_lock_lock(&g_stateLock);
 [g_originalControllerValues removeAllObjects];
+os_unfair_lock_unlock(&g_stateLock);
 }
 }
 
@@ -772,7 +547,7 @@ if ([g_commonProduct respondsToSelector:@selector(setCPMSMitigationsEnabled:)]) 
 if ([g_commonProduct respondsToSelector:@selector(setCPULevel:)]) {
 ((void (*)(id, SEL, int))objc_msgSend)(g_commonProduct, @selector(setCPULevel:), 0);
 }
-// 对齐 insulation：满血 ceiling/floor 全部抬到 65W（原 ceiling=0 含义是「0 mW 上限」，
+// 满血 ceiling/floor 全部抬到 65W（原 ceiling=0 含义是「0 mW 上限」，
 // 语义错误且被系统忽略/钳制；floor 未抬升则系统可随时降频）。
 setCommonProductCeiling(@selector(setCPUPowerCeiling:fromDecisionSource:), kUnrestrictedPowerLimitMW);
 setCommonProductCeiling(@selector(setCPUPowerFloor:fromDecisionSource:), kUnrestrictedPowerLimitMW);
@@ -800,9 +575,9 @@ if ([g_commonProduct respondsToSelector:@selector(setCPMSMitigationsEnabled:)]) 
 ((void (*)(id, SEL, BOOL))objc_msgSend)(g_commonProduct, @selector(setCPMSMitigationsEnabled:), YES);
 }
 if ([g_commonProduct respondsToSelector:@selector(setCPULevel:)]) {
-((void (*)(id, SEL, int))objc_msgSend)(g_commonProduct, @selector(setCPULevel:), 2);  // 对齐 insulation：低功耗档位 2（原 1 约束不足，锁不住频）
+((void (*)(id, SEL, int))objc_msgSend)(g_commonProduct, @selector(setCPULevel:), 2);  // 低功耗档位 2（原 1 约束不足，锁不住频）
 }
-// 对齐 insulation：低功耗不再往 mW 功率 setter 写 40（单位不匹配、数值异常会被系统忽略），
+// 低功耗不再往 mW 功率 setter 写 40（单位不匹配、数值异常会被系统忽略），
 // 由 setCPULevel:2 + setPowerSaveActive:YES 决定低功耗功率预算。
 // 强制系统热压力为 Nominal 并重置热通知级别（与解除温控模式一致）
 CPUthermalForceNominalCombined();
@@ -813,10 +588,10 @@ NSLog(@"[CPUthermal] 套用低功耗 CommonProduct 状态失败: %@", exception)
 }
 
 static void applyCurrentPowerModeToRuntime(void) {
-applyPowerModeToRuntime(YES);
+applyPowerModeToRuntime();
 }
 
-static void applyPowerModeToRuntime(BOOL respectBootGuard) {
+static void applyPowerModeToRuntime(void) {
 if (!g_enabled || !g_cpuProtection) return;
 if (isLowPowerMode()) {
 stopFullPowerKeepAliveTimer();  // 退出满血时停止定时器
@@ -829,26 +604,11 @@ return;
 }
 if (isFullPowerMode()) {
 stopLowPowerKeepAliveTimer();  // 退出低功耗时停止定时器
-if (respectBootGuard && fullPowerBootGuardActive()) {
-double elapsed = CFAbsoluteTimeGetCurrent() - g_processStartTime;
-double remaining = kFullPowerBootGuardDuration - elapsed;
-scheduleDeferredRuntimeApply(MAX(remaining, 0.1) + 0.1);
-return;
-}
 applyFullPowerToCommonProduct();
 restoreFullPowerToTrackedControllers();
 scheduleFullPowerRecoveryPulse();
 startFullPowerKeepAliveTimer();  // 启动满血保活定时器
 }
-}
-
-static void scheduleDeferredRuntimeApply(double delay) {
-if (g_deferredRuntimeApplyScheduled) return;
-g_deferredRuntimeApplyScheduled = YES;
-dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-g_deferredRuntimeApplyScheduled = NO;
-applyCurrentPowerModeToRuntime();
-});
 }
 
 static void scheduleLowPowerApplyPulse(void) {
@@ -904,8 +664,10 @@ static void scheduleWakeRuntimeApply(void) {
 if (g_wakeRuntimeApplyScheduled || !g_enabled || !g_cpuProtection) return;
 g_wakeRuntimeApplyScheduled = YES;
 // 修复：使用主队列确保所有 ObjC 调用线程安全
+// 30s 连续高频重套用会饿死 thermalmonitord 主线程（曾触发 watchdog），
+// 5s 覆盖已足够 —— 1s 保活定时器在唤醒后持续兜底重应用。
 dispatch_async(dispatch_get_main_queue(), ^{
-runWakeRuntimeApplyPulse(300);
+runWakeRuntimeApplyPulse(50);
 });
 }
 
@@ -915,7 +677,7 @@ g_wakeRuntimeApplyScheduled = NO;
 return;
 }
 loadPrefs();
-applyPowerModeToRuntime(NO);
+applyPowerModeToRuntime();
 if (remainingPulses <= 1) {
 g_wakeRuntimeApplyScheduled = NO;
 return;
@@ -928,16 +690,21 @@ runWakeRuntimeApplyPulse(remainingPulses - 1);
 }
 
 // ============================================================================
-// 持久性低功耗保持定时器 — 每 0.8 秒重应用一次，防止决策树漂移和新控制器覆盖
+// 持久性低功耗保持定时器 — 每 0.3 秒重应用一次，防止决策树漂移和新控制器覆盖
 //
 // 修复：加入 ApplePPMCPU 实例强制重应用 + 消除定时器重建竞态
 // ============================================================================
 static void applyLowPowerToApplePPMCPU(void) {
 if (!shouldApplyLowPowerLimit() || !g_applePPMInstances) return;
-for (id ppm in g_applePPMInstances) {
+// 锁内取快照，循环在锁外执行，避免 objc_msgSend 回调 hook 时重入死锁
+NSArray *ppms;
+os_unfair_lock_lock(&g_stateLock);
+ppms = [g_applePPMInstances allObjects];
+os_unfair_lock_unlock(&g_stateLock);
+for (id ppm in ppms) {
 if (!ppm) continue;
 if ([ppm respondsToSelector:@selector(setCPULevel:)]) {
-// 低功耗：传 2（更受限档，对齐 insulation），激活低功耗调度，避免 0 跑满血
+// 低功耗：传 2（更受限档），激活低功耗调度，避免 0 跑满血
 ((void (*)(id, SEL, int))objc_msgSend)(ppm, @selector(setCPULevel:), 2);
 }
 if ([ppm respondsToSelector:@selector(updateCPU)]) {
@@ -1132,11 +899,19 @@ NSLog(@"[CPUthermal] 低功耗保持定时器已停止");
 }
 
 // ============================================================================
-// 满血模式保活定时器 — 每 1.5 秒重应用一次，防止系统温控恢复
+// 满血模式保活定时器 — 每 1.0 秒重应用一次，防止系统温控恢复
 // ============================================================================
 static void startFullPowerKeepAliveTimer(void) {
-stopFullPowerKeepAliveTimer();  // 确保先停止已有定时器
-if (!g_enabled || !g_cpuProtection || !isFullPowerMode()) return;
+if (!g_enabled || !g_cpuProtection || !isFullPowerMode()) {
+stopFullPowerKeepAliveTimer();
+return;
+}
+
+// 修复：如果定时器已经在运行，不要销毁重建
+// （唤醒脉冲期间 applyPowerModeToRuntime 会被高频调用，每次销毁重建会造成 GCD 定时器饥饿）
+if (g_fullPowerKeepAliveTimer) {
+return;
+}
 
 g_fullPowerKeepAliveTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, dispatch_get_main_queue());
 if (!g_fullPowerKeepAliveTimer) return;
@@ -1305,14 +1080,8 @@ NSNumber *prefFullMax = d[S("fullPowerMaxMHz")];
 if (prefLowMin) g_lowPowerMinMHz = [prefLowMin longLongValue];
 if (prefLowMax) g_lowPowerMaxMHz = [prefLowMax longLongValue];
 if (prefFullMax && [prefFullMax intValue] > 0) {
-    // 偏好自定义有效频率（>0）优先
+    // 偏好自定义有效频率（>0）优先；未配置时满血锁频跳过
     g_fullPowerMaxMHz = [prefFullMax intValue];
-} else if (g_fullPowerMaxMHz <= 0) {
-    // 未设置或偏好为 0：自动检测（机型查表优先），确保满血锁频不因 0 值被跳过
-    int detected = fullPowerFrequencyValue();
-    if (detected <= 0) {
-        NSLog(@"[CPUthermal] 警告: 未能自动检测 CPU 最大频率");
-    }
 }
 
 NSString *mode = d[S("powerMode")] ?: S("fullPower");
@@ -1336,7 +1105,6 @@ NULL
 };
 
 #define SELECTOR_IS_MITIGATION(s)  ((s) >= 0x20 && (s) <= 0x5F)  // 拦截 0x20-0x5F（扩展低频管理+温控）
-#define SELECTOR_IS_CRITICAL(s)    ((s) >= 0x60)                  // 紧急保护 — 不拦截
 
 // ============================================================================
 // connection 追踪
@@ -1469,6 +1237,11 @@ if (!g_enabled) {
 return orig_IOServiceSetProperty(service, key, value);
 }
 
+// 崩溃防护：key 为 NULL 时直接透传，避免后续 (__bridge NSString *) 与 containsString 崩溃
+if (!key) {
+return orig_IOServiceSetProperty(service, key, value);
+}
+
 // ===================== 新增：拦截Wi‑Fi/蜂窝基带射频温控限流 =====================
 if (isNetworkThrottleProperty(key)) {
 NSLog(@"[CPUthermal] 已屏蔽网络射频热节流指令: %@", (__bridge NSString *)key);
@@ -1530,7 +1303,10 @@ id res = %orig;
 if (g_enabled) {
 g_commonProduct = self;
 [self putDeviceInThermalSimulationMode:S("nominal")];
+// 修复：跳主队列执行功率套用，避免初始化线程与主队列保活定时器并发创建/销毁 GCD 定时器
+dispatch_async(dispatch_get_main_queue(), ^{
 applyCurrentPowerModeToRuntime();
+});
 NSLog(@"[CPUthermal] CommonProduct init, 已重置热状态为 nominal, 功率模式:%@", isLowPowerMode() ? S("低功耗") : S("解除温控"));
 }
 return res;
@@ -1538,8 +1314,8 @@ return res;
 
 - (void)tryTakeAction {
 if (shouldApplyFullCPUProtection() || shouldApplyLowPowerLimit()) {
-// 强制热压力为 Nominal（正常温度）
-CPUthermalForceNominalCombined();
+// 强制热压力为 Nominal（正常温度）— 节流：tryTakeAction 每轮热循环都调用，限制 notify 风暴
+CPUthermalForceNominalThrottled();
 // 阻止所有热缓解动作
 return;
 }
@@ -1578,14 +1354,14 @@ return;
 }
 
 // 低功耗模式：强制 CPU 性能级别，防止外部代码篡改
-// 对齐 insulation（setCPULevel hook）：低功耗档位 2（更受限，稳定锁频）、满血档位 0（全速）
+// 低功耗档位 2（更受限，稳定锁频）、满血档位 0（全速）
 - (void)setCPULevel:(int)level {
     if (g_restoringFullPower) {
         %orig(level);
         return;
     }
     if (shouldApplyLowPowerLimit()) {
-        %orig(2);  // 低功耗：性能级别 2（对齐 insulation，原 1 锁不住频）
+        %orig(2);  // 低功耗：性能级别 2（原 1 锁不住频）
         return;
     }
     if (shouldApplyFullCPUProtection()) {
@@ -1627,22 +1403,17 @@ return;
 - (void)evaluateDecisionTree {
 // 全功率模式: 阻止决策树运行，避免温控降频
 if (shouldApplyFullCPUProtection()) {
-CPUthermalForceNominalCombined();
+CPUthermalForceNominalThrottled();
 NSLog(@"[CPUthermal] 阻止决策树评估 (全功率模式)");
 return;
 }
 // 低功耗模式: 阻止决策树运行，避免系统改写已锁定的 CPU 目标
 if (shouldApplyLowPowerLimit()) {
 // 强制热压力为 Nominal（与解除温控模式一致）
-CPUthermalForceNominalCombined();
+CPUthermalForceNominalThrottled();
 NSLog(@"[CPUthermal] 阻止决策树评估 (低功耗模式)");
 return;
 }
-%orig;
-}
-
-// 热压力升级通知 — 不再主动阻断
-- (void)updateThermalPressureLevelNotification:(id)notification shouldForceThermalPressure:(BOOL)force {
 %orig;
 }
 
@@ -1657,11 +1428,6 @@ return;
 %orig;
 }
 
-// 是否应执行轻度热压力 — 不拦截
-- (BOOL)shouldEnforceLightThermalPressure {
-return %orig;
-}
-
 // 获取组件释放速率 — 可以降低不放 0
 - (float)getReleaseRateForComponent:(id)component {
 if (shouldApplyFullCPUProtection()) {
@@ -1669,21 +1435,6 @@ NSLog(@"[CPUthermal] 彻底拦截释放速率: %@ -> 0.0", component);
 return 0.0;  // 彻底归零
 }
 return %orig(component);
-}
-
-// 获取强制热级别 — 不篡改
-- (int)getPotentialForcedThermalLevel:(id)component {
-return %orig(component);
-}
-
-// 获取强制热压力级别 — 不篡改
-- (int)getPotentialForcedThermalPressureLevel {
-return %orig;
-}
-
-// 散热/电池服务建议 — 不拦截
-- (id)getBatteryServiceSuggestion:(id)suggestion {
-return %orig(suggestion);
 }
 
 %end
@@ -1695,7 +1446,10 @@ return %orig(suggestion);
 id res = %orig(fastLoop, noDisplay, saveParams, zoneParams);
 if (res) {
 trackPowerController(res);
+// 修复：跳主队列执行功率套用，避免 fast-loop 线程与主队列保活定时器并发操作 GCD 定时器
+dispatch_async(dispatch_get_main_queue(), ^{
 applyCurrentPowerModeToRuntime();
+});
 }
 return res;
 }
@@ -1704,7 +1458,10 @@ return res;
 id res = %orig(params);
 if (res) {
 trackPowerController(res);
+// 修复：跳主队列执行功率套用，避免初始化线程与主队列保活定时器并发操作 GCD 定时器
+dispatch_async(dispatch_get_main_queue(), ^{
 applyCurrentPowerModeToRuntime();
+});
 }
 return res;
 }
@@ -1794,10 +1551,12 @@ return;
 - (id)init {
 id res = %orig;
 if (res) {
+os_unfair_lock_lock(&g_stateLock);
 if (!g_applePPMInstances) g_applePPMInstances = [NSHashTable weakObjectsHashTable];
 [g_applePPMInstances addObject:res];
+os_unfair_lock_unlock(&g_stateLock);
 if (shouldApplyLowPowerLimit()) {
-[res setCPULevel:2];  // 低功耗档位 2（对齐 insulation；非 0，避免跑满血）
+[res setCPULevel:2];  // 低功耗档位 2（非 0，避免跑满血）
 [res updateCPU];
 }
 }
@@ -1807,15 +1566,17 @@ return res;
 - (void)setCPULevel:(int)level {
 // 修复：每次调用都自注册实例，确保唤醒后重建的实例不被漏追踪
 if (self) {
+os_unfair_lock_lock(&g_stateLock);
 if (!g_applePPMInstances) g_applePPMInstances = [NSHashTable weakObjectsHashTable];
 [g_applePPMInstances addObject:self];
+os_unfair_lock_unlock(&g_stateLock);
 }
 if (g_restoringFullPower) {
 %orig(level);
 return;
 }
 if (shouldApplyLowPowerLimit()) {
-// 修复：低功耗模式钳制到受限档 2（对齐 insulation；而非 0 满血），激活低功耗调度
+// 修复：低功耗模式钳制到受限档 2（而非 0 满血），激活低功耗调度
 %orig(2);
 return;
 }
@@ -1836,7 +1597,7 @@ if (shouldApplyFullCPUProtection()) {
 return;
 }
 if (shouldApplyLowPowerLimit()) {
-// 事件驱动钳制：系统每次更新 P-state 前，强制钳制到受限档 2（对齐 insulation），
+// 事件驱动钳制：系统每次更新 P-state 前，强制钳制到受限档 2，
 // 不再依赖保活定时器时序（消除长时间睡眠唤醒后的空窗期）
 if (self && [self respondsToSelector:@selector(setCPULevel:)]) {
 [self setCPULevel:2];
@@ -1856,7 +1617,10 @@ return;
 id res = %orig(fastLoop, noDisplay, saveParams, zoneParams);
 if (res) {
 trackPowerController(res);
+// 修复：跳主队列执行功率套用，避免 fast-loop 线程与主队列保活定时器并发操作 GCD 定时器
+dispatch_async(dispatch_get_main_queue(), ^{
 applyCurrentPowerModeToRuntime();
+});
 }
 return res;
 }
@@ -1906,7 +1670,7 @@ return;
 %orig;
 }
 
-// 对齐 insulation（setCPULevel hook）：MitigationController 是 CPU 性能档位的核心对象，
+// MitigationController 是 CPU 性能档位的核心对象，
 // 低功耗强制档位 2（稳定锁频），满血强制档位 0（全速）。
 - (void)setCPULevel:(int)level {
 if (g_restoringFullPower) {
@@ -1914,7 +1678,7 @@ if (g_restoringFullPower) {
 return;
 }
 if (shouldApplyLowPowerLimit()) {
-%orig(2);  // 低功耗：性能级别 2（对齐 insulation，原 1 锁不住频）
+%orig(2);  // 低功耗：性能级别 2（原 1 锁不住频）
 return;
 }
 if (shouldApplyFullCPUProtection()) {
@@ -1939,18 +1703,6 @@ return;
 }
 if (shouldApplyFullCPUProtection()) {
 %orig;  // 放行，让 setMaxCPUPowerTarget 设置的高功率目标写入硬件
-return;
-}
-%orig;
-}
-
-- (void)updateGPU {
-if (g_restoringFullPower) {
-%orig;
-return;
-}
-if (shouldApplyFullCPUProtection()) {
-%orig;  // 放行，让 GPU 功率目标正常更新
 return;
 }
 %orig;
@@ -1981,14 +1733,14 @@ if (g_restoringFullPower) {
 return;
 }
 if (shouldApplyLowPowerLimit()) {
-// 对齐 insulation（LimitedCPUPower）：低功耗不强制 mW 值，原样放行并记录最大值，
+// 低功耗不强制 mW 值，原样放行并记录最大值，
 // 由 setCPULevel:2 负责锁频；原 %orig(1380) 属 MHz 传 mW 单位错误。
 rememberOriginalIntValue(self, "CPULowPowerTarget", target);
 %orig(target);
 return;
 }
 if (shouldApplyFullCPUProtection()) {
-// 对齐 insulation：满血抬到 65W（原直接 return 拦截会让内部状态不同步，导致降频回弹）
+// 满血抬到 65W（原直接 return 拦截会让内部状态不同步，导致降频回弹）
 %orig(MAX(target, kUnrestrictedPowerLimitMW));
 return;
 }
@@ -2013,7 +1765,7 @@ if (g_restoringFullPower) {
 return;
 }
 if (shouldApplyLowPowerLimit()) {
-// 修复②：记录原始值后原样放行（对齐 insulation LimitedCPUPower：仅记录最大目标、不篡改），
+// 修复②：记录原始值后原样放行（仅记录最大目标、不篡改），
 // 低功耗由 setCPULevel:2 锁频；原 %orig((int)g_lowPowerMaxMHz) 属 MHz 传 mW 单位错误。
 rememberOriginalIntValue(self, "MaxCPUPowerTarget", target);
 %orig(target, legacy, propertyArg);
@@ -2032,7 +1784,7 @@ if (g_restoringFullPower) {
 return;
 }
 if (shouldApplyLowPowerLimit()) {
-// 对齐 insulation：低功耗不强制 ceiling（原 40 mW 数值异常），记录后原样放行，由 setCPULevel:2 锁频
+// 低功耗不强制 ceiling（原 40 mW 数值异常），记录后原样放行，由 setCPULevel:2 锁频
 rememberOriginalIntValue(self, "CPUPowerCeiling", ceiling);
 %orig(ceiling, source);
 return;
@@ -2050,7 +1802,7 @@ if (g_restoringFullPower) {
 return;
 }
 if (shouldApplyLowPowerLimit()) {
-// 对齐 insulation（MitigationPowerFloor）：低功耗 floor 原样放行，由 setCPULevel:2 锁频
+// 低功耗 floor 原样放行，由 setCPULevel:2 锁频
 rememberOriginalIntValue(self, "CPUPowerFloor", floor);
 %orig(floor, source);
 return;
@@ -2068,7 +1820,7 @@ if (g_restoringFullPower) {
 return;
 }
 if (shouldApplyLowPowerLimit()) {
-// 对齐 insulation：低功耗不强制 zone target（原传 MHz 属单位错误），记录后原样放行，由 setCPULevel:2 锁频
+// 低功耗不强制 zone target（原传 MHz 属单位错误），记录后原样放行，由 setCPULevel:2 锁频
 rememberOriginalIntValue(self, "CPUPowerZoneTarget", target);
 %orig(target);
 return;
@@ -2236,14 +1988,14 @@ executePuppetEvent();
 
 static void onPowerModeChanged(CFNotificationCenterRef center, void *observer, CFNotificationName name, const void *object, CFDictionaryRef userInfo) {
 loadPrefs();
-applyPowerModeToRuntime(NO);
+applyPowerModeToRuntime();
 NSLog(@"[CPUthermal] 功率模式已切换: %@", isLowPowerMode() ? S("低功耗") : S("解除温控"));
 }
 
 static void onSettingsChanged(CFNotificationCenterRef center, void *observer, CFNotificationName name, const void *object, CFDictionaryRef userInfo) {
 loadPrefs();
 if (g_enabled) {
-applyPowerModeToRuntime(NO);
+applyPowerModeToRuntime();
 }
 NSLog(@"[CPUthermal] 设置已重载 enabled:%d CPU:%d 弹窗:%d 防暗屏:%d",
 g_enabled, g_cpuProtection, g_thermalBlockNotifPopup, g_thermalPreventDimmingEnabled);
@@ -2271,7 +2023,7 @@ NSLog(S("[CPUthermal] 收到唤醒/亮屏事件，准备恢复当前功率模式
 static void screenStateApplyLowPower(void) {
     // 对应 1.x 的 applyLowPowerState：重新应用当前功率模式
     loadPrefs();
-    applyPowerModeToRuntime(NO);
+    applyPowerModeToRuntime();
     NSLog(@"[CPUthermal] 屏幕状态延迟覆盖完成 (模式:%@)", isLowPowerMode() ? S("低功耗") : S("解除温控"));
 }
 
@@ -2306,7 +2058,7 @@ static void onSystemPowerEvent(void *refcon, io_service_t service, natural_t mes
             loadPrefs();
             if (g_enabled) {
                 // 立即同步应用一次，消除系统唤醒后的功率目标空窗期
-                applyPowerModeToRuntime(NO);
+                applyPowerModeToRuntime();
                 // 低功耗下确保保活定时器存活（防止长时间睡眠期间定时器异常丢失）
                 if (isLowPowerMode() && !g_lowPowerKeepAliveTimer) {
                     startLowPowerKeepAliveTimer();
@@ -2323,7 +2075,6 @@ static void onSystemPowerEvent(void *refcon, io_service_t service, natural_t mes
 // ============================================================================
 %ctor {
 @autoreleasepool {
-g_processStartTime = CFAbsoluteTimeGetCurrent();
 loadPrefs();
 
 // 确保 IOKit 已加载
