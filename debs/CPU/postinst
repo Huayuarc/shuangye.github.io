@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# CPUthermal postinst — 安装/升级脚本
+# 安装/升级完成后重启 thermalmonitord，使注入的 dylib 立即生效（launchd 会自动拉起进程）。
+
+# 兼容 rootless / roothide / rootful：从各已知路径定位 killall
+resolve_bin() {
+    for p in "$@"; do
+        if [ -x "$p" ]; then
+            printf '%s\n' "$p"
+            return 0
+        fi
+    done
+    printf '%s\n' "$1"
+}
+
+KILLALL="$(resolve_bin /var/jb/usr/bin/killall /var/jb/bin/killall /usr/bin/killall /bin/killall)"
+
+case "$1" in
+    configure)
+        # 配置完成（安装或升级）：重启 thermalmonitord 加载新 dylib
+        "$KILLALL" -q thermalmonitord 2>/dev/null || true
+        ;;
+    abort-upgrade|abort-remove|abort-deconfigure)
+        # 中断场景不做处理
+        ;;
+esac
+
+exit 0
