@@ -1,9 +1,0 @@
-{
-    Filter =     {
-        Executables =         (
-            thermalmonitord,
-            backboardd,
-            SpringBoard
-        );
-    };
-}
