@@ -3,10 +3,18 @@
 # build-push.sh — 推送源码/deb 到 GitHub Actions 编译
 # 支援 debs/*/ 多項目子目錄結構
 # 用法: 在 Filza 中点击执行，或终端直接运行
+# 新增：带PAT认证查询Actions构建状态，解决API限流
 #==========================================
 
 set -e
 export LC_ALL=C
+
+# 读取GitHub令牌（外部文件，避免明文硬编码）
+GITHUB_TOKEN_FILE="/var/mobile/.github_token"
+GITHUB_TOKEN=""
+if [ -f "$GITHUB_TOKEN_FILE" ]; then
+    GITHUB_TOKEN=$(cat "$GITHUB_TOKEN_FILE")
+fi
 
 # 实时进度输出（兼容 Filza 脚本运行器：写 stderr 保证即时显示）
 log() {
@@ -22,6 +30,76 @@ step() {
     echo ""
     echo "━━━ [$STEP/$TOTAL] $* ━━━"
     echo "━━━ [$STEP/$TOTAL] $* ━━━" >&2
+}
+
+# 【新增函数】带认证查询Actions构建状态（防限流）
+query_github_actions() {
+    local API_URL="https://api.github.com/repos/Huayuarc/shuangye.github.io/actions/runs?per_page=10"
+    local CURL_ARGS=(
+        -s
+        --connect-timeout 15
+        --max-time 30
+        --retry 2
+        --retry-delay 2
+    )
+    if [ -n "$GITHUB_TOKEN" ]; then
+        CURL_ARGS+=(-H "Authorization: token ${GITHUB_TOKEN}")
+        CURL_ARGS+=(-H "Accept: application/vnd.github+json")
+        CURL_ARGS+=(-H "X-GitHub-Api-Version: 2022-11-28")
+    fi
+    curl "${CURL_ARGS[@]}" "$API_URL"
+}
+
+# 【新增函数】轮询等待构建（带间隔防高频请求）
+wait_for_build() {
+    log "开始轮询监控GitHub Actions构建（间隔8秒，避免限流）"
+    local MAX_WAIT=600 # 最长等待10分钟
+    local WAIT_TIME=0
+    local POLL_INTERVAL=8
+
+    local CURL_FAIL_COUNT=0
+    while [ $WAIT_TIME -lt $MAX_WAIT ]; do
+        local RESP
+        local CURL_RC=0
+        # curl 超时/失败不中断脚本（set -e 豁免），记录失败次数后继续重试
+        if RESP=$(query_github_actions); then
+            CURL_RC=0
+        else
+            CURL_RC=$?
+        fi
+        if [ "$CURL_RC" -ne 0 ] || [ -z "$RESP" ]; then
+            CURL_FAIL_COUNT=$((CURL_FAIL_COUNT + 1))
+            log "[警告] GitHub API 请求失败 (rc=${CURL_RC})，第 ${CURL_FAIL_COUNT} 次"
+            if [ "$CURL_FAIL_COUNT" -ge 3 ]; then
+                log "[警告] 连续3次请求失败，可能网络异常。推送已成功，停止监控（不影响CI构建）"
+                break
+            fi
+            sleep 10
+            WAIT_TIME=$((WAIT_TIME + 10))
+            continue
+        fi
+        # 请求成功，重置失败计数
+        CURL_FAIL_COUNT=0
+        # 检测是否返回限流信息
+        if echo "$RESP" | grep -q "API rate limit exceeded"; then
+            log "[警告] GitHub API 限流，等待30秒后重试"
+            sleep 30
+            WAIT_TIME=$((WAIT_TIME + 30))
+            continue
+        fi
+        # 简易检测是否存在运行中任务（可自行扩展jq解析详细状态）
+        if echo "$RESP" | grep -q '"status":"in_progress"'; then
+            log "检测到构建正在运行，继续等待..."
+        else
+            log "构建任务已结束，可前往网页查看详情"
+            break
+        fi
+        sleep $POLL_INTERVAL
+        WAIT_TIME=$((WAIT_TIME + POLL_INTERVAL))
+    done
+    if [ $WAIT_TIME -ge $MAX_WAIT ]; then
+        log "[警告] 等待超时，请手动访问Actions页面确认构建状态"
+    fi
 }
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -42,7 +120,7 @@ DEBS_DIR="$SCRIPT_DIR/debs"
 cd "$DEBS_DIR"
 
 # 先计算总步骤
-TOTAL=10
+TOTAL=12 # 增加一步等待构建，步骤+1
 
 step "处理 git safe.directory"
 log "正在检查仓库权限..."
@@ -314,6 +392,13 @@ if git push --force 2>&1; then
     echo ""
     echo "  查看构建状态:"
     echo "  https://github.com/Huayuarc/shuangye.github.io/actions"
+    echo ""
+
+# ==========【新增步骤：推送完成后轮询监控构建】==========
+step "监控GitHub Actions构建进程"
+wait_for_build
+# ========================================================
+
     echo ""
     echo "  $(date '+%Y-%m-%d %H:%M:%S') 全部完成"
 else
