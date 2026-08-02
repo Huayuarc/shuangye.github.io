@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>title</key>
+	<string>CPUthermal</string>
+	<key>items</key>
+	<array>
+		<!-- ===================== 第1组: 功率模式 =====================
+		     说明: 无总开关 — 温控保护默认强制开启，面板不提供启用/关闭入口，
+		     避免用户误操作关闭导致温控失效。 -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>低功耗 = 省电并锁定 CPU 频率 2016MHz；解除温控 = 解除全部温控限制</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.huayuarc.CPUthermal/settingsChanged</string>
+			<key>cell</key>
+			<string>PSLinkListCell</string>
+			<key>default</key>
+			<string>fullPower</string>
+			<key>defaults</key>
+			<string>com.huayuarc.CPUthermal</string>
+			<key>key</key>
+			<string>powerMode</string>
+			<key>label</key>
+			<string>功率模式</string>
+			<key>validTitles</key>
+			<array>
+				<string>低功耗</string>
+				<string>解除温控</string>
+			</array>
+			<key>validValues</key>
+			<array>
+				<string>lowPower</string>
+				<string>fullPower</string>
+			</array>
+		</dict>
+
+		<!-- ===================== 第2组: 温度计警告 ===================== -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>开启后阻止系统因高温弹出全屏「iPhone 需要冷却」温度计警告。</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.huayuarc.CPUthermal</string>
+			<key>key</key>
+			<string>thermalBlockNotifPopup</string>
+			<key>label</key>
+			<string>屏蔽高温温度计警告</string>
+		</dict>
+
+		<!-- ===================== 第3组: 口袋过热 (HOT-IN-POCKET) =====================
+		     移植自 Battman-1.0.3.3 ThermalTunes 面板 TT_SECT_HIP
+		     通过 SCPreferences 写入 hipOverride/hipPersistentlyEnabled/simulateHip 控制 thermalmonitord 原生 HIP
+		     面板仅提供一个功能开关：开启 → hipOverride+hipPersistentlyEnabled=YES；关闭 → 全部写入 NO -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>屏幕关闭且不播放任何媒体时，自动降低 CPU 与 GPU 活动，防止设备在口袋中积热。此模式下功率模式控制让位于系统原生保护。</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.CPUthermal</string>
+			<key>key</key>
+			<string>hipEnabled</string>
+			<key>label</key>
+			<string>口袋过热保护</string>
+		</dict>
+
+		<!-- ===================== 第4组: 屏幕控制 ===================== -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>开启后阻止系统因温控主动调暗屏幕亮度，保持当前亮度不变。</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.huayuarc.CPUthermal</string>
+			<key>key</key>
+			<string>thermalPreventDimmingEnabled</string>
+			<key>label</key>
+			<string>防温控暗屏</string>
+		</dict>
+
+		<!-- ===================== 第5组: 操作 ===================== -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>操作</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>重启用户空间</string>
+			<key>action</key>
+			<string>usreboot</string>
+		</dict>
+
+		<!-- ===================== 第6组: 开源代码 ===================== -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>开源</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>GitHub be-huge/insulation</string>
+			<key>action</key>
+			<string>openSourceCode</string>
+		</dict>
+	</array>
+</dict>
+</plist>
