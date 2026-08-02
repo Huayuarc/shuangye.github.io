@@ -18,18 +18,12 @@
 #import <sys/sysctl.h>
 
 // ============================================================================
-// 进程判定（1.x 适配）：同一 dylib 按进程分流
-//   thermalmonitord        → 温控管理逻辑（现有全部功能）
-//   backboardd/SpringBoard → 亮度解锁（CBDisplay 钩子 + 亮度脉冲）
+// 进程判定：Filter 仅注入 thermalmonitord 与 Preferences（设置 App）。
+// 设置 App 内 %ctor 会因 isThermalMonitorProcess()==NO 直接跳过。
 // ============================================================================
 static BOOL isThermalMonitorProcess(void) {
     const char *name = getprogname();
     return name && strcmp(name, "thermalmonitord") == 0;
-}
-
-static BOOL isBrightnessHostProcess(void) {
-    const char *name = getprogname();
-    return name && (strcmp(name, "backboardd") == 0 || strcmp(name, "SpringBoard") == 0);
 }
 
 // ============================================================================
@@ -226,7 +220,6 @@ static void setKeepAliveInterval(double interval);
 static void applyLowPowerToApplePPMCPU(void);
 static void startFullPowerKeepAliveTimer(void);
 static void stopFullPowerKeepAliveTimer(void);
-static void refreshBrightnessState(void);
 // 前向声明：满血 IORegistry 写入使用，实体定义在下方 IOKit 钩子区
 static kern_return_t (*orig_IOServiceSetProperty)(io_service_t, CFStringRef, CFTypeRef);
 
@@ -1120,11 +1113,6 @@ NSString *mode = d[S("powerMode")] ?: S("fullPower");
 os_unfair_lock_lock(&g_modeLock);
 g_powerMode = [mode isEqualToString:S("lowPower")] ? CPUthermalPowerModeLow : CPUthermalPowerModeFull;
 os_unfair_lock_unlock(&g_modeLock);
-
-// 1.x 适配：读取完开关状态后触发一次亮度脉冲，
-// 强制系统立即按「无温控限制」的新状态重新渲染屏幕亮度。
-// 非 UI 进程（thermalmonitord）内部会被 refreshBrightnessState 自行跳过。
-refreshBrightnessState();
 }
 }
 
@@ -1158,7 +1146,7 @@ static int g_connCount = 0;
 static os_unfair_lock g_connLock = OS_UNFAIR_LOCK_INIT;  // 线程安全：保护 g_conns/g_connCount
 
 static void trackConnection(io_connect_t conn, BOOL thermal) {
-// 1.x 适配：非 thermalmonitord 进程（backboardd/SpringBoard）不追踪连接，
+// 仅 thermalmonitord 追踪连接，其他进程（设置 App）不追踪，
 // 使下方 IOConnectCallMethod 等 IOKit 拦截在此类进程中全部放行，避免误伤 UI 进程。
 if (!isThermalMonitorProcess()) return;
 os_unfair_lock_lock(&g_connLock);
@@ -1942,43 +1930,7 @@ static NSDictionary *patchThermalPlist(NSDictionary *dict) {
 
 %end
 
-// ============================================================================
-// 1.x 适配：CoreBrightness 亮度上限拦截（CBDisplay）
-//
-// 与上方「防温控暗屏」plist 补丁互为双保险：
-//   - plist 补丁：阻止 thermalmonitord 下发「调暗屏幕」的配置
-//   - CBDisplay 钩子：即使系统直接通过 CoreBrightness 下发热/亮度上限，
-//     也强制把上限锁为 1.0（100% 不受限）
-// 由同一开关 g_thermalPreventDimmingEnabled（设置面板「防温控暗屏」）控制。
-// 该类仅存在于加载 CoreBrightness 的 UI 进程（backboardd/SpringBoard）；
-// 在 thermalmonitord 中类不存在，钩子自动失效，无副作用。
-// ============================================================================
-@interface CBDisplay : NSObject
-- (void)setThermalLimit:(float)limit;
-- (void)setBrightnessLimit:(float)limit;
-@end
-
-%hook CBDisplay
-
-// 拦截温控亮度上限设定，锁死 100%
-- (void)setThermalLimit:(float)limit {
-    if (g_thermalPreventDimmingEnabled) {
-        %orig(1.0f);  // 1.0f = 100% 亮度上限，即不限制
-    } else {
-        %orig(limit);
-    }
-}
-
-// 拦截其他可能的系统级亮度强制限制
-- (void)setBrightnessLimit:(float)limit {
-    if (g_thermalPreventDimmingEnabled) {
-        %orig(1.0f);
-    } else {
-        %orig(limit);
-    }
-}
-
-%end
+// 防温控暗屏：由 thermalmonitord 内的 plist 补丁实现（见上方 %hook NSDictionary）
 
 // ============================================================================
 // C 函数钩子: _getConfigurationFor → ___New_getConfigurationFor___
@@ -2200,59 +2152,13 @@ static void onSystemPowerEvent(void *refcon, io_service_t service, natural_t mes
 }
 
 // ============================================================================
-// 1.x 适配：亮度脉冲 + 亮度设置通知回调（仅 backboardd/SpringBoard 生效）
-// ============================================================================
-
-// 亮度脉冲：重新读取当前屏幕真实亮度并赋回原值。
-// 由于 CBDisplay 的 setThermalLimit:/setBrightnessLimit: 已被锁定为 1.0，
-// 这次赋回会强制系统按「无温控上限」的新状态立刻重新渲染亮度，
-// 解决「开启防暗屏后亮度不能马上恢复」的问题。
-static void refreshBrightnessState(void) {
-    if (!isBrightnessHostProcess() || !g_thermalPreventDimmingEnabled) return;
-    dispatch_async(dispatch_get_main_queue(), ^{
-        @autoreleasepool {
-            CGFloat currentBrightness = [UIScreen mainScreen].brightness;
-            [[UIScreen mainScreen] setBrightness:currentBrightness];
-        }
-    });
-}
-
-// 收到 CC / 设置面板发来的开关或功率模式变化通知时，
-// 重新读取偏好并立即触发一次亮度脉冲。
-static void onBrightnessSettingsChanged(CFNotificationCenterRef center, void *observer, CFNotificationName name, const void *object, CFDictionaryRef userInfo) {
-    loadPrefs();
-    refreshBrightnessState();
-    NSLog(@"[CPUthermal] 亮度设置已更新，已触发亮度刷新");
-}
-
-// ============================================================================
 // %ctor — 构造函数（配置仅在进程启动时加载一次）
 // ============================================================================
 %ctor {
 @autoreleasepool {
 loadPrefs();
 
-// ==================== 1.x 适配：按进程分流 ====================
-// backboardd / SpringBoard：只初始化亮度解锁，不跑温控逻辑。
-// （现有全部 %hook ObjC 类仅 thermalmonitord 存在，钩子在此类进程中自动失效；
-//   trackConnection 已按进程拦截，IOKit 连接拦截在此类进程全部放行。）
-if (isBrightnessHostProcess()) {
-    CFNotificationCenterRef bc = CFNotificationCenterGetDarwinNotifyCenter();
-    if (bc) {
-        CFNotificationCenterAddObserver(bc, NULL, onBrightnessSettingsChanged,
-            (__bridge CFStringRef)S(kCPUthermalSettingsChangedNotifC),
-            NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
-        CFNotificationCenterAddObserver(bc, NULL, onBrightnessSettingsChanged,
-            (__bridge CFStringRef)S(kCPUthermalPowerModeChangedNotifC),
-            NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
-    }
-    // loadPrefs() 内部已调用 refreshBrightnessState()，此处再显式补一次初始脉冲
-    refreshBrightnessState();
-    NSLog(@"[CPUthermal] 亮度解锁已就绪（进程: %s，防暗屏:%d）", getprogname(), g_thermalPreventDimmingEnabled);
-    return;
-}
-
-// 非目标进程：防御性跳过
+// 非目标进程（如设置 App）：防御性跳过
 if (!isThermalMonitorProcess()) {
     return;
 }

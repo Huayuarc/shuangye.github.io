@@ -20,9 +20,6 @@ case "$1" in
     configure)
         # 配置完成（安装或升级）：重启 thermalmonitord 加载新 dylib
         "$KILLALL" -q thermalmonitord 2>/dev/null || true
-        # 1.x 适配：亮度解锁钩子注入 backboardd/SpringBoard，需重启 backboardd 才能生效
-        # （重启 backboardd 会触发一次 respring）
-        "$KILLALL" -q backboardd 2>/dev/null || true
         ;;
     abort-upgrade|abort-remove|abort-deconfigure)
         # 中断场景不做处理
