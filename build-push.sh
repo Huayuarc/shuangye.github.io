@@ -42,7 +42,7 @@ DEBS_DIR="$SCRIPT_DIR/debs"
 cd "$DEBS_DIR"
 
 # 先计算总步骤
-TOTAL=8
+TOTAL=10
 
 step "处理 git safe.directory"
 log "正在检查仓库权限..."
@@ -74,6 +74,8 @@ for dir in */; do
         THEOS_DIRS+=("$dir")
     fi
 done
+# 记录全部项目（含未变更），供旧包版本比对
+ALL_THEOS_PROJECTS=("${THEOS_PROJECTS[@]}")
 
 # 扫描根目录的 .deb 文件
 DEB_FILES=()
@@ -129,7 +131,45 @@ THEOS_PROJECTS=("${CHANGED_PROJECTS[@]}")
 HAS_THEOS=${#THEOS_PROJECTS[@]}
 HAS_DEB=${#DEB_FILES[@]}
 
-if [ "$HAS_THEOS" -eq 0 ] && [ "$HAS_DEB" -eq 0 ]; then
+step "检测旧版本包"
+# 对比 packages/ 中的 .deb 版本与源码 control 版本，找出旧版本包
+STALE_DEBS=()
+declare -A PKG_VER
+for p in "${ALL_THEOS_PROJECTS[@]}"; do
+    pkg=$(grep "^Package:" "$DEBS_DIR/$p/control" 2>/dev/null | awk '{print $2}')
+    ver=$(grep "^Version:" "$DEBS_DIR/$p/control" 2>/dev/null | awk '{print $2}')
+    [ -n "$pkg" ] && [ -n "$ver" ] && PKG_VER["$pkg"]="$ver"
+done
+for rel in $(git ls-files 'packages/*.deb'); do
+    base=$(basename "$rel" .deb)
+    id=${base%%_*}
+    ver=$(echo "$base" | cut -d_ -f2)
+    cur="${PKG_VER[$id]:-}"
+    if [ -z "$cur" ] || [ "$ver" != "$cur" ]; then
+        STALE_DEBS+=("$rel")
+    fi
+done
+for rel in $(git ls-files 'packages/*.deb.md5'); do
+    base=$(basename "$rel" .deb.md5)
+    id=${base%%_*}
+    ver=$(echo "$base" | cut -d_ -f2)
+    cur="${PKG_VER[$id]:-}"
+    if [ -z "$cur" ] || [ "$ver" != "$cur" ]; then
+        STALE_DEBS+=("$rel")
+    fi
+done
+HAS_STALE=${#STALE_DEBS[@]}
+if [ "$HAS_STALE" -gt 0 ]; then
+    echo ""
+    echo "  发现 ${HAS_STALE} 个旧版本包:"
+    for f in "${STALE_DEBS[@]}"; do
+        echo "    🗑 $(basename "$f")"
+    done
+else
+    echo "  无旧版本包"
+fi
+
+if [ "$HAS_THEOS" -eq 0 ] && [ "$HAS_DEB" -eq 0 ] && [ "$HAS_STALE" -eq 0 ]; then
     echo "  [提示] 没有项目有变更，无需推送"
     exit 0
 fi
@@ -185,6 +225,20 @@ done
 [ "$CLEAN_COUNT" -eq 0 ] && echo "  无缓存需要清理"
 echo ""
 
+step "清理旧版本包"
+if [ "$HAS_STALE" -eq 0 ]; then
+    echo "  无旧包需要清理"
+else
+    for f in "${STALE_DEBS[@]}"; do
+        rel="packages/$(basename "$f")"
+        # 从 git 索引移除（忽略本地 gitignore 限制）并删除文件
+        git rm --cached --ignore-unmatch "$rel" >/dev/null 2>&1 || true
+        rm -f "$f"
+        echo "  ✓ 已移除 $rel"
+    done
+fi
+echo ""
+
 step "提交变更"
 COMMIT_MSG=""
 if [ "$HAS_THEOS" -gt 0 ] && [ "$HAS_DEB" -eq 0 ]; then
@@ -214,6 +268,15 @@ else
     COMMIT_MSG="chore: 推送 - ${PARTS}"
 fi
 
+# 追加旧包移除信息
+if [ "$HAS_STALE" -gt 0 ]; then
+    STALE_NAMES=""
+    for f in "${STALE_DEBS[@]}"; do
+        STALE_NAMES="${STALE_NAMES}$(basename "$f") "
+    done
+    COMMIT_MSG="${COMMIT_MSG}[移除旧包: ${STALE_NAMES}]"
+fi
+
 echo "  提交信息: $COMMIT_MSG"
 echo "  执行 git add..."
 # 只添加有变更的项目目录，不 git add -A
@@ -225,19 +288,24 @@ for f in "${DEB_FILES[@]}"; do
     git add "debs/$f"
     echo "    ✓ added debs/$f"
 done
-echo "  执行 git commit..."
-if git commit -m "$COMMIT_MSG"; then
-    echo "  提交成功"
+if git diff --cached --quiet; then
+    echo "  没有暂存的变更，跳过提交"
 else
-    echo "  提交失败"
-    exit 1
+    echo "  执行 git commit..."
+    if git commit -m "$COMMIT_MSG"; then
+        echo "  提交成功"
+    else
+        echo "  提交失败"
+        exit 1
+    fi
 fi
 
 step "推送到 GitHub"
 log "正在连接 GitHub，准备推送..."
+echo "  (强推模式 git push --force，覆盖远端旧状态)"
 echo "  (推送可能需要几十秒，请耐心等待)"
 echo ""
-if git push 2>&1; then
+if git push --force 2>&1; then
     echo ""
     echo "============================================"
     echo "  推送成功！GitHub Actions 将自动编译"
