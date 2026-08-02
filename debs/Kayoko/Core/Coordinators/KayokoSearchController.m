@@ -1,0 +1,1333 @@
+//
+//  KayokoSearchController.m
+//  Kayoko
+//
+
+#import "KayokoSearchController.h"
+
+#import "KayokoApplicationMetadataProvider.h"
+#import "KayokoHistoryListView.h"
+#import "KayokoHistoryListViewController.h"
+#import "KayokoPasteboardManager.h"
+#import "KayokoPreferenceKeys.h"
+#import "KayokoSearchBar.h"
+#import "KayokoSearchCriteria.h"
+#import "KayokoSearchPresentationController.h"
+#import "KayokoSearchTokenListViewController.h"
+#import "KayokoTag.h"
+#import "KayokoTagCatalog.h"
+#import "KayokoTagColorFormatter.h"
+
+static NSTimeInterval const kKayokoSearchInputDebounceInterval = 0.15;
+
+NS_ASSUME_NONNULL_BEGIN
+
+@interface KayokoSearchController () <UISearchBarDelegate, KayokoSearchPresentationControllerDelegate,
+                                      KayokoSearchTokenListViewControllerDelegate>
+#pragma mark - Presentation
+
+@property(nonatomic, strong) KayokoSearchPresentationController *presentationController;
+@property(nonatomic, weak) KayokoHistoryListViewController *historyListViewController;
+@property(nonatomic, weak) KayokoHistoryListViewController *favoritesListViewController;
+@property(nonatomic, strong) UISearchBar *historySearchBar;
+@property(nonatomic, strong) UISearchBar *favoritesSearchBar;
+@property(nonatomic, strong) KayokoSearchTokenListViewController *historyTokenListViewController;
+@property(nonatomic, strong) KayokoSearchTokenListViewController *favoritesTokenListViewController;
+
+#pragma mark - Tokens
+
+@property(nonatomic, copy) NSArray<KayokoSearchToken *> *tagTokens;
+@property(nonatomic, copy) NSArray<KayokoSearchToken *> *appTokens;
+@property(nonatomic, strong) KayokoApplicationMetadataProvider *metadataProvider;
+
+#pragma mark - State
+
+@property(nonatomic, assign, getter=isSearchActive) BOOL searchActive;
+@property(nonatomic, assign) BOOL isResettingSearch;
+@property(nonatomic, assign) BOOL isEndingSearchTransition;
+@property(nonatomic, assign) NSUInteger searchRequestIdentifier;
+@property(nonatomic, copy, nullable) dispatch_block_t pendingTextSearchBlock;
+@property(nonatomic, strong, nullable) KayokoSearchCriteria *pendingTextSearchCriteria;
+@property(nonatomic, weak, nullable) UISearchBar *pendingTextSearchBar;
+@property(nonatomic, assign) BOOL loadingAppTokens;
+@property(nonatomic, assign) BOOL appTokensDirty;
+@property(nonatomic, assign) BOOL needsAppTokenReloadAfterCurrentLoad;
+@property(nonatomic, assign) NSUInteger appTokenLoadRequestIdentifier;
+@property(nonatomic, assign) BOOL deferredSearchTokenBootstrapPending;
+@property(nonatomic, assign, readwrite, getter=isFavoritesFilterPanelVisible) BOOL favoritesFilterPanelVisible;
+@property(nonatomic, assign) BOOL favoritesFilterShowsCategories;
+@property(nonatomic, assign) BOOL favoritesFilterShowsTags;
+@property(nonatomic, assign) BOOL favoritesFilterShowsApps;
+@end
+
+NS_ASSUME_NONNULL_END
+
+@implementation KayokoSearchController
+
+#pragma mark - Lifecycle
+
+- (instancetype)initWithContainerView:(UIView *)containerView
+                           headerView:(KayokoHeaderView *)headerView
+            historyListViewController:(KayokoHistoryListViewController *)historyListViewController
+          favoritesListViewController:(KayokoHistoryListViewController *)favoritesListViewController
+                 panGestureRecognizer:(UIPanGestureRecognizer *)panGestureRecognizer {
+    self = [super init];
+    if (self) {
+        _historyListViewController = historyListViewController;
+        _favoritesListViewController = favoritesListViewController;
+        _historySearchBar = [self newSearchBar];
+        _favoritesSearchBar = [self newSearchBar];
+        _historyTokenListViewController = [[KayokoSearchTokenListViewController alloc] init];
+        _favoritesTokenListViewController = [[KayokoSearchTokenListViewController alloc] init];
+        [_historyTokenListViewController setDelegate:self];
+        [_favoritesTokenListViewController setDelegate:self];
+        [_favoritesTokenListViewController setKeepsSelectedSectionsVisible:YES];
+        __weak typeof(self) weakSelf = self;
+        [_historyTokenListViewController setContentHeightDidChange:^{
+          [weakSelf updateSearchTokenHeaderHeights];
+        }];
+        [_favoritesTokenListViewController setContentHeightDidChange:^{
+          [weakSelf updateSearchTokenHeaderHeights];
+        }];
+        _tagTokens = @[];
+        _appTokens = @[];
+        _metadataProvider = [[KayokoApplicationMetadataProvider alloc] init];
+        _appTokensDirty = YES;
+        _favoritesFilterPanelVisible = kKayokoPreferenceKeyFavoritesFilterPanelVisibleDefaultValue;
+        _favoritesFilterShowsCategories = kKayokoPreferenceKeyFavoritesFilterShowsCategoriesDefaultValue;
+        _favoritesFilterShowsTags = kKayokoPreferenceKeyFavoritesFilterShowsTagsDefaultValue;
+        _favoritesFilterShowsApps = kKayokoPreferenceKeyFavoritesFilterShowsAppsDefaultValue;
+        [self loadFavoritesFilterPreferences];
+
+        _presentationController =
+            [[KayokoSearchPresentationController alloc] initWithContainerView:containerView
+                                                                   headerView:headerView
+                                                             historySearchBar:_historySearchBar
+                                                           favoritesSearchBar:_favoritesSearchBar
+                                                       historySearchTokenView:[_historyTokenListViewController view]
+                                                     favoritesSearchTokenView:[_favoritesTokenListViewController view]
+                                                             historyTableView:[historyListViewController tableView]
+                                                           favoritesTableView:[favoritesListViewController tableView]
+                                                         panGestureRecognizer:panGestureRecognizer];
+        [_presentationController setDelegate:self];
+
+        [self attachToListViewController:historyListViewController hidesSearchBar:YES];
+        [self applyFavoritesFilterSectionVisibility];
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(handleHistoryDidChangeNotification:)
+                                                     name:kKayokoPasteboardManagerHistoryDidChangeNotification
+                                                   object:nil];
+    }
+    return self;
+}
+
+- (UISearchBar *)newSearchBar {
+    UISearchBar *searchBar = [[KayokoSearchBar alloc] initWithFrame:CGRectZero];
+    [searchBar setPlaceholder:[[KayokoPasteboardManager localizationBundle] localizedStringForKey:@"Search"
+                                                                                            value:nil
+                                                                                            table:@"Tweak"]];
+    [searchBar setSearchBarStyle:UISearchBarStyleMinimal];
+    [searchBar setBackgroundImage:[[UIImage alloc] init]];
+    [searchBar setTintColor:[UIColor labelColor]];
+    [searchBar setDelegate:self];
+    [[searchBar searchTextField] addTarget:self
+                                    action:@selector(handleSearchTextFieldEditingChanged:)
+                          forControlEvents:UIControlEventEditingChanged];
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(handleSearchTextFieldTextDidChangeNotification:)
+                                                 name:UITextFieldTextDidChangeNotification
+                                               object:[searchBar searchTextField]];
+    return searchBar;
+}
+
+- (void)dealloc {
+    [self cancelPendingTextSearch];
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+}
+
+#pragma mark - Notifications
+
+- (void)handleHistoryDidChangeNotification:(NSNotification *)notification {
+    (void)notification;
+    [self invalidateAppTokensAndReloadIfActive];
+}
+
+- (void)handleApplicationMetadataChanged {
+    [self invalidateAppTokensAndReloadIfActive];
+}
+
+#pragma mark - View Lookup
+
+- (void)setPresentationMode:(KayokoPanelPresentationMode)presentationMode {
+    _presentationMode = presentationMode;
+    [[self presentationController] setPresentationMode:presentationMode];
+}
+
+- (KayokoHistoryListViewController *)activeListViewController {
+    return [[self delegate] activeListViewControllerForSearchController:self];
+}
+
+- (KayokoHistoryListView *)activeTableView {
+    return [[self activeListViewController] tableView];
+}
+
+- (CGFloat)searchHeaderHeight {
+    return [[self presentationController] searchHeaderHeight];
+}
+
+- (CGFloat)keyboardBottomInset {
+    return [[self presentationController] keyboardBottomInset];
+}
+
+- (UISearchBar *)searchBarForTableView:(KayokoHistoryListView *)tableView {
+    return tableView == [[self favoritesListViewController] tableView] ? [self favoritesSearchBar]
+                                                                       : [self historySearchBar];
+}
+
+- (KayokoHistoryListViewController *)listViewControllerForSearchBar:(UISearchBar *)searchBar {
+    return searchBar == [self favoritesSearchBar] ? [self favoritesListViewController]
+                                                  : [self historyListViewController];
+}
+
+- (UISearchBar *)activeSearchBar {
+    return [self searchBarForTableView:[self activeTableView]];
+}
+
+- (KayokoSearchTokenListViewController *)tokenListViewControllerForSearchBar:(UISearchBar *)searchBar {
+    return searchBar == [self favoritesSearchBar] ? [self favoritesTokenListViewController]
+                                                  : [self historyTokenListViewController];
+}
+
+- (KayokoSearchTokenListViewController *)tokenListViewControllerForListViewController:
+    (KayokoHistoryListViewController *)listViewController {
+    return listViewController == [self favoritesListViewController] ? [self favoritesTokenListViewController]
+                                                                    : [self historyTokenListViewController];
+}
+
+#pragma mark - Token Matching
+
+- (BOOL)tokenArray:(NSArray<KayokoSearchToken *> *)left
+    isDisplayEqualToTokenArray:(NSArray<KayokoSearchToken *> *)right {
+    if ([left count] != [right count]) {
+        return NO;
+    }
+
+    for (NSUInteger index = 0; index < [left count]; index++) {
+        if (![left[index] isDisplayEqualToToken:right[index]]) {
+            return NO;
+        }
+    }
+    return YES;
+}
+
+- (KayokoSearchToken *)tokenWithType:(NSString *)type
+                               value:(NSString *)value
+                            inTokens:(NSArray<KayokoSearchToken *> *)tokens {
+    if ([value length] == 0) {
+        return nil;
+    }
+
+    for (KayokoSearchToken *token in tokens) {
+        if ([[token type] isEqualToString:type] && [[token value] isEqualToString:value]) {
+            return token;
+        }
+    }
+    return nil;
+}
+
+- (NSString *)appDisplaySignatureForBundleIdentifier:(NSString *)bundleIdentifier title:(NSString *)title {
+    BOOL installed = [[self metadataProvider] hasApplicationForBundleIdentifier:bundleIdentifier];
+    return [NSString stringWithFormat:@"installed=%@;title=%@", installed ? @"1" : @"0", title ?: @""];
+}
+
+- (KayokoSearchToken *)selectedCategoryTokenForCriteria:(KayokoSearchCriteria *)criteria
+                                    tokenListController:(KayokoSearchTokenListViewController *)tokenListController {
+    (void)tokenListController;
+    NSString *categoryValue = [criteria categoryValue];
+    if ([categoryValue length] == 0) {
+        return nil;
+    }
+
+    NSBundle *bundle = [KayokoPasteboardManager localizationBundle];
+    NSDictionary<NSString *, NSDictionary<NSString *, NSString *> *> *metadata = @{
+        kKayokoSearchCategoryText :
+            @{@"title" : [bundle localizedStringForKey:@"Text" value:nil table:@"Tweak"], @"image" : @"text.alignleft"},
+        kKayokoSearchCategoryLink :
+            @{@"title" : [bundle localizedStringForKey:@"Links" value:nil table:@"Tweak"], @"image" : @"link"},
+        kKayokoSearchCategoryPhone : @{
+            @"title" : [bundle localizedStringForKey:@"Phone Numbers" value:nil table:@"Tweak"],
+            @"image" : @"phone.fill"
+        },
+        kKayokoSearchCategoryDate :
+            @{@"title" : [bundle localizedStringForKey:@"Dates" value:nil table:@"Tweak"], @"image" : @"calendar"},
+        kKayokoSearchCategoryFlight :
+            @{@"title" : [bundle localizedStringForKey:@"Flights" value:nil table:@"Tweak"], @"image" : @"airplane"},
+        kKayokoSearchCategoryAddress : @{
+            @"title" : [bundle localizedStringForKey:@"Addresses" value:nil table:@"Tweak"],
+            @"image" : @"mappin.and.ellipse"
+        },
+        kKayokoSearchCategoryImage :
+            @{@"title" : [bundle localizedStringForKey:@"Images" value:nil table:@"Tweak"], @"image" : @"photo.fill"}
+    };
+    NSDictionary<NSString *, NSString *> *tokenMetadata = metadata[categoryValue];
+    if (!tokenMetadata) {
+        return nil;
+    }
+    return [KayokoSearchToken tokenWithType:kKayokoSearchTokenTypeCategory
+                                      value:categoryValue
+                                      title:tokenMetadata[@"title"]
+                                  imageName:tokenMetadata[@"image"]];
+}
+
+- (KayokoSearchToken *)selectedAppTokenForCriteria:(KayokoSearchCriteria *)criteria {
+    NSString *bundleIdentifier = [criteria appBundleIdentifier];
+    if ([bundleIdentifier length] == 0) {
+        return nil;
+    }
+    return [self tokenWithType:kKayokoSearchTokenTypeApp value:bundleIdentifier inTokens:[self appTokens]];
+}
+
+- (KayokoSearchToken *)selectedTagTokenForCriteria:(KayokoSearchCriteria *)criteria {
+    NSString *tagUUID = [criteria tagUUID];
+    if ([tagUUID length] == 0) {
+        return nil;
+    }
+    return [self tokenWithType:kKayokoSearchTokenTypeTag value:tagUUID inTokens:[self tagTokens]];
+}
+
+- (UIImage *)iconForSearchToken:(KayokoSearchToken *)token {
+    if ([[token type] isEqualToString:kKayokoSearchTokenTypeApp]) {
+        return [[self metadataProvider] smallIconForBundleIdentifier:[token value]];
+    }
+    if ([[token type] isEqualToString:kKayokoSearchTokenTypeTag]) {
+        return [KayokoTagColorFormatter dotImageWithHexColor:[token displaySignature]
+                                                    diameter:14.0
+                                              canvasDiameter:20
+                                                 borderWidth:1.25];
+    }
+    if ([[token imageName] length] > 0) {
+        return [UIImage systemImageNamed:[token imageName]];
+    }
+    return nil;
+}
+
+#pragma mark - Search Token Sync
+
+- (NSArray<KayokoSearchToken *> *)searchTokensForCriteria:(KayokoSearchCriteria *)criteria
+                                      tokenListController:(KayokoSearchTokenListViewController *)tokenListController {
+    NSMutableArray<KayokoSearchToken *> *searchTokens = [[NSMutableArray alloc] init];
+    NSArray<KayokoSearchToken *> *tokens = @[
+        [self selectedCategoryTokenForCriteria:criteria tokenListController:tokenListController] ?: (id)[NSNull null],
+        [self selectedTagTokenForCriteria:criteria] ?: (id)[NSNull null],
+        [self selectedAppTokenForCriteria:criteria] ?: (id)[NSNull null]
+    ];
+    for (id object in tokens) {
+        if ([object isKindOfClass:[KayokoSearchToken class]]) {
+            [searchTokens addObject:object];
+        }
+    }
+    return searchTokens;
+}
+
+- (NSArray<UISearchToken *> *)searchFieldTokensForSearchTokens:(NSArray<KayokoSearchToken *> *)tokens {
+    NSMutableArray<UISearchToken *> *searchTokens = [[NSMutableArray alloc] init];
+    for (KayokoSearchToken *token in tokens) {
+        UIImage *icon = [self iconForSearchToken:token];
+        UISearchToken *searchToken = [UISearchToken tokenWithIcon:icon text:[token title]];
+        [searchToken setRepresentedObject:token];
+        [searchTokens addObject:searchToken];
+    }
+    return searchTokens;
+}
+
+- (BOOL)searchTextField:(UISearchTextField *)textField hasSearchTokens:(NSArray<KayokoSearchToken *> *)tokens {
+    NSArray<UISearchToken *> *currentSearchTokens = [textField tokens];
+    if ([currentSearchTokens count] != [tokens count]) {
+        return NO;
+    }
+
+    for (NSUInteger index = 0; index < [currentSearchTokens count]; index++) {
+        id representedObject = [currentSearchTokens[index] representedObject];
+        if (![representedObject isKindOfClass:[KayokoSearchToken class]] ||
+            ![(KayokoSearchToken *)representedObject isDisplayEqualToToken:tokens[index]]) {
+            return NO;
+        }
+    }
+    return YES;
+}
+
+- (BOOL)syncSearchTokensForSearchBar:(UISearchBar *)searchBar criteria:(KayokoSearchCriteria *)criteria {
+    UITextField *textField = [searchBar searchTextField];
+    if (![textField respondsToSelector:@selector(setTokens:)]) {
+        return NO;
+    }
+    UISearchTextField *searchTextField = (UISearchTextField *)textField;
+    // The favorites filter shows its selection through the highlighted filter chips, not the search
+    // bar, so keep the favorites search bar free of filter tokens for consistent behavior.
+    if (searchBar == [self favoritesSearchBar]) {
+        if ([[searchTextField tokens] count] == 0) {
+            return NO;
+        }
+        [searchTextField setTokens:@[]];
+        return YES;
+    }
+    KayokoSearchTokenListViewController *tokenListController = [self tokenListViewControllerForSearchBar:searchBar];
+    NSArray<KayokoSearchToken *> *tokens = [self searchTokensForCriteria:criteria
+                                                     tokenListController:tokenListController];
+    if ([self searchTextField:searchTextField hasSearchTokens:tokens]) {
+        return NO;
+    }
+
+    [searchTextField setTokens:[self searchFieldTokensForSearchTokens:tokens]];
+    return YES;
+}
+
+- (KayokoSearchCriteria *)criteriaFromSearchBar:(UISearchBar *)searchBar
+                             listViewController:(KayokoHistoryListViewController *)listViewController {
+    KayokoSearchCriteria *criteria =
+        [[listViewController searchCriteria] criteriaByReplacingSearchText:[searchBar text]];
+    // The favorites filter no longer mirrors its selection into the search bar tokens (the filter
+    // chips highlight the active filter instead), so keep the stored filters and only take the
+    // search text from the bar. Reading tokens back here would wipe the filters on every refresh.
+    if ([self listViewControllerIsFavorites:listViewController]) {
+        return criteria;
+    }
+    NSArray<UISearchToken *> *tokens = [(UISearchTextField *)[searchBar searchTextField] tokens];
+    BOOL hasCategoryToken = NO;
+    BOOL hasTagToken = NO;
+    BOOL hasAppToken = NO;
+    NSString *categoryValue = nil;
+    NSString *tagUUID = nil;
+    NSString *appBundleIdentifier = nil;
+    for (UISearchToken *searchToken in tokens) {
+        KayokoSearchToken *token = [searchToken representedObject];
+        if (![token isKindOfClass:[KayokoSearchToken class]]) {
+            continue;
+        }
+        if ([[token type] isEqualToString:kKayokoSearchTokenTypeCategory] && !hasCategoryToken) {
+            categoryValue = [token value];
+            hasCategoryToken = YES;
+        } else if ([[token type] isEqualToString:kKayokoSearchTokenTypeTag] && !hasTagToken) {
+            tagUUID = [token value];
+            hasTagToken = YES;
+        } else if ([[token type] isEqualToString:kKayokoSearchTokenTypeApp] && !hasAppToken) {
+            appBundleIdentifier = [token value];
+            hasAppToken = YES;
+        }
+    }
+    return [KayokoSearchCriteria criteriaWithSearchText:[criteria searchText]
+                                          categoryValue:categoryValue
+                                    appBundleIdentifier:appBundleIdentifier
+                                                tagUUID:tagUUID];
+}
+
+#pragma mark - Favorites Filter Panel
+
+- (void)setFavoritesFilterPanelVisible:(BOOL)favoritesFilterPanelVisible {
+    if (_favoritesFilterPanelVisible == favoritesFilterPanelVisible) {
+        [self updateSearchTokenHeaderHeights];
+        return;
+    }
+    _favoritesFilterPanelVisible = favoritesFilterPanelVisible;
+    [self persistFavoritesFilterPreferences];
+    if (favoritesFilterPanelVisible) {
+        [self bootstrapSearchTokenSourcesIfNeeded];
+    }
+    [self applyFavoritesFilterSectionVisibility];
+    [self updateAllTokenLists];
+    [self pruneFavoritesFilterCriteriaForHiddenSections];
+}
+
+- (void)toggleFavoritesFilterPanelVisible {
+    [self setFavoritesFilterPanelVisible:![self isFavoritesFilterPanelVisible]];
+}
+
+- (void)setFavoritesFilterShowsCategories:(BOOL)showsCategories {
+    if (_favoritesFilterShowsCategories == showsCategories) {
+        return;
+    }
+    _favoritesFilterShowsCategories = showsCategories;
+    [self persistFavoritesFilterPreferences];
+    [self applyFavoritesFilterSectionVisibility];
+    [self updateAllTokenLists];
+    [self pruneFavoritesFilterCriteriaForHiddenSections];
+}
+
+- (void)setFavoritesFilterShowsTags:(BOOL)showsTags {
+    if (_favoritesFilterShowsTags == showsTags) {
+        return;
+    }
+    _favoritesFilterShowsTags = showsTags;
+    [self persistFavoritesFilterPreferences];
+    if (showsTags) {
+        [self bootstrapSearchTokenSourcesIfNeeded];
+    }
+    [self applyFavoritesFilterSectionVisibility];
+    [self updateAllTokenLists];
+    [self pruneFavoritesFilterCriteriaForHiddenSections];
+}
+
+- (void)setFavoritesFilterShowsApps:(BOOL)showsApps {
+    if (_favoritesFilterShowsApps == showsApps) {
+        return;
+    }
+    _favoritesFilterShowsApps = showsApps;
+    [self persistFavoritesFilterPreferences];
+    if (showsApps) {
+        [self bootstrapSearchTokenSourcesIfNeeded];
+    }
+    [self applyFavoritesFilterSectionVisibility];
+    [self updateAllTokenLists];
+    [self pruneFavoritesFilterCriteriaForHiddenSections];
+}
+
+#pragma mark - Layout
+
+- (void)layout {
+    [[self presentationController] layout];
+}
+
+- (void)attachToListViewController:(KayokoHistoryListViewController *)listViewController
+                    hidesSearchBar:(BOOL)hidesSearchBar {
+    UISearchBar *searchBar = [self searchBarForTableView:[listViewController tableView]];
+    if ([self pendingTextSearchBar] && [self pendingTextSearchBar] != searchBar) {
+        [self cancelPendingTextSearch];
+    }
+    [[self presentationController] attachToTableView:[listViewController tableView] hidesSearchBar:hidesSearchBar];
+}
+
+- (BOOL)listViewControllerIsFavorites:(KayokoHistoryListViewController *)listViewController {
+    return listViewController == [self favoritesListViewController] ||
+           [[listViewController historyKey] isEqualToString:kKayokoHistoryKeyFavorites];
+}
+
+- (void)loadFavoritesFilterPreferences {
+    NSUserDefaults *defaults = [[NSUserDefaults alloc] initWithSuiteName:kKayokoPreferencesIdentifier];
+    id panelVisible = [defaults objectForKey:kKayokoPreferenceKeyFavoritesFilterPanelVisible];
+    if (panelVisible != nil) {
+        _favoritesFilterPanelVisible = [panelVisible boolValue];
+    }
+    id showsCategories = [defaults objectForKey:kKayokoPreferenceKeyFavoritesFilterShowsCategories];
+    if (showsCategories != nil) {
+        _favoritesFilterShowsCategories = [showsCategories boolValue];
+    }
+    id showsTags = [defaults objectForKey:kKayokoPreferenceKeyFavoritesFilterShowsTags];
+    if (showsTags != nil) {
+        _favoritesFilterShowsTags = [showsTags boolValue];
+    }
+    id showsApps = [defaults objectForKey:kKayokoPreferenceKeyFavoritesFilterShowsApps];
+    if (showsApps != nil) {
+        _favoritesFilterShowsApps = [showsApps boolValue];
+    }
+}
+
+- (void)persistFavoritesFilterPreferences {
+    NSUserDefaults *defaults = [[NSUserDefaults alloc] initWithSuiteName:kKayokoPreferencesIdentifier];
+    [defaults setBool:[self isFavoritesFilterPanelVisible] forKey:kKayokoPreferenceKeyFavoritesFilterPanelVisible];
+    [defaults setBool:[self favoritesFilterShowsCategories] forKey:kKayokoPreferenceKeyFavoritesFilterShowsCategories];
+    [defaults setBool:[self favoritesFilterShowsTags] forKey:kKayokoPreferenceKeyFavoritesFilterShowsTags];
+    [defaults setBool:[self favoritesFilterShowsApps] forKey:kKayokoPreferenceKeyFavoritesFilterShowsApps];
+}
+
+- (void)applyFavoritesFilterSectionVisibility {
+    [[self historyTokenListViewController] setShowsCategorySectionEnabled:NO];
+    [[self historyTokenListViewController] setShowsTagSectionEnabled:NO];
+    [[self historyTokenListViewController] setShowsAppSectionEnabled:NO];
+    [[self favoritesTokenListViewController] setShowsCategorySectionEnabled:[self favoritesFilterShowsCategories]];
+    [[self favoritesTokenListViewController] setShowsTagSectionEnabled:[self favoritesFilterShowsTags]];
+    [[self favoritesTokenListViewController] setShowsAppSectionEnabled:[self favoritesFilterShowsApps]];
+}
+
+// When a favorites filter section is hidden (its eye toggle turned off, or the whole panel closed),
+// a selection made in that section would keep filtering the list silently even though the chip is
+// gone. Drop any now-hidden selection so hiding a section restores the corresponding content.
+- (void)pruneFavoritesFilterCriteriaForHiddenSections {
+    KayokoHistoryListViewController *favoritesListViewController = [self favoritesListViewController];
+    if (!favoritesListViewController) {
+        return;
+    }
+    KayokoSearchCriteria *criteria = [favoritesListViewController searchCriteria];
+    BOOL panelVisible = [self isFavoritesFilterPanelVisible];
+    NSString *categoryValue =
+        (panelVisible && [self favoritesFilterShowsCategories]) ? [criteria categoryValue] : nil;
+    NSString *tagUUID = (panelVisible && [self favoritesFilterShowsTags]) ? [criteria tagUUID] : nil;
+    NSString *appBundleIdentifier =
+        (panelVisible && [self favoritesFilterShowsApps]) ? [criteria appBundleIdentifier] : nil;
+    KayokoSearchCriteria *prunedCriteria = [KayokoSearchCriteria criteriaWithSearchText:[criteria searchText]
+                                                                          categoryValue:categoryValue
+                                                                    appBundleIdentifier:appBundleIdentifier
+                                                                                tagUUID:tagUUID];
+    if ([prunedCriteria isEqualToCriteria:criteria]) {
+        return;
+    }
+    [self applySearchCriteria:prunedCriteria toListViewController:favoritesListViewController];
+}
+
+- (BOOL)shouldShowTokenListForListViewController:(KayokoHistoryListViewController *)listViewController {
+    // Filters are favorites-only. They stay available during search so remaining categories
+    // can be stacked; each section hides itself once its own token is already selected.
+    // While a search is being torn down (cancel/x), keep them hidden so they never flash during
+    // the exit animation before settling into the final browse state.
+    if ([self isEndingSearchTransition]) {
+        return NO;
+    }
+    if (![self listViewControllerIsFavorites:listViewController]) {
+        return NO;
+    }
+    if (![self isFavoritesFilterPanelVisible]) {
+        return NO;
+    }
+    return [self favoritesFilterShowsCategories] || [self favoritesFilterShowsTags] || [self favoritesFilterShowsApps];
+}
+
+- (void)updateSearchTokenHeaderHeights {
+    [self updateSearchTokenHeaderHeightForListViewController:[self historyListViewController]];
+    [self updateSearchTokenHeaderHeightForListViewController:[self favoritesListViewController]];
+    [[self presentationController] updateSearchTokenViews];
+}
+
+- (void)updateSearchTokenHeaderHeightForListViewController:(KayokoHistoryListViewController *)listViewController {
+    KayokoSearchTokenListViewController *tokenListController =
+        [self tokenListViewControllerForListViewController:listViewController];
+    UIView *tokenView = [tokenListController view];
+    BOOL showsTokenList = [self shouldShowTokenListForListViewController:listViewController];
+    CGFloat width = CGRectGetWidth([[listViewController tableView] bounds]);
+    CGFloat height = showsTokenList ? [tokenListController preferredContentHeightForWidth:width] : 0;
+    [tokenView setHidden:height <= 0];
+    [tokenView setFrame:CGRectMake(0, 0, width, height)];
+}
+
+- (void)updateTokenListForListViewController:(KayokoHistoryListViewController *)listViewController {
+    KayokoSearchTokenListViewController *tokenListController =
+        [self tokenListViewControllerForListViewController:listViewController];
+    if ([self listViewControllerIsFavorites:listViewController]) {
+        [tokenListController setShowsCategorySectionEnabled:[self favoritesFilterShowsCategories]];
+        [tokenListController setShowsTagSectionEnabled:[self favoritesFilterShowsTags]];
+        [tokenListController setShowsAppSectionEnabled:[self favoritesFilterShowsApps]];
+    } else {
+        [tokenListController setShowsCategorySectionEnabled:NO];
+        [tokenListController setShowsTagSectionEnabled:NO];
+        [tokenListController setShowsAppSectionEnabled:NO];
+    }
+    [tokenListController updateWithSearchCriteria:[listViewController searchCriteria]
+                                        tagTokens:[self tagTokens]
+                                        appTokens:[self appTokens]];
+}
+
+- (void)updateAllTokenLists {
+    [self updateTokenListForListViewController:[self historyListViewController]];
+    [self updateTokenListForListViewController:[self favoritesListViewController]];
+    [self updateSearchTokenHeaderHeights];
+}
+
+- (void)resetSearchSessionState {
+    [[self historyTokenListViewController] resetSearchSessionState];
+    [[self favoritesTokenListViewController] resetSearchSessionState];
+}
+
+- (void)syncSearchBarsAfterTokenSourceChange {
+    if (![self isSearchActive]) {
+        return;
+    }
+
+    [self syncSearchBarForListViewController:[self historyListViewController]];
+    [self syncSearchBarForListViewController:[self favoritesListViewController]];
+
+    KayokoHistoryListViewController *activeListViewController = [self activeListViewController];
+    UISearchBar *activeSearchBar = [self searchBarForTableView:[activeListViewController tableView]];
+    KayokoSearchCriteria *criteria = [self criteriaFromSearchBar:activeSearchBar
+                                              listViewController:activeListViewController];
+    if (![criteria isEqualToCriteria:[activeListViewController searchCriteria]]) {
+        [self applySearchCriteria:criteria toListViewController:activeListViewController];
+        return;
+    }
+
+    [self updateTokenListForListViewController:activeListViewController];
+    [self updateSearchTokenHeaderHeights];
+}
+
+#pragma mark - Token Loading
+
+- (BOOL)reloadTagTokens {
+    // Prefer the in-memory catalog during interactive search; force disk reloads only when
+    // history/metadata invalidation paths call through here after external changes.
+    NSArray<KayokoTag *> *tags = [[KayokoTagCatalog sharedCatalog] reloadTagsForcingDiskRead:NO];
+    NSMutableArray<KayokoSearchToken *> *tagTokens = [[NSMutableArray alloc] initWithCapacity:[tags count]];
+    for (KayokoTag *tag in tags) {
+        if ([[tag uuid] length] == 0) {
+            continue;
+        }
+        [tagTokens addObject:[KayokoSearchToken tokenWithType:kKayokoSearchTokenTypeTag
+                                                        value:[tag uuid]
+                                                        title:[tag title]
+                                                    imageName:nil
+                                             displaySignature:([KayokoTag normalizedHexColorFromString:[tag hexColor]]
+                                                                   ?: @"#00000000")]];
+    }
+    if ([self tokenArray:[self tagTokens] isDisplayEqualToTokenArray:tagTokens]) {
+        return NO;
+    }
+    [self setTagTokens:tagTokens];
+    return YES;
+}
+
+- (NSArray<KayokoSearchToken *> *)appTokensFromBundleIdentifiers:(NSArray<NSString *> *)bundleIdentifiers {
+    NSMutableArray<NSString *> *installedBundleIdentifiers = [[NSMutableArray alloc] init];
+    for (NSString *bundleIdentifier in bundleIdentifiers) {
+        if ([[self metadataProvider] hasApplicationForBundleIdentifier:bundleIdentifier]) {
+            [installedBundleIdentifiers addObject:bundleIdentifier];
+        }
+    }
+
+    NSArray<NSString *> *sortedBundleIdentifiers =
+        [installedBundleIdentifiers sortedArrayUsingComparator:^NSComparisonResult(NSString *left, NSString *right) {
+          NSString *leftName = [[self metadataProvider] displayNameForBundleIdentifier:left];
+          NSString *rightName = [[self metadataProvider] displayNameForBundleIdentifier:right];
+          NSComparisonResult result = [leftName localizedStandardCompare:rightName];
+          return result == NSOrderedSame ? [left localizedStandardCompare:right] : result;
+        }];
+    NSMutableArray<KayokoSearchToken *> *appTokens =
+        [[NSMutableArray alloc] initWithCapacity:[sortedBundleIdentifiers count]];
+    for (NSString *bundleIdentifier in sortedBundleIdentifiers) {
+        NSString *title = [[self metadataProvider] displayNameForBundleIdentifier:bundleIdentifier];
+        [appTokens
+            addObject:[KayokoSearchToken tokenWithType:kKayokoSearchTokenTypeApp
+                                                 value:bundleIdentifier
+                                                 title:title
+                                             imageName:nil
+                                      displaySignature:[self appDisplaySignatureForBundleIdentifier:bundleIdentifier
+                                                                                              title:title]]];
+    }
+    return appTokens;
+}
+
+- (void)finishLoadingAppTokensAndReloadIfNeeded {
+    BOOL shouldReload = [self needsAppTokenReloadAfterCurrentLoad] || [self appTokensDirty];
+    [self setNeedsAppTokenReloadAfterCurrentLoad:NO];
+    if (shouldReload) {
+        [self setAppTokensDirty:YES];
+        [self loadAppTokensIfNeeded];
+    }
+}
+
+- (void)invalidateAppTokensAndReloadIfActive {
+    [self setAppTokensDirty:YES];
+    if ([self loadingAppTokens]) {
+        [self setNeedsAppTokenReloadAfterCurrentLoad:YES];
+        return;
+    }
+    if ([self isSearchActive]) {
+        [self loadAppTokensIfNeeded];
+    }
+}
+
+- (void)loadAppTokensIfNeeded {
+    if (![self appTokensDirty]) {
+        return;
+    }
+    if ([self loadingAppTokens]) {
+        [self setNeedsAppTokenReloadAfterCurrentLoad:YES];
+        return;
+    }
+    [self setAppTokensDirty:NO];
+    [self setLoadingAppTokens:YES];
+    NSUInteger requestIdentifier = [self appTokenLoadRequestIdentifier] + 1;
+    [self setAppTokenLoadRequestIdentifier:requestIdentifier];
+    __weak typeof(self) weakSelf = self;
+    [[KayokoPasteboardManager sharedInstance]
+        availableSearchAppBundleIdentifiersWithCompletion:^(NSArray<NSString *> *bundleIdentifiers, NSError *error) {
+          __strong typeof(weakSelf) strongSelf = weakSelf;
+          if (!strongSelf) {
+              return;
+          }
+          [strongSelf setLoadingAppTokens:NO];
+          if ([strongSelf appTokenLoadRequestIdentifier] != requestIdentifier) {
+              return;
+          }
+          if (error) {
+              [strongSelf setAppTokensDirty:YES];
+              [[strongSelf delegate] searchController:strongSelf didFailLoadingSearchWithError:error];
+              return;
+          }
+
+          NSArray<KayokoSearchToken *> *appTokens = [strongSelf appTokensFromBundleIdentifiers:bundleIdentifiers];
+          if (![strongSelf tokenArray:[strongSelf appTokens] isDisplayEqualToTokenArray:appTokens]) {
+              [strongSelf setAppTokens:appTokens];
+              [strongSelf updateAllTokenLists];
+              [strongSelf syncSearchBarsAfterTokenSourceChange];
+          }
+          [strongSelf finishLoadingAppTokensAndReloadIfNeeded];
+        }];
+}
+
+#pragma mark - Search Application
+
+- (void)cancelPendingTextSearch {
+    dispatch_block_t block = [self pendingTextSearchBlock];
+    if (block) {
+        dispatch_block_cancel(block);
+    }
+    [self setPendingTextSearchBlock:nil];
+    [self setPendingTextSearchCriteria:nil];
+    [self setPendingTextSearchBar:nil];
+}
+
+- (void)invalidatePendingSearchRequests {
+    [self cancelPendingTextSearch];
+    [self setSearchRequestIdentifier:[self searchRequestIdentifier] + 1];
+}
+
+// Whether the favorites search bar is hidden right now (search inactive). Captured before a filter
+// reload so we can keep it hidden afterwards without ever disturbing a bar the user pulled down.
+- (BOOL)favoritesSearchBarHiddenBeforeReload:(KayokoHistoryListViewController *)listViewController {
+    if ([self isSearchActive] || ![self listViewControllerIsFavorites:listViewController]) {
+        return NO;
+    }
+    return [[listViewController tableView] isSearchBarHiddenAtCurrentContentOffset];
+}
+
+// After a favorites filter reload, restore the search bar to the hidden position — but only if it
+// was hidden before the reload (wasHidden). Selecting a filter must never reveal it just because
+// the filtered list is short; a bar the user deliberately pulled down is left alone.
+- (void)keepFavoritesSearchBarHidden:(BOOL)wasHidden
+                forListViewController:(KayokoHistoryListViewController *)listViewController {
+    if (!wasHidden || [self isSearchActive] || ![self listViewControllerIsFavorites:listViewController]) {
+        return;
+    }
+    [[listViewController tableView] keepSearchBarHiddenAfterReload];
+}
+
+- (void)applySearchCriteria:(KayokoSearchCriteria *)criteria
+       toListViewController:(KayokoHistoryListViewController *)listViewController {
+    [self cancelPendingTextSearch];
+    // Capture the search bar's hidden state before any reload so a short filtered list can't reveal
+    // it. Selecting a filter only reloads list data — the search bar is a separate surface.
+    BOOL searchBarWasHidden = [self favoritesSearchBarHiddenBeforeReload:listViewController];
+    // Favorites filter chips can apply filters even when the search field is inactive.
+    if (![self isSearchActive] && ![criteria hasActiveFilters]) {
+        [self invalidatePendingSearchRequests];
+        if ([listViewController hasActiveSearch] || [listViewController isBrowsingSearchTokens]) {
+            [listViewController clearSearch];
+        }
+        [self updateTokenListForListViewController:listViewController];
+        [self updateSearchTokenHeaderHeights];
+        [self keepFavoritesSearchBarHidden:searchBarWasHidden forListViewController:listViewController];
+        return;
+    }
+
+    if (![criteria hasActiveFilters]) {
+        [self invalidatePendingSearchRequests];
+        [listViewController showSearchTokensWithFullListForCriteria:criteria];
+        [self updateTokenListForListViewController:listViewController];
+        [self updateSearchTokenHeaderHeights];
+        return;
+    }
+
+    NSUInteger requestIdentifier = [self searchRequestIdentifier] + 1;
+    [self setSearchRequestIdentifier:requestIdentifier];
+    [listViewController beginApplyingSearchCriteria:criteria];
+    [self updateTokenListForListViewController:listViewController];
+    [self updateSearchTokenHeaderHeights];
+    __weak typeof(self) weakSelf = self;
+    [[KayokoPasteboardManager sharedInstance]
+        getItemsFromHistoryWithKey:[listViewController historyKey]
+                    searchCriteria:criteria
+                        completion:^(NSMutableArray<NSDictionary<NSString *, id> *> *items, NSError *error) {
+                          __strong typeof(weakSelf) strongSelf = weakSelf;
+                          if (!strongSelf || [strongSelf searchRequestIdentifier] != requestIdentifier) {
+                              return;
+                          }
+                          if (error) {
+                              [[strongSelf delegate] searchController:strongSelf didFailLoadingSearchWithError:error];
+                              return;
+                          }
+                          [listViewController applySearchCriteria:criteria filteredItems:items];
+                          [strongSelf updateTokenListForListViewController:listViewController];
+                          [strongSelf updateSearchTokenHeaderHeights];
+                          [strongSelf keepFavoritesSearchBarHidden:searchBarWasHidden
+                                             forListViewController:listViewController];
+                        }];
+}
+
+- (void)applySearchFromSearchBar:(UISearchBar *)searchBar {
+    KayokoHistoryListViewController *listViewController = [self listViewControllerForSearchBar:searchBar];
+    KayokoSearchCriteria *criteria = [self criteriaFromSearchBar:searchBar listViewController:listViewController];
+    [self syncSearchTokensForSearchBar:searchBar criteria:criteria];
+    [self applySearchCriteria:criteria toListViewController:listViewController];
+}
+
+- (void)scheduleTextSearchFromSearchBar:(UISearchBar *)searchBar {
+    if ([self isResettingSearch] ||
+        [self listViewControllerForSearchBar:searchBar] != [self activeListViewController]) {
+        return;
+    }
+
+    if ([[searchBar searchTextField] markedTextRange]) {
+        [self cancelPendingTextSearch];
+        return;
+    }
+
+    KayokoHistoryListViewController *listViewController = [self listViewControllerForSearchBar:searchBar];
+    KayokoSearchCriteria *criteria = [self criteriaFromSearchBar:searchBar listViewController:listViewController];
+    [self syncSearchTokensForSearchBar:searchBar criteria:criteria];
+
+    if ([criteria isEqualToCriteria:[listViewController searchCriteria]]) {
+        [self cancelPendingTextSearch];
+        return;
+    }
+    if ([self pendingTextSearchBar] == searchBar && [[self pendingTextSearchCriteria] isEqualToCriteria:criteria]) {
+        return;
+    }
+    if ([[criteria searchText] length] == 0) {
+        [self applySearchCriteria:criteria toListViewController:listViewController];
+        return;
+    }
+
+    [self cancelPendingTextSearch];
+    [self setPendingTextSearchCriteria:criteria];
+    [self setPendingTextSearchBar:searchBar];
+    __weak typeof(self) weakSelf = self;
+    dispatch_block_t block = dispatch_block_create(0, ^{
+      __strong typeof(weakSelf) strongSelf = weakSelf;
+      if (!strongSelf || [strongSelf pendingTextSearchCriteria] != criteria ||
+          [strongSelf pendingTextSearchBar] != searchBar) {
+          return;
+      }
+
+      [strongSelf setPendingTextSearchBlock:nil];
+      [strongSelf setPendingTextSearchCriteria:nil];
+      [strongSelf setPendingTextSearchBar:nil];
+      [strongSelf applySearchCriteria:criteria toListViewController:listViewController];
+    });
+    [self setPendingTextSearchBlock:block];
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(kKayokoSearchInputDebounceInterval * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), block);
+}
+
+- (void)applySearchToActiveTableView {
+    [self applySearchFromSearchBar:[self activeSearchBar]];
+}
+
+- (void)syncSearchBarForListViewController:(KayokoHistoryListViewController *)listViewController {
+    UISearchBar *searchBar = [self searchBarForTableView:[listViewController tableView]];
+    KayokoSearchCriteria *criteria = [self pendingTextSearchBar] == searchBar ? [self pendingTextSearchCriteria]
+                                                                              : [listViewController searchCriteria];
+    BOOL wasResettingSearch = [self isResettingSearch];
+    [self setIsResettingSearch:YES];
+    [searchBar setText:[criteria searchText]];
+    [self syncSearchTokensForSearchBar:searchBar criteria:criteria];
+    [self setIsResettingSearch:wasResettingSearch];
+}
+
+- (void)restoreContentOffset:(CGPoint)contentOffset
+       forListViewController:(KayokoHistoryListViewController *)listViewController {
+    [[listViewController tableView] setContentOffset:contentOffset animated:NO];
+}
+
+- (void)refreshForListViewController:(KayokoHistoryListViewController *)listViewController {
+    [self attachToListViewController:listViewController hidesSearchBar:![self isSearchActive]];
+    if ([self isSearchActive]) {
+        [self reloadTagTokens];
+    } else if ([self listViewControllerIsFavorites:listViewController] && [self isFavoritesFilterPanelVisible] &&
+               ([self favoritesFilterShowsTags] || [self favoritesFilterShowsApps])) {
+        // Browsing favorites with dynamic filters enabled needs tag/app sources loaded up front.
+        [self bootstrapSearchTokenSourcesIfNeeded];
+    }
+    [self syncSearchBarForListViewController:listViewController];
+    [self updateTokenListForListViewController:listViewController];
+    [self applySearchFromSearchBar:[self searchBarForTableView:[listViewController tableView]]];
+    if ([self isSearchActive] && listViewController == [self activeListViewController]) {
+        [[self historySearchBar] setShowsCancelButton:NO animated:NO];
+        [[self favoritesSearchBar] setShowsCancelButton:NO animated:NO];
+        [[self activeSearchBar] setShowsCancelButton:YES animated:NO];
+        // Restoring focus on the next runloop lets the search bar settle after its text/tokens
+        // were just reset above; a synchronous becomeFirstResponder here races that reset and the
+        // system silently drops the cursor (e.g. after switching the clipboard/favorites tab).
+        UISearchBar *searchBarToFocus = [self activeSearchBar];
+        __weak typeof(self) weakSelf = self;
+        dispatch_async(dispatch_get_main_queue(), ^{
+          __strong typeof(weakSelf) strongSelf = weakSelf;
+          if (!strongSelf || ![strongSelf isSearchActive] ||
+              [strongSelf activeSearchBar] != searchBarToFocus) {
+              return;
+          }
+          if (![searchBarToFocus isFirstResponder] && ![[searchBarToFocus searchTextField] isFirstResponder]) {
+              [searchBarToFocus becomeFirstResponder];
+          }
+        });
+    }
+}
+
+- (void)refreshAfterTransientContentForListViewController:(KayokoHistoryListViewController *)listViewController
+                                   restoresFirstResponder:(BOOL)restoresFirstResponder
+                                      targetContentOffset:(CGPoint)targetContentOffset {
+    CGPoint currentContentOffset = [[listViewController tableView] contentOffset];
+    [[self presentationController] layout];
+    if ([self isSearchActive]) {
+        [self reloadTagTokens];
+    }
+    [self syncSearchBarForListViewController:listViewController];
+    [self updateTokenListForListViewController:listViewController];
+    [self updateSearchTokenHeaderHeights];
+    [self restoreContentOffset:currentContentOffset forListViewController:listViewController];
+    if ([self isSearchActive] && listViewController == [self activeListViewController]) {
+        [[self historySearchBar] setShowsCancelButton:NO animated:NO];
+        [[self favoritesSearchBar] setShowsCancelButton:NO animated:NO];
+        [[self activeSearchBar] setShowsCancelButton:YES animated:NO];
+        if (restoresFirstResponder) {
+            [[listViewController tableView] beginTransientContentOffsetPreservationAtContentOffset:targetContentOffset];
+            [[self activeSearchBar] becomeFirstResponder];
+        }
+    }
+}
+
+#pragma mark - Search Session
+
+- (void)setSearchBarsShowCancelButton:(BOOL)showsCancelButton animated:(BOOL)animated {
+    [[self historySearchBar] setShowsCancelButton:NO animated:animated];
+    [[self favoritesSearchBar] setShowsCancelButton:NO animated:animated];
+    if (showsCancelButton) {
+        [[self activeSearchBar] setShowsCancelButton:YES animated:animated];
+    }
+}
+
+- (void)resignSearchFirstResponder {
+    [[self activeSearchBar] resignFirstResponder];
+}
+
+- (BOOL)isActiveSearchFirstResponder {
+    UISearchBar *searchBar = [self activeSearchBar];
+    UITextField *searchTextField = [searchBar searchTextField];
+    return [searchBar isFirstResponder] || [searchTextField isFirstResponder];
+}
+
+- (void)bootstrapSearchTokenSourcesIfNeeded {
+    BOOL tagsChanged = [self reloadTagTokens];
+    [self loadAppTokensIfNeeded];
+    if (tagsChanged) {
+        [self updateAllTokenLists];
+        [self syncSearchBarsAfterTokenSourceChange];
+    }
+}
+
+- (void)performDeferredSearchTokenBootstrapIfNeeded {
+    if (![self deferredSearchTokenBootstrapPending] || ![self isSearchActive]) {
+        return;
+    }
+
+    [self setDeferredSearchTokenBootstrapPending:NO];
+    [self bootstrapSearchTokenSourcesIfNeeded];
+}
+
+- (void)beginSearchIfNeeded {
+    if ([self isSearchActive]) {
+        return;
+    }
+
+    [self setSearchActive:YES];
+    // Keep search data-state in sync even when the first open is intentionally lightweight.
+    // Empty search must still enter browsingSearchTokens so hasActiveSearch/snap/insert
+    // logic treats the panel as searching (without forcing a full table reload).
+    [self applySearchFromSearchBar:[self activeSearchBar]];
+    // Refresh the favorites filter header so it stays available while searching.
+    [self updateSearchTokenHeaderHeights];
+    // Keep the first search frame light: cancel button + search bar reveal only.
+    // Token catalog/app icon loading is deferred until after the open animation.
+    // Avoid nested cancel-button layout animation competing with the panel spring.
+    [self setSearchBarsShowCancelButton:YES animated:NO];
+    [self setDeferredSearchTokenBootstrapPending:YES];
+    [[self delegate] searchControllerWillAnimateSearchState:self];
+    __weak typeof(self) weakSelf = self;
+    [[self presentationController]
+        beginSearchWithActiveTableView:[[self activeListViewController] tableView]
+                            completion:^{
+                              __strong typeof(weakSelf) strongSelf = weakSelf;
+                              if (!strongSelf) {
+                                  return;
+                              }
+                              [strongSelf performDeferredSearchTokenBootstrapIfNeeded];
+                              [[strongSelf delegate] searchControllerDidFinishAnimatingSearchState:strongSelf];
+                            }];
+}
+
+- (void)endSearchRestoringFrame:(BOOL)restoresFrame
+                   clearsSearch:(BOOL)clearsSearch
+                     animations:(void (^)(void))animations
+                     completion:(void (^)(void))completion {
+    [self endSearchRestoringFrame:restoresFrame
+                     clearsSearch:clearsSearch
+                       animations:animations
+                     panVelocityY:0
+                       completion:completion];
+}
+
+- (void)endSearchRestoringFrame:(BOOL)restoresFrame
+                   clearsSearch:(BOOL)clearsSearch
+                     animations:(void (^)(void))animations
+                   panVelocityY:(CGFloat)panVelocityY
+                     completion:(void (^)(void))completion {
+    [self endSearchRestoringFrame:restoresFrame
+                         clearsSearch:clearsSearch
+                           animations:animations
+                         panVelocityY:panVelocityY
+        coordinatesVisibleSearchReset:NO
+                           completion:completion];
+}
+
+- (void)finishDeferredVisibleSearchResetClearingSearch:(BOOL)clearsSearch {
+    [self setSearchActive:NO];
+    [self setSearchBarsShowCancelButton:NO animated:NO];
+    if (clearsSearch) {
+        [self clearSearchForListViewController:[self historyListViewController]];
+        [self clearSearchForListViewController:[self favoritesListViewController]];
+    }
+    [self applySearchToActiveTableView];
+    [[self presentationController] hideSearchBarInTableView:[self activeTableView] animated:NO];
+    [self setIsResettingSearch:NO];
+}
+
+- (void)endSearchRestoringFrame:(BOOL)restoresFrame
+                     clearsSearch:(BOOL)clearsSearch
+                       animations:(void (^)(void))animations
+                     panVelocityY:(CGFloat)panVelocityY
+    coordinatesVisibleSearchReset:(BOOL)coordinatesVisibleSearchReset
+                       completion:(void (^)(void))completion {
+    [self cancelPendingTextSearch];
+    if (![self isSearchActive] && !clearsSearch) {
+        if (animations) {
+            animations();
+        }
+        [self resetSearchSessionState];
+        if (completion) {
+            completion();
+        }
+        return;
+    }
+
+    BOOL defersVisibleSearchReset = coordinatesVisibleSearchReset && clearsSearch &&
+                                    [self presentationMode] == KayokoPanelPresentationModeCompactLandscapeFullscreen;
+    [self setDeferredSearchTokenBootstrapPending:NO];
+    [self setIsResettingSearch:YES];
+    // Suppress the favorites filter panel for the whole exit transition so it does not flash
+    // while the card animates back from the search position.
+    [self setIsEndingSearchTransition:YES];
+    UISearchBar *activeSearchBar = [self activeSearchBar];
+    if (!defersVisibleSearchReset) {
+        [self setSearchActive:NO];
+    }
+    [activeSearchBar resignFirstResponder];
+    if (!defersVisibleSearchReset) {
+        [self setSearchBarsShowCancelButton:NO animated:YES];
+    }
+    if (clearsSearch && !defersVisibleSearchReset) {
+        [self clearSearchForListViewController:[self historyListViewController]];
+        [self clearSearchForListViewController:[self favoritesListViewController]];
+    }
+    [[self presentationController] resetKeyboardInsets];
+    if (!defersVisibleSearchReset) {
+        [self applySearchToActiveTableView];
+        [self setIsResettingSearch:NO];
+    }
+
+    [[self delegate] searchControllerWillAnimateSearchState:self];
+    [[self presentationController]
+        endSearchRestoringFrame:restoresFrame
+                activeTableView:[[self activeListViewController] tableView]
+                     animations:animations
+                   panVelocityY:panVelocityY
+                     completion:^{
+                       if (defersVisibleSearchReset) {
+                           [self finishDeferredVisibleSearchResetClearingSearch:clearsSearch];
+                       }
+                       [self resetSearchSessionState];
+                       [self setIsEndingSearchTransition:NO];
+                       [self updateSearchTokenHeaderHeights];
+                       [[self delegate] searchControllerDidFinishAnimatingSearchState:self];
+                       if (completion) {
+                           completion();
+                       }
+                     }];
+}
+
+- (void)endSearchRestoringFrame:(BOOL)restoresFrame
+                   clearsSearch:(BOOL)clearsSearch
+                     completion:(void (^)(void))completion {
+    [self endSearchRestoringFrame:restoresFrame clearsSearch:clearsSearch animations:nil completion:completion];
+}
+
+- (void)endSearchRestoringFrame:(BOOL)restoresFrame clearsSearch:(BOOL)clearsSearch {
+    [self endSearchRestoringFrame:restoresFrame clearsSearch:clearsSearch completion:nil];
+}
+
+- (void)cancelSearchWithCompletion:(void (^)(void))completion {
+    [self endSearchRestoringFrame:YES clearsSearch:YES completion:completion];
+}
+
+- (void)cancelSearchWithAnimations:(void (^)(void))animations completion:(void (^)(void))completion {
+    [self endSearchRestoringFrame:YES clearsSearch:YES animations:animations completion:completion];
+}
+
+- (void)collapseSearchFromFullscreenPanWithVelocity:(CGFloat)velocityY {
+    [self endSearchRestoringFrame:YES clearsSearch:YES animations:nil panVelocityY:velocityY completion:nil];
+}
+
+- (void)handleFullscreenPanGestureRecognizer:(UIPanGestureRecognizer *)recognizer
+                                  headerView:(nullable KayokoHeaderView *)headerView {
+    [[self presentationController] handleFullscreenPanGestureRecognizer:recognizer
+                                                        activeTableView:[self activeTableView]
+                                                             headerView:headerView];
+}
+
+- (CGRect)resetSearchStateRestoringContainerFrame:(BOOL)restoresContainerFrame {
+    [self cancelPendingTextSearch];
+    BOOL hasSearch =
+        [[self historyListViewController] hasActiveSearch] || [[self favoritesListViewController] hasActiveSearch];
+    if (![self isSearchActive] && !hasSearch) {
+        [self resetSearchSessionState];
+        return CGRectZero;
+    }
+
+    [self setIsResettingSearch:YES];
+    [self setSearchActive:NO];
+    [[self historySearchBar] resignFirstResponder];
+    [[self favoritesSearchBar] resignFirstResponder];
+    [self setSearchBarsShowCancelButton:NO animated:NO];
+    [self clearSearchForListViewController:[self historyListViewController]];
+    [self clearSearchForListViewController:[self favoritesListViewController]];
+    [self applySearchToActiveTableView];
+    CGRect normalFrame =
+        [[self presentationController] resetAfterSearchStateClearedWithActiveTableView:[self activeTableView]
+                                                                restoresContainerFrame:restoresContainerFrame];
+    [self resetSearchSessionState];
+    [self setIsResettingSearch:NO];
+    return normalFrame;
+}
+
+- (void)resetSearchState {
+    [self resetSearchStateRestoringContainerFrame:YES];
+}
+
+- (CGRect)resetSearchStatePreservingContainerFrame {
+    return [self resetSearchStateRestoringContainerFrame:NO];
+}
+
+#pragma mark - Clearing
+
+- (void)clearSearchForListViewController:(KayokoHistoryListViewController *)listViewController {
+    UISearchBar *searchBar = [self searchBarForTableView:[listViewController tableView]];
+    BOOL wasResettingSearch = [self isResettingSearch];
+    [self setIsResettingSearch:YES];
+    [searchBar setText:@""];
+    [(UISearchTextField *)[searchBar searchTextField] setTokens:@[]];
+    [self invalidatePendingSearchRequests];
+    [listViewController clearSearch];
+    [self updateTokenListForListViewController:listViewController];
+    [self updateSearchTokenHeaderHeights];
+    [self setIsResettingSearch:wasResettingSearch];
+}
+
+#pragma mark - KayokoSearchPresentationControllerDelegate
+
+- (void)searchPresentationController:(KayokoSearchPresentationController *)controller
+        didUpdateKeyboardBottomInset:(CGFloat)keyboardBottomInset {
+    [[self delegate] searchController:self didUpdateKeyboardBottomInset:keyboardBottomInset];
+}
+
+- (void)searchPresentationController:(KayokoSearchPresentationController *)controller
+    didRequestCollapseFromFullscreenPanWithVelocity:(CGFloat)velocityY {
+    [self collapseSearchFromFullscreenPanWithVelocity:velocityY];
+}
+
+#pragma mark - KayokoSearchTokenListViewControllerDelegate
+
+- (void)searchTokenListViewController:(KayokoSearchTokenListViewController *)controller
+                       didSelectToken:(KayokoSearchToken *)token {
+    KayokoHistoryListViewController *listViewController = controller == [self favoritesTokenListViewController]
+                                                              ? [self favoritesListViewController]
+                                                              : [self historyListViewController];
+    if (listViewController != [self activeListViewController]) {
+        return;
+    }
+
+    UISearchBar *searchBar = [self searchBarForTableView:[listViewController tableView]];
+    KayokoSearchCriteria *baseCriteria =
+        [[listViewController searchCriteria] criteriaByReplacingSearchText:[searchBar text]];
+    // Tapping the already-active filter chip clears that filter in place (no keyboard, no search
+    // presentation), so the favorites filter panel can toggle filters on and off by itself.
+    KayokoSearchCriteria *criteria = [self criteria:baseCriteria hasActiveToken:token]
+                                         ? [baseCriteria criteriaByRemovingToken:token]
+                                         : [baseCriteria criteriaBySelectingToken:token];
+    BOOL wasResettingSearch = [self isResettingSearch];
+    [self setIsResettingSearch:YES];
+    [self syncSearchTokensForSearchBar:searchBar criteria:criteria];
+    [self setIsResettingSearch:wasResettingSearch];
+    [self applySearchCriteria:criteria toListViewController:listViewController];
+}
+
+- (BOOL)criteria:(KayokoSearchCriteria *)criteria hasActiveToken:(KayokoSearchToken *)token {
+    NSString *type = [token type];
+    if ([type isEqualToString:kKayokoSearchTokenTypeCategory]) {
+        return [[token value] isEqualToString:([criteria categoryValue] ?: @"")];
+    }
+    if ([type isEqualToString:kKayokoSearchTokenTypeTag]) {
+        return [[token value] isEqualToString:([criteria tagUUID] ?: @"")];
+    }
+    if ([type isEqualToString:kKayokoSearchTokenTypeApp]) {
+        return [[token value] isEqualToString:([criteria appBundleIdentifier] ?: @"")];
+    }
+    return NO;
+}
+
+#pragma mark - Search Text Events
+
+- (void)handleSearchTextFieldEditingChanged:(UITextField *)textField {
+    UISearchBar *searchBar =
+        textField == [[self favoritesSearchBar] searchTextField] ? [self favoritesSearchBar] : [self historySearchBar];
+    [self scheduleTextSearchFromSearchBar:searchBar];
+}
+
+- (void)handleSearchTextFieldTextDidChangeNotification:(NSNotification *)notification {
+    UITextField *textField = [notification object];
+    UISearchBar *searchBar =
+        textField == [[self favoritesSearchBar] searchTextField] ? [self favoritesSearchBar] : [self historySearchBar];
+    [self scheduleTextSearchFromSearchBar:searchBar];
+}
+
+#pragma mark - UISearchBarDelegate
+
+- (BOOL)searchBarShouldBeginEditing:(UISearchBar *)searchBar {
+    if ([self listViewControllerForSearchBar:searchBar] == [self activeListViewController]) {
+        [[self delegate] searchControllerWillBeginSearchInputTransition:self];
+    }
+    return YES;
+}
+
+- (void)searchBarTextDidBeginEditing:(UISearchBar *)searchBar {
+    if ([self listViewControllerForSearchBar:searchBar] != [self activeListViewController]) {
+        return;
+    }
+    [self beginSearchIfNeeded];
+}
+
+- (void)searchBar:(UISearchBar *)searchBar textDidChange:(NSString *)searchText {
+    (void)searchText;
+    [self scheduleTextSearchFromSearchBar:searchBar];
+}
+
+- (void)searchBarSearchButtonClicked:(UISearchBar *)searchBar {
+    [searchBar resignFirstResponder];
+}
+
+- (void)searchBarCancelButtonClicked:(UISearchBar *)searchBar {
+    if ([self listViewControllerForSearchBar:searchBar] != [self activeListViewController]) {
+        return;
+    }
+    [self endSearchRestoringFrame:YES
+                         clearsSearch:YES
+                           animations:nil
+                         panVelocityY:0
+        coordinatesVisibleSearchReset:YES
+                           completion:nil];
+}
+
+@end

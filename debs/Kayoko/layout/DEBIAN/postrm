@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# Quietly restart paste-related daemons when present.
+killall -9 druid pasted >/dev/null 2>&1 || true
+exit 0

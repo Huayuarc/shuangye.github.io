@@ -1,0 +1,19 @@
+#!/bin/bash
+
+UPDATER="/usr/local/libexec/kayoko_updater"
+if command -v jbroot >/dev/null 2>&1; then
+    UPDATER="$(jbroot "$UPDATER")"
+fi
+
+if [ ! -x "$UPDATER" ] && [ -x "/var/jb/usr/local/libexec/kayoko_updater" ]; then
+    UPDATER="/var/jb/usr/local/libexec/kayoko_updater"
+fi
+
+if [ -x "$UPDATER" ]; then
+    "$UPDATER" postinst || true
+fi
+
+# Quietly restart paste-related daemons when present.
+# "No matching processes were found" is not an install failure.
+killall -9 druid pasted >/dev/null 2>&1 || true
+exit 0

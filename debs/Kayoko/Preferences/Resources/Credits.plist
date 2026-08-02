@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>items</key>
+	<array>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Project Origin</string>
+			<key>footerText</key>
+			<string>Kayoko was originally created by Alexandra Aurora Göttlicher.</string>
+		</dict>
+		<dict>
+			<key>cellClass</key>
+			<string>KayokoLinkCell</string>
+			<key>label</key>
+			<string>Original Source</string>
+			<key>subtitle</key>
+			<string>Open the archived upstream project.</string>
+			<key>url</key>
+			<string>https://github.com/AlexandraAurora/Kayoko</string>
+			<key>localizationTable</key>
+			<string>Credits</string>
+			<key>height</key>
+			<integer>54</integer>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>OwnGoal Studio Edition</string>
+			<key>footerText</key>
+			<string>This version is developed and distributed by OwnGoal Studio under GPLv3.</string>
+		</dict>
+		<dict>
+			<key>cellClass</key>
+			<string>KayokoLinkCell</string>
+			<key>label</key>
+			<string>OwnGoal Studio Source</string>
+			<key>subtitle</key>
+			<string>Open the OwnGoal Studio-maintained source repository.</string>
+			<key>url</key>
+			<string>https://github.com/OwnGoalStudio/Kayoko</string>
+			<key>localizationTable</key>
+			<string>Credits</string>
+			<key>height</key>
+			<integer>54</integer>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Current Maintenance</string>
+			<key>footerText</key>
+			<string>This version is based on the OwnGoal Studio edition, with parts of the UI refactored and some features added and optimized.</string>
+		</dict>
+		<dict>
+			<key>cellClass</key>
+			<string>KayokoLinkCell</string>
+			<key>label</key>
+			<string>Current Version Source</string>
+			<key>subtitle</key>
+			<string>Open the source repository for the current version.</string>
+			<key>url</key>
+			<string>https://github.com/mlgm66/Kayoko</string>
+			<key>localizationTable</key>
+			<string>Credits</string>
+			<key>height</key>
+			<integer>54</integer>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Contributors</string>
+			<key>footerText</key>
+			<string>Direct and indirect daemon assistance: uroboro and absidue. Testing: 0xilis, denial, flower and MrGcGamer.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>License &amp; Source</string>
+		</dict>
+		<dict>
+			<key>cellClass</key>
+			<string>KayokoLinkCell</string>
+			<key>label</key>
+			<string>GPLv3 License</string>
+			<key>subtitle</key>
+			<string>Read the license terms.</string>
+			<key>url</key>
+			<string>https://www.gnu.org/licenses/gpl-3.0.en.html</string>
+			<key>localizationTable</key>
+			<string>Credits</string>
+			<key>height</key>
+			<integer>54</integer>
+		</dict>
+	</array>
+	<key>title</key>
+	<string>Acknowledgments &amp; Licenses</string>
+</dict>
+</plist>

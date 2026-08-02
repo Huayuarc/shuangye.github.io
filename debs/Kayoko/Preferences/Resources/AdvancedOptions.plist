@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>items</key>
+	<array>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string></string>
+			<key>footerText</key>
+			<string>Ignore clipboard events received through iOS Continuity’s Universal Clipboard, so Kayoko does not save content copied from nearby Apple devices.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.mlgm.kayoko.preferences</string>
+			<key>key</key>
+			<string>IgnoreRemoteReplication</string>
+			<key>label</key>
+			<string>Ignore Universal Clipboard</string>
+			<key>PostNotification</key>
+			<string>com.mlgm.kayoko.preferences.reload</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string></string>
+			<key>footerText</key>
+			<string>When off, History and Favorites usually keep your last browsing position. When on, both lists return to the first item the next time they appear after Kayoko is closed. If new content is added or an item moves to the top while a list is not shown, that list also starts from the first item the next time it appears.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.mlgm.kayoko.preferences</string>
+			<key>key</key>
+			<string>AlwaysScrollToTop</string>
+			<key>label</key>
+			<string>Always Scroll to Top</string>
+			<key>PostNotification</key>
+			<string>com.mlgm.kayoko.preferences.reload</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Show Clear Button</string>
+			<key>footerText</key>
+			<string>Choose where the Clear button appears. “History Only” shows it only in History, while “Always” also shows it in Favorites.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSegmentCell</string>
+			<key>default</key>
+			<integer>1</integer>
+			<key>defaults</key>
+			<string>com.mlgm.kayoko.preferences</string>
+			<key>key</key>
+			<string>ClearButtonMode</string>
+			<key>validValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+				<integer>2</integer>
+			</array>
+			<key>validTitles</key>
+			<array>
+				<string>Off</string>
+				<string>History Only</string>
+				<string>Always</string>
+			</array>
+			<key>PostNotification</key>
+			<string>com.mlgm.kayoko.preferences.reload</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Automatic Paste Mode</string>
+			<key>footerText</key>
+			<string>“Simulated” mode sends the hardware Command-V shortcut to trigger paste. “Auto” mode uses “Classic” when the current app is ready, and falls back to “Simulated” when needed.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSegmentCell</string>
+			<key>default</key>
+			<integer>0</integer>
+			<key>defaults</key>
+			<string>com.mlgm.kayoko.preferences</string>
+			<key>key</key>
+			<string>AutomaticPasteMode</string>
+			<key>validValues</key>
+			<array>
+				<integer>2</integer>
+				<integer>0</integer>
+				<integer>1</integer>
+			</array>
+			<key>validTitles</key>
+			<array>
+				<string>Auto</string>
+				<string>Classic</string>
+				<string>Simulated</string>
+			</array>
+			<key>PostNotification</key>
+			<string>com.mlgm.kayoko.preferences.reload</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Gesture Recognizer</string>
+			<key>footerText</key>
+			<string>“Classic” uses the original in-app keyboard gesture recognizer. “System” listens from SpringBoard, so one-finger swipe up can still work when app-side hooks are unavailable.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSegmentCell</string>
+			<key>default</key>
+			<integer>0</integer>
+			<key>defaults</key>
+			<string>com.mlgm.kayoko.preferences</string>
+			<key>key</key>
+			<string>GestureRecognizerMode</string>
+			<key>label</key>
+			<string>Gesture Recognizer</string>
+			<key>validValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+			</array>
+			<key>validTitles</key>
+			<array>
+				<string>Classic</string>
+				<string>System</string>
+			</array>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Dangerous Zone</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Restore Tags</string>
+			<key>action</key>
+			<string>restoreTagsPrompt</string>
+			<key>isDestructive</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Reset Preferences</string>
+			<key>action</key>
+			<string>resetPrompt</string>
+			<key>isDestructive</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Clear Favorites</string>
+			<key>action</key>
+			<string>clearFavoritesPrompt</string>
+			<key>isDestructive</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Clear History</string>
+			<key>action</key>
+			<string>clearHistoryPrompt</string>
+			<key>isDestructive</key>
+			<true/>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Maintenance</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Check Data Directory</string>
+			<key>action</key>
+			<string>checkDataDirectory</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Reset Thumbnail Cache</string>
+			<key>action</key>
+			<string>resetThumbnailCachePrompt</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Import from CopyLog</string>
+			<key>action</key>
+			<string>importCopyLogPrompt</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Import from CopyVault</string>
+			<key>action</key>
+			<string>importCopyVaultPrompt</string>
+		</dict>
+
+	</array>
+	<key>title</key>
+	<string>Advanced Options</string>
+</dict>
+</plist>

@@ -1,0 +1,17 @@
+.DS_Store
+
+.theos/
+**/.theos/
+build/
+
+packages/*
+!packages/.gitkeep
+*.deb
+*.dylib
+*.o
+*.Td
+*.stamp
+*.dSYM/
+
+**/xcuserdata/
+*.xcuserstate

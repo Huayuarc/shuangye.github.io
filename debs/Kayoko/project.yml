@@ -1,0 +1,311 @@
+name: Kayoko
+options:
+  bundleIdPrefix: com.mlgm
+  createIntermediateGroups: true
+  deploymentTarget:
+    iOS: "14.0"
+  developmentLanguage: en
+  groupSortPosition: top
+  minimumXcodeGenVersion: "2.40.0"
+  transitivelyLinkDependencies: false
+  xcodeVersion: "16.0"
+settings:
+  base:
+    ALWAYS_SEARCH_USER_PATHS: NO
+    CLANG_ENABLE_MODULES: NO
+    CLANG_ENABLE_OBJC_ARC: YES
+    CODE_SIGNING_ALLOWED: NO
+    CODE_SIGNING_REQUIRED: NO
+    CODE_SIGN_IDENTITY: ""
+    CODE_SIGN_STYLE: ""
+    DEVELOPMENT_TEAM: ""
+    PROVISIONING_PROFILE_SPECIFIER: ""
+    AD_HOC_CODE_SIGNING_ALLOWED: NO
+    ENABLE_STRICT_OBJC_MSGSEND: YES
+    GCC_C_LANGUAGE_STANDARD: gnu11
+    GCC_NO_COMMON_BLOCKS: YES
+    IPHONEOS_DEPLOYMENT_TARGET: "14.0"
+    ONLY_ACTIVE_ARCH: NO
+    PRODUCT_NAME: "$(TARGET_NAME)"
+    SDKROOT: iphoneos
+    SKIP_INSTALL: YES
+    SUPPORTS_MACCATALYST: NO
+    SUPPORTED_PLATFORMS: iphoneos
+    TARGETED_DEVICE_FAMILY: "1,2"
+    VALIDATE_PRODUCT: YES
+    THEOS: /opt/theos
+    KAYOKO_PACKAGE_SCHEME: roothide
+    KAYOKO_THEOS_INCLUDE: "$(THEOS)/vendor/include $(THEOS)/include"
+    KAYOKO_THEOS_SDK: "$(THEOS)/sdks/iPhoneOS16.5.sdk"
+    KAYOKO_THEOS_PRIVATE_FRAMEWORKS: "$(KAYOKO_THEOS_SDK)/System/Library/PrivateFrameworks"
+    KAYOKO_SUBSTRATE_LIB_DIR: "$(THEOS)/vendor/lib/iphone/roothide"
+    KAYOKO_ROOTHIDE_LIB_DIR: "$(THEOS)/vendor/lib/iphone/roothide"
+    KAYOKO_ALTLIST_FRAMEWORK_DIR: "$(SRCROOT)/Preferences/Frameworks/_roothide"
+    ARCHS: "arm64 arm64e"
+    VALID_ARCHS: "arm64 arm64e"
+    ENABLE_MODULE_VERIFIER: NO
+    DEFINES_MODULE: NO
+    USE_HEADERMAP: NO
+    GCC_PREPROCESSOR_DEFINITIONS: "$(inherited) THEOS_PACKAGE_INSTALL_PREFIX=\\\"\\\" THEOS_PACKAGE_SCHEME_ROOTHIDE=1"
+    HEADER_SEARCH_PATHS: "$(inherited) $(KAYOKO_THEOS_INCLUDE)"
+    LIBRARY_SEARCH_PATHS: "$(inherited) $(KAYOKO_SUBSTRATE_LIB_DIR) $(KAYOKO_ROOTHIDE_LIB_DIR)"
+    FRAMEWORK_SEARCH_PATHS: "$(inherited) $(KAYOKO_THEOS_PRIVATE_FRAMEWORKS) $(KAYOKO_ALTLIST_FRAMEWORK_DIR) $(THEOS)/vendor/lib/iphone/roothide $(THEOS)/vendor/lib"
+    SYSTEM_FRAMEWORK_SEARCH_PATHS: "$(inherited) $(SDKROOT)/System/Library/Frameworks $(KAYOKO_THEOS_PRIVATE_FRAMEWORKS)"
+    OTHER_CFLAGS: "$(inherited) -fobjc-arc -Wno-unused-command-line-argument"
+    OTHER_LDFLAGS: "$(inherited) -ObjC -lroothide"
+    DEAD_CODE_STRIPPING: YES
+    STRIP_INSTALLED_PRODUCT: NO
+    COPY_PHASE_STRIP: NO
+  configs:
+    Debug:
+      DEBUG_INFORMATION_FORMAT: dwarf
+      GCC_OPTIMIZATION_LEVEL: "0"
+      GCC_PREPROCESSOR_DEFINITIONS:
+        - "DEBUG=1"
+        - "THEOS_PACKAGE_SCHEME_ROOTHIDE=1"
+        - "$(inherited)"
+      ONLY_ACTIVE_ARCH: YES
+    Release:
+      DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
+      GCC_OPTIMIZATION_LEVEL: s
+configs:
+  Debug: debug
+  Release: release
+targets:
+  KayokoCore:
+    type: library.dynamic
+    platform: iOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: Core
+        excludes:
+          - "Makefile"
+          - "**/*.plist"
+      - path: Helper/KayokoSwipeUpGestureRecognizer.m
+      - path: Helper/KayokoSwipeUpGestureRecognizer.h
+        buildPhase: headers
+        headerVisibility: project
+      - path: Shared/Tags
+    settings:
+      base:
+        DEFINES_MODULE: NO
+        DYLIB_COMPATIBILITY_VERSION: "1"
+        DYLIB_CURRENT_VERSION: "1"
+        CODE_SIGNING_ALLOWED: NO
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGN_IDENTITY: ""
+        DYLIB_INSTALL_NAME_BASE: "@loader_path/.jbroot/Library/MobileSubstrate/DynamicLibraries"
+        EXECUTABLE_PREFIX: ""
+        HEADER_SEARCH_PATHS:
+          - "$(inherited)"
+          - "$(SRCROOT)/Core"
+          - "$(SRCROOT)/Core/Manager"
+          - "$(SRCROOT)/Core/Actions"
+          - "$(SRCROOT)/Core/Controllers"
+          - "$(SRCROOT)/Core/Coordinators"
+          - "$(SRCROOT)/Core/DataSources"
+          - "$(SRCROOT)/Core/Models"
+          - "$(SRCROOT)/Core/Presentation"
+          - "$(SRCROOT)/Core/Views"
+          - "$(SRCROOT)/Helper"
+          - "$(SRCROOT)/Shared/Tags"
+          - "$(SRCROOT)/Preferences"
+        INSTALL_PATH: /Library/MobileSubstrate/DynamicLibraries
+        LD_DYLIB_INSTALL_NAME: "@loader_path/.jbroot/Library/MobileSubstrate/DynamicLibraries/KayokoCore.dylib"
+        LD_RUNPATH_SEARCH_PATHS: ""
+        MACH_O_TYPE: mh_dylib
+        OTHER_LDFLAGS:
+          - "$(inherited)"
+          - "-lsubstrate"
+          - "-lsqlite3"
+          - "-framework"
+          - "CoreServices"
+        PRODUCT_BUNDLE_IDENTIFIER: com.mlgm.kayoko.core
+        PRODUCT_NAME: KayokoCore
+        EXECUTABLE_EXTENSION: dylib
+        EXECUTABLE_NAME: KayokoCore
+        SKIP_INSTALL: YES
+    dependencies:
+      - sdk: AudioToolbox.framework
+      - sdk: AVFoundation.framework
+      - sdk: CoreGraphics.framework
+      - sdk: ImageIO.framework
+      - sdk: IOKit.framework
+      - sdk: QuartzCore.framework
+      - sdk: Security.framework
+      - sdk: UIKit.framework
+      - sdk: Foundation.framework
+    postCompileScripts:
+      - name: Copy Substrate Filter Plist
+        basedOnDependencyAnalysis: false
+        script: |
+          set -euo pipefail
+          FILTER_SRC="${SRCROOT}/Core/KayokoCore.plist"
+          FILTER_DST="${BUILT_PRODUCTS_DIR}/KayokoCore.plist"
+          cp "${FILTER_SRC}" "${FILTER_DST}"
+
+  KayokoHelper:
+    type: library.dynamic
+    platform: iOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: Helper
+        excludes:
+          - "Makefile"
+          - "**/*.plist"
+    settings:
+      base:
+        DEFINES_MODULE: NO
+        DYLIB_COMPATIBILITY_VERSION: "1"
+        DYLIB_CURRENT_VERSION: "1"
+        CODE_SIGNING_ALLOWED: NO
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGN_IDENTITY: ""
+        DYLIB_INSTALL_NAME_BASE: "@loader_path/.jbroot/Library/MobileSubstrate/DynamicLibraries"
+        EXECUTABLE_PREFIX: ""
+        HEADER_SEARCH_PATHS:
+          - "$(inherited)"
+          - "$(SRCROOT)/Helper"
+          - "$(SRCROOT)/Preferences"
+        INSTALL_PATH: /Library/MobileSubstrate/DynamicLibraries
+        LD_DYLIB_INSTALL_NAME: "@loader_path/.jbroot/Library/MobileSubstrate/DynamicLibraries/KayokoHelper.dylib"
+        LD_RUNPATH_SEARCH_PATHS: ""
+        MACH_O_TYPE: mh_dylib
+        OTHER_LDFLAGS:
+          - "$(inherited)"
+          - "-lsubstrate"
+        PRODUCT_BUNDLE_IDENTIFIER: com.mlgm.kayoko.helper
+        PRODUCT_NAME: KayokoHelper
+        EXECUTABLE_EXTENSION: dylib
+        EXECUTABLE_NAME: KayokoHelper
+        SKIP_INSTALL: YES
+    dependencies:
+      - sdk: AudioToolbox.framework
+      - sdk: CoreGraphics.framework
+      - sdk: QuartzCore.framework
+      - sdk: UIKit.framework
+      - sdk: Foundation.framework
+    postCompileScripts:
+      - name: Copy Substrate Filter Plist
+        basedOnDependencyAnalysis: false
+        script: |
+          set -euo pipefail
+          FILTER_SRC="${SRCROOT}/Helper/KayokoHelper.plist"
+          FILTER_DST="${BUILT_PRODUCTS_DIR}/KayokoHelper.plist"
+          cp "${FILTER_SRC}" "${FILTER_DST}"
+
+  KayokoPreferences:
+    type: bundle
+    platform: iOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: Preferences
+        excludes:
+          - "Makefile"
+          - "Frameworks/**"
+          - "Resources/**"
+          - "layout/**"
+      - path: Shared/Tags
+      - path: Preferences/Resources
+        buildPhase: resources
+        excludes:
+          - "Info.plist"
+    settings:
+      base:
+        CODE_SIGNING_ALLOWED: NO
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGN_IDENTITY: ""
+        DEFINES_MODULE: NO
+        GENERATE_INFOPLIST_FILE: NO
+        HEADER_SEARCH_PATHS:
+          - "$(inherited)"
+          - "$(SRCROOT)/Preferences"
+          - "$(SRCROOT)/Preferences/Controllers"
+          - "$(SRCROOT)/Preferences/Cells"
+          - "$(SRCROOT)/Preferences/Utilities"
+          - "$(SRCROOT)/Shared/Tags"
+        INFOPLIST_FILE: Preferences/Resources/Info.plist
+        INSTALL_PATH: /Library/PreferenceBundles
+        LD_DYLIB_INSTALL_NAME: "@loader_path/.jbroot/Library/PreferenceBundles/KayokoPreferences.bundle/KayokoPreferences"
+        OTHER_LDFLAGS:
+          - "$(inherited)"
+          - "-framework"
+          - "AltList"
+          - "-framework"
+          - "Preferences"
+          - "-framework"
+          - "FrontBoardServices"
+          - "-framework"
+          - "SpringBoardServices"
+        PRODUCT_BUNDLE_IDENTIFIER: com.mlgm.kayoko.preferences
+        PRODUCT_NAME: KayokoPreferences
+        SKIP_INSTALL: YES
+        WRAPPER_EXTENSION: bundle
+    dependencies:
+      - sdk: CoreGraphics.framework
+      - sdk: QuartzCore.framework
+      - sdk: Security.framework
+      - sdk: UIKit.framework
+      - sdk: Foundation.framework
+
+  kayoko_updater:
+    type: tool
+    platform: iOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: Updater
+        excludes:
+          - "Makefile"
+          - "platformize.entitlements"
+      - path: Core/Manager/KayokoHistoryStore.m
+      - path: Core/Manager/KayokoHistoryStore.h
+        buildPhase: headers
+        headerVisibility: project
+      - path: Core/Manager/KayokoHistoryMigrator.m
+      - path: Core/Manager/KayokoHistoryMigrator.h
+        buildPhase: headers
+        headerVisibility: project
+      - path: Core/Manager/KayokoPasteboardItem.m
+      - path: Core/Manager/KayokoPasteboardItem.h
+        buildPhase: headers
+        headerVisibility: project
+      - path: Core/Manager/KayokoRichTextRepresentation.m
+      - path: Core/Manager/KayokoRichTextRepresentation.h
+        buildPhase: headers
+        headerVisibility: project
+      - path: Core/Manager/KayokoSearchCriteria.m
+      - path: Core/Manager/KayokoSearchCriteria.h
+        buildPhase: headers
+        headerVisibility: project
+      - path: Shared/Tags
+      - path: Preferences/KayokoNotificationKeys.h
+        buildPhase: headers
+        headerVisibility: project
+    settings:
+      base:
+        CODE_SIGN_ENTITLEMENTS: ""
+        CODE_SIGNING_ALLOWED: NO
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGN_IDENTITY: ""
+        CREATE_INFOPLIST_SECTION_IN_BINARY: NO
+        DEFINES_MODULE: NO
+        HEADER_SEARCH_PATHS:
+          - "$(inherited)"
+          - "$(SRCROOT)/Updater"
+          - "$(SRCROOT)/Core/Manager"
+          - "$(SRCROOT)/Preferences"
+          - "$(SRCROOT)/Shared/Tags"
+        INSTALL_PATH: /usr/local/libexec
+        MACH_O_TYPE: mh_execute
+        OTHER_LDFLAGS:
+          - "$(inherited)"
+          - "-lsqlite3"
+        PRODUCT_BUNDLE_IDENTIFIER: com.mlgm.kayoko.updater
+        PRODUCT_NAME: kayoko_updater
+        SKIP_INSTALL: YES
+    dependencies:
+      - sdk: CoreGraphics.framework
+      - sdk: ImageIO.framework
+      - sdk: Security.framework
+      - sdk: UIKit.framework
+      - sdk: Foundation.framework

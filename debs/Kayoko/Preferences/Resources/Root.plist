@@ -1,0 +1,620 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>items</key>
+	<array>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string></string>
+		</dict>
+		<dict>
+			<key>cellClass</key>
+			<string>KayokoHeaderCell</string>
+			<key>headerTitle</key>
+			<string>Kayoko</string>
+			<key>headerSubtitle</key>
+			<string>Feature-rich clipboard manager for iOS.</string>
+			<key>detail</key>
+			<string>v4.7.1</string>
+			<key>height</key>
+			<integer>92</integer>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.mlgm.kayoko.preferences</string>
+			<key>key</key>
+			<string>Enabled</string>
+			<key>label</key>
+			<string>Enable Kayoko</string>
+            <key>PostNotification</key>
+			<string>com.mlgm.kayoko.preferences.reload</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string></string>
+			<key>footerText</key>
+			<string>The “Prediction Bar” method displays custom suggestions on the “More Keyboard Keyplane” (123).</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkListCell</string>
+			<key>default</key>
+			<integer>38</integer>
+			<key>detail</key>
+			<string>KayokoListItemsController</string>
+			<key>defaults</key>
+			<string>com.mlgm.kayoko.preferences</string>
+			<key>label</key>
+			<string>ACTIVATION_METHODS</string>
+			<key>key</key>
+			<string>ActivationMethod</string>
+			<key>validValues</key>
+			<array>
+				<integer>1</integer>
+				<integer>2</integer>
+				<integer>4</integer>
+				<integer>8</integer>
+				<integer>16</integer>
+				<integer>32</integer>
+			</array>
+			<key>validTitles</key>
+			<array>
+				<string>Prediction Bar</string>
+				<string>Dictation Key</string>
+				<string>Input Switcher</string>
+				<string>Edit Menu</string>
+				<string>One-Finger Swipe Up</string>
+				<string>⌘⇧V External Keyboard</string>
+			</array>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>History</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSStaticTextCell</string>
+			<key>label</key>
+			<string>Maximum Amount</string>
+		</dict>
+		<dict>
+			<key>cellClass</key>
+			<string>KayokoStepSliderCell</string>
+			<key>default</key>
+			<integer>200</integer>
+			<key>defaults</key>
+			<string>com.mlgm.kayoko.preferences</string>
+			<key>key</key>
+			<string>MaximumHistoryAmount</string>
+			<key>stepValues</key>
+			<array>
+				<integer>50</integer>
+				<integer>100</integer>
+				<integer>200</integer>
+				<integer>300</integer>
+				<integer>500</integer>
+				<integer>1000</integer>
+				<integer>2000</integer>
+				<integer>3000</integer>
+				<integer>4000</integer>
+				<integer>5000</integer>
+			</array>
+			<key>isContinuous</key>
+			<true/>
+			<key>valueLabelWidth</key>
+			<integer>44</integer>
+			<key>PostNotification</key>
+			<string>com.mlgm.kayoko.preferences.reload</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.mlgm.kayoko.preferences</string>
+			<key>key</key>
+			<string>SaveText</string>
+			<key>label</key>
+			<string>Save Text</string>
+			<key>PostNotification</key>
+			<string>com.mlgm.kayoko.preferences.reload</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.mlgm.kayoko.preferences</string>
+			<key>key</key>
+			<string>SaveImages</string>
+			<key>label</key>
+			<string>Save Images</string>
+			<key>PostNotification</key>
+			<string>com.mlgm.kayoko.preferences.reload</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>detail</key>
+			<string>KayokoTagManagementViewController</string>
+			<key>label</key>
+			<string>CUSTOM_TAGS</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Default View</string>
+			<key>footerText</key>
+			<string>Choose which list Kayoko opens when it is shown. “Previous” keeps the list you last used.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSegmentCell</string>
+			<key>default</key>
+			<integer>2</integer>
+			<key>defaults</key>
+			<string>com.mlgm.kayoko.preferences</string>
+			<key>key</key>
+			<string>InitialViewMode</string>
+			<key>validValues</key>
+			<array>
+				<integer>1</integer>
+				<integer>0</integer>
+				<integer>2</integer>
+			</array>
+			<key>validTitles</key>
+			<array>
+				<string>Favorites</string>
+				<string>History</string>
+				<string>Previous</string>
+			</array>
+			<key>PostNotification</key>
+			<string>com.mlgm.kayoko.preferences.reload</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>Choose how much text each clipboard item shows in the list. More lines make items easier to identify, but show fewer items at once.</string>
+			<key>label</key>
+			<string>Preview</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSegmentCell</string>
+			<key>default</key>
+			<integer>1</integer>
+			<key>defaults</key>
+			<string>com.mlgm.kayoko.preferences</string>
+			<key>key</key>
+			<string>PreviewLineCount</string>
+			<key>label</key>
+			<string>Preview Lines</string>
+			<key>validValues</key>
+			<array>
+				<integer>1</integer>
+				<integer>2</integer>
+				<integer>3</integer>
+			</array>
+			<key>validTitles</key>
+			<array>
+				<string>Single Line</string>
+				<string>Double Line</string>
+				<string>Triple Line</string>
+			</array>
+			<key>PostNotification</key>
+			<string>com.mlgm.kayoko.preferences.reload</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>Item details show when an item was last captured, along with its text length or image dimensions and file size.</string>
+			<key>label</key>
+			<string>Item Details</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSegmentCell</string>
+			<key>default</key>
+			<integer>1</integer>
+			<key>defaults</key>
+			<string>com.mlgm.kayoko.preferences</string>
+			<key>key</key>
+			<string>ItemDetailsMode</string>
+			<key>validValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+				<integer>2</integer>
+			</array>
+			<key>validTitles</key>
+			<array>
+				<string>Off</string>
+				<string>Images Only</string>
+				<string>All</string>
+			</array>
+			<key>PostNotification</key>
+			<string>com.mlgm.kayoko.preferences.reload</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Height (Points)</string>
+		</dict>
+		<dict>
+			<key>cellClass</key>
+			<string>KayokoSliderCell</string>
+			<key>default</key>
+			<real>420</real>
+			<key>defaults</key>
+			<string>com.mlgm.kayoko.preferences</string>
+			<key>key</key>
+			<string>HeightInPoints</string>
+			<key>min</key>
+			<real>200</real>
+			<key>max</key>
+			<real>600</real>
+			<key>showValue</key>
+			<true/>
+			<key>isContinuous</key>
+			<true/>
+			<key>isSegmented</key>
+			<false/>
+			<key>valueLabelWidth</key>
+			<integer>44</integer>
+			<key>PostNotification</key>
+			<string>com.mlgm.kayoko.preferences.height.reload</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Show Kayoko</string>
+			<key>action</key>
+			<string>showKayoko</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>View Priority</string>
+			<key>footerText</key>
+			<string>Reference values: Status Bar 999, Lock Screen 1050, Control Center 1080, Screenshots 1115, Recording Indicator 1120/1125, System Alerts 2000.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSegmentCell</string>
+			<key>default</key>
+			<integer>0</integer>
+			<key>defaults</key>
+			<string>com.mlgm.kayoko.preferences</string>
+			<key>id</key>
+			<string>OverlayWindowLevelMode</string>
+			<key>key</key>
+			<string>OverlayWindowLevelMode</string>
+			<key>validValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+			</array>
+			<key>validTitles</key>
+			<array>
+				<string>Custom</string>
+				<string>Maximum</string>
+			</array>
+			<key>PostNotification</key>
+			<string>com.mlgm.kayoko.preferences.reload</string>
+		</dict>
+		<dict>
+			<key>cellClass</key>
+			<string>KayokoSliderCell</string>
+			<key>default</key>
+			<real>998</real>
+			<key>defaults</key>
+			<string>com.mlgm.kayoko.preferences</string>
+			<key>format</key>
+			<string>%.0f</string>
+			<key>id</key>
+			<string>OverlayWindowLevel</string>
+			<key>isContinuous</key>
+			<true/>
+			<key>isSegmented</key>
+			<true/>
+			<key>key</key>
+			<string>OverlayWindowLevel</string>
+			<key>label</key>
+			<string>View Level</string>
+			<key>max</key>
+			<real>2000</real>
+			<key>min</key>
+			<real>10</real>
+			<key>PostNotification</key>
+			<string>com.mlgm.kayoko.preferences.reload</string>
+			<key>segmentCount</key>
+			<integer>1990</integer>
+			<key>showValue</key>
+			<true/>
+			<key>showsTopSeparator</key>
+			<true/>
+			<key>titleLabelWidth</key>
+			<integer>88</integer>
+			<key>valueLabelWidth</key>
+			<integer>44</integer>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Behaviors</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.mlgm.kayoko.preferences</string>
+			<key>key</key>
+			<string>AutomaticallyPaste</string>
+			<key>label</key>
+			<string>Automatically Paste</string>
+			<key>PostNotification</key>
+			<string>com.mlgm.kayoko.preferences.reload</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.mlgm.kayoko.preferences</string>
+			<key>key</key>
+			<string>DismissOnOutsideTouch</string>
+			<key>label</key>
+			<string>Touch Outside to Dismiss</string>
+			<key>PostNotification</key>
+			<string>com.mlgm.kayoko.preferences.reload</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.mlgm.kayoko.preferences</string>
+			<key>key</key>
+			<string>DisablePasteTips</string>
+			<key>label</key>
+			<string>Disable Paste Tips</string>
+			<key>PostNotification</key>
+			<string>com.mlgm.kayoko.preferences.reload</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>When enabled, long-press a text item in History or Favorites to enter word selection mode. Tap a word to select it, then drag across words to extend or reduce the selection.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.mlgm.kayoko.preferences</string>
+			<key>key</key>
+			<string>SwipeToSelectWords</string>
+			<key>label</key>
+			<string>Swipe to Select Words</string>
+			<key>PostNotification</key>
+			<string>com.mlgm.kayoko.preferences.reload</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>Choose when a tapped item moves to the top. “History Only” keeps Favorites in your chosen order while still surfacing recently used history items.</string>
+			<key>label</key>
+			<string>Auto Promote</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSegmentCell</string>
+			<key>default</key>
+			<integer>1</integer>
+			<key>defaults</key>
+			<string>com.mlgm.kayoko.preferences</string>
+			<key>key</key>
+			<string>AutomaticPromotionMode</string>
+			<key>PostNotification</key>
+			<string>com.mlgm.kayoko.preferences.reload</string>
+			<key>validTitles</key>
+			<array>
+				<string>Off</string>
+				<string>History Only</string>
+				<string>Always</string>
+			</array>
+			<key>validValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+				<integer>2</integer>
+			</array>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Feedbacks</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.mlgm.kayoko.preferences</string>
+			<key>key</key>
+			<string>PlaySoundEffects</string>
+			<key>label</key>
+			<string>Play Sound Effects</string>
+			<key>PostNotification</key>
+			<string>com.mlgm.kayoko.preferences.reload</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.mlgm.kayoko.preferences</string>
+			<key>key</key>
+			<string>PlayHapticFeedback</string>
+			<key>label</key>
+			<string>Play Haptic Feedback</string>
+			<key>PostNotification</key>
+			<string>com.mlgm.kayoko.preferences.reload</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>More</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>label</key>
+			<string>Advanced Options</string>
+			<key>detail</key>
+			<string>KayokoAdvancedOptionsListController</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkListCell</string>
+			<key>default</key>
+			<array/>
+			<key>defaults</key>
+			<string>com.mlgm.kayoko.preferences</string>
+			<key>detail</key>
+			<string>ATLApplicationListMultiSelectionController</string>
+			<key>key</key>
+			<string>ApplicationBlacklist</string>
+			<key>label</key>
+			<string>Application Blacklist</string>
+			<key>sections</key>
+			<array>
+				<dict>
+					<key>sectionType</key>
+					<string>User</string>
+				</dict>
+				<dict>
+					<key>sectionType</key>
+					<string>System</string>
+				</dict>
+			</array>
+			<key>showIdentifiersAsSubtitle</key>
+			<true/>
+			<key>defaultApplicationSwitchValue</key>
+			<false/>
+			<key>useSearchBar</key>
+			<true/>
+			<key>includeIdentifiersInSearch</key>
+			<true/>
+			<key>PostNotification</key>
+			<string>com.mlgm.kayoko.preferences.reload</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>label</key>
+			<string>Acknowledgments &amp; Licenses</string>
+			<key>detail</key>
+			<string>KayokoCreditsListController</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string></string>
+			<key>footerText</key>
+			<string>Made by OwnGoal Studio</string>
+			<key>condensedFooterText</key>
+			<string>Made by OwnGoal Studio</string>
+			<key>hideFooterTextAfterPreferenceDefaults</key>
+			<string>com.mlgm.kayoko.preferences</string>
+			<key>hideFooterTextAfterPreferenceKey</key>
+			<string>DidOpenHavocLink</string>
+		</dict>
+		<dict>
+			<key>cellClass</key>
+			<string>KayokoLinkCell</string>
+			<key>label</key>
+			<string>OwnGoal Studio Kayoko</string>
+			<key>subtitle</key>
+			<string>Purchase Kayoko on Havoc Marketplace to support ongoing OwnGoal Studio maintenance.</string>
+			<key>url</key>
+			<string>https://havoc.app/package/kayoko</string>
+			<key>height</key>
+			<integer>54</integer>
+			<key>markOpenedDefaults</key>
+			<string>com.mlgm.kayoko.preferences</string>
+			<key>markOpenedKey</key>
+			<string>DidOpenHavocLink</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string></string>
+			<key>footerText</key>
+			<string>This build was modified by mlgm based on the OwnGoal Studio edition.</string>
+		</dict>
+		<dict>
+			<key>cellClass</key>
+			<string>KayokoLinkCell</string>
+			<key>label</key>
+			<string>mlgm Personal Repo</string>
+			<key>subtitle</key>
+			<string>Sharing some tweaks and apps I use myself.</string>
+			<key>url</key>
+			<string>https://mlgm66.github.io</string>
+			<key>height</key>
+			<integer>54</integer>
+		</dict>
+
+	</array>
+	<key>title</key>
+	<string>Kayoko</string>
+</dict>
+</plist>
