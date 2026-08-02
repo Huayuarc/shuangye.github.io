@@ -1,6 +1,6 @@
 Package: com.mlgm.kayoko
 Name: Kayoko
-Version: 4.7.2
+Version: 4.7.1
 Architecture: iphoneos-arm
 Description: Kayoko 剪切板，mlgm 基于「乌龙工作室」版进行二次修改
 Maintainer: mlgm
