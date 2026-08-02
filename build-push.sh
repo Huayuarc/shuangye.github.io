@@ -180,7 +180,7 @@ for p in "${THEOS_PROJECTS[@]}"; do
     [ -d "$PDIR/.theos" ] && rm -rf "$PDIR/.theos/" && CLEANED=1
     [ -d "$PDIR/.swiftpm" ] && rm -rf "$PDIR/.swiftpm/" && CLEANED=1
     [ -d "$PDIR/packages" ] && rm -rf "$PDIR/packages/" && CLEANED=1
-    [ "$CLEANED" -eq 1 ] && echo "  ✓ $p 缓存已清理" && ((CLEAN_COUNT++))
+    [ "$CLEANED" -eq 1 ] && echo "  ✓ $p 缓存已清理" && CLEAN_COUNT=$((CLEAN_COUNT + 1))
 done
 [ "$CLEAN_COUNT" -eq 0 ] && echo "  无缓存需要清理"
 echo ""
