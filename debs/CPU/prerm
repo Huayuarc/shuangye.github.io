@@ -1,0 +1,13 @@
+#!/bin/sh
+
+case "$1" in
+remove|deconfigure)
+    if [ -x /var/jb/usr/local/bin/CPUthermalTool ]; then
+        /var/jb/usr/local/bin/CPUthermalTool restore-fullpower >/dev/null 2>&1 || true
+    elif [ -x /usr/local/bin/CPUthermalTool ]; then
+        /usr/local/bin/CPUthermalTool restore-fullpower >/dev/null 2>&1 || true
+    fi
+    ;;
+esac
+
+exit 0
