@@ -1,0 +1,14 @@
+#!/bin/sh
+# prerm
+
+# 1. 尝试通知工具恢复全功率状态 (利用你项目自带的 CPUthermalTool restore-fullpower)
+if [ -x /var/jb/usr/local/bin/CPUthermalTool ]; then
+    /var/jb/usr/local/bin/CPUthermalTool restore-fullpower
+elif [ -x /usr/local/bin/CPUthermalTool ]; then
+    /usr/local/bin/CPUthermalTool restore-fullpower
+fi
+
+# 2. 杀掉 thermalmonitord 守护进程，系统会自动将其拉起并初始化为原生状态
+killall -9 thermalmonitord >/dev/null 2>&1
+
+exit 0
