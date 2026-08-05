@@ -8,4 +8,4 @@ Section: Tweaks
 Icon: https://huayuarc.github.io/icon/cputhermal.png
 Sileodepiction: https://huayuarc.github.io/sileodepiction/CPUthermal/js.json
 Architecture: iphoneos-arm
-Version: 1.5.7.7
+Version: 1.5.7-7
