@@ -1,9 +1,0 @@
-#!/bin/sh
-
-case "$1" in
-remove|purge|disappear)
-    killall -q thermalmonitord >/dev/null 2>&1 || true
-    ;;
-esac
-
-exit 0
