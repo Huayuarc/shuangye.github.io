@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>title</key>
+	<string>CPUthermal</string>
+	<key>items</key>
+	<array>
+		<!-- ===================== 第1组: 功率模式 ===================== -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>切换低功耗后会立即启用系统 PowerSave/CPMS，并持续锁定下方所选 CPU 频率上限。锁屏、亮屏和系统唤醒都会重新应用；解除温控按下方高频目标恢复。</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSegmentCell</string>
+			<key>default</key>
+			<string>fullPower</string>
+			<key>defaults</key>
+			<string>com.huayuarc.cputhermal</string>
+			<key>key</key>
+			<string>powerMode</string>
+			<key>label</key>
+			<string>功率模式</string>
+			<key>validTitles</key>
+			<array>
+				<string>低功耗</string>
+				<string>解除温控</string>
+			</array>
+			<key>validValues</key>
+			<array>
+				<string>lowPower</string>
+				<string>fullPower</string>
+			</array>
+		</dict>
+
+		<!-- ===================== 低功耗锁频目标 ===================== -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>低功耗锁频</string>
+			<key>footerText</key>
+			<string>仅在「低功耗」模式生效。插件会读取本机性能核 P-State 表；所选频率不存在时，自动使用最接近目标的真实档位。锁屏与亮屏均每 1 秒重应用，优先保证长时间锁定稳定性。</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSegmentCell</string>
+			<key>default</key>
+			<string>1380</string>
+			<key>defaults</key>
+			<string>com.huayuarc.cputhermal</string>
+			<key>key</key>
+			<string>lowPowerLockMHz</string>
+			<key>label</key>
+			<string>CPU 频率（MHz）</string>
+			<key>validTitles</key>
+			<array>
+				<string>1380</string>
+				<string>1428</string>
+				<string>1584</string>
+				<string>2016</string>
+			</array>
+			<key>validValues</key>
+			<array>
+				<string>1380</string>
+				<string>1428</string>
+				<string>1584</string>
+				<string>2016</string>
+			</array>
+		</dict>
+
+		<!-- ===================== 解除温控高频目标 ===================== -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>解除温控高频目标</string>
+			<key>footerText</key>
+			<string>仅用于「解除温控」模式。输入目标 MHz 后应用；超过设备硬件上限会自动钳制，实际频点由 ApplePPM 选择最接近的可用档位。</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>default</key>
+			<string></string>
+			<key>defaults</key>
+			<string>com.huayuarc.cputhermal</string>
+			<key>key</key>
+			<string>cpuMinPowerValue</string>
+			<key>keyboard</key>
+			<string>numbers</string>
+			<key>isNumeric</key>
+			<string>true</string>
+			<key>placeholder</key>
+			<string>例如 3240（单位 MHz）</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>应用高频锁定</string>
+			<key>action</key>
+			<string>applyCPUFrequencyLock</string>
+		</dict>
+
+		<!-- ===================== 第2组: 温度计警告 ===================== -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>开启后阻止系统因高温弹出全屏「iPhone 需要冷却」温度计警告。</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.huayuarc.cputhermal</string>
+			<key>key</key>
+			<string>thermalBlockNotifPopup</string>
+			<key>label</key>
+			<string>屏蔽高温温度计警告</string>
+		</dict>
+
+		<!-- ===================== 第3组: 屏幕控制 ===================== -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>开启后阻止系统因温控主动调暗屏幕亮度，保持当前亮度不变。</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.huayuarc.cputhermal</string>
+			<key>key</key>
+			<string>thermalPreventDimmingEnabled</string>
+			<key>label</key>
+			<string>防温控暗屏</string>
+		</dict>
+
+		<!-- ===================== 第4组: 操作 ===================== -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>操作</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>重启用户空间</string>
+			<key>action</key>
+			<string>usreboot</string>
+		</dict>
+
+		<!-- ===================== 第5组: 开源代码 ===================== -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>开源</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>GitHub be-huge/insulation</string>
+			<key>action</key>
+			<string>openSourceCode</string>
+		</dict>
+	</array>
+</dict>
+</plist>
