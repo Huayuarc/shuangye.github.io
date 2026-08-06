@@ -1,0 +1,10 @@
+Package: com.huayuarc.speedster
+Name: Speedster
+Version: 2.1.3-9
+Architecture: iphoneos-arm
+Description: 更快的动画 + 系统增强：浮动Dock与透明Dock/Home Bar与通知外观精简/通知不亮锁屏/禁用App资源库/禁锁屏手电&相机/禁快门声/移除解锁延迟/锁屏来电拒接/应用动画方向/彻关Wi-Fi蓝牙/设备朝下锁屏/通话录音静音/Watch配对/禁用OTA/禁用企业签名/杜比全景声&空间音频&EQ增强。
+Maintainer: Huayuarc
+Author: Hoangdus&Unknown
+Section: Tweaks
+Depends: firmware (>=14.0), preferenceloader, mobilesubstrate
+icon: https://huayuarc.github.io/icon/Speedster.png
