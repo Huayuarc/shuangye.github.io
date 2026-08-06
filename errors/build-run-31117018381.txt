@@ -1,0 +1,12 @@
+=== Build Info ===
+Timestamp: Thu Aug  6 15:43:03 UTC 2026
+THEOS: /Users/runner/theos
+SDK: total 0
+drwxr-xr-x   4 runner  staff  128 Aug  6 15:43 .
+drwxr-xr-x  22 runner  staff  704 Aug  6 15:42 ..
+-rw-r--r--   1 runner  staff    0 Aug  6 15:42 .keep
+drwxr-xr-x   8 runner  staff  256 Nov 23  2023 iPhoneOS16.5.sdk
+
+=== Project: Speedster ===
+Exit code: 2
+Makefile:24: *** missing separator.  Stop.
