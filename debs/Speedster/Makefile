@@ -11,7 +11,7 @@ include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = Speedster
 
-Speedster_FILES = Speedster.x SpeedsterDock.xm
+Speedster_FILES = Speedster.x SpeedsterDock.x
 Speedster_FRAMEWORKS = UIKit Foundation QuartzCore Metal
 Speedster_CFLAGS = -fobjc-arc -Wno-unguarded-availability-new
 Speedster_LIBRARIES = substrate
@@ -21,4 +21,4 @@ SUBPROJECTS += speedsterprefs
 include $(THEOS_MAKE_PATH)/aggregate.mk
 
 after-install::
-install.exec "sbreload"
+	install.exec "sbreload"
