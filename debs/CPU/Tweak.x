@@ -220,6 +220,9 @@ runtimeConfigSnapshot(&enabled, &cpuProtection, NULL, NULL, NULL);
 return enabled && cpuProtection;
 }
 
+static BOOL isLowPowerMode(void);
+static BOOL isFullPowerMode(void);
+
 static BOOL networkThrottleBlockingEnabled(void) {
 BOOL enabled = NO;
 BOOL blockNetwork = NO;
