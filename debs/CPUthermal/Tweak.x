@@ -180,6 +180,7 @@ static NSHashTable *g_applePPMInstances = nil;           // 追踪 ApplePPMCPU �
 // 高温告警默认屏蔽；防暗屏仍由用户设置决定。
 static BOOL g_thermalBlockNotifPopup = YES;
 static BOOL g_thermalPreventDimmingEnabled = NO;
+static BOOL isFullPowerMode(void);
 static BOOL shouldApplyLowPowerLimit(void);
 static int targetCPUPerformanceLevel(void);
 static void loadPrefs(void);
