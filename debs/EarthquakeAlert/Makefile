@@ -15,7 +15,7 @@ EarthquakeAlertUI_FRAMEWORKS = UIKit Foundation QuartzCore AudioToolbox
 EarthquakeAlertUI_PRIVATE_FRAMEWORKS = SpringBoardServices
 
 TOOL_NAME = eqdaemon
-eqdaemon_FILES = EQDaemon/eqdaemon.m
+eqdaemon_FILES = DaemonSource/eqdaemon.m
 eqdaemon_CFLAGS = -fobjc-arc -I.
 eqdaemon_CODESIGN_FLAGS = -Sentitlements.plist
 eqdaemon_FRAMEWORKS = Foundation UIKit CoreGraphics UserNotifications
