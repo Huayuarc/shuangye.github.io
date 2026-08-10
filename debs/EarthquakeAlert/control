@@ -1,0 +1,9 @@
+Package: com.shuangye.earthquakealert
+Name: 地震预警系统
+Version: 1.1.3
+Architecture: iphoneos-arm
+Description: 越狱 iOS 地震信息提醒插件，支持 USGS/EMSC 双源切换、事件时效过滤与全屏警报（非官方秒级 EEW）
+Maintainer: shuangye
+Author: shuangye
+Section: Tweaks
+Depends: firmware (>= 15.0)
