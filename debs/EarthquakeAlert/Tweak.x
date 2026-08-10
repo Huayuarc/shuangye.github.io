@@ -376,7 +376,6 @@
                 }
             }
         }
-        if (!keyWin) keyWin = [UIApplication sharedApplication].windows.firstObject;
         UIViewController *topVC = keyWin.rootViewController;
         while (topVC.presentedViewController) topVC = topVC.presentedViewController;
         if (!topVC) {
