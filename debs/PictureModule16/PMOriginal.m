@@ -10,7 +10,7 @@ static NSString *VideoPath(NSInteger n){return [Root() stringByAppendingPathComp
 static NSDictionary *Prefs(NSString *identifier){NSInteger n=Slot(identifier);NSMutableDictionary *m=[NSMutableDictionary dictionaryWithDictionary:[[[NSUserDefaults alloc]initWithSuiteName:LegacyID(n)] dictionaryRepresentation]];[m addEntriesFromDictionary:[[[NSUserDefaults alloc]initWithSuiteName:identifier] dictionaryRepresentation]];return m;}
 
 @interface PMPlayerView:UIView
-@property AVPlayer *player;
+@property(nonatomic,strong) AVPlayer *player;
 @end
 @implementation PMPlayerView
 + (Class)layerClass{return AVPlayerLayer.class;}
@@ -19,7 +19,7 @@ static NSDictionary *Prefs(NSString *identifier){NSInteger n=Slot(identifier);NS
 @end
 
 @interface PMOriginalContentViewController:UIViewController<CCUIContentModuleContentViewController,UIScrollViewDelegate>
-@property NSString *identifier;@property UIScrollView *scrollView;@property UIView *mediaView;@property UILabel *labelView;@property AVPlayer *player;@property BOOL expanded;
+@property NSString *identifier;@property UIScrollView *scrollView;@property UIView *mediaView;@property UILabel *labelView;@property(nonatomic,strong) AVPlayer *player;@property BOOL expanded;
 @end
 @implementation PMOriginalContentViewController
 - (instancetype)initWithIdentifier:(NSString *)i{if((self=[super init]))_identifier=i;return self;}

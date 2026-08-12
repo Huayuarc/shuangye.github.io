@@ -4,7 +4,7 @@
 #import <notify.h>
 
 @interface PMOriginalListController()<PHPickerViewControllerDelegate>
-@property NSString *identifier;
+@property(nonatomic,strong) NSString *identifier;
 @end
 @implementation PMOriginalListController
 - (instancetype)initWithIdentifier:(NSString *)i{if((self=[super init]))_identifier=i;return self;}
