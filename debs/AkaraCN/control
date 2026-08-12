@@ -1,0 +1,12 @@
+Package: com.huayuarc.akaracn
+Name: Akara 中文重构版
+Version: 1.0.0
+Architecture: iphoneos-arm
+Description: Independent iOS 15-16 compact control center rebuilt with safe gestures and native Simplified Chinese settings.
+Maintainer: Huayuarc
+Author: Huayuarc
+Section: Tweaks
+Depends: mobilesubstrate, preferenceloader
+Conflicts: xyz.cypwn.akara, com.huayuarc.akarafix
+Replaces: xyz.cypwn.akara, com.huayuarc.akarafix
+Provides: xyz.cypwn.akara
