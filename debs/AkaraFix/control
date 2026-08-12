@@ -1,0 +1,10 @@
+Package: com.huayuarc.akarafix
+Name: AkaraFix
+Version: 1.0.1
+Architecture: iphoneos-arm
+Description: Fixes Akara gesture crashes and residual lines, restores system gestures, and adds Simplified Chinese localization.
+Maintainer: Huayuarc
+Author: Huayuarc
+Section: Tweaks
+Depends: mobilesubstrate, xyz.cypwn.akara (>= 2.0.2k)
+Conflicts: com.huayuarc.akarafix.legacy
