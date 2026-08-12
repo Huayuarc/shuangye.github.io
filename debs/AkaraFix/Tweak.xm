@@ -34,8 +34,16 @@ static BOOL AKRIsResidualGrabber(UIView *view, UIWindow *window) {
     return nearBottom && (lineShape || grabberClass);
 }
 
+static NSArray<UIWindow *> *AKRAllWindows(void) {
+    NSMutableArray<UIWindow *> *windows = [NSMutableArray array];
+    for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+        if ([scene isKindOfClass:UIWindowScene.class]) [windows addObjectsFromArray:((UIWindowScene *)scene).windows];
+    }
+    return windows;
+}
+
 static void AKRRestoreGesturesAndRemoveLines(void) {
-    for (UIWindow *window in UIApplication.sharedApplication.windows) {
+    for (UIWindow *window in AKRAllWindows()) {
         if (!AKRIsAkaraWindow(window)) continue;
         NSMutableArray<UIView *> *queue = [NSMutableArray arrayWithObject:window];
         while (queue.count) {
