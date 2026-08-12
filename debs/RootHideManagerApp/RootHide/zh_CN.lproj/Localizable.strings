@@ -1,0 +1,79 @@
+
+"Blacklist" = "黑名单";
+"name or identifier" = "名字或者标识符";
+
+"varClean" = "var清理";
+"Clean" = "清理";
+"SelectAll" = "选择全部";
+
+"Setting" = "设置";
+
+"General" = "通用";
+"Whitelist Mode" = "白名单模式";
+"auto blacklist newly installed apps" = "自动将新安装的应用列入黑名单";
+
+"Advanced" = "高级";
+"Edit varClean Rules" = "编辑清理var垃圾文件时的规则";
+"view the rules file in Filza" = "查看Filza中的规则文件";
+
+"Misc" = "其他";
+"Hide xinaA15 Files" = "隐藏xinaA15文件";
+"hide xinaA15 files without uninstall it" = "隐藏xinaA15文件而不卸载";
+
+
+
+"Got It" = "明白了";
+
+"SSH Detected" = "检测到SSH";
+"SSH Server  has been installed, you can uninstall it via Sileo/Zebra." = "SSH服务已经安装,您可以通过Sileo/Zebra卸载它.";
+
+"xinaA15 detected" = "检测到xinaA15";
+
+"xinaA15 jailbreak file has been installed, you can uninstall it via xinaA15 app or hide it in the settings of the RootHide app." = "xinaA15越狱文件已安装,您可以通过xinaA1五应用程序卸载它，也可以将其隐藏在RootHide应用程序的设置中.";
+
+"Process xinaA15 Files" = "处理xinaA15文件";
+
+"xinaA15 files has been hidden, please reboot your device.\n\nyou can restore it later if you want to use xinaA15 again." = "xinaA15文件已被隐藏，请重新启动您的设备.\n\n如果您想再次使用xina15,可以稍后恢复.";
+
+"xinaA15 files has been restored, you can reboot your device to switch to xinaA15." = "xinaA15文件已还原,您可以重新启动设备以切换到xinaA15.";
+
+"there are multiple xinaA15 jailbreak files, you can restore it manually:\n\n%s/" = "有多个xinaA15越狱文件,您可以手动恢复:\n\n%s/";
+
+"restore failed: xinaA15 file not found!" = "还原失败：找不到xinaA15文件!";
+"restore failed: %@" = "还原失败: %@";
+"hide failed: %@" = "隐藏失败: %@";
+
+
+"Plugin Injection" = "插件功能";
+"Enable Global Plugin Injection" = "启用全局插件注入";
+"Takes effect after respring; enabled by default" = "注销后生效；默认开启";
+"Respring to apply the global injection change." = "请注销以应用全局注入状态。";
+"Install Choicy from Sileo first, then try again." = "请先从 Sileo 安装 Choicy，然后重试。";
+"Plugin Configuration" = "单个插件配置";
+"Enable or disable individual installed plugins" = "单独启用或停用已安装插件";
+"Installed Plugins" = "已安装插件";
+"Changes take effect after respring. Choicy and MobileSafety always remain enabled." = "更改在注销后生效；Choicy 与 MobileSafety 始终保持启用。";
+"Actions" = "操作";
+"Respring" = "注销";
+"Apply plugin injection changes now" = "立即应用插件注入更改";
+"The device will respring to apply plugin injection changes." = "设备将注销以应用插件注入更改。";
+"Cancel" = "取消";
+
+"Deep Clean" = "深度清理";
+"App Caches" = "应用缓存";
+"Re-creatable cache files from installed apps" = "已安装应用的可再生缓存文件";
+"Temporary Files" = "临时文件";
+"Application tmp folders and system temporary files" = "应用 tmp 目录和系统临时文件";
+"Web Data" = "网页数据";
+"WebKit caches, cookies and website data; websites may sign out" = "WebKit 缓存、Cookie 和网站数据；网站可能需要重新登录";
+"System Logs" = "系统日志";
+"Crash reports, diagnostic and log files" = "崩溃报告、诊断及日志文件";
+"System Caches" = "系统缓存";
+"Re-creatable mobile user and system cache data" = "移动用户与系统的可再生缓存数据";
+"Cleanable Categories" = "可清理分类";
+"Summary" = "统计";
+"Documents, photos, messages, contacts, health data and keychains are excluded." = "不包含文档、照片、信息、通讯录、健康数据和钥匙串。";
+"Selected Cleanable Space" = "已选可清理空间";
+"Clean selected categories and reclaim approximately %@?" = "清理已选分类并预计释放 %@？";
+"Freed %@." = "已释放 %@。";
+"Clean Complete" = "清理完成";
