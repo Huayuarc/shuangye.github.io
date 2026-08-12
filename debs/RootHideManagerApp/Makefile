@@ -21,6 +21,7 @@ RootHide_FILES = \
 RootHide_FRAMEWORKS = UIKit Foundation CoreFoundation CFNetwork MobileCoreServices IOKit
 RootHide_LIBRARIES = z
 RootHide_CFLAGS = -fobjc-arc -Wno-deprecated-declarations -Wno-error -IRootHide -IRootHide/UIComponent
+RootHide_NSJSONSerialization+Comments.m_CFLAGS = -fno-objc-arc
 RootHide_INSTALL_PATH = /Applications
 RootHide_INFO_PLIST = RootHide/Info.plist
 RootHide_CODESIGN_FLAGS = -Sentitlements.plist
