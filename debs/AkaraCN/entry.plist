@@ -1,1 +1,0 @@
-{ entry = { bundle = AkaraCNPrefs; cell = PSLinkCell; detail = AKRRootListController; isController = 1; label = "Akara 中文重构版"; }; }
