@@ -185,7 +185,7 @@
     ];
     
     NSMutableString* activedBootHash = [NSMutableString new];
-    io_registry_entry_t registryEntry = IORegistryEntryFromPath(kIOMainPortDefault, "IODeviceTree:/chosen");
+    io_registry_entry_t registryEntry = IORegistryEntryFromPath(kIOMasterPortDefault, "IODeviceTree:/chosen");
     if (registryEntry) {
         CFDataRef bootManifestHashData = IORegistryEntryCreateCFProperty(registryEntry, CFSTR("boot-manifest-hash"), NULL, 0);
         CFIndex bootManifestHashLength = CFDataGetLength(bootManifestHashData);
