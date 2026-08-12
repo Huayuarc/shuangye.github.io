@@ -1,5 +1,6 @@
 #import <Preferences/PSListController.h>
 #import <Preferences/PSSpecifier.h>
+#import <spawn.h>
 
 @interface AKRRootListController : PSListController @end
 @implementation AKRRootListController
@@ -19,5 +20,5 @@
 }
 - (id)get:(PSSpecifier*)p { NSDictionary*d=[[NSUserDefaults standardUserDefaults]persistentDomainForName:@"com.huayuarc.akaracn"]?:@{}; return d[[p propertyForKey:@"key"]]?:[p propertyForKey:@"default"]; }
 - (void)set:(id)v for:(PSSpecifier*)p { NSUserDefaults*u=[NSUserDefaults standardUserDefaults]; NSMutableDictionary*d=[[u persistentDomainForName:@"com.huayuarc.akaracn"] mutableCopy]?:[NSMutableDictionary dictionary]; d[[p propertyForKey:@"key"]]=v; [u setPersistentDomain:d forName:@"com.huayuarc.akaracn"]; }
-- (void)apply { system("killall -9 SpringBoard"); }
+- (void)apply { pid_t pid; const char *args[] = {"killall", "-9", "SpringBoard", NULL}; posix_spawn(&pid, "/usr/bin/killall", NULL, NULL, (char *const *)args, NULL); }
 @end
