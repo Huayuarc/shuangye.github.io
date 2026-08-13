@@ -1,0 +1,29 @@
+#!/bin/sh
+set -e
+BASE=/var/mobile/Containers/Shared/AppGroup
+CURRENT=
+for r in "$BASE"/.jbroot-*; do
+    [ -d "$r" ] || continue
+    if [ -d "$r/Library/ControlCenter/Bundles/PictureModule1.bundle" ]; then
+        CURRENT="$r"
+        break
+    fi
+done
+if [ -n "$CURRENT" ]; then
+    DEST="$CURRENT/var/mobile/Library/PictureModule"
+    mkdir -p "$DEST"
+    for SRC in /var/mobile/Library/PictureModule /var/jb/var/mobile/Library/PictureModule "$BASE"/.jbroot-*/var/mobile/Library/PictureModule; do
+        [ -d "$SRC" ] || continue
+        [ "$SRC" = "$DEST" ] && continue
+        cp -p "$SRC"/* "$DEST"/ 2>/dev/null || true
+    done
+    chown -R mobile:mobile "$DEST" 2>/dev/null || true
+    chmod 775 "$DEST" 2>/dev/null || true
+else
+    DEST=/var/mobile/Library/PictureModule
+    [ -d /var/jb ] && DEST=/var/jb/var/mobile/Library/PictureModule
+    mkdir -p "$DEST"
+    chown -R mobile:mobile "$DEST" 2>/dev/null || true
+    chmod 775 "$DEST" 2>/dev/null || true
+fi
+exit 0
