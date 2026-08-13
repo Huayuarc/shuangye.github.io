@@ -1,2 +1,0 @@
-# RootHideManagerApp
- RootHideManagerApp
