@@ -1,0 +1,84 @@
+
+"Blacklist" = "Blacklist";
+"name or identifier" = "name or identifier";
+
+"varClean" = "varClean";
+"Clean" = "Clean";
+"SelectAll" = "SelectAll";
+
+"Setting" = "Setting";
+
+"General" = "General";
+"Whitelist Mode" = "Whitelist Mode";
+"auto blacklist newly installed apps" = "auto blacklist newly installed apps";
+
+"Advanced" = "Advanced";
+"Edit varClean Rules" = "Edit varClean Rules";
+"view the rules file in Filza" = "view the rules file in Filza";
+
+"Misc" = "Misc";
+"Hide xinaA15 Files" = "Hide xinaA15 Files";
+"hide xinaA15 files without uninstall it" = "hide xinaA15 files without uninstall it";
+
+
+
+"Got It" = "Got It";
+
+"SSH Detected" = "SSH Detected";
+"SSH Server  has been installed, you can uninstall it via Sileo/Zebra." = "SSH Server  has been installed, you can uninstall it via Sileo/Zebra.";
+
+"xinaA15 detected" = "xinaA15 detected";
+
+"xinaA15 jailbreak file has been installed, you can uninstall it via xinaA15 app or hide it in the settings of the RootHide app." = "xinaA15 jailbreak file has been installed, you can uninstall it via xinaA15 app or hide it in the settings of the RootHide app.";
+
+"Process xinaA15 Files" = "Process xinaA15 Files";
+
+"xinaA15 files has been hidden, please reboot your device.\n\nyou can restore it later if you want to use xinaA15 again." = "xinaA15 files has been hidden, please reboot your device.\n\nyou can restore it later if you want to use xinaA15 again.";
+
+"xinaA15 files has been restored, you can reboot your device to switch to xinaA15." = "xinaA15 files has been restored, you can reboot your device to switch to xinaA15.";
+
+"there are multiple xinaA15 jailbreak files, you can restore it manually:\n\n%s/" = "there are multiple xinaA15 jailbreak files, you can restore it manually:\n\n%s/";
+
+"restore failed: xinaA15 file not found!" = "restore failed: xinaA15 file not found!";
+"restore failed: %@" = "restore failed: %@";
+"hide failed: %@" = "hide failed: %@";
+
+
+"Plugin Injection" = "Plugin Injection";
+"Enable Global Plugin Injection" = "Enable Global Plugin Injection";
+"Takes effect after respring; enabled by default" = "Takes effect after respring; enabled by default";
+"Respring to apply the global injection change." = "Respring to apply the global injection change.";
+"Install Choicy from Sileo first, then try again." = "Install Choicy from Sileo first, then try again.";
+"Plugin Configuration" = "Plugin Configuration";
+"Enable or disable individual installed plugins" = "Enable or disable individual installed plugins";
+"Installed Plugins" = "Installed Plugins";
+"Changes take effect after respring. Choicy and MobileSafety always remain enabled." = "Changes take effect after respring. Choicy and MobileSafety always remain enabled.";
+"Actions" = "Actions";
+"Respring" = "Respring";
+"Apply plugin injection changes now" = "Apply plugin injection changes now";
+"The device will respring to apply plugin injection changes." = "The device will respring to apply plugin injection changes.";
+"Cancel" = "Cancel";
+
+"Deep Clean" = "Deep Clean";
+"App Caches" = "App Caches";
+"Re-creatable cache files from installed apps" = "Re-creatable cache files from installed apps";
+"Temporary Files" = "Temporary Files";
+"Application tmp folders and system temporary files" = "Application tmp folders and system temporary files";
+"Web Data" = "Web Data";
+"WebKit caches, cookies and website data; websites may sign out" = "WebKit caches, cookies and website data; websites may sign out";
+"System Logs" = "System Logs";
+"Crash reports, diagnostic and log files" = "Crash reports, diagnostic and log files";
+"System Caches" = "System Caches";
+"Re-creatable mobile user and system cache data" = "Re-creatable mobile user and system cache data";
+"Cleanable Categories" = "Cleanable Categories";
+"Summary" = "Summary";
+"Documents, photos, messages, contacts, health data and keychains are excluded." = "Documents, photos, messages, contacts, health data and keychains are excluded.";
+"Selected Cleanable Space" = "Selected Cleanable Space";
+"Clean selected categories and reclaim approximately %@?" = "Clean selected categories and reclaim approximately %@?";
+"Freed %@." = "Freed %@.";
+"Clean Complete" = "Clean Complete";
+
+"Only installed application tmp folders" = "Only installed application tmp folders";
+"Diagnostic Logs" = "Diagnostic Logs";
+"Only crash and diagnostic report files" = "Only crash and diagnostic report files";
+"Strict safe mode: app bundles, system paths, documents, photos and keychains are never touched." = "Strict safe mode: app bundles, system paths, documents, photos and keychains are never touched.";
