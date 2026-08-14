@@ -1,8 +1,12 @@
 #import <Foundation/Foundation.h>
 
+@interface NSObject (SneakyCapturePrivate)
+- (NSString *)applicationID;
+@end
+
 %hook FigCaptureClientSessionMonitor
 - (void)_updateClientStateCondition:(id)condition newValue:(id)value {
-    NSString *app = nil; if ([self respondsToSelector:@selector(applicationID)]) app = [self performSelector:@selector(applicationID)];
+    NSString *app = [((id)self) respondsToSelector:@selector(applicationID)] ? [((id)self) applicationID] : nil;
     if ([app isEqualToString:@"com.apple.springboard"]) return;
     %orig;
 }
@@ -10,7 +14,7 @@
 
 %hook FigCaptureClientSessionMonitorClient
 - (BOOL)hasBackgroundCameraAccess {
-    NSString *app = nil; if ([self respondsToSelector:@selector(applicationID)]) app = [self performSelector:@selector(applicationID)];
+    NSString *app = [((id)self) respondsToSelector:@selector(applicationID)] ? [((id)self) applicationID] : nil;
     if ([app isEqualToString:@"com.apple.springboard"]) return YES;
     return %orig;
 }
