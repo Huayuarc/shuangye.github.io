@@ -1,0 +1,15 @@
+{
+    Filter = {
+        Mode = Any;
+        Classes = (
+            UIApplication
+        );
+        Bundles = (
+            "com.apple.UIKit"
+        );
+        Executables = (
+            SpringBoard,
+            Preferences
+        );
+    };
+}
