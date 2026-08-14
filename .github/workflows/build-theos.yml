@@ -184,7 +184,6 @@ jobs:
 
       - name: Build roothide (arm64e)
         if: success() && steps.build-rootless.outputs.exit_code == 0
-        continue-on-error: true
         working-directory: debs
         run: |
           set -x
@@ -210,8 +209,14 @@ jobs:
             echo "=== 编译 [$proj] roothide (arm64e) ==="
             pushd "$proj" >/dev/null
             make clean 2>/dev/null || true
-            make THEOS_PACKAGE_SCHEME=roothide FINALPACKAGE=1 2>&1
-            make THEOS_PACKAGE_SCHEME=roothide package FINALPACKAGE=1 2>&1
+            LOGFILE="/tmp/build-roothide-${proj}.log"
+            make THEOS_PACKAGE_SCHEME=roothide FINALPACKAGE=1 2>&1 | tee "$LOGFILE"
+            build_rc=${PIPESTATUS[0]}
+            cat "$LOGFILE" >> "${{ github.workspace }}/build-errors.txt"
+            [ "$build_rc" -eq 0 ] || exit "$build_rc"
+            make THEOS_PACKAGE_SCHEME=roothide package FINALPACKAGE=1 2>&1 | tee -a "${{ github.workspace }}/build-errors.txt"
+            pkg_rc=${PIPESTATUS[0]}
+            [ "$pkg_rc" -eq 0 ] || exit "$pkg_rc"
             mkdir -p "${{ github.workspace }}/debs-roothide/$proj"
             cp packages/*.deb "${{ github.workspace }}/debs-roothide/$proj/" 2>/dev/null || true
             popd >/dev/null
@@ -220,7 +225,24 @@ jobs:
           roothide_count=$(find "${{ github.workspace }}/debs-roothide" -name "*.deb" 2>/dev/null | wc -l)
           echo "roothide deb 数量: $roothide_count"
           [ "$ANY" -eq 0 ] && echo "未找到 Theos 项目"
-          [ "$roothide_count" -eq 0 ] && echo "⚠ roothide 未产出 deb（可能 vendor 不支持）"
+          if [ "$roothide_count" -eq 0 ]; then
+            echo "RootHide 未产出 deb" | tee -a "${{ github.workspace }}/build-errors.txt"
+            exit 2
+          fi
+
+      - name: Commit roothide error log
+        if: failure()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          cp build-errors.txt /tmp/build-errors.txt 2>/dev/null || true
+          git fetch origin build-logs 2>/dev/null || true
+          git checkout -B build-logs origin/build-logs 2>/dev/null || git checkout --orphan build-logs
+          mkdir -p errors
+          cp /tmp/build-errors.txt "errors/build-run-${{ github.run_id }}.txt"
+          git add errors/
+          git commit -m "ci: save roothide error log for run #${{ github.run_id }}" || true
+          git push origin build-logs --force
 
       - name: Collect debs
         if: success() && steps.build-rootless.outputs.exit_code == 0
