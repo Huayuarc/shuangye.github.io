@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>title</key>
+	<string>CPUthermal</string>
+	<key>items</key>
+	<array>
+		<!-- ===================== 第1组: 功率模式 ===================== -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>功率模式随屏幕自动切换：熄屏后进入 PowerSave 与 CPU Level 2；亮屏后切回解除温控。解除温控会主动覆盖游戏运行时动态下压的 CPU/GPU/Package 功率墙，并保持 CPU Level 0、Floor/Ceiling/ZoneTarget 100、最大功率目标 65000。电压由内核 DVFS/PMGR 随性能档位自动调节，不写固定电压。</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSegmentCell</string>
+			<key>default</key>
+			<string>fullPower</string>
+			<key>defaults</key>
+			<string>com.huayuarc.cputhermal</string>
+			<key>key</key>
+			<string>powerMode</string>
+			<key>label</key>
+			<string>功率模式</string>
+			<key>validTitles</key>
+			<array>
+				<string>低功耗</string>
+				<string>解除温控</string>
+			</array>
+			<key>validValues</key>
+			<array>
+				<string>lowPower</string>
+				<string>fullPower</string>
+			</array>
+		</dict>
+		<!-- ===================== CPU高频 + GPU稳帧增强 ===================== -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>开启：在普通解除温控基础上启用 CPU Floor 100 高频保持，并额外保护 GPU/Package Ceiling 100，适合大型游戏。关闭：仍保持普通解除温控、CPU Level 0、CPU Ceiling 100、清除 PowerSave/CPMS，但 CPU Floor 归零且 GPU/Package 使用系统调度。两种状态都不使用周期定时器。</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.cputhermal</string>
+			<key>key</key>
+			<string>gameFramePacingEnabled</string>
+			<key>label</key>
+			<string>CPU高频＋GPU稳帧增强</string>
+		</dict>
+
+		<!-- ===================== 第2组: 温度计警告 ===================== -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>开启后阻止全屏「iPhone 需要冷却」警告及其高温强制锁屏行为；关闭后恢复系统原生提示与保护。</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.cputhermal</string>
+			<key>key</key>
+			<string>thermalBlockNotifPopup</string>
+			<key>label</key>
+			<string>屏蔽高温温度计警告</string>
+		</dict>
+
+		<!-- ===================== 第3组: 屏幕控制 ===================== -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>开启后递归识别当前设备的 Backlight/Display 热配置，使用该设备自身亮度与背光功率数组中的最大值填充所有热档位，并关闭背光 CPMS/thermal mitigation 上限。不同机型不使用固定 nits；关闭后不修改热配置。</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.cputhermal</string>
+			<key>key</key>
+			<string>thermalPreventDimmingEnabled</string>
+			<key>label</key>
+			<string>防温控暗屏</string>
+		</dict>
+
+		<!-- ===================== 第4组: 电池提示 ===================== -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>开启后隐藏设置中的重要电池信息、维修建议、非原装电池和健康状态异常提示。默认关闭，关闭时完整显示系统原生提示。</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.cputhermal</string>
+			<key>key</key>
+			<string>suppressBatteryServiceWarnings</string>
+			<key>label</key>
+			<string>屏蔽电池维修提示</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>开启后覆盖系统界面、SpringBoard 插件及第三方应用的电池读取结果：将第三方常标为“剩余容量”的 NominalChargeCapacity，以及 AppleRawMaxCapacity、FccComp、Qmax 与当前设备 DesignCapacity 对齐，使健康度计算为 100%。当前实时容量、当前电量、循环次数、温度、电压、电流保持真实；关闭后恢复真实读取。</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.cputhermal</string>
+			<key>key</key>
+			<string>simulateMaximumCapacity</string>
+			<key>label</key>
+			<string>模拟最大容量 100%</string>
+		</dict>
+
+		<!-- ===================== 第5组: 操作 ===================== -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>安装或升级时会自动重启 thermalmonitord 载入插件；此处按钮用于手动重启整个用户空间。</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>重启用户空间</string>
+			<key>action</key>
+			<string>usreboot</string>
+		</dict>
+
+		<!-- ===================== 第7组: 开源代码 ===================== -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>开源</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>GitHub be-huge/insulation</string>
+			<key>action</key>
+			<string>openSourceCode</string>
+		</dict>
+	</array>
+</dict>
+</plist>
