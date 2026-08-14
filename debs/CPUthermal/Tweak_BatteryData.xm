@@ -52,7 +52,7 @@ static CFDictionaryRef patchDictionary(CFDictionaryRef properties) {
         if (healthPercentKey(key)) result[key] = [NSNumber numberWithInt:100];
         else if (design && maximumChargeKey(key)) result[key] = design;
     }
-    return CFBridgingRetain(result);
+    return (CFDictionaryRef)CFBridgingRetain(result);
 }
 
 static CFTypeRef (*origCreateProperty)(io_registry_entry_t, CFStringRef, CFAllocatorRef, IOOptionBits);
