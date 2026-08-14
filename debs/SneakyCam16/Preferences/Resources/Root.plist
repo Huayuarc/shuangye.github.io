@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict><key>items</key><array>
+<dict><key>cell</key><string>PSGroupCell</string><key>label</key><string>SneakyCam 16</string><key>footerText</key><string>iOS 16 原生版。双击音量加键开始/停止录像，双击音量减键拍照。</string></dict>
+<dict><key>cell</key><string>PSSwitchCell</string><key>default</key><true/><key>key</key><string>Enabled</string><key>label</key><string>启用插件</string></dict>
+<dict><key>cell</key><string>PSSwitchCell</string><key>default</key><true/><key>key</key><string>PhotoEnabled</string><key>label</key><string>启用拍照</string></dict>
+<dict><key>cell</key><string>PSSwitchCell</string><key>default</key><true/><key>key</key><string>VideoEnabled</string><key>label</key><string>启用录像</string></dict>
+<dict><key>cell</key><string>PSSwitchCell</string><key>default</key><true/><key>key</key><string>UseVolumeButtons</string><key>label</key><string>使用音量键</string></dict>
+<dict><key>cell</key><string>PSSwitchCell</string><key>default</key><false/><key>key</key><string>SaveToRoot</string><key>label</key><string>保存到 /var/mobile/Media/Camera</string></dict>
+<dict><key>cell</key><string>PSLinkListCell</string><key>detail</key><string>PSListItemsController</string><key>key</key><string>CameraDevice</string><key>default</key><string>AVCaptureDevicePositionBack</string><key>label</key><string>摄像头</string><key>validTitles</key><array><string>后置摄像头</string><string>前置摄像头</string></array><key>validValues</key><array><string>AVCaptureDevicePositionBack</string><string>AVCaptureDevicePositionFront</string></array></dict>
+<dict><key>cell</key><string>PSLinkListCell</string><key>detail</key><string>PSListItemsController</string><key>key</key><string>VideoQuality</string><key>default</key><string>AVCaptureSessionPreset1920x1080</string><key>label</key><string>录像分辨率</string><key>validTitles</key><array><string>720p</string><string>1080p</string><string>2160p</string></array><key>validValues</key><array><string>AVCaptureSessionPreset1280x720</string><string>AVCaptureSessionPreset1920x1080</string><string>AVCaptureSessionPreset3840x2160</string></array></dict>
+<dict><key>cell</key><string>PSLinkListCell</string><key>detail</key><string>PSListItemsController</string><key>key</key><string>FrameRate</string><key>default</key><string>60</string><key>label</key><string>帧率</string><key>validTitles</key><array><string>30 FPS</string><string>60 FPS</string><string>120 FPS</string><string>240 FPS</string></array><key>validValues</key><array><string>30</string><string>60</string><string>120</string><string>240</string></array></dict>
+<dict><key>cell</key><string>PSGroupCell</string><key>label</key><string>测试</string></dict>
+<dict><key>cell</key><string>PSButtonCell</string><key>action</key><string>takePhoto</string><key>label</key><string>立即拍照</string></dict>
+<dict><key>cell</key><string>PSButtonCell</string><key>action</key><string>toggleVideo</string><key>label</key><string>开始/停止录像</string></dict>
+</array><key>title</key><string>SneakyCam 16</string></dict></plist>
