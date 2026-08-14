@@ -1,0 +1,42 @@
+#!/bin/sh
+set -e
+BASE=/var/mobile/Containers/Shared/AppGroup
+ROOT=
+for r in "$BASE"/.jbroot-*; do
+    [ -d "$r" ] || continue
+    if [ -f "$r/Library/MobileSubstrate/DynamicLibraries/CCSupport.dylib" ]; then
+        ROOT="$r"
+        break
+    fi
+done
+if [ -z "$ROOT" ]; then
+    for r in "$BASE"/.jbroot-*; do
+        [ -d "$r/Library/MobileSubstrate" ] || continue
+        ROOT="$r"
+        break
+    done
+fi
+if [ -n "$ROOT" ]; then
+    CCDIR="$ROOT/var/mobile/Library/ControlCenter"
+elif [ -d /var/jb ]; then
+    CCDIR=/var/jb/var/mobile/Library/ControlCenter
+else
+    CCDIR=/var/mobile/Library/ControlCenter
+fi
+mkdir -p "$CCDIR"
+DEFAULT="$CCDIR/ModuleConfiguration.plist"
+CCS="$CCDIR/ModuleConfiguration_CCSupport.plist"
+if [ ! -f "$CCS" ]; then
+    BEST=
+    [ -f "$DEFAULT" ] && BEST="$DEFAULT"
+    for old in /var/mobile/Library/ControlCenter/ModuleConfiguration_CCSupport.plist /var/jb/var/mobile/Library/ControlCenter/ModuleConfiguration_CCSupport.plist "$BASE"/.jbroot-*/var/mobile/Library/ControlCenter/ModuleConfiguration_CCSupport.plist; do
+        [ -f "$old" ] || continue
+        [ "$old" = "$CCS" ] && continue
+        BEST="$old"
+    done
+    [ -n "$BEST" ] && cp -p "$BEST" "$CCS" 2>/dev/null || true
+fi
+chown mobile:mobile "$CCDIR" "$CCS" 2>/dev/null || true
+chmod 755 "$CCDIR" 2>/dev/null || true
+chmod 644 "$CCS" 2>/dev/null || true
+exit 0
