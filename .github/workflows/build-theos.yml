@@ -102,8 +102,13 @@ jobs:
             else
               echo "=== [$proj] 编译成功，开始打包 ==="
               make THEOS_PACKAGE_SCHEME=rootless package FINALPACKAGE=1 2>&1 | tee /tmp/build-rootless-pkg-${proj}.log
-              if [ ${PIPESTATUS[0]} -eq 0 ]; then
+              pkg_rc=${PIPESTATUS[0]}
+              cat /tmp/build-rootless-pkg-${proj}.log >> "$ERRLOG"
+              if [ "$pkg_rc" -eq 0 ]; then
                 cp packages/*.deb "${{ github.workspace }}/debs-rootless/" 2>/dev/null || true
+              else
+                RC=$pkg_rc
+                echo "=== [$proj] 打包失败 ===" >> "$ERRLOG"
               fi
             fi
 
