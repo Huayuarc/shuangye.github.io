@@ -12,12 +12,6 @@
 	<string>60帧</string>
 	<key>Camera Device</key>
 	<string>选择摄像头</string>
-	<key>Custom Cell Image</key>
-	<string>单元格图像</string>
-	<key>Custom Cell Label</key>
-	<string>单元格标签</string>
-	<key>Custom Name</key>
-	<string>单元格名称</string>
 	<key>DISCLAIMER: Under no circumstances whatsoever shall the creator of SneakyCam take resposibility or be deemed to assume any responsibility for any users (mis)usage. SneakyCam was created and designed to be used to help people, so please bear that in mind when using it.</key>
 	<string>免责声明：隐私相机仅用于合理用途。开发者不对用户的不当使用承担责任，请谨慎使用。</string>
 	<key>Disable during audio/video playback</key>
@@ -30,26 +24,16 @@
 	<string>前置摄像头</string>
 	<key>Photo</key>
 	<string>允许拍照片</string>
-	<key>Preference Cell Disguise</key>
-	<string>单元格伪装偏好设置</string>
 	<key>Rear Camera</key>
 	<string>后置摄像头</string>
 	<key>Save to /var/mobile/Downloads</key>
 	<string>保存到 /var/mobile/Downloads</string>
-	<key>Select Custom Image...</key>
-	<string>自定义图像</string>
 	<key>Settings</key>
 	<string>设置</string>
 	<key>SneakyCam</key>
 	<string>隐私相机</string>
 	<key>Start/Stop recording by double tapping the volume up button.</key>
 	<string>通过双击"音量➕"按钮开始/停止录音。</string>
-	<key>Status Bar Indicator Offset X</key>
-	<string>状态栏指示器X轴</string>
-	<key>Status Bar Indicator Offset Y</key>
-	<string>状态栏指示器Y轴</string>
-	<key>Status Bar Indicators</key>
-	<string>状态栏指示</string>
 	<key>Take a photo by double tapping the volume down button.</key>
 	<string>通过双击"音量➖"按钮拍照。</string>
 	<key>Use Volume Buttons</key>

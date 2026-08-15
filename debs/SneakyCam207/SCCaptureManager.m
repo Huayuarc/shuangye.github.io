@@ -4,8 +4,8 @@
 #import <Photos/Photos.h>
 #import <UIKit/UIKit.h>
 
-static NSString * const SCPhotoKey=@"Photo";
-static NSString * const SCVideoKey=@"Video";
+static NSString * const SCPhotoKey=@"PhotoEnabled";
+static NSString * const SCVideoKey=@"VideoEnabled";
 
 @interface SCCaptureManager () <AVCapturePhotoCaptureDelegate, AVCaptureFileOutputRecordingDelegate>
 @property(nonatomic,strong) dispatch_queue_t queue;
@@ -141,10 +141,19 @@ static NSString * const SCVideoKey=@"Video";
     return _session.isRunning;
 }
 
+// 播放音视频时暂停录制保护（DisableIfPlayback）
+- (BOOL)blockedByPlayback {
+    if ([self boolPref:@"DisableIfPlayback" def:NO]) {
+        return [[AVAudioSession sharedInstance] isOtherAudioPlaying];
+    }
+    return NO;
+}
+
 - (void)takePhoto {
     if(![self boolPref:SCPhotoKey def:YES]) return;
     dispatch_async(_queue, ^{
         if(![self boolPref:@"Enabled" def:NO]) return;
+        if([self blockedByPlayback]) return;
         if(![self presentSessionForVideo:NO]) return;
         AVCapturePhotoSettings *s=[AVCapturePhotoSettings photoSettings];
         [self.photoOutput capturePhotoWithSettings:s delegate:self];
@@ -157,6 +166,7 @@ static NSString * const SCVideoKey=@"Video";
     dispatch_async(_queue, ^{
         if(![self boolPref:SCVideoKey def:YES]) return;
         if(![self boolPref:@"Enabled" def:NO]) return;
+        if([self blockedByPlayback]) return;
         if(self.movieOutput && self.movieOutput.isRecording){ [self.movieOutput stopRecording]; return; }
         if(![self prepare:YES]) return;
         NSString *n=[NSString stringWithFormat:@"SneakyCam-%@.mov",NSUUID.UUID.UUIDString];
