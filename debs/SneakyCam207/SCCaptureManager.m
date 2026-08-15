@@ -41,7 +41,7 @@ static NSString * const SCVideoKey=@"VideoEnabled";
     }
     if (candidates.count==0) { for (AVCaptureDevice *d in [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo]) [candidates addObject:d]; }
 
-    AVCaptureDevice *preferred=nil; AVCaptureDevice *any=nil; AVCaptureDevice *fallback=nil;
+    AVCaptureDevice *preferred=nil; AVCaptureDevice *any=nil;
     for (AVCaptureDevice *d in candidates) {
         if (d.position==requested) {
             if (!preferred) preferred=d;
@@ -59,7 +59,7 @@ static NSString * const SCVideoKey=@"VideoEnabled";
     return YES;
 #else
     AVAuthorizationStatus s=[AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeVideo];
-    if (s==AVAuthorizationStatusNotDetermined) { [AVCaptureDevice requestAccessForMediaType:AVMediaTypeVideo completionHandler:nil]; s=[AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeVideo]; }
+    if (s==AVAuthorizationStatusNotDetermined) { [AVCaptureDevice requestAccessForMediaType:AVMediaTypeVideo completionHandler:^(BOOL g){}]; s=[AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeVideo]; }
     return s==AVAuthorizationStatusAuthorized;
 #endif
 }
