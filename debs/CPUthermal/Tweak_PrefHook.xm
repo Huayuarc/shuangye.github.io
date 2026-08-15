@@ -41,7 +41,6 @@ static BOOL gEnabled = NO;
 static long long (*origGenuineBatteryStatus)(id, SEL) = NULL;
 static long long (*origBatteryHealthServiceState)(id, SEL) = NULL;
 static id (*origBatteryServiceSuggestion)(id, SEL, id) = NULL;
-static void (*origSetupBatteryHealthSpecifiers)(id, SEL) = NULL;
 static id (*origCurrentSystemHealthInfoSpecifiers)(id, SEL) = NULL;
 static void (*origFollowUpAddItem)(id, SEL, id) = NULL;
 static BOOL (*origAllowsBadgingForIcon)(id, SEL, id) = NULL;
