@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>CCSModuleSize</key><dict><key>Portrait</key><dict><key>Width</key><integer>1</integer><key>Height</key><integer>1</integer></dict><key>Landscape</key><dict><key>Width</key><integer>1</integer><key>Height</key><integer>1</integer></dict></dict>
+<key>ModuleSize</key><dict><key>Portrait</key><dict><key>Width</key><integer>1</integer><key>Height</key><integer>1</integer></dict><key>Landscape</key><dict><key>Width</key><integer>1</integer><key>Height</key><integer>1</integer></dict></dict>
+<key>CFBundleDevelopmentRegion</key><string>zh_CN</string>
+<key>CFBundleDisplayName</key><string>隐私相机</string>
+<key>CFBundleIconFile</key><string>SettingsIcon.png</string>
+<key>CCSettingsIconName</key><string>SettingsIcon</string>
+<key>CFBundleExecutable</key><string>SneakyCamCC</string>
+<key>CFBundleIdentifier</key><string>com.spark.SneakyCam.ccmodule</string>
+<key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
+<key>CFBundleName</key><string>隐私相机</string>
+<key>CFBundlePackageType</key><string>BNDL</string>
+<key>CFBundleShortVersionString</key><string>2.0.13</string>
+<key>CFBundleVersion</key><string>2.0.13</string>
+<key>MinimumOSVersion</key><string>15.0</string>
+<key>NSPrincipalClass</key><string>SneakyCamCCModule</string>
+<key>GetModuleSizeAtRuntime</key><false/>
+<key>CCSGetModuleSizeAtRuntime</key><false/>
+<key>UIDeviceFamily</key><array><integer>1</integer><integer>2</integer></array>
+<key>UIRequiredDeviceCapabilities</key><array><string>arm64</string></array>
+</dict></plist>
