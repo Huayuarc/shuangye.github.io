@@ -34,8 +34,8 @@
 	<string>单元格伪装偏好设置</string>
 	<key>Rear Camera</key>
 	<string>后置摄像头</string>
-	<key>Save to /var/mobile/media/Camera</key>
-	<string>文件保存至/var/mobile/media/Camera</string>
+	<key>Save to /var/mobile/Downloads</key>
+	<string>保存到 /var/mobile/Downloads</string>
 	<key>Select Custom Image...</key>
 	<string>自定义图像</string>
 	<key>Settings</key>

@@ -168,7 +168,7 @@ static NSString * const SCVideoKey=@"Video";
 
 - (void)saveData:(NSData *)data ext:(NSString *)ext {
     if([self boolPref:@"SaveToRoot" def:NO]){
-        NSString *dir=@"/var/mobile/Media/Camera";
+        NSString *dir=@"/var/mobile/Downloads";
         [[NSFileManager defaultManager] createDirectoryAtPath:dir withIntermediateDirectories:YES attributes:nil error:nil];
         NSString *n=[NSString stringWithFormat:@"SneakyCam-%@.%@",NSUUID.UUID.UUIDString,ext];
         [data writeToFile:[dir stringByAppendingPathComponent:n] atomically:YES];
@@ -190,7 +190,7 @@ static NSString * const SCVideoKey=@"Video";
     self.recording=NO;
     if(!e){
         if([self boolPref:@"SaveToRoot" def:NO]){
-            NSString *dir=@"/var/mobile/Media/Camera";
+            NSString *dir=@"/var/mobile/Downloads";
             [[NSFileManager defaultManager] createDirectoryAtPath:dir withIntermediateDirectories:YES attributes:nil error:nil];
             [[NSFileManager defaultManager] moveItemAtURL:u toURL:[NSURL fileURLWithPath:[dir stringByAppendingPathComponent:u.lastPathComponent]] error:nil];
         } else {
