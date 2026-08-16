@@ -1,9 +1,0 @@
-Package: com.netskao.perfectsbvolume
-Name: PerfectSBVolume
-Version: 1.2.1-1
-Architecture: iphoneos-arm
-Description: Volume display bar moved below the notch; rebuilt for Dopamine rootless.
-Author: Netskao
-Maintainer: Huayuarc
-Section: Tweaks
-Depends: mobilesubstrate, firmware (>= 13.0)
