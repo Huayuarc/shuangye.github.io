@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>120 FPS (No 4k)</key>
+	<string>120帧(非4K)</string>
+	<key>240 FPS (No 4k)</key>
+	<string>240帧(非4K)</string>
+	<key>30 FPS</key>
+	<string>30帧</string>
+	<key>60 FPS</key>
+	<string>60帧</string>
+	<key>Camera Device</key>
+	<string>选择摄像头</string>
+	<key>DISCLAIMER: Under no circumstances whatsoever shall the creator of SneakyCam take resposibility or be deemed to assume any responsibility for any users (mis)usage. SneakyCam was created and designed to be used to help people, so please bear that in mind when using it.</key>
+	<string>免责声明：隐私相机仅用于合理用途。开发者不对用户的不当使用承担责任，请谨慎使用。</string>
+	<key>Disable during audio/video playback</key>
+	<string>播放时禁用</string>
+	<key>Enabled</key>
+	<string>功能总开关</string>
+	<key>Frame Rate</key>
+	<string>选视频帧率</string>
+	<key>Front Camera</key>
+	<string>前置摄像头</string>
+	<key>Photo</key>
+	<string>允许拍照片</string>
+	<key>Rear Camera</key>
+	<string>后置摄像头</string>
+	<key>Save to /var/mobile/Downloads</key>
+	<string>保存到 /var/mobile/Downloads</string>
+	<key>Settings</key>
+	<string>设置</string>
+	<key>SneakyCam</key>
+	<string>隐私相机</string>
+	<key>Start/Stop recording by double tapping the volume up button.</key>
+	<string>通过双击"音量➕"按钮开始/停止录音。</string>
+	<key>Take a photo by double tapping the volume down button.</key>
+	<string>通过双击"音量➖"按钮拍照。</string>
+	<key>Use Volume Buttons</key>
+	<string>使用音量键</string>
+	<key>Video</key>
+	<string>允许拍视频</string>
+	<key>Video Quality</key>
+	<string>选视频质量</string>
+	<key>front-facing-camera</key>
+	<string>正面摄像头</string>
+	<key>Haptic Feedback</key>
+	<string>震动反馈</string>
+	<key>Volume Down Action</key>
+	<string>音量减动作</string>
+	<key>Volume Up Action</key>
+	<string>音量加动作</string>
+	<key>Off</key>
+	<string>关闭</string>
+	<key>Recent Action</key>
+	<string>最近操作</string>
+	<key>Time</key>
+	<string>时间</string>
+	<key>Status</key>
+	<string>状态</string>
+	<key>Open Downloads Folder</key>
+	<string>打开 Downloads 文件夹</string>
+	<key>Button API</key>
+	<string>按键兼容状态</string>
+	<key>Silent Photo</key>
+	<string>拍照静音</string>
+</dict>
+</plist>
