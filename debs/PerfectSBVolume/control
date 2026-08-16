@@ -1,0 +1,9 @@
+Package: com.netskao.perfectsbvolume
+Name: PerfectSBVolume
+Version: 1.2.2-1
+Architecture: iphoneos-arm
+Description: Always-thin volume HUD constrained below Dynamic Island and notch on iOS 15-17.
+Author: Netskao
+Maintainer: Huayuarc
+Section: Tweaks
+Depends: mobilesubstrate, firmware (>= 15.0)
