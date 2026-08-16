@@ -1,5 +1,6 @@
 #import "SCCaptureManager.h"
 #import "SCPaths.h"
+#import <notify.h>
 #import <AVFoundation/AVFoundation.h>
 #import <Photos/Photos.h>
 #import <UIKit/UIKit.h>
@@ -172,7 +173,7 @@ static NSString * const SCVideoKey=@"VideoEnabled";
         NSString *n=[NSString stringWithFormat:@"SneakyCam-%@.mov",NSUUID.UUID.UUIDString];
         self.movieURL=[NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:n]];
         [self.movieOutput startRecordingToOutputFileURL:self.movieURL recordingDelegate:self];
-        self.recording=YES;
+        [self setRecordingState:YES];
     });
 }
 
@@ -195,9 +196,14 @@ static NSString * const SCVideoKey=@"VideoEnabled";
     if (!error) { NSData *d=photo.fileDataRepresentation; if(d)[self saveData:d ext:@"jpg"]; }
     [self stopAndRelease];
 }
-- (void)captureOutput:(AVCaptureFileOutput *)o didStartRecordingToOutputFileAtURL:(NSURL *)u fromConnections:(NSArray *)c { self.recording=YES; }
+- (void)setRecordingState:(BOOL)rec {
+    self.recording=rec;
+    SCWritePreference(@"Recording", @(rec));
+    notify_post("com.spark.SneakyCam.recordingstatechanged");
+}
+- (void)captureOutput:(AVCaptureFileOutput *)o didStartRecordingToOutputFileAtURL:(NSURL *)u fromConnections:(NSArray *)c { [self setRecordingState:YES]; }
 - (void)captureOutput:(AVCaptureFileOutput *)o didFinishRecordingToOutputFileAtURL:(NSURL *)u fromConnections:(NSArray *)c error:(NSError *)e {
-    self.recording=NO;
+    [self setRecordingState:NO];
     if(!e){
         if([self boolPref:@"SaveToRoot" def:NO]){
             NSString *dir=@"/var/mobile/Downloads";
@@ -220,7 +226,8 @@ static NSString * const SCVideoKey=@"VideoEnabled";
             if(self.videoInput && [self.session.inputs containsObject:self.videoInput]) [self.session removeInput:self.videoInput];
             for(AVCaptureOutput *out in self.session.outputs) [self.session removeOutput:out];
         }
-        self.audioInput=nil; self.videoInput=nil; self.photoOutput=nil; self.movieOutput=nil; self.session=nil; self.movieURL=nil; self.recording=NO;
+        self.audioInput=nil; self.videoInput=nil; self.photoOutput=nil; self.movieOutput=nil; self.session=nil; self.movieURL=nil;
+        [self setRecordingState:NO];
     });
 }
 @end

@@ -30,6 +30,7 @@ SneakyCam_RESOURCE_DIRS = Preferences/Resources
 SneakyCamCCPhoto_FILES = ControlCenter/SneakyCamCCModule.m SCPaths.m
 SneakyCamCCPhoto_CFLAGS = -fobjc-arc
 SneakyCamCCPhoto_FRAMEWORKS = Foundation UIKit
+SneakyCamCCPhoto_PRIVATE_FRAMEWORKS = ControlCenterUIKit
 SneakyCamCCPhoto_INSTALL_PATH = /Library/ControlCenter/Bundles
 SneakyCamCCPhoto_RESOURCE_DIRS = ControlCenter/resourcesPhoto
 
@@ -37,6 +38,7 @@ SneakyCamCCPhoto_RESOURCE_DIRS = ControlCenter/resourcesPhoto
 SneakyCamCCVideo_FILES = ControlCenter/SneakyCamCCModule.m SCPaths.m
 SneakyCamCCVideo_CFLAGS = -fobjc-arc
 SneakyCamCCVideo_FRAMEWORKS = Foundation UIKit
+SneakyCamCCVideo_PRIVATE_FRAMEWORKS = ControlCenterUIKit
 SneakyCamCCVideo_INSTALL_PATH = /Library/ControlCenter/Bundles
 SneakyCamCCVideo_RESOURCE_DIRS = ControlCenter/resourcesVideo
 

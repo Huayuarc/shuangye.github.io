@@ -1,5 +1,5 @@
-#import "CCUIHeaders.h"
 #import <UIKit/UIKit.h>
+#import <ControlCenterUIKit/ControlCenterUIKit.h>
 
 @interface SneakyCamCCPhoto : CCUIToggleModule
 @end
