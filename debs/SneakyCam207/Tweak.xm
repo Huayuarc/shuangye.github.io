@@ -1,4 +1,5 @@
 #import <UIKit/UIKit.h>
+#import <notify.h>
 #import "SCCaptureManager.h"
 #import "SCPaths.h"
 
@@ -78,7 +79,7 @@ static void SCInstallVolumeHooks(void){
 }
 static void SCScheduleVolumeHookRetries(void){
     SCInstallVolumeHooks();
-    for(NSTimeInterval delay in @[@1.0,@3.0,@8.0])dispatch_after(dispatch_time(DISPATCH_TIME_NOW,(int64_t)(delay*NSEC_PER_SEC)),dispatch_get_main_queue(),^{SCInstallVolumeHooks();});
+    for(NSNumber *delayNumber in @[@1.0,@3.0,@8.0]) { NSTimeInterval delay=delayNumber.doubleValue; dispatch_after(dispatch_time(DISPATCH_TIME_NOW,(int64_t)(delay*NSEC_PER_SEC)),dispatch_get_main_queue(),^{SCInstallVolumeHooks();}); }
 }
 
 
