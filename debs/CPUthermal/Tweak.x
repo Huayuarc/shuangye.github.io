@@ -901,7 +901,7 @@ dispatch_source_t timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 
 if (!timer) { os_unfair_lock_unlock(&g_runtimeLock); return; }
 g_lowPowerRescheduleTimer = timer;
 dispatch_source_set_timer(timer, dispatch_time(DISPATCH_TIME_NOW, 5ull * NSEC_PER_SEC),
-                          5ull * NSEC_PER_SEC, 0.5ull * NSEC_PER_SEC);
+                          5ull * NSEC_PER_SEC, 500ull * NSEC_PER_MSEC);
 dispatch_source_set_event_handler(timer, ^{
 if (!shouldApplyLowPowerLimit()) { stopLowPowerRescheduleTimer(); return; }
 applyLowPowerToCommonProduct();
