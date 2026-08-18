@@ -42,7 +42,7 @@ __attribute__((constructor)) static void RHInit(void) {
     @autoreleasepool {
         if (!RHStrictEnabled()) return;
         MSHookMessageEx(UIApplication.class,@selector(canOpenURL:),(IMP)hookCanOpenURL,(IMP *)&origCanOpenURL);
-        int count=objc_getClassList(NULL,0); if(count<=0)return; Class *classes=calloc((size_t)count,sizeof(Class)); count=objc_getClassList(classes,count);
+        int count=objc_getClassList(NULL,0); if(count<=0)return; Class *classes=(Class *)calloc((size_t)count,sizeof(Class)); count=objc_getClassList(classes,count);
         for(int i=0;i<count;i++) RHInstallOnClass(classes[i]); free(classes);
     }
 }
