@@ -1,9 +1,0 @@
-Package: com.huayuarc.vpncontrolcenter
-Name: VPN Control Center
-Version: 1.1.1
-Architecture: iphoneos-arm
-Description: Control Center VPN toggle and VPN configuration selector
-Maintainer: Huayuarc
-Author: Huayuarc
-Section: Tweaks
-Depends: firmware (>= 15.0)
