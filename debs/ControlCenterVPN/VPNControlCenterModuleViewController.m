@@ -1,6 +1,11 @@
 #import "VPNControlCenterModule.h"
 #import <NetworkExtension/NetworkExtension.h>
 
+// 该类方法在目标 iOS 运行时提供；旧版公开 SDK 头文件未声明。
+@interface NEVPNManager (VPNControlCenterPrivateEnumeration)
++ (void)loadAllFromPreferencesWithCompletionHandler:(void (^)(NSArray<NEVPNManager *> *managers, NSError *error))completionHandler;
+@end
+
 @interface VPNControlCenterModuleViewController ()
 @property(nonatomic,strong) UIButton *button;
 @property(nonatomic,strong) UIImageView *glyphView;
