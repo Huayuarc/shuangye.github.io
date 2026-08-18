@@ -1,0 +1,13 @@
+#!/bin/sh
+
+APP_PATH="@ROOT_HIDE_APP_PATH@"
+
+if [ ! -x "$APP_PATH/RootHide" ]; then
+    exit 0
+fi
+
+uicache -p "$APP_PATH"
+chown 0:0 "$APP_PATH/RootHide"
+chmod +s "$APP_PATH/RootHide"
+
+exit 0
