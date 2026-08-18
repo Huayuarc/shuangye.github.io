@@ -1,0 +1,151 @@
+=== Build Info ===
+Timestamp: Tue Aug 18 19:06:42 UTC 2026
+THEOS: /Users/runner/theos
+SDK: total 0
+drwxr-xr-x   4 runner  staff  128 Aug 18 19:06 .
+drwxr-xr-x  22 runner  staff  704 Aug 18 19:06 ..
+-rw-r--r--   1 runner  staff    0 Aug 18 19:06 .keep
+drwxr-xr-x   8 runner  staff  256 Nov 23  2023 iPhoneOS16.5.sdk
+
+=== Project: RootHideManagerApp ===
+Exit code: 2
+[0;36m==> [1;36mNotice:[m Build may be slow as Theos isn’t using all available CPU cores on this computer. Consider upgrading GNU Make: https://theos.dev/docs/parallel-building
+echo "#define VARCLEANRULESHASH" $(cksum -o 3 RootHide/VarCleanRules.json | awk '{print $1}') > RootHide/VarCleanRules.h
+[1;31m> [1;3;39mMaking all for application RootHide…[m
+[0;35m==> [1;39mCopying resource files into the application wrapper…[m
+[0;32m==> [1;39mCompiling RootHide/main.m (arm64)…[m
+In file included from RootHide/main.m:5:
+In file included from RootHide/AppDelegate.h:2:
+In file included from RootHide/roothide.h:4:
+[1mRootHide/roothide/stub.h:4:9: [0m[0;1;35mwarning: [0m[1mroothide disabled, using stub functions... [-W#pragma-messages][0m
+#pragma message("roothide disabled, using stub functions...")
+[0;1;32m        ^
+[0m[1mRootHide/main.m:92:62: [0m[0;1;35mwarning: [0m[1mpassing 'const char **' to parameter of type 'char *const *' discards qualifiers in nested pointer types [-Wincompatible-pointer-types-discards-qualifiers][0m
+    int spawnError = posix_spawn(&pid, path, &action, &attr, argv, envp);
+[0;1;32m                                                             ^~~~
+[0m[1m/Users/runner/theos/sdks/iPhoneOS16.5.sdk/usr/include/spawn.h:63:17: [0m[0;1;30mnote: [0mpassing argument to parameter '__argv' here[0m
+    char *const __argv[__restrict],
+[0;1;32m                ^
+[0m[1mRootHide/main.m:92:68: [0m[0;1;35mwarning: [0m[1mpassing 'const char **' to parameter of type 'char *const *' discards qualifiers in nested pointer types [-Wincompatible-pointer-types-discards-qualifiers][0m
+    int spawnError = posix_spawn(&pid, path, &action, &attr, argv, envp);
+[0;1;32m                                                                   ^~~~
+[0m[1m/Users/runner/theos/sdks/iPhoneOS16.5.sdk/usr/include/spawn.h:64:17: [0m[0;1;30mnote: [0mpassing argument to parameter '__envp' here[0m
+    char *const __envp[__restrict]) __API_AVAILABLE(macos(10.5), ios(2.0)) __API_UNAVAILABLE(watchos, tvos);
+[0;1;32m                ^
+[0m[1mRootHide/main.m:152:12: [0m[0;1;35mwarning: [0m[1mblock captures an autoreleasing out-parameter, which may result in use-after-free bugs [-Wblock-capture-autoreleasing][0m
+        if(stdOut) [outString appendString:str];
+[0;1;32m           ^
+[0m[1mRootHide/main.m:127:57: [0m[0;1;30mnote: [0mdeclare the parameter __strong or capture a __block __strong variable to keep values alive across autorelease pools[0m
+int spawnRoot(NSString* path, NSArray* args, NSString** stdOut, NSString** stdErr)
+[0;1;32m                                                        ^
+[0m[1mRootHide/main.m:155:12: [0m[0;1;35mwarning: [0m[1mblock captures an autoreleasing out-parameter, which may result in use-after-free bugs [-Wblock-capture-autoreleasing][0m
+        if(stdErr) [errString appendString:str];
+[0;1;32m           ^
+[0m[1mRootHide/main.m:127:76: [0m[0;1;30mnote: [0mdeclare the parameter __strong or capture a __block __strong variable to keep values alive across autorelease pools[0m
+int spawnRoot(NSString* path, NSArray* args, NSString** stdOut, NSString** stdErr)
+[0;1;32m                                                                           ^
+[0m[1mRootHide/main.m:150:55: [0m[0;1;35mwarning: [0m[1mpassing 'char **' to parameter of type 'const char **' discards qualifiers in nested pointer types [-Wincompatible-pointer-types-discards-qualifiers][0m
+    int retval = spawn(path.fileSystemRepresentation, argsC, environ, ^(char* outstr, int length){
+[0;1;32m                                                      ^~~~~
+[0m[1mRootHide/main.m:19:42: [0m[0;1;30mnote: [0mpassing argument to parameter 'argv' here[0m
+int spawn(const char* path, const char** argv, const char** envp, void(^std_out)(char*,int), void(^std_err)(char*,int))
+[0;1;32m                                         ^
+[0m[1mRootHide/main.m:248:21: [0m[0;1;35mwarning: [0m[1munused variable 'ret' [-Wunused-variable][0m
+                int ret = kill(pid, SIGKILL);
+[0;1;32m                    ^
+[0m7 warnings generated.
+[0;32m==> [1;39mCompiling RootHide/AppDelegate.m (arm64)…[m
+In file included from RootHide/AppDelegate.m:1:
+In file included from RootHide/AppDelegate.h:2:
+In file included from RootHide/roothide.h:4:
+[1mRootHide/roothide/stub.h:4:9: [0m[0;1;35mwarning: [0m[1mroothide disabled, using stub functions... [-W#pragma-messages][0m
+#pragma message("roothide disabled, using stub functions...")
+[0;1;32m        ^
+[0m[1mRootHide/AppDelegate.m:4:9: [0m[0;1;35mwarning: [0m[1mnon-portable path to file '"VarCleanController.h"'; specified path differs in case from file name on disk [-Wnonportable-include-path][0m
+#import "varCleanController.h"
+[0;1;32m        ^~~~~~~~~~~~~~~~~~~~~~
+[0m[0;32m        "VarCleanController.h"
+[0m2 warnings generated.
+[0;32m==> [1;39mCompiling RootHide/AppInfo.m (arm64)…[m
+[0;32m==> [1;39mCompiling RootHide/BlacklistViewController.m (arm64)…[m
+In file included from RootHide/BlacklistViewController.m:4:
+In file included from RootHide/AppDelegate.h:2:
+In file included from RootHide/roothide.h:4:
+[1mRootHide/roothide/stub.h:4:9: [0m[0;1;35mwarning: [0m[1mroothide disabled, using stub functions... [-W#pragma-messages][0m
+#pragma message("roothide disabled, using stub functions...")
+[0;1;32m        ^
+[0m[1mRootHide/BlacklistViewController.m:305:14: [0m[0;1;35mwarning: [0m[1mlocal declaration of 'applications' hides instance variable [-Wshadow-ivar][0m
+            [applications addObject:app];
+[0;1;32m             ^
+[0m[1mRootHide/BlacklistViewController.m:309:12: [0m[0;1;35mwarning: [0m[1mlocal declaration of 'applications' hides instance variable [-Wshadow-ivar][0m
+    return applications;
+[0;1;32m           ^
+[0m3 warnings generated.
+[0;32m==> [1;39mCompiling RootHide/SettingViewController.m (arm64)…[m
+In file included from RootHide/SettingViewController.m:2:
+In file included from RootHide/AppDelegate.h:2:
+In file included from RootHide/roothide.h:4:
+[1mRootHide/roothide/stub.h:4:9: [0m[0;1;35mwarning: [0m[1mroothide disabled, using stub functions... [-W#pragma-messages][0m
+#pragma message("roothide disabled, using stub functions...")
+[0;1;32m        ^
+[0m1 warning generated.
+[0;32m==> [1;39mCompiling RootHide/PluginConfigViewController.m (arm64)…[m
+In file included from RootHide/PluginConfigViewController.m:2:
+In file included from RootHide/AppDelegate.h:2:
+In file included from RootHide/roothide.h:4:
+[1mRootHide/roothide/stub.h:4:9: [0m[0;1;35mwarning: [0m[1mroothide disabled, using stub functions... [-W#pragma-messages][0m
+#pragma message("roothide disabled, using stub functions...")
+[0;1;32m        ^
+[0m1 warning generated.
+[0;32m==> [1;39mCompiling RootHide/VarCleanController.m (arm64)…[m
+[1mRootHide/VarCleanController.m:1:9: [0m[0;1;35mwarning: [0m[1mnon-portable path to file '"VarCleanController.h"'; specified path differs in case from file name on disk [-Wnonportable-include-path][0m
+#import "varCleanController.h"
+[0;1;32m        ^~~~~~~~~~~~~~~~~~~~~~
+[0m[0;32m        "VarCleanController.h"
+[0mIn file included from RootHide/VarCleanController.m:2:
+In file included from RootHide/AppDelegate.h:2:
+In file included from RootHide/roothide.h:4:
+[1mRootHide/roothide/stub.h:4:9: [0m[0;1;35mwarning: [0m[1mroothide disabled, using stub functions... [-W#pragma-messages][0m
+#pragma message("roothide disabled, using stub functions...")
+[0;1;32m        ^
+[0m[1mRootHide/VarCleanController.m:124:18: [0m[0;1;35mwarning: [0m[1munused variable 'error' [-Wunused-variable][0m
+        NSError* error=nil;
+[0;1;32m                 ^
+[0m[1mRootHide/VarCleanController.m:350:26: [0m[0;1;35mwarning: [0m[1munused variable '__ret' [-Wunused-variable][0m
+                    BOOL __ret = RootUserRemoveItemAtPath(item[@"path"]);
+[0;1;32m                         ^
+[0m4 warnings generated.
+[0;32m==> [1;39mCompiling RootHide/UIComponent/ZFCheckbox.m (arm64)…[m
+[0;32m==> [1;39mCompiling RootHide/NSJSONSerialization+Comments.m (arm64)…[m
+[0;32m==> [1;39mCompiling RootHide/AppDataCleaner/AppDataCleaner.m (arm64)…[m
+In file included from RootHide/AppDataCleaner/AppDataCleaner.m:3:
+In file included from RootHide/AppDelegate.h:2:
+In file included from RootHide/roothide.h:4:
+[1mRootHide/roothide/stub.h:4:9: [0m[0;1;35mwarning: [0m[1mroothide disabled, using stub functions... [-W#pragma-messages][0m
+#pragma message("roothide disabled, using stub functions...")
+[0;1;32m        ^
+[0m[1mRootHide/AppDataCleaner/AppDataCleaner.m:21:81: [0m[0;1;35mwarning: [0m[1mincompatible pointer types sending 'NSString *__strong *' to parameter of type 'NSError *__autoreleasing  _Nullable * _Nullable' [-Wincompatible-pointer-types][0m
+        if([NSFileManager.defaultManager removeItemAtURL:app.containerURL error:&error]) {
+[0;1;32m                                                                                ^~~~~~
+[0m[1m/Users/runner/theos/sdks/iPhoneOS16.5.sdk/System/Library/Frameworks/Foundation.framework/Headers/NSFileManager.h:209:56: [0m[0;1;30mnote: [0mpassing argument to parameter 'error' here[0m
+- (BOOL)removeItemAtURL:(NSURL *)URL error:(NSError **)error API_AVAILABLE(macos(10.6), ios(4.0), watchos(2.0), tvos(9.0));
+[0;1;32m                                                       ^
+[0m2 warnings generated.
+[0;33m==> [1;39mLinking application RootHide (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for RootHide…[m
+[0;34m==> [1;39mStripping RootHide (arm64)…[m
+[0;34m==> [1;39mSigning RootHide…[m
+[1;31m> [1;3;39mMaking all in RootHideSupport…[m
+[0;36m==> [1;36mNotice:[m Build may be slow as Theos isn’t using all available CPU cores on this computer. Consider upgrading GNU Make: https://theos.dev/docs/parallel-building
+[1;31m> [1;3;39mMaking all for tweak RootHideSupport…[m
+[0;32m==> [1;39mCompiling Tweak.m (arm64)…[m
+[1mTweak.m:7:9: [0m[0;1;31mfatal error: [0m[1m'sys/ptrace.h' file not found[0m
+#import <sys/ptrace.h>
+[0;1;32m        ^~~~~~~~~~~~~~
+[0m1 error generated.
+make[4]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/RootHideManagerApp/.theos/obj/arm64/Tweak.m.a4ea2309.o] Error 1
+make[3]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/RootHideManagerApp/.theos/obj/arm64/RootHideSupport.dylib] Error 2
+make[2]: *** [internal-library-all_] Error 2
+make[1]: *** [RootHideSupport.all.tweak.variables] Error 2
+make: *** [internal-all] Error 2
