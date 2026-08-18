@@ -180,7 +180,6 @@ static NSString *const kVPNSelectedNodeKey = @"com.huayuarc.vpncontrolcenter.sel
     button.tag = index;
     button.layer.cornerRadius = 13;
     button.contentHorizontalAlignment = UIControlContentHorizontalAlignmentLeft;
-    button.contentEdgeInsets = UIEdgeInsetsMake(0, 14, 0, 12);
     button.titleLabel.font = [UIFont systemFontOfSize:15 weight:UIFontWeightSemibold];
     button.titleLabel.lineBreakMode = NSLineBreakByTruncatingTail;
     [button setTitle:[self displayNameForManager:manager] forState:UIControlStateNormal];
@@ -213,8 +212,7 @@ static NSString *const kVPNSelectedNodeKey = @"com.huayuarc.vpncontrolcenter.sel
         UIImageSymbolConfiguration *cfg = [UIImageSymbolConfiguration configurationWithPointSize:15 weight:UIImageSymbolWeightBold];
         UIImage *icon = [UIImage systemImageNamed:on ? @"checkmark.circle.fill" : @"circle" withConfiguration:cfg];
         [button setImage:[icon imageWithTintColor:[UIColor colorWithWhite:1 alpha:on ? 1 : .42] renderingMode:UIImageRenderingModeAlwaysOriginal] forState:UIControlStateNormal];
-        button.imageEdgeInsets = UIEdgeInsetsMake(0, 0, 0, -8);
-        button.titleEdgeInsets = UIEdgeInsetsMake(0, 12, 0, 0);
+        button.semanticContentAttribute = UISemanticContentAttributeForceLeftToRight;
     }
 }
 
