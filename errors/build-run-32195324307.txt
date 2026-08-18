@@ -1,0 +1,49 @@
+=== Build Info ===
+Timestamp: Tue Aug 18 23:01:18 UTC 2026
+THEOS: /Users/runner/theos
+SDK: total 0
+drwxr-xr-x   4 runner  staff  128 Aug 18 23:01 .
+drwxr-xr-x  22 runner  staff  704 Aug 18 23:01 ..
+-rw-r--r--   1 runner  staff    0 Aug 18 23:01 .keep
+drwxr-xr-x   8 runner  staff  256 Nov 23  2023 iPhoneOS16.5.sdk
+
+=== Project: ControlCenterVPN ===
+Exit code: 2
+[0;36m==> [1;36mNotice:[m Build may be slow as Theos isn’t using all available CPU cores on this computer. Consider upgrading GNU Make: https://theos.dev/docs/parallel-building
+[1;31m> [1;3;39mMaking all for tweak VPNControlCenterLoader…[m
+[0;31m==> [1;39mPreprocessing VPNControlCenterLoader.xm…[m
+[0;32m==> [1;39mCompiling VPNControlCenterLoader.xm (arm64)…[m
+[0;33m==> [1;39mLinking tweak VPNControlCenterLoader (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for VPNControlCenterLoader…[m
+warning: no debug symbols in executable (-arch arm64)
+[0;34m==> [1;39mStripping VPNControlCenterLoader (arm64)…[m
+/Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip: warning: input object file already stripped: /Users/runner/work/shuangye.github.io/shuangye.github.io/debs/ControlCenterVPN/.theos/obj/arm64/VPNControlCenterLoader.dylib
+[0;34m==> [1;39mSigning VPNControlCenterLoader…[m
+[1;31m> [1;3;39mMaking all for bundle VPNControlCenter…[m
+[0;35m==> [1;39mCopying resource directories into the bundle wrapper…[m
+[0;32m==> [1;39mCompiling VPNControlCenterModule.m (arm64)…[m
+[0;32m==> [1;39mCompiling VPNControlCenterModuleViewController.m (arm64)…[m
+[1mVPNControlCenterModuleViewController.m:183:12: [0m[0;1;31merror: [0m[1m'contentEdgeInsets' is deprecated: first deprecated in iOS 15.0 - This property is ignored when using UIButtonConfiguration [-Werror,-Wdeprecated-declarations][0m
+    button.contentEdgeInsets = UIEdgeInsetsMake(0, 14, 0, 12);
+[0;1;32m           ^
+[0m[1m/Users/runner/theos/sdks/iPhoneOS16.5.sdk/System/Library/Frameworks/UIKit.framework/Headers/UIButton.h:162:35: [0m[0;1;30mnote: [0m'contentEdgeInsets' has been explicitly marked deprecated here[0m
+@property(nonatomic) UIEdgeInsets contentEdgeInsets API_DEPRECATED("This property is ignored when using UIButtonConfiguration", ios(2.0,15.0), tvos(2.0,15.0)) UI_APPEARANCE_SELECTOR; // default is UIEdgeInsetsZero. On tvOS 10 or later, default is nonzero except for custom buttons.
+[0;1;32m                                  ^
+[0m[1mVPNControlCenterModuleViewController.m:216:16: [0m[0;1;31merror: [0m[1m'imageEdgeInsets' is deprecated: first deprecated in iOS 15.0 - This property is ignored when using UIButtonConfiguration [-Werror,-Wdeprecated-declarations][0m
+        button.imageEdgeInsets = UIEdgeInsetsMake(0, 0, 0, -8);
+[0;1;32m               ^
+[0m[1m/Users/runner/theos/sdks/iPhoneOS16.5.sdk/System/Library/Frameworks/UIKit.framework/Headers/UIButton.h:164:35: [0m[0;1;30mnote: [0m'imageEdgeInsets' has been explicitly marked deprecated here[0m
+@property(nonatomic) UIEdgeInsets imageEdgeInsets API_DEPRECATED("This property is ignored when using UIButtonConfiguration", ios(2.0,15.0), tvos(2.0,15.0));                // default is UIEdgeInsetsZero
+[0;1;32m                                  ^
+[0m[1mVPNControlCenterModuleViewController.m:217:16: [0m[0;1;31merror: [0m[1m'titleEdgeInsets' is deprecated: first deprecated in iOS 15.0 - This property is ignored when using UIButtonConfiguration [-Werror,-Wdeprecated-declarations][0m
+        button.titleEdgeInsets = UIEdgeInsetsMake(0, 12, 0, 0);
+[0;1;32m               ^
+[0m[1m/Users/runner/theos/sdks/iPhoneOS16.5.sdk/System/Library/Frameworks/UIKit.framework/Headers/UIButton.h:163:35: [0m[0;1;30mnote: [0m'titleEdgeInsets' has been explicitly marked deprecated here[0m
+@property(nonatomic) UIEdgeInsets titleEdgeInsets API_DEPRECATED("This property is ignored when using UIButtonConfiguration", ios(2.0,15.0), tvos(2.0,15.0));                // default is UIEdgeInsetsZero
+[0;1;32m                                  ^
+[0m3 errors generated.
+make[3]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/ControlCenterVPN/.theos/obj/arm64/VPNControlCenterModuleViewController.m.433913be.o] Error 1
+make[2]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/ControlCenterVPN/.theos/obj/arm64/VPNControlCenter.bundle/VPNControlCenter] Error 2
+make[1]: *** [internal-bundle-all_] Error 2
+make: *** [VPNControlCenter.all.bundle.variables] Error 2
