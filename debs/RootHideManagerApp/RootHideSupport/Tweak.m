@@ -4,7 +4,6 @@
 #import <mach-o/dyld.h>
 #import <sys/stat.h>
 #import <sys/sysctl.h>
-#import <sys/ptrace.h>
 #import <fcntl.h>
 #import <stdio.h>
 #import <stdarg.h>
@@ -24,6 +23,7 @@ static BOOL RHBlockedScheme(NSURL *url){NSString*s=url.scheme.lowercaseString;re
 static BOOL RHSensitivePath(const char *p){if(!p)return NO;NSString*s=[NSString stringWithUTF8String:p].lowercaseString;NSArray*marks=@[@"/applications/cydia.app",@"/applications/sileo.app",@"/library/mobilesubstrate",@"/usr/lib/substrate",@"/usr/bin/ssh",@"/private/etc/apt",@"/var/jb",@"/.jbroot",@"/private/jailbreak.txt",@"/var/checkra1n",@"/var/binpack",@"/usr/lib/tweakloader.dylib",@"/usr/lib/ellekit"];for(NSString*m in marks)if([s containsString:m])return YES;return NO;}
 static BOOL RHSensitiveImage(const char*p){if(!p)return NO;NSString*s=[NSString stringWithUTF8String:p].lowercaseString;return [s containsString:@"roothidesupport"]||[s containsString:@"mobilesubstrate"]||[s containsString:@"ellekit"]||[s containsString:@"tweakloader"]||[s containsString:@"/var/jb/"]||[s containsString:@"/.jbroot-"];}
 static int(*origAccess)(const char*,int);static int hookAccess(const char*p,int m){if(RHSensitivePath(p)){errno=ENOENT;return -1;}return origAccess(p,m);}static int(*origStat)(const char*,struct stat*);static int hookStat(const char*p,struct stat*b){if(RHSensitivePath(p)){errno=ENOENT;return -1;}return origStat(p,b);}static int(*origLstat)(const char*,struct stat*);static int hookLstat(const char*p,struct stat*b){if(RHSensitivePath(p)){errno=ENOENT;return -1;}return origLstat(p,b);}static int(*origOpen)(const char*,int,...);static int hookOpen(const char*p,int f,...){mode_t mode=0;if(f&O_CREAT){va_list a;va_start(a,f);mode=va_arg(a,int);va_end(a);}if(RHSensitivePath(p)){errno=ENOENT;return -1;}return (f&O_CREAT)?origOpen(p,f,mode):origOpen(p,f);}static FILE*(*origFopen)(const char*,const char*);static FILE*hookFopen(const char*p,const char*m){if(RHSensitivePath(p)){errno=ENOENT;return NULL;}return origFopen(p,m);}
+extern int ptrace(int,pid_t,caddr_t,int);
 static int(*origPtrace)(int,pid_t,caddr_t,int);static int hookPtrace(int req,pid_t pid,caddr_t a,int d){if(req==31)return 0;return origPtrace(req,pid,a,d);}static int(*origSysctl)(int*,u_int,void*,size_t*,void*,size_t);static int hookSysctl(int*n,u_int l,void*o,size_t*ol,void*nn,size_t nl){int r=origSysctl(n,l,o,ol,nn,nl);if(r==0&&n&&l>=4&&n[0]==CTL_KERN&&n[1]==KERN_PROC&&o&&ol&&*ol>=sizeof(struct kinfo_proc)){struct kinfo_proc*k=o;k->kp_proc.p_flag&=~P_TRACED;}return r;}
 static uint32_t(*origImageCount)(void);static const char*(*origImageName)(uint32_t);static const char*hookImageName(uint32_t i){const char*p=origImageName(i);return RHSensitiveImage(p)?"/usr/lib/libSystem.B.dylib":p;}
 static BOOL(*origCanOpenURL)(id,SEL,NSURL*);static BOOL hookCanOpenURL(id self,SEL cmd,NSURL*u){return RHBlockedScheme(u)?NO:origCanOpenURL(self,cmd,u);}
