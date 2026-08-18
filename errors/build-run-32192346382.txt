@@ -1,0 +1,42 @@
+=== Build Info ===
+Timestamp: Tue Aug 18 22:22:20 UTC 2026
+THEOS: /Users/runner/theos
+SDK: total 0
+drwxr-xr-x   4 runner  staff  128 Aug 18 22:22 .
+drwxr-xr-x  22 runner  staff  704 Aug 18 22:22 ..
+-rw-r--r--   1 runner  staff    0 Aug 18 22:22 .keep
+drwxr-xr-x   8 runner  staff  256 Nov 23  2023 iPhoneOS16.5.sdk
+
+=== Project: ControlCenterVPN ===
+Exit code: 2
+[0;36m==> [1;36mNotice:[m Build may be slow as Theos isn’t using all available CPU cores on this computer. Consider upgrading GNU Make: https://theos.dev/docs/parallel-building
+[1;31m> [1;3;39mMaking all for tweak VPNControlCenterLoader…[m
+[0;31m==> [1;39mPreprocessing VPNControlCenterLoader.xm…[m
+[0;32m==> [1;39mCompiling VPNControlCenterLoader.xm (arm64)…[m
+[0;33m==> [1;39mLinking tweak VPNControlCenterLoader (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for VPNControlCenterLoader…[m
+warning: no debug symbols in executable (-arch arm64)
+[0;34m==> [1;39mStripping VPNControlCenterLoader (arm64)…[m
+/Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip: warning: input object file already stripped: /Users/runner/work/shuangye.github.io/shuangye.github.io/debs/ControlCenterVPN/.theos/obj/arm64/VPNControlCenterLoader.dylib
+[0;31m==> [1;39mPreprocessing VPNControlCenterLoader.xm…[m
+[0;32m==> [1;39mCompiling VPNControlCenterLoader.xm (arm64e)…[m
+[0;33m==> [1;39mLinking tweak VPNControlCenterLoader (arm64e)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for VPNControlCenterLoader…[m
+warning: no debug symbols in executable (-arch arm64e)
+[0;34m==> [1;39mStripping VPNControlCenterLoader (arm64e)…[m
+/Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip: warning: input object file already stripped: /Users/runner/work/shuangye.github.io/shuangye.github.io/debs/ControlCenterVPN/.theos/obj/arm64e/VPNControlCenterLoader.dylib
+[0;34m==> [1;39mMerging tweak VPNControlCenterLoader…[m
+[0;34m==> [1;39mSigning VPNControlCenterLoader…[m
+[1;31m> [1;3;39mMaking all for bundle VPNControlCenter…[m
+[0;32m==> [1;39mCompiling VPNControlCenterModule.m (arm64)…[m
+[0;32m==> [1;39mCompiling VPNControlCenterModuleViewController.m (arm64)…[m
+[1mVPNControlCenterModuleViewController.m:38:19: [0m[0;1;31merror: [0m[1mno known class method for selector 'loadAllFromPreferencesWithCompletionHandler:'[0m
+    [NEVPNManager loadAllFromPreferencesWithCompletionHandler:^(NSArray<NEVPNManager *> *managers, NSError *error) {
+[0;1;32m                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[0m1 error generated.
+make[3]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/ControlCenterVPN/.theos/obj/arm64/VPNControlCenterModuleViewController.m.433913be.o] Error 1
+make[2]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/ControlCenterVPN/.theos/obj/arm64/VPNControlCenter.bundle/VPNControlCenter] Error 2
+make[1]: *** [internal-bundle-all_] Error 2
+make: *** [VPNControlCenter.all.bundle.variables] Error 2
