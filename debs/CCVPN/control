@@ -1,0 +1,9 @@
+Package: com.huayuarc.ccvpn
+Name: CCVPN
+Version: 2.0.0
+Architecture: iphoneos-arm
+Description: Control Center VPN toggle with node selector
+Maintainer: Huayuarc
+Author: Huayuarc
+Section: Tweaks
+Depends: firmware (>= 15.0), com.opa334.ccsupport
