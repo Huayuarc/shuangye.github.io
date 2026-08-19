@@ -36,7 +36,9 @@
 @end
 
 @class VPNControlCenterModuleViewController;
-@interface VPNControlCenterModule : CCUIToggleModule
+@interface VPNControlCenterModule : CCUIToggleModule {
+    BOOL _selected;
+}
 @property(nonatomic,assign,getter=isSelected) BOOL selected;
 @property(nonatomic,strong,readonly) VPNControlCenterModuleViewController *contentViewController;
 @property(nonatomic,strong,readonly) UIViewController *backgroundViewController;
