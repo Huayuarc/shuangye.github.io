@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>CFBundleDevelopmentRegion</key><string>English</string>
+<key>CFBundleExecutable</key><string>VPNNodeSelector</string>
+<key>CFBundleIdentifier</key><string>com.huayuarc.vpnnodeselector.module</string>
+<key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
+<key>CFBundleName</key><string>CCVPN</string>
+<key>CFBundlePackageType</key><string>BNDL</string>
+<key>CFBundleShortVersionString</key><string>1.0.8</string>
+<key>CFBundleVersion</key><string>1</string>
+<key>CFBundleSupportedPlatforms</key><array><string>iPhoneOS</string></array>
+<key>MinimumOSVersion</key><string>15.0</string>
+<key>ModuleSize</key><dict><key>columns</key><string>1</string><key>rows</key><string>1</string></dict>
+<key>CCSModuleSize</key><dict><key>Portrait</key><dict><key>Width</key><integer>1</integer><key>Height</key><integer>1</integer></dict><key>Landscape</key><dict><key>Width</key><integer>1</integer><key>Height</key><integer>1</integer></dict></dict>
+<key>NSPrincipalClass</key><string>VPNNodeModule</string>
+<key>UIDeviceFamily</key><array><integer>1</integer><integer>2</integer></array>
+</dict></plist>
