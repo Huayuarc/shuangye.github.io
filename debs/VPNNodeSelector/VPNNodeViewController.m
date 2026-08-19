@@ -62,15 +62,15 @@
 - (void)beginVisiblePolling {
     NSUInteger generation = ++self.pollGeneration;
     __weak typeof(self) weakSelf = self;
-    __block void (^poll)(NSUInteger);
-    poll = ^(NSUInteger remaining) {
-        typeof(self) selfRef = weakSelf;
-        if (!selfRef || generation != selfRef.pollGeneration || !selfRef.hostVisible || remaining == 0) return;
-        [selfRef.module refreshVisualState];
-        if (selfRef.expanded) [selfRef updateEverything];
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.35 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{ poll(remaining - 1); });
-    };
-    poll(14);
+    NSArray<NSNumber *> *delays = @[@0.0, @0.12, @0.3, @0.6, @1.0, @1.5, @2.1, @2.8, @3.6, @4.5];
+    for (NSNumber *delay in delays) {
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay.doubleValue * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            typeof(self) selfRef = weakSelf;
+            if (!selfRef || generation != selfRef.pollGeneration || !selfRef.hostVisible) return;
+            [selfRef.module refreshVisualState];
+            if (selfRef.expanded) [selfRef updateEverything];
+        });
+    }
 }
 
 - (void)reloadNodesSafely {
