@@ -9,11 +9,6 @@ static void VPNSendSuperVoid(id object, SEL selector) {
     struct objc_super info = { object, class_getSuperclass(cls) };
     ((void (*)(struct objc_super *, SEL))objc_msgSendSuper)(&info, selector);
 }
-static BOOL VPNSendSuperBool(id object, SEL selector) {
-    Class cls = object_getClass(object);
-    struct objc_super info = { object, class_getSuperclass(cls) };
-    return ((BOOL (*)(struct objc_super *, SEL))objc_msgSendSuper)(&info, selector);
-}
 static VPNNodeViewController *VPNCoordinator(id host) {
     return objc_getAssociatedObject(host, VPNCoordinatorKey);
 }
