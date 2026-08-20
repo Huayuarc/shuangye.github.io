@@ -1,0 +1,9 @@
+Package: com.huayuarc.vpnnodeselector
+Name: VPN Node Selector
+Version: 1.0.12
+Architecture: iphoneos-arm
+Description: Fresh iOS 15-17 Control Center VPN toggle and long-press node selector
+Maintainer: Huayuarc
+Author: Huayuarc
+Section: Tweaks
+Depends: firmware (>= 15.0), com.opa334.ccsupport
