@@ -1,5 +1,4 @@
 #import <UIKit/UIKit.h>
-#import <Preferences/PSViewController.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import "../SharedPrefs.h"
@@ -11,7 +10,7 @@
 @end
 @implementation ASPAppInfo @end
 
-@interface ASPAppListController : PSViewController <UITableViewDataSource, UITableViewDelegate, UISearchResultsUpdating>
+@interface ASPAppListController : UIViewController <UITableViewDataSource, UITableViewDelegate, UISearchResultsUpdating>
 @property(nonatomic,strong) UITableView *tableView;
 @property(nonatomic,strong) UISearchController *searchController;
 @property(nonatomic,strong) NSArray<ASPAppInfo *> *apps;

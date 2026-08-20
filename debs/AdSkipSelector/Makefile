@@ -16,7 +16,6 @@ AdSkipPrefs_FILES = prefs/ASPAppListController.m
 AdSkipPrefs_CFLAGS = -fobjc-arc -fvisibility=hidden
 AdSkipPrefs_LDFLAGS = -Wl,-x -Wl,-dead_strip
 AdSkipPrefs_FRAMEWORKS = UIKit Foundation CoreFoundation
-AdSkipPrefs_PRIVATE_FRAMEWORKS = Preferences
 AdSkipPrefs_INSTALL_PATH = /Library/PreferenceBundles
 AdSkipPrefs_RESOURCE_DIRS = prefs/Resources
 
