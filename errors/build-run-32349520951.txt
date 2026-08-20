@@ -1,0 +1,34 @@
+=== Build Info ===
+Timestamp: Thu Aug 20 08:35:15 UTC 2026
+THEOS: /Users/runner/theos
+SDK: total 0
+drwxr-xr-x   4 runner  staff  128 Aug 20 08:35 .
+drwxr-xr-x  22 runner  staff  704 Aug 20 08:35 ..
+-rw-r--r--   1 runner  staff    0 Aug 20 08:35 .keep
+drwxr-xr-x   8 runner  staff  256 Nov 23  2023 iPhoneOS16.5.sdk
+
+=== Project: VPNNodeSelector ===
+Exit code: 2
+[0;36m==> [1;36mNotice:[m Build may be slow as Theos isn’t using all available CPU cores on this computer. Consider upgrading GNU Make: https://theos.dev/docs/parallel-building
+[1;31m> [1;3;39mMaking all for tweak VPNControllerHook…[m
+[0;32m==> [1;39mCompiling VPNControllerHook.m (arm64)…[m
+[0;33m==> [1;39mLinking tweak VPNControllerHook (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for VPNControllerHook…[m
+[0;34m==> [1;39mStripping VPNControllerHook (arm64)…[m
+[0;34m==> [1;39mSigning VPNControllerHook…[m
+[1;31m> [1;3;39mMaking all for bundle VPNNodeSelector…[m
+[0;35m==> [1;39mCopying resource directories into the bundle wrapper…[m
+[0;32m==> [1;39mCompiling VPNNodeModule.m (arm64)…[m
+[0;32m==> [1;39mCompiling VPNNodeViewController.m (arm64)…[m
+[1mVPNNodeViewController.m:437:1: [0m[0;1;31merror: [0m[1mduplicate declaration of method 'dealloc'[0m
+- (void)dealloc {
+[0;1;32m^
+[0m[1mVPNNodeViewController.m:89:1: [0m[0;1;30mnote: [0mprevious declaration is here[0m
+- (void)dealloc {
+[0;1;32m^
+[0m1 error generated.
+make[3]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/VPNNodeSelector/.theos/obj/arm64/VPNNodeViewController.m.60a4cbb1.o] Error 1
+make[2]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/VPNNodeSelector/.theos/obj/arm64/VPNNodeSelector.bundle/VPNNodeSelector] Error 2
+make[1]: *** [internal-bundle-all_] Error 2
+make: *** [VPNNodeSelector.all.bundle.variables] Error 2
