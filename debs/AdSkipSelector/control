@@ -1,0 +1,11 @@
+Package: com.huayuarc.adskipselector
+Name: AdSkip 屏蔽广告
+Version: 3.0.4
+Architecture: iphoneos-arm
+Description: 跳过启动广告，可在设置中逐应用开启或关闭。
+Conflicts: com.mg.adskips
+Replaces: com.mg.adskips
+Maintainer: Huayuarc
+Author: Huayuarc
+Section: Tweaks
+Depends: mobilesubstrate, preferenceloader
