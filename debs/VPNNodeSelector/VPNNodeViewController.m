@@ -87,6 +87,11 @@ static void VPNControllerSelectionDidChange(CFNotificationCenterRef center, void
 }
 
 - (void)dealloc {
+    ++_loadGeneration;
+    ++_pollGeneration;
+    ++_switchGeneration;
+    ++_compactToggleGeneration;
+    ++_startRetryGeneration;
     CFNotificationCenterRemoveObserver(CFNotificationCenterGetDarwinNotifyCenter(), (__bridge const void *)self, VPNSelectionChangedNotification, NULL);
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
@@ -434,12 +439,4 @@ static void VPNControllerSelectionDidChange(CFNotificationCenterRef center, void
     [self hostDidLayoutWithBounds:self.view.bounds];
 }
 
-- (void)dealloc {
-    ++_loadGeneration;
-    ++_pollGeneration;
-    ++_switchGeneration;
-    ++_compactToggleGeneration;
-    ++_startRetryGeneration;
-    [[NSNotificationCenter defaultCenter] removeObserver:self];
-}
 @end
