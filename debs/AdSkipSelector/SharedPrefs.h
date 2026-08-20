@@ -32,7 +32,7 @@ static NSSet<NSString *> *ASPEnabledBundleIDs(void) {
     return [ids isKindOfClass:NSArray.class] ? [NSSet setWithArray:ids] : [NSSet set];
 }
 
-static BOOL ASPSaveEnabledBundleIDs(NSSet<NSString *> *ids) {
+static __attribute__((unused)) BOOL ASPSaveEnabledBundleIDs(NSSet<NSString *> *ids) {
     NSString *path = ASPPreferencesPath();
     NSString *dir = path.stringByDeletingLastPathComponent;
     [NSFileManager.defaultManager createDirectoryAtPath:dir withIntermediateDirectories:YES attributes:nil error:nil];
