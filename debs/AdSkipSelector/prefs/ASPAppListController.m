@@ -81,15 +81,6 @@ static NSArray<ASPAppInfo *> *ASPAllUserApplications(void) {
     }];
 }
 
-// 补图标：设置在渲染时懒加载，避免 specifiers 里做重活
-static UIImage *ASPAppIcon(NSString *bid) {
-    if (!bid.length) return nil;
-    SEL s = NSSelectorFromString(@"_applicationIconImageForBundleIdentifier:format:scale:");
-    id app = UIApplication.sharedApplication;
-    if (![app respondsToSelector:s]) return nil;
-    return ((id(*)(id, SEL, id, NSInteger, CGFloat))objc_msgSend)(app, s, bid, 2, UIScreen.mainScreen.scale ?: 2);
-}
-
 #pragma mark - 弱链接设置框架（不依赖编译期 Preferences.framework）
 
 static id ASPNewSpecifier(NSString *name, id target, SEL set, SEL get, NSInteger cellType) {
