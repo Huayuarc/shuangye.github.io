@@ -75,7 +75,11 @@ static void ASPScan(void) {
     if (!gEnabled || gScanning || CACurrentMediaTime() - gStartedAt > 15.0) return;
     gScanning = YES;
     dispatch_async(dispatch_get_main_queue(), ^{
-        for (UIWindow *w in UIApplication.sharedApplication.windows.reverseObjectEnumerator) {
+        NSMutableArray<UIWindow *> *windows = [NSMutableArray array];
+        for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+            if ([scene isKindOfClass:UIWindowScene.class]) [windows addObjectsFromArray:((UIWindowScene *)scene).windows];
+        }
+        for (UIWindow *w in windows.reverseObjectEnumerator) {
             UIView *candidate = ASPFindCandidate(w);
             if (candidate && ASPActivate(candidate)) break;
         }
