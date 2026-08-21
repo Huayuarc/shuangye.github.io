@@ -1,0 +1,35 @@
+=== Build Info ===
+Timestamp: Fri Aug 21 19:28:16 UTC 2026
+THEOS: /Users/runner/theos
+SDK: total 0
+drwxr-xr-x   4 runner  staff  128 Aug 21 19:28 .
+drwxr-xr-x  22 runner  staff  704 Aug 21 19:28 ..
+-rw-r--r--   1 runner  staff    0 Aug 21 19:28 .keep
+drwxr-xr-x   8 runner  staff  256 Nov 23  2023 iPhoneOS16.5.sdk
+
+=== Project: PerfectGrabber ===
+Exit code: 2
+[0;36m==> [1;36mNotice:[m Build may be slow as Theos isn’t using all available CPU cores on this computer. Consider upgrading GNU Make: https://theos.dev/docs/parallel-building
+[1;31m> [1;3;39mMaking all for tweak PerfectGrabber…[m
+[0;31m==> [1;39mPreprocessing Tweak.xm…[m
+[0;32m==> [1;39mCompiling Tweak.xm (arm64)…[m
+[0;32m==> [1;39mCompiling PerfectGrabberPreferences.m (arm64)…[m
+[0;32m==> [1;39mCompiling PGGrabberOverlayView.m (arm64)…[m
+[0;32m==> [1;39mCompiling PGGrabberHUDView.m (arm64)…[m
+[0;32m==> [1;39mCompiling PGSystemStatus.m (arm64)…[m
+[0;33m==> [1;39mLinking tweak PerfectGrabber (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for PerfectGrabber…[m
+[0;34m==> [1;39mStripping PerfectGrabber (arm64)…[m
+[0;34m==> [1;39mSigning PerfectGrabber…[m
+[1;31m> [1;3;39mMaking all for bundle PerfectGrabberSettings…[m
+[0;35m==> [1;39mCopying resource directories into the bundle wrapper…[m
+[0;32m==> [1;39mCompiling prefs/PerfectGrabberSettingsController.m (arm64)…[m
+[0;33m==> [1;39mLinking bundle PerfectGrabberSettings (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+ld: framework 'Preferences' not found
+clang: [0;1;31merror: [0m[1mlinker command failed with exit code 1 (use -v to see invocation)[0m
+make[3]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/PerfectGrabber/.theos/obj/arm64/PerfectGrabberSettings.bundle/PerfectGrabberSettings] Error 1
+make[2]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/PerfectGrabber/.theos/obj/arm64/PerfectGrabberSettings.bundle/PerfectGrabberSettings] Error 2
+make[1]: *** [internal-bundle-all_] Error 2
+make: *** [PerfectGrabberSettings.all.bundle.variables] Error 2
