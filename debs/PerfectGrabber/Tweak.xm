@@ -108,27 +108,6 @@ static PGGrabberOverlayView *PGOverlayForGrabber(id grabber, BOOL create) {
 static void PGHideOverlay(id grabber);
 static void PGHideHUD(id grabber);
 
-static void PGShowOverlay(id grabber) {
-    PerfectGrabberPreferences *preferences = PerfectGrabberPreferences.sharedPreferences;
-    if (!preferences.isEnabled) return;
-    if (!preferences.showOnSwipeUp && PGIsSwipeUpGrabber(grabber)) return;
-
-    if (PGActiveHUDGrabber && PGActiveHUDGrabber != grabber) PGHideHUD(PGActiveHUDGrabber);
-    PGActiveOverlayGrabber = grabber;
-
-    PGGrabberOverlayView *overlay = PGOverlayForGrabber(grabber, YES);
-    if (!overlay) return;
-    PGHideChevron(grabber);
-    PGLayoutOverlay(grabber, overlay);
-    dispatch_async(dispatch_get_main_queue(), ^{
-        PGLayoutOverlay(grabber, overlay);
-    });
-    overlay.hidden = NO;
-    overlay.alpha = 1.0;
-    [overlay startUpdating];
-    if (preferences.vibrationFeedback) AudioServicesPlaySystemSound(1519);
-}
-
 static void PGHideOverlay(id grabber) {
     PGGrabberOverlayView *overlay = PGOverlayForGrabber(grabber, NO);
     [overlay stopUpdating];
