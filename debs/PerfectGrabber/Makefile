@@ -19,8 +19,8 @@ BUNDLE_NAME = PerfectGrabberSettings
 PerfectGrabberSettings_FILES = prefs/PerfectGrabberSettingsController.m
 PerfectGrabberSettings_INSTALL_PATH = /Library/PreferenceBundles
 PerfectGrabberSettings_FRAMEWORKS = Foundation UIKit
-PerfectGrabberSettings_PRIVATE_FRAMEWORKS = Preferences
 PerfectGrabberSettings_CFLAGS = -fobjc-arc
+PerfectGrabberSettings_LDFLAGS = -Wl,-undefined,dynamic_lookup
 PerfectGrabberSettings_RESOURCE_DIRS = prefs/Resources
 
 include $(THEOS_MAKE_PATH)/tweak.mk
