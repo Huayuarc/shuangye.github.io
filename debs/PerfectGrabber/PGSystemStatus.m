@@ -30,7 +30,7 @@ double PGCurrentDeviceTemperature(void) {
     const CFStringRef keys[] = {CFSTR("Temperature"), CFSTR("BatteryTemperature"),
                                 CFSTR("temperature"), CFSTR("DieTemp"), CFSTR("SkinTemperature")};
     for (NSUInteger i = 0; i < sizeof(services) / sizeof(services[0]); i++) {
-        io_service_t service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching(services[i]));
+        io_service_t service = IOServiceGetMatchingService(kIOMasterPortDefault, IOServiceMatching(services[i]));
         if (!service) continue;
         for (NSUInteger j = 0; j < sizeof(keys) / sizeof(keys[0]); j++) {
             CFTypeRef object = IORegistryEntryCreateCFProperty(service, keys[j], kCFAllocatorDefault, 0);
