@@ -1,0 +1,38 @@
+=== Build Info ===
+Timestamp: Fri Aug 21 05:44:38 UTC 2026
+THEOS: /Users/runner/theos
+SDK: total 0
+drwxr-xr-x   4 runner  staff  128 Aug 21 05:44 .
+drwxr-xr-x  22 runner  staff  704 Aug 21 05:44 ..
+-rw-r--r--   1 runner  staff    0 Aug 21 05:44 .keep
+drwxr-xr-x   8 runner  staff  256 Nov 23  2023 iPhoneOS16.5.sdk
+
+=== Project: AdSkipSelector ===
+Exit code: 2
+[0;36m==> [1;36mNotice:[m Build may be slow as Theos isn’t using all available CPU cores on this computer. Consider upgrading GNU Make: https://theos.dev/docs/parallel-building
+[1;31m> [1;3;39mMaking all for tweak AdSkipSelector…[m
+[0;31m==> [1;39mPreprocessing Tweak.xm…[m
+[0;32m==> [1;39mCompiling Tweak.xm (arm64)…[m
+In file included from Tweak.xm:6:
+In file included from /Users/runner/theos/vendor/include/IOKit/hid/IOHIDEvent.h:39:
+In file included from /Users/runner/theos/vendor/include/IOKit/IOTypes.h:42:
+[1m/Users/runner/theos/vendor/include/IOKit/IOReturn.h:43:1: [0m[0;1;31merror: [0m[1mimport of C++ module 'Darwin.Mach.error' appears within extern "C" language linkage specification [-Wmodule-import-in-extern-c][0m
+#include <mach/error.h>
+[0;1;32m^
+[0m[1m/Users/runner/theos/vendor/include/IOKit/IOReturn.h:40:1: [0m[0;1;30mnote: [0mextern "C" language linkage specification begins here[0m
+extern "C" {
+[0;1;32m^
+[0mIn file included from Tweak.xm:6:
+In file included from /Users/runner/theos/vendor/include/IOKit/hid/IOHIDEvent.h:39:
+[1m/Users/runner/theos/vendor/include/IOKit/IOTypes.h:173:1: [0m[0;1;31merror: [0m[1mimport of C++ module 'Darwin.device' appears within extern "C" language linkage specification [-Wmodule-import-in-extern-c][0m
+#include <device/device_types.h>
+[0;1;32m^
+[0m[1m/Users/runner/theos/vendor/include/IOKit/IOTypes.h:45:1: [0m[0;1;30mnote: [0mextern "C" language linkage specification begins here[0m
+extern "C" {
+[0;1;32m^
+[0m2 errors generated.
+make[3]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/AdSkipSelector/.theos/obj/arm64/Tweak.xm.240db3d0.o] Error 1
+rm /Users/runner/work/shuangye.github.io/shuangye.github.io/debs/AdSkipSelector/.theos/obj/arm64/Tweak.xm.mm
+make[2]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/AdSkipSelector/.theos/obj/arm64/AdSkipSelector.dylib] Error 2
+make[1]: *** [internal-library-all_] Error 2
+make: *** [AdSkipSelector.all.tweak.variables] Error 2
