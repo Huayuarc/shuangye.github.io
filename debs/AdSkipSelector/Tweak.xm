@@ -3,7 +3,6 @@
 #import <objc/message.h>
 #import <dlfcn.h>
 #import <mach/mach_time.h>
-#import <IOKit/hid/IOHIDEvent.h>
 #import "SharedPrefs.h"
 
 #ifdef ADSKIP_STRIP_LOGS
@@ -112,6 +111,12 @@ static void ASPCollectBest(UIView *root, UIView **best, NSInteger *bestScore) {
     for (UIView *child in root.subviews) ASPCollectBest(child, best, bestScore);
 }
 
+typedef CFTypeRef IOHIDEventRef;
+typedef uint32_t IOHIDDigitizerTransducerType;
+typedef double IOHIDFloat;
+typedef uint32_t IOOptionBits;
+static const IOHIDDigitizerTransducerType ASPDigitizerHand = 0x23;
+
 typedef IOHIDEventRef (*ASPCreateDigitizerEventFn)(CFAllocatorRef, AbsoluteTime, IOHIDDigitizerTransducerType, uint32_t, uint32_t, uint32_t, uint32_t, IOHIDFloat, IOHIDFloat, IOHIDFloat, IOHIDFloat, IOHIDFloat, Boolean, Boolean, IOOptionBits);
 typedef IOHIDEventRef (*ASPCreateFingerEventFn)(CFAllocatorRef, AbsoluteTime, uint32_t, uint32_t, uint32_t, IOHIDFloat, IOHIDFloat, IOHIDFloat, IOHIDFloat, IOHIDFloat, IOHIDFloat, IOHIDFloat, IOHIDFloat, IOHIDFloat, Boolean, Boolean, IOOptionBits);
 typedef void (*ASPAppendEventFn)(IOHIDEventRef, IOHIDEventRef, IOOptionBits);
@@ -141,7 +146,7 @@ static BOOL ASPHIDTap(UIWindow *window, CGPoint point) {
     memcpy(&ts, &raw, MIN(sizeof(ts), sizeof(raw)));
     const uint32_t eventMask = 3; // range + touch
     @try {
-        IOHIDEventRef down = createDigitizer(kCFAllocatorDefault, ts, kIOHIDDigitizerTransducerTypeHand, 0, 0, eventMask, 0, nx, ny, 0, 0, 0, true, true, 0);
+        IOHIDEventRef down = createDigitizer(kCFAllocatorDefault, ts, ASPDigitizerHand, 0, 0, eventMask, 0, nx, ny, 0, 0, 0, true, true, 0);
         IOHIDEventRef fingerDown = createFinger(kCFAllocatorDefault, ts, 1, 2, eventMask, nx, ny, 0, 1, 0, 5, 5, 1, 1, true, true, 0);
         if (!down || !fingerDown) { if (down) CFRelease(down); if (fingerDown) CFRelease(fingerDown); return NO; }
         appendEvent(down, fingerDown, 0);
@@ -149,7 +154,7 @@ static BOOL ASPHIDTap(UIWindow *window, CGPoint point) {
         CFRelease(fingerDown); CFRelease(down);
         raw += 30000000;
         memcpy(&ts, &raw, MIN(sizeof(ts), sizeof(raw)));
-        IOHIDEventRef up = createDigitizer(kCFAllocatorDefault, ts, kIOHIDDigitizerTransducerTypeHand, 0, 0, 0, 0, nx, ny, 0, 0, 0, false, false, 0);
+        IOHIDEventRef up = createDigitizer(kCFAllocatorDefault, ts, ASPDigitizerHand, 0, 0, 0, 0, nx, ny, 0, 0, 0, false, false, 0);
         IOHIDEventRef fingerUp = createFinger(kCFAllocatorDefault, ts, 1, 2, 0, nx, ny, 0, 0, 0, 5, 5, 1, 1, false, false, 0);
         if (up && fingerUp) { appendEvent(up, fingerUp, 0); ((void(*)(id,SEL,IOHIDEventRef))objc_msgSend)(app, handle, up); }
         if (fingerUp) CFRelease(fingerUp); if (up) CFRelease(up);
