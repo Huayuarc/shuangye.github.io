@@ -28,6 +28,7 @@ static NSString * const SCVideoKey=@"VideoEnabled";
 @property(nonatomic,assign) NSInteger restartAttempts;
 @property(nonatomic,assign) BOOL recoveryScheduled;
 @property(nonatomic,strong) NSMutableArray<NSURL *> *videoSegments;
+@property(nonatomic,assign) BOOL photoModeActive;
 @end
 
 @implementation SCCaptureManager
@@ -219,12 +220,24 @@ static NSString * const SCVideoKey=@"VideoEnabled";
     }
 }
 
+- (void)togglePhoto {
+    if(self.photoModeActive){
+        self.photoModeActive=NO;
+        [self reportStatus:@"拍照模式已停止" hapticStyle:UIImpactFeedbackStyleLight repeats:0];
+        [self stopAndRelease];
+        return;
+    }
+    self.photoModeActive=YES;
+    [self reportStatus:@"拍照模式已开启" hapticStyle:UIImpactFeedbackStyleMedium repeats:0];
+    [self takePhoto];
+}
+
 - (void)takePhoto {
-    if(![self boolPref:SCPhotoKey def:YES]) { [self reportStatus:@"拍照功能已关闭" hapticStyle:UIImpactFeedbackStyleLight repeats:0]; return; }
+    if(![self boolPref:SCPhotoKey def:YES]) { self.photoModeActive=NO; [self reportStatus:@"拍照功能已关闭" hapticStyle:UIImpactFeedbackStyleLight repeats:0]; return; }
     dispatch_async(_queue, ^{
-        if(![self boolPref:@"Enabled" def:NO]) { [self reportStatus:@"功能总开关已关闭" hapticStyle:UIImpactFeedbackStyleLight repeats:0]; return; }
-        if([self blockedByPlayback]) { [self reportStatus:@"播放音视频中，已阻止拍照" hapticStyle:UIImpactFeedbackStyleLight repeats:0]; return; }
-        if(![self presentSessionForVideo:NO]) { [self reportStatus:self.lastPrepareError?:@"相机启动失败" hapticStyle:UIImpactFeedbackStyleLight repeats:0]; return; }
+        if(![self boolPref:@"Enabled" def:NO]) { self.photoModeActive=NO; [self reportStatus:@"功能总开关已关闭" hapticStyle:UIImpactFeedbackStyleLight repeats:0]; return; }
+        if([self blockedByPlayback]) { self.photoModeActive=NO; [self reportStatus:@"播放音视频中，已阻止拍照" hapticStyle:UIImpactFeedbackStyleLight repeats:0]; return; }
+        if(![self presentSessionForVideo:NO]) { self.photoModeActive=NO; [self reportStatus:self.lastPrepareError?:@"相机启动失败" hapticStyle:UIImpactFeedbackStyleLight repeats:0]; return; }
         [self whenSessionReadyAttempt:0 action:^{
             AVCapturePhotoSettings *s=[AVCapturePhotoSettings photoSettings];
             if([self boolPref:@"PhotoSilent" def:YES]) {
@@ -245,7 +258,7 @@ static NSString * const SCVideoKey=@"VideoEnabled";
         if(![self boolPref:@"Enabled" def:NO]) { [self reportStatus:@"功能总开关已关闭" hapticStyle:UIImpactFeedbackStyleLight repeats:0]; return; }
         if([self blockedByPlayback]) { [self reportStatus:@"播放音视频中，已阻止录像" hapticStyle:UIImpactFeedbackStyleLight repeats:0]; return; }
         if(self.videoDesired){ self.videoDesired=NO;self.userStopping=YES;self.recoveryScheduled=NO;[self reportStatus:@"录像停止请求已接受" hapticStyle:UIImpactFeedbackStyleLight repeats:0];if(self.movieOutput.isRecording)[self.movieOutput stopRecording];else [self stopAndRelease];return; }
-        self.videoDesired=YES;self.userStopping=NO;self.restartAttempts=0;self.sessionInterrupted=NO;[self.videoSegments removeAllObjects];
+        self.photoModeActive=NO;self.videoDesired=YES;self.userStopping=NO;self.restartAttempts=0;self.sessionInterrupted=NO;[self.videoSegments removeAllObjects];
         if(![self prepare:YES]) { self.videoDesired=NO;[self reportStatus:self.lastPrepareError?:@"相机启动失败" hapticStyle:UIImpactFeedbackStyleLight repeats:0]; return; }
         [self whenSessionReadyAttempt:0 action:^{
             if(!self.videoDesired||self.userStopping)return;
@@ -281,8 +294,8 @@ static NSString * const SCVideoKey=@"VideoEnabled";
         NSString *result=d?[self saveData:d ext:@"jpg"]:nil;
         if(result) [self reportStatus:[NSString stringWithFormat:@"拍照成功：%@",result] hapticStyle:UIImpactFeedbackStyleMedium repeats:0];
         else [self reportStatus:@"拍照保存失败" hapticStyle:UIImpactFeedbackStyleLight repeats:0];
-    } else [self reportStatus:[NSString stringWithFormat:@"拍照失败：%@",error.localizedDescription?:@"未知错误"] hapticStyle:UIImpactFeedbackStyleLight repeats:0];
-    [self stopAndRelease];
+    } else { self.photoModeActive=NO; [self reportStatus:[NSString stringWithFormat:@"拍照失败：%@",error.localizedDescription?:@"未知错误"] hapticStyle:UIImpactFeedbackStyleLight repeats:0]; }
+    if(!self.photoModeActive) [self stopAndRelease];
 }
 - (void)setRecordingState:(BOOL)rec {
     self.recording=rec;
@@ -354,7 +367,7 @@ static NSString * const SCVideoKey=@"VideoEnabled";
             if(self.videoInput && [self.session.inputs containsObject:self.videoInput]) [self.session removeInput:self.videoInput];
             for(AVCaptureOutput *out in self.session.outputs) [self.session removeOutput:out];
         }
-        self.audioInput=nil; self.videoInput=nil; self.photoOutput=nil; self.movieOutput=nil; self.session=nil; self.movieURL=nil; self.startFeedbackSent=NO;
+        self.audioInput=nil; self.videoInput=nil; self.photoOutput=nil; self.movieOutput=nil; self.session=nil; self.movieURL=nil; self.startFeedbackSent=NO; self.photoModeActive=NO;
         [self setRecordingState:NO];
     });
 }

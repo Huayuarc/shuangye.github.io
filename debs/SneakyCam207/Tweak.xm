@@ -24,7 +24,7 @@ static void SCTrigger(BOOL video) {
     // 双击动作被接受时立即反馈，不等待相机会话或文件保存回调。
     SCImmediateHaptic();
     SCCaptureManager *m=[SCCaptureManager shared];
-    if(video) [m toggleVideo]; else [m takePhoto];
+    if(video) [m toggleVideo]; else [m togglePhoto];
 }
 
 // 音量按键归口：兼容不同 iOS 的多个入口。
@@ -117,7 +117,8 @@ static void SCIndicatorNotification(CFNotificationCenterRef c,void*o,CFStringRef
 static void SCActionNotification(CFNotificationCenterRef c, void*o, CFStringRef n, const void*obj, CFDictionaryRef u) {
     if(!SCIsSpringBoard()) return;
     NSString *s=(__bridge NSString*)n;
-    SCTrigger([s hasSuffix:@"startstopvideo"]);
+    if([s hasSuffix:@"startstopvideo"]) SCTrigger(YES);
+    else { SCImmediateHaptic(); [[SCCaptureManager shared] takePhoto]; }
 }
 // 关闭总开关时立即停止并释放相机
 static void SCEnabledNotification(CFNotificationCenterRef c, void*o, CFStringRef n, const void*obj, CFDictionaryRef u) {
