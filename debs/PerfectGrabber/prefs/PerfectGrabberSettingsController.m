@@ -52,8 +52,6 @@ static void PGWriteValue(NSString *key, id value) {
         NSString *key = [specifier propertyForKey:PSKeyNameKey];
         if (!key.length) continue;
         specifier.target = self;
-        specifier.setter = @selector(setPreferenceValue:specifier:);
-        specifier.getter = @selector(readPreferenceValue:);
         [specifier setProperty:PGDomain forKey:PSDefaultsKey];
         [specifier setProperty:(__bridge NSString *)PGChanged forKey:PSValueChangedNotificationKey];
     }
