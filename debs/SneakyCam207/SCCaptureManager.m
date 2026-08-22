@@ -304,7 +304,7 @@ static NSString * const SCVideoKey=@"VideoEnabled";
 }
 - (void)captureOutput:(AVCaptureFileOutput *)o didStartRecordingToOutputFileAtURL:(NSURL *)u fromConnections:(NSArray *)c {
     [self setRecordingState:YES];
-    BOOL needsFeedback=!self.startFeedbackSent; self.startFeedbackSent=YES;
+    self.startFeedbackSent=YES;
     [self reportStatus:@"录像已开始" hapticStyle:UIImpactFeedbackStyleHeavy repeats:0];
 }
 - (void)mergeVideoSegments:(NSArray<NSURL *> *)segments completion:(void(^)(NSURL *url,NSError *error))completion {
