@@ -1,0 +1,38 @@
+=== Build Info ===
+Timestamp: Sat Aug 22 17:55:56 UTC 2026
+THEOS: /Users/runner/theos
+SDK: total 0
+drwxr-xr-x   4 runner  staff  128 Aug 22 17:55 .
+drwxr-xr-x  22 runner  staff  704 Aug 22 17:55 ..
+-rw-r--r--   1 runner  staff    0 Aug 22 17:55 .keep
+drwxr-xr-x   8 runner  staff  256 Nov 23  2023 iPhoneOS16.5.sdk
+
+=== Project: PerfectGrabber ===
+Exit code: 2
+[0;36m==> [1;36mNotice:[m Build may be slow as Theos isn’t using all available CPU cores on this computer. Consider upgrading GNU Make: https://theos.dev/docs/parallel-building
+[1;31m> [1;3;39mMaking all for tweak PerfectGrabber…[m
+[0;31m==> [1;39mPreprocessing Tweak.xm…[m
+[0;32m==> [1;39mCompiling Tweak.xm (arm64)…[m
+[0;32m==> [1;39mCompiling PerfectGrabberPreferences.m (arm64)…[m
+[0;32m==> [1;39mCompiling PGGrabberOverlayView.m (arm64)…[m
+[0;32m==> [1;39mCompiling PGGrabberHUDView.m (arm64)…[m
+[0;32m==> [1;39mCompiling PGSystemStatus.m (arm64)…[m
+[0;33m==> [1;39mLinking tweak PerfectGrabber (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for PerfectGrabber…[m
+[0;34m==> [1;39mStripping PerfectGrabber (arm64)…[m
+[0;34m==> [1;39mSigning PerfectGrabber…[m
+[1;31m> [1;3;39mMaking all for bundle PerfectGrabberSettings…[m
+[0;35m==> [1;39mCopying resource directories into the bundle wrapper…[m
+[0;32m==> [1;39mCompiling prefs/PerfectGrabberSettingsController.m (arm64)…[m
+[1mprefs/PerfectGrabberSettingsController.m:55:19: [0m[0;1;31merror: [0m[1mproperty 'setter' not found on object of type 'PSSpecifier *'[0m
+        specifier.setter = @selector(setPreferenceValue:specifier:);
+[0;1;32m                  ^
+[0m[1mprefs/PerfectGrabberSettingsController.m:56:19: [0m[0;1;31merror: [0m[1mproperty 'getter' not found on object of type 'PSSpecifier *'[0m
+        specifier.getter = @selector(readPreferenceValue:);
+[0;1;32m                  ^
+[0m2 errors generated.
+make[3]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/PerfectGrabber/.theos/obj/arm64/prefs/PerfectGrabberSettingsController.m.89120b7f.o] Error 1
+make[2]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/PerfectGrabber/.theos/obj/arm64/PerfectGrabberSettings.bundle/PerfectGrabberSettings] Error 2
+make[1]: *** [internal-bundle-all_] Error 2
+make: *** [PerfectGrabberSettings.all.bundle.variables] Error 2
