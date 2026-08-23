@@ -35,7 +35,6 @@ static void EVWalk(UIView *v) {
 static NSArray<UIWindow *> *EVWindows(void) {
     NSMutableArray *out=[NSMutableArray array];
     for (UIScene *s in UIApplication.sharedApplication.connectedScenes) if ([s isKindOfClass:UIWindowScene.class]) [out addObjectsFromArray:((UIWindowScene *)s).windows];
-    if (!out.count) [out addObjectsFromArray:UIApplication.sharedApplication.windows];
     return out;
 }
 static void EVRestore(void) {
@@ -53,10 +52,10 @@ static void EVApply(void) {
 static void EVSchedule(void) {
     dispatch_async(dispatch_get_main_queue(), ^{ EVLoad(); [evTimer invalidate]; evTimer=nil; EVRestore(); if (evEnabled) evTimer=[NSTimer scheduledTimerWithTimeInterval:evDelay repeats:NO block:^(__unused NSTimer *t){ EVApply(); }]; });
 }
-static void EVNotify(__unused CFNotificationCenterRef c, __unused void *o, __unused CFStringRef n, __unused const void *x, __unused CFDictionaryRef i) { EVSchedule(); }
+static void EVSettingsChanged(__unused CFNotificationCenterRef c, __unused void *o, __unused CFStringRef n, __unused const void *x, __unused CFDictionaryRef i) { EVSchedule(); }
 
 %hook SpringBoard
-- (void)applicationDidFinishLaunching:(id)arg { %orig; if (!evSaved) evSaved=[NSMapTable weakToStrongObjectsMapTable]; CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, EVNotify, EVNotify, NULL, CFNotificationSuspensionBehaviorDeliverImmediately); EVSchedule(); }
+- (void)applicationDidFinishLaunching:(id)arg { %orig; if (!evSaved) evSaved=[NSMapTable weakToStrongObjectsMapTable]; CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, EVSettingsChanged, EVNotify, NULL, CFNotificationSuspensionBehaviorDeliverImmediately); EVSchedule(); }
 %end
 %hook UIApplication
 - (void)sendEvent:(UIEvent *)event { %orig; if (event.allTouches.count || event.type==UIEventTypePresses) EVSchedule(); }
