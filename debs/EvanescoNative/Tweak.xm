@@ -5,7 +5,6 @@ static NSTimer *timer;static NSMapTable *saved;static BOOL applied,enabled,hideD
 static CGFloat alpha;static NSTimeInterval delay;
 static id Msg(id o,NSString*s){SEL q=NSSelectorFromString(s);return o&&[o respondsToSelector:q]?((id(*)(id,SEL))objc_msgSend)(o,q):nil;}
 static void BoolMsg(id o,NSString*s,BOOL v){SEL q=NSSelectorFromString(s);if(o&&[o respondsToSelector:q])((void(*)(id,SEL,BOOL))objc_msgSend)(o,q,v);}
-static void FloatMsg(id o,NSString*s,double v){SEL q=NSSelectorFromString(s);if(o&&[o respondsToSelector:q])((void(*)(id,SEL,double))objc_msgSend)(o,q,v);}
 static void Load(){enabled=[EVRead(@"enabled",@YES)boolValue];hideDock=[EVRead(@"hideDock",@YES)boolValue];hideStatus=[EVRead(@"hideStatusBar",@YES)boolValue];hideDockSearch=[EVRead(@"hideDockSearch",@YES)boolValue];alpha=[EVRead(@"alpha",EVRead(@"fadeAmount",@0.0))doubleValue];delay=MAX(1,[EVRead(@"timeDelay",@6)doubleValue]);}
 static id IconController(){Class c=NSClassFromString(@"SBIconController");return Msg(c,@"sharedInstance");}
 static id RootController(){id i=IconController();for(NSString*s in @[@"_rootFolderController",@"rootFolderController"]) {id r=Msg(i,s);if(r)return r;}return nil;}
