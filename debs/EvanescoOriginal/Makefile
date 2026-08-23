@@ -1,5 +1,6 @@
 TARGET := iphone:clang:16.5:14.0
 FINALPACKAGE = 1
+# TWEAK_NAME marker: CI discovers this binary-preserving package project.
 
 ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
 EV_ARCH := arm64e
