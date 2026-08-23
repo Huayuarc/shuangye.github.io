@@ -94,11 +94,6 @@ id CTRTransformThermalConfiguration(id configuration, CTRThermalMode mode) {
 }
 
 #define ORIG(ret,n,...) static ret (*orig_##n)(id,SEL,##__VA_ARGS__)=NULL
-ORIG(id,getConfigurationFor,id);
-static id new_getConfigurationFor(id self,SEL cmd,id key) {
-    id v=orig_getConfigurationFor ? orig_getConfigurationFor(self,cmd,key) : nil;
-    return CTRTransformThermalConfiguration(v,CurrentMode());
-}
 ORIG(int,dieTemp);
 static int new_dieTemp(id self,SEL cmd) { return CurrentMode()==CTRThermalModeAggressive ? 2600 : orig_dieTemp(self,cmd); }
 ORIG(void,setHiP,BOOL);
@@ -111,13 +106,6 @@ ORIG(int,highestSkin);
 static int new_highestSkin(id self,SEL cmd) { return CurrentMode()==CTRThermalModeAggressive ? 0 : orig_highestSkin(self,cmd); }
 ORIG(id,forcedLevel,id);
 static id new_forcedLevel(id self,SEL cmd,id a) { return CurrentMode()==CTRThermalModeSystem ? orig_forcedLevel(self,cmd,a) : nil; }
-ORIG(void,evaluate);
-static void new_evaluate(id self,SEL cmd) { if(CurrentMode()!=CTRThermalModeAggressive) orig_evaluate(self,cmd); }
-ORIG(float,effort,float,float);
-static float new_effort(id self,SEL cmd,float a,float b) { return CurrentMode()==CTRThermalModeAggressive ? orig_effort(self,cmd,23.f,23.f) : orig_effort(self,cmd,a,b); }
-ORIG(void,cpms,id);
-static void new_cpms(id self,SEL cmd,id state) { orig_cpms(self,cmd,CurrentMode()==CTRThermalModeSystem ? state : nil); }
-
 static void Hook(const char *cn,const char *sn,IMP n,IMP *o) {
     Class c=objc_getClass(cn); SEL s=sel_registerName(sn);
     if(c && class_getInstanceMethod(c,s) && !*o) MSHookMessageEx(c,s,n,o);
