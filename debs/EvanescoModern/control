@@ -1,0 +1,10 @@
+Package: com.cpdigitaldarkroom.itsevanesco
+Name: Evanesco! Modern
+Version: 2024.05.28
+Architecture: iphoneos-arm
+Description: 主屏幕闲置后淡出图标，现代 ABI 原生兼容版
+Maintainer: Huayuarc
+Author: CP Digital Darkroom / Modern compatibility rebuild
+Section: Tweaks
+Depends: firmware (>= 15.0), mobilesubstrate, preferenceloader
+Conflicts: com.cpdigitaldarkroom.evanesco, com.1conan.evanescoxi, com.randy420.evanescocc
