@@ -1,7 +1,8 @@
 #import <Preferences/PSListController.h>
 #import <Preferences/PSSpecifier.h>
 #import <UIKit/UIKit.h>
-#import <stdlib.h>
+#import <spawn.h>
+extern char **environ;
 #import "../EvanescoPrefs.h"
 
 @interface EvanescoRootController : PSListController @end
@@ -28,5 +29,5 @@
 - (id)value:(PSSpecifier *)s{return EVValue([s propertyForKey:@"key"],[s propertyForKey:@"default"]);}
 - (void)setValue:(id)v specifier:(PSSpecifier *)s{EVSetValue([s propertyForKey:@"key"],v);}
 - (void)resetSettings{ for(NSString *k in @[@"enabled",@"hideDock",@"hideStatusBar",@"timeDelay",@"alpha"])EVSetValue(k,nil); [self reloadSpecifiers]; }
-- (void)respring{ system("killall -9 SpringBoard"); }
+- (void)respring{ pid_t pid=0; char *argv[]={(char *)"killall",(char *)"-9",(char *)"SpringBoard",NULL}; posix_spawn(&pid,"/usr/bin/killall",NULL,NULL,argv,environ); }
 @end
