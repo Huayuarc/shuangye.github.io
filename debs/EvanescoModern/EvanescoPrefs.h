@@ -27,7 +27,7 @@ static NSMutableDictionary *EVReadPrefs(void) {
     return d ? [d mutableCopy] : [NSMutableDictionary dictionary];
 }
 static id EVValue(NSString *key, id fallback) { id v = EVReadPrefs()[key]; return v ?: fallback; }
-static void EVSetValue(NSString *key, id value) {
+static __attribute__((unused)) void EVSetValue(NSString *key, id value) {
     NSString *path = EVPreferencesPath();
     [[NSFileManager defaultManager] createDirectoryAtPath:path.stringByDeletingLastPathComponent withIntermediateDirectories:YES attributes:nil error:nil];
     NSMutableDictionary *d = EVReadPrefs(); if (value) d[key] = value; else [d removeObjectForKey:key];
