@@ -1,0 +1,9 @@
+{
+    entry = {
+        bundle = VivoStylePrefs;
+        cell = PSLinkCell;
+        detail = VVSPrefsController;
+        isController = 1;
+        label = "VivoStyle 锁屏壁纸";
+    };
+}

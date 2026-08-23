@@ -1,0 +1,9 @@
+Package: com.vivostyle.tweak
+Name: VivoStyle 锁屏壁纸
+Version: 1.0.1
+Architecture: iphoneos-arm64
+Description: vivo OriginOS 风格陀螺仪翻转卡片锁屏壁纸，支持自选照片、视频壁纸、视差、平滑和多种过渡效果。
+Maintainer: huy
+Author: huy
+Section: Tweaks
+Depends: ellekit, preferenceloader, firmware (>= 15.0)

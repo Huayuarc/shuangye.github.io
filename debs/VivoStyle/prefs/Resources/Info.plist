@@ -1,0 +1,11 @@
+{
+    CFBundleDevelopmentRegion = "zh_CN";
+    CFBundleExecutable = VivoStylePrefs;
+    CFBundleIdentifier = "com.vivostyle.prefs.bundle";
+    CFBundleInfoDictionaryVersion = "6.0";
+    CFBundleName = "VivoStyle 锁屏壁纸";
+    CFBundlePackageType = BNDL;
+    CFBundleShortVersionString = "1.0.1";
+    CFBundleVersion = "1.0.1";
+    NSPrincipalClass = VVSPrefsController;
+}
