@@ -1,0 +1,13 @@
+#!/bin/sh
+# CPUthermal postinst
+# 安装/升级完成后重启 thermalmonitord 使 tweak 生效
+case "$1" in
+configure)
+killall -q thermalmonitord 2>/dev/null || true
+# 无 CCSupport 时由系统原生扫描 /Library/ControlCenter/Bundles；
+# 重启 SpringBoard 使新 Bundle/版本立即进入控制中心模块目录缓存。
+killall -q SpringBoard 2>/dev/null || true
+sleep 0.3
+;;
+esac
+exit 0
