@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CCSGetModuleSizeAtRuntime</key>
+	<true/>
+	<key>CCSModuleSize</key>
+	<dict>
+		<key>Landscape</key>
+		<dict>
+			<key>Height</key>
+			<integer>1</integer>
+			<key>Width</key>
+			<integer>2</integer>
+		</dict>
+		<key>Portrait</key>
+		<dict>
+			<key>Height</key>
+			<integer>1</integer>
+			<key>Width</key>
+			<integer>2</integer>
+		</dict>
+	</dict>
+	<key>CCSPreferencesRootListController</key>
+	<string>PictureModule4ListController</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>English</string>
+	<key>CFBundleDisplayName</key>
+	<string>图片视频模块（4）</string>
+	<key>CFBundleExecutable</key>
+	<string>PictureModule4</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.4nni3.picturemodule_4</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>PictureModule4</string>
+	<key>CFBundlePackageType</key>
+	<string>BNDL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.2.1</string>
+	<key>CFBundleSupportedPlatforms</key>
+	<array>
+		<string>iPhoneOS</string>
+	</array>
+	<key>CFBundleVersion</key>
+	<string>13</string>
+	<key>MinimumOSVersion</key>
+	<string>16.0</string>
+	<key>NSPrincipalClass</key>
+	<string>PictureModule4</string>
+	<key>UIDeviceFamily</key>
+	<array>
+		<integer>1</integer>
+		<integer>2</integer>
+	</array>
+</dict>
+</plist>
