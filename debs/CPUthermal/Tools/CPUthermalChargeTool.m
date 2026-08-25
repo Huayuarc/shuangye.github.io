@@ -12,7 +12,7 @@ static int gNotifyToken = 0;
 
 static io_service_t BatteryService(void) {
     io_service_t service = IOServiceGetMatchingService(kIOMasterPortDefault, IOServiceMatching("AppleSmartBattery"));
-    if (service == IO_OBJECT_NULL) service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("IOPMPowerSource"));
+    if (service == IO_OBJECT_NULL) service = IOServiceGetMatchingService(kIOMasterPortDefault, IOServiceMatching("IOPMPowerSource"));
     return service;
 }
 
