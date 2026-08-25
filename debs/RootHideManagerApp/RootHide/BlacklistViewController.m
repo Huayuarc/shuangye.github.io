@@ -428,7 +428,8 @@ BOOL isDefaultInstallationPath(NSString* path)
     [menu addAction:[UIAlertAction actionWithTitle:Localized(@"Shield Diagnostics") style:UIAlertActionStyleDefault handler:^(__unused UIAlertAction *x){
         NSArray *ids=RHIdentifiersForApp(app); NSMutableArray *lines=[NSMutableArray array]; NSDictionary *cfg=[AppDelegate getDefaultsForKey:@"appconfig"];
         for(NSString *identifier in ids) [lines addObject:[NSString stringWithFormat:@"%@\nRootHide: %@ · Choicy: %@",identifier,[cfg[identifier] boolValue]?@"ON":@"OFF",RHChoicyDisabledForApp(identifier)?@"ON":@"OFF"]];
-        NSString *andromedaOn = [[[NSDictionary dictionaryWithContentsOfFile:RHAndromedaPrefsPath()][@"PerApp"][app.bundleIdentifier] objectForKey:@"enabled"] boolValue];
+        NSDictionary *andromedaCfg = [NSDictionary dictionaryWithContentsOfFile:RHAndromedaPrefsPath()][@"PerApp"][app.bundleIdentifier];
+        BOOL andromedaOn = [andromedaCfg[@"enabled"] boolValue];
         NSString *summary=[NSString stringWithFormat:Localized(@"Mode: %@\nExtensions: %lu\nAndromeda: %@\n\n%@"),RHShieldMode(app.bundleIdentifier)==2?Localized(@"Strict Shield"):(RHShieldMode(app.bundleIdentifier)==1?Localized(@"Normal Shield"):@"OFF"),(unsigned long)(ids.count-1),andromedaOn?@"ON":@"OFF",[lines componentsJoinedByString:@"\n\n"]]; [AppDelegate showMessage:summary title:Localized(@"Shield Diagnostics")];
     }]];
     [menu addAction:[UIAlertAction actionWithTitle:Localized(@"Clear App Data") style:UIAlertActionStyleDestructive handler:^(__unused UIAlertAction *x){
