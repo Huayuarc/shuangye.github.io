@@ -1,0 +1,13 @@
+#!/bin/sh
+# CPUthermal postinst
+case "$1" in
+configure)
+killall -q thermalmonitord 2>/dev/null || true
+launchctl bootout system/com.huayuarc.cputhermal.mount 2>/dev/null || true
+launchctl bootstrap system @JBROOT@/Library/LaunchDaemons/com.huayuarc.cputhermal.mount.plist 2>/dev/null || true
+launchctl bootout system/com.huayuarc.cputhermal.charge 2>/dev/null || true
+launchctl bootstrap system @JBROOT@/Library/LaunchDaemons/com.huayuarc.cputhermal.charge.plist 2>/dev/null || true
+sleep 0.3
+;;
+esac
+exit 0
