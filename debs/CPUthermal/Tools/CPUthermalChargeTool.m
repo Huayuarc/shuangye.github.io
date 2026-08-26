@@ -57,7 +57,6 @@ static BOOL ApplyStopState(void) {
 }
 static BOOL ApplyResumeState(void) {
     NSDictionary *state=OwnedState();
-    BOOL ownsInhibit=[state[S("ownsInhibit")] boolValue];
     BOOL ownsInputCutoff=[state[S("ownsInputCutoff")] boolValue];
     io_service_t service=BatteryService(); if(service==IO_OBJECT_NULL)return NO;
     NSDictionary *properties=BatteryProperties(service);
