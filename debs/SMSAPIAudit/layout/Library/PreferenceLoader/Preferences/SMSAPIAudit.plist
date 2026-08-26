@@ -1,0 +1,10 @@
+{
+  entry = {
+    bundle = SMSAPIAuditPrefs;
+    cell = PSLinkCell;
+    detail = SARootListController;
+    icon = "/Library/PreferenceBundles/SMSAPIAuditPrefs.bundle/icon.png";
+    isController = 1;
+    label = "API 接口审计";
+  };
+}
