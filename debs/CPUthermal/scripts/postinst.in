@@ -1,0 +1,17 @@
+#!/bin/sh
+# CPUthermal postinst
+case "$1" in
+configure)
+killall -q thermalmonitord 2>/dev/null || true
+launchctl bootout system/com.huayuarc.cputhermal.mount 2>/dev/null || true
+launchctl bootstrap system @JBROOT@/Library/LaunchDaemons/com.huayuarc.cputhermal.mount.plist 2>/dev/null || true
+launchctl bootout system/com.huayuarc.cputhermal.charge 2>/dev/null || true
+@JBROOT@/usr/local/bin/CPUthermalChargeTool reset 2>/dev/null || true
+# 旧版曾改写外接/充电状态；重启 powerd 让系统重新读取硬件并完成充电握手。
+killall -q powerd 2>/dev/null || true
+sleep 0.5
+launchctl bootstrap system @JBROOT@/Library/LaunchDaemons/com.huayuarc.cputhermal.charge.plist 2>/dev/null || true
+sleep 0.3
+;;
+esac
+exit 0
