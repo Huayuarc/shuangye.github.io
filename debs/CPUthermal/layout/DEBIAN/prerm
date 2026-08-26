@@ -1,9 +1,0 @@
-#!/bin/sh
-case "$1" in
-remove|deconfigure)
-/usr/local/bin/CPUthermalChargeTool reset 2>/dev/null || true
-launchctl bootout system/com.huayuarc.cputhermal.charge 2>/dev/null || true
-launchctl bootout system/com.huayuarc.cputhermal.mount 2>/dev/null || true
-;;
-esac
-exit 0
