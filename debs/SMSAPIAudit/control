@@ -1,0 +1,9 @@
+Package: com.huayuarc.smsapiaudit
+Name: API 接口审计
+Version: 1.0.0
+Architecture: iphoneos-arm
+Description: 设置中的 API 数据浏览、搜索、风险扫描与本地请求预览工具。
+Maintainer: Huayuarc
+Author: Huayuarc
+Section: Tweaks
+Depends: firmware (>= 15.0), preferenceloader
