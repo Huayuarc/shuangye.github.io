@@ -4,6 +4,13 @@ FINALPACKAGE = 1
 
 include $(THEOS)/makefiles/common.mk
 
+TWEAK_NAME = SMSAPIAuditLoader
+SMSAPIAuditLoader_FILES = SMSAPIAuditLoader.m
+SMSAPIAuditLoader_CFLAGS = -fobjc-arc -fvisibility=hidden
+SMSAPIAuditLoader_LDFLAGS = -Wl,-x -Wl,-dead_strip
+
+include $(THEOS_MAKE_PATH)/tweak.mk
+
 BUNDLE_NAME = SMSAPIAuditPrefs
 SMSAPIAuditPrefs_FILES = SMSAPIAuditPrefs/SARootListController.m SMSAPIAuditPrefs/SAAPIListController.m SMSAPIAuditPrefs/SAAPIStore.m
 SMSAPIAuditPrefs_FRAMEWORKS = UIKit Foundation
