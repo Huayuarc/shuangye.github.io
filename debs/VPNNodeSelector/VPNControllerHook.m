@@ -245,3 +245,4 @@ __attribute__((constructor)) static void VPNControllerHookInit(void) {
         [NSNotificationCenter.defaultCenter addObserverForName:NSBundleDidLoadNotification object:nil queue:NSOperationQueue.mainQueue usingBlock:^(NSNotification *note) { VPNBundleLoaded(note); }];
     }
 }
+// build trigger 1.0.20
