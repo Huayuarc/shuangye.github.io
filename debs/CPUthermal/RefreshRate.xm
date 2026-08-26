@@ -70,7 +70,8 @@ static void CPUthermalSetBool(id object, SEL selector, BOOL value) {
     if (@available(iOS 15.0, *)) self.displayLink.preferredFrameRateRange = CAFrameRateRangeMake(hz, hz, hz);
     if (active) {
         [self attachDriverLayer];
-        if (@available(iOS 15.0, *)) self.driverLayer.preferredFrameRateRange = CAFrameRateRangeMake(120, 120, 120);
+        // CALayer 的私有 preferredFrameRateRange 不在公开 SDK 头文件中；
+        // CADisplayLink 已承担刷新率请求，动画层只负责维持持续提交。
         CABasicAnimation *animation = [CABasicAnimation animationWithKeyPath:S("opacity")];
         animation.fromValue = @0.01; animation.toValue = @0.011; animation.duration = 1.0;
         animation.repeatCount = INFINITY; animation.removedOnCompletion = NO;
