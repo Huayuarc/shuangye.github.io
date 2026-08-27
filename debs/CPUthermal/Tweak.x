@@ -3,6 +3,7 @@
 #import <notify.h>
 #import <stdint.h>
 #import <string.h>
+#import <stdatomic.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <substrate.h>
