@@ -1,0 +1,14 @@
+#!/bin/sh
+# CPUthermal postinst
+case "$1" in
+configure)
+killall -q thermalmonitord 2>/dev/null || true
+# 重新登记自动挂载任务；不同打包方案会把下列路径转换到对应越狱根。
+launchctl bootout system/com.huayuarc.cputhermal.mount 2>/dev/null || true
+launchctl bootstrap system /Library/LaunchDaemons/com.huayuarc.cputhermal.mount.plist 2>/dev/null || true
+launchctl bootout system/com.huayuarc.cputhermal.charge 2>/dev/null || true
+launchctl bootstrap system /Library/LaunchDaemons/com.huayuarc.cputhermal.charge.plist 2>/dev/null || true
+sleep 0.3
+;;
+esac
+exit 0
