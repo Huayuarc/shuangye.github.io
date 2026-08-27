@@ -6,7 +6,7 @@
 #import <stdatomic.h>
 #import <os/lock.h>
 #import <CPUthermalPaths.h>
-extern kern_return_t IORegistryEntryGetRegistryEntryID(io_registry_entry_t entry, uint64_t *entryID);
+extern "C" kern_return_t IORegistryEntryGetRegistryEntryID(io_registry_entry_t entry, uint64_t *entryID);
 
 // 强制满血快充 + 屏蔽电池充电温度检测（仅注入 powerd）。
 // 目的：温度无关地持续恢复充电，绝不触碰 CPU/GPU 功耗，因此不会带来降频/降功耗。
