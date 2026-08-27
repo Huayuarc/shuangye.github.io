@@ -1,9 +1,0 @@
-Package: com.huayuarc.cputhermal
-Name: 指定应用低功耗
-Author: Huayuarc
-Description: 仅保留指定应用前台自动低功耗功能，支持应用搜索、启用置顶、Rootless 与 RootHide 配置同步。
-Depends: firmware (>= 15.0), mobilesubstrate, preferenceloader
-Maintainer: Huayuarc
-Section: Tweaks
-Architecture: iphoneos-arm
-Version: 1.0.0
