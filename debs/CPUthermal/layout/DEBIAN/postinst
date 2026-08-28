@@ -1,0 +1,12 @@
+#!/bin/sh
+# CPUthermal postinst
+# 精简安装脚本：只重启 thermalmonitord，让新注入的温控核心尽快生效。
+# 刻意不在安装时执行 launchctl bootout/bootstrap 或 killall powerd——
+# 这些会卸载正在运行的守护/重启充电握手，在 iOS15/A10 上可触发瞬时黑屏或需双击电源键唤醒。
+# mount 后台 LaunchDaemon 由 KeepAlive 自愈，无需在 postinst 干预。
+case "$1" in
+configure)
+killall -q thermalmonitord 2>/dev/null || true
+;;
+esac
+exit 0
