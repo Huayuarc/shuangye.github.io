@@ -9,6 +9,7 @@
 #import <substrate.h>
 #include <signal.h>
 #include <unistd.h>
+#include <spawn.h>
 #include <CPUthermalPaths.h>
 #import <CPUthermalPressure.h>
 #import <IOKit/IOKitLib.h>
