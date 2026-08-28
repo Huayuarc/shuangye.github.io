@@ -12,7 +12,6 @@ static int gRefreshToken=0;
 static BOOL CPUthermalAppHighAllowed(void){return atomic_load(&gAppForce120)&&!atomic_load(&gAppCaptured);}
 static CAFrameRateRange CPUthermalAppRange(void){return atomic_load(&gAppEnhanced)?CAFrameRateRangeMake(120,120,120):CAFrameRateRangeMake(10,120,120);}
 static void CPUthermalLoadAppState(void){BOOL force=NO,global=NO,enhanced=NO;CPUthermalReadRefreshRateState(&force,&global,&enhanced);atomic_store(&gAppForce120,force&&global);atomic_store(&gAppEnhanced,enhanced);}
-static void CPUthermalAppChanged(CFNotificationCenterRef c,void*o,CFStringRef n,const void*x,CFDictionaryRef u){CPUthermalLoadAppState();}
 
 %group CPUthermalThirdPartyRefreshHooks
 %hook UIScreen
