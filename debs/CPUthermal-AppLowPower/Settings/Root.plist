@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>title</key><string>指定应用低功耗</string>
+    <key>items</key>
+    <array>
+        <dict>
+            <key>cell</key><string>PSGroupCell</string>
+            <key>label</key><string>自动低功耗</string>
+            <key>footerText</key><string>选中应用进入前台时自动施加 2500mW、45% CPU 上限与 Level 2；退出后恢复系统原生功耗策略。</string>
+        </dict>
+        <dict>
+            <key>cell</key><string>PSLinkCell</string>
+            <key>label</key><string>选择应用</string>
+            <key>detail</key><string>CPUthermalAppListController</string>
+        </dict>
+    </array>
+</dict>
+</plist>
