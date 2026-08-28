@@ -143,7 +143,7 @@ static void RefreshMitigationState(void) {
     if (!isThermalOrPower) return;
 
     // 写边界：IORegistryEntrySetCFProperty（硬件属性写入）兜底拦截。
-    void *ioKitHandle = dlopen(S("/System/Library/Frameworks/IOKit.framework/IOKit"), RTLD_NOW);
+    void *ioKitHandle = dlopen("/System/Library/Frameworks/IOKit.framework/IOKit", RTLD_NOW);
     if (ioKitHandle) {
         void *funcPtr = dlsym(ioKitHandle, "IORegistryEntrySetCFProperty");
         if (funcPtr) {
@@ -175,10 +175,12 @@ static void RefreshMitigationState(void) {
         NSInteger mode = RealTimeMitigationMode();
         if (mode == 0) return;
         id cls = (id)objc_getClass("MitigationController");
-        if (cls) {
-            id controller = [cls sharedInstance];
-            if (controller && [controller respondsToSelector:@selector(updateCPU)]) {
-                [controller updateCPU];
+        SEL sharedSel = sel_registerName("sharedInstance");
+        SEL updateSel = sel_registerName("updateCPU");
+        if (cls && [cls respondsToSelector:sharedSel]) {
+            id controller = ((id (*)(id, SEL))objc_msgSend)(cls, sharedSel);
+            if (controller && [controller respondsToSelector:updateSel]) {
+                ((void (*)(id, SEL))objc_msgSend)(controller, updateSel);
             }
         }
     });
