@@ -1,0 +1,14 @@
+#!/bin/sh
+# CPUthermal postinst：不重启 powerd，不重复 bootout，避免安装黑屏。
+case "$1" in
+configure)
+killall -q thermalmonitord 2>/dev/null || true
+# 升级时 kickstart 让正在运行的旧 ChargeTool 换成新二进制；首次安装才 bootstrap。
+if launchctl print system/com.huayuarc.cputhermal.charge >/dev/null 2>&1; then
+    launchctl kickstart -k system/com.huayuarc.cputhermal.charge >/dev/null 2>&1 || true
+else
+    launchctl bootstrap system @JBROOT@/Library/LaunchDaemons/com.huayuarc.cputhermal.charge.plist >/dev/null 2>&1 || true
+fi
+;;
+esac
+exit 0
