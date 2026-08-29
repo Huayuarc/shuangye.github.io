@@ -30,11 +30,13 @@ static int gSmartCutoffToken = 0;
 static dispatch_queue_t gWorkerQueue;
 static dispatch_source_t gKeepAliveTimer;
 static unsigned int gKeepAliveTicks = 0;
+static kern_return_t (*GetRegistryEntryID)(io_registry_entry_t, uint64_t *) = NULL;
 static kern_return_t (*origCreateProperties)(io_registry_entry_t, CFMutableDictionaryRef *, CFAllocatorRef, IOOptionBits) = NULL;
 
 static uint64_t RegistryID(io_registry_entry_t entry) {
     uint64_t value = 0;
-    if (entry != IO_OBJECT_NULL) IORegistryEntryGetRegistryEntryID(entry, &value);
+    if (entry != IO_OBJECT_NULL && GetRegistryEntryID)
+        GetRegistryEntryID(entry, &value);
     return value;
 }
 
@@ -454,17 +456,18 @@ static void HookIOKitSymbol(void *image, const char *name, void *replacement, vo
 %ctor {
     @autoreleasepool {
         gWorkerQueue = dispatch_queue_create("com.huayuarc.cputhermal.batterytemp", DISPATCH_QUEUE_SERIAL);
-        ReloadPreferences();
-        RefreshBatteryServiceIDs();
 
         void *iokit = dlopen("/System/Library/Frameworks/IOKit.framework/IOKit", RTLD_NOW | RTLD_GLOBAL);
         if (iokit) {
+            GetRegistryEntryID = (kern_return_t (*)(io_registry_entry_t, uint64_t *))
+                dlsym(iokit, "IORegistryEntryGetRegistryEntryID");
             HookIOKitSymbol(iokit, "IORegistryEntryCreateCFProperties", (void *)HookCreateProperties, (void **)&origCreateProperties);
             HookIOKitSymbol(iokit, "IORegistryEntryCreateCFProperty", (void *)HookCreateProperty, (void **)&origCreateProperty);
             HookIOKitSymbol(iokit, "IORegistryEntrySearchCFProperty", (void *)HookSearchProperty, (void **)&origSearchProperty);
             HookIOKitSymbol(iokit, "IORegistryEntrySetCFProperty", (void *)HookSetProperty, (void **)&origSetProperty);
             HookIOKitSymbol(iokit, "IORegistryEntrySetCFProperties", (void *)HookSetProperties, (void **)&origSetProperties);
         }
+        ReloadPreferences();
 
         notify_register_dispatch(kCPUthermalSettingsChangedNotifC, &gSettingsToken, gWorkerQueue, ^(int token) {
             (void)token;
