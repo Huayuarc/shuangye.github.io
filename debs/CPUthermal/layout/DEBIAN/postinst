@@ -1,0 +1,8 @@
+#!/bin/sh
+# CPUthermal postinst：避免安装阶段重启 powerd 或重复 bootout/bootstrap 导致黑屏。
+case "$1" in
+configure)
+killall -q thermalmonitord 2>/dev/null || true
+;;
+esac
+exit 0
