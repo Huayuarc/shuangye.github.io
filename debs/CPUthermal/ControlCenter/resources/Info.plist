@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleShortVersionString</key>
+	<string>1.6.4.75</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.huayuarc.cputhermal.ccmodule</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleVersion</key>
+	<string>1060475</string>
+	<key>CFBundleExecutable</key>
+	<string>CPUthermalCC</string>
+	<key>CFBundleDisplayName</key>
+	<string>CPUthermal</string>
+	<key>MinimumOSVersion</key>
+	<string>11.0</string>
+	<key>CFBundleSupportedPlatforms</key>
+	<array>
+		<string>iPhoneOS</string>
+	</array>
+	<key>NSPrincipalClass</key>
+	<string>CPUthermalCCModule</string>
+	<key>CFBundlePackageType</key>
+	<string>BNDL</string>
+	<key>UIDeviceFamily</key>
+	<array>
+		<integer>1</integer>
+		<integer>2</integer>
+	</array>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>English</string>
+	<key>CCSModuleSize</key>
+	<dict>
+		<key>Landscape</key>
+		<dict>
+			<key>Height</key><integer>1</integer>
+			<key>Width</key><integer>1</integer>
+		</dict>
+		<key>Portrait</key>
+		<dict>
+			<key>Height</key><integer>1</integer>
+			<key>Width</key><integer>1</integer>
+		</dict>
+	</dict>
+	<key>CFBundleName</key>
+	<string>CPUthermalCC</string>
+</dict>
+</plist>
