@@ -874,7 +874,6 @@ if (restoring) g_restoringFullPower = previousRestoring;
 
 // 解除温控使用事件驱动 hook，不创建周期保活定时器。
 
-static BOOL g_maxBacklightBrightnessCaptured = NO;
 static NSNumber *g_maxBacklightBrightnessValue = nil;
 
 static BOOL keyIsBacklightThermalLimit(NSString *key) {
