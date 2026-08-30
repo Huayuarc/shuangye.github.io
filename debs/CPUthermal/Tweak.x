@@ -1199,7 +1199,7 @@ return KERN_SUCCESS;
 NSString *keyString = (__bridge NSString *)key;
 if (thermalDimmingPreventionEnabled() && keyIsBacklightThermalLimit(keyString)) {
     id replacement = nil;
-    if ([value isKindOfClass:[NSNumber class]] || CFGetTypeID(value) == CFNumberGetTypeID()) {
+    if (CFGetTypeID(value) == CFNumberGetTypeID() || CFGetTypeID(value) == CFStringGetTypeID()) {
         replacement = maximumBacklightReplacementForKey();
     }
     return replacement ? orig_IOServiceSetProperty(service, key, (__bridge CFTypeRef)replacement) : orig_IOServiceSetProperty(service, key, value);
@@ -1217,7 +1217,7 @@ if (isNetworkThrottleProperty(key)) return KERN_SUCCESS;
 NSString *keyString = (__bridge NSString *)key;
 if (thermalDimmingPreventionEnabled() && keyIsBacklightThermalLimit(keyString)) {
     id replacement = nil;
-    if ([value isKindOfClass:[NSNumber class]] || CFGetTypeID(value) == CFNumberGetTypeID()) {
+    if (CFGetTypeID(value) == CFNumberGetTypeID() || CFGetTypeID(value) == CFStringGetTypeID()) {
         replacement = maximumBacklightReplacementForKey();
     }
     return replacement ? %orig(entry, key, (__bridge CFTypeRef)replacement) : %orig(entry, key, value);
