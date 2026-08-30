@@ -5,6 +5,7 @@
 #import <string.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
+#import <substrate.h>
 #include <signal.h>
 #include <unistd.h>
 #include <CPUthermalPaths.h>
