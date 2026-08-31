@@ -1,0 +1,18 @@
+#import <Foundation/Foundation.h>
+#import <notify.h>
+#import <sys/stat.h>
+#import <unistd.h>
+#import <CPUthermalPaths.h>
+static NSString *RequestDirectory(void){return [[[CPUthermalCurrentPrefPath() stringByDeletingLastPathComponent] stringByAppendingPathComponent:S("CPUthermalMountRequests")] copy];}
+int main(int argc,char *argv[]){@autoreleasepool{
+ if(argc<2)return 64; NSString *cmd=S(argv[1]); NSString *path=argc>2?S(argv[2]):nil;
+ NSString *dir=RequestDirectory(); NSFileManager *fm=[NSFileManager defaultManager]; NSError *error=nil;
+ if(![fm createDirectoryAtPath:dir withIntermediateDirectories:YES attributes:@{NSFilePosixPermissions:@0777} error:&error])return 120; chmod(dir.fileSystemRepresentation,0777);
+ NSString *identifier=NSUUID.UUID.UUIDString; NSString *request=[dir stringByAppendingPathComponent:[identifier stringByAppendingString:S(".request.plist")]];
+ NSString *response=[dir stringByAppendingPathComponent:[identifier stringByAppendingString:S(".response.plist")]];
+ NSMutableDictionary *body=[@{S("command"):cmd} mutableCopy]; if(path)body[S("path")]=path;
+ if(![body writeToFile:request atomically:YES])return 121; chmod(request.fileSystemRepresentation,0666); notify_post("com.huayuarc.cputhermal/mountRequest");
+ for(int i=0;i<2400;i++){ NSDictionary *result=[NSDictionary dictionaryWithContentsOfFile:response]; if(result){int code=[result[S("result")] intValue];NSString *storage=[result[S("storagePath")] isKindOfClass:[NSString class]]?result[S("storagePath")]:nil;if([cmd isEqualToString:S("storage-path")]&&code==0&&storage.length)printf("%s\n",storage.UTF8String);[fm removeItemAtPath:response error:nil];return code;} if((i%20)==19)notify_post("com.huayuarc.cputhermal/mountRequest"); usleep(50000); }
+ // 超时后保留 request：守护若仍在复制，完成后仍可落盘并供下一次状态刷新识别。
+ return 124;
+}}
