@@ -1,0 +1,86 @@
+=== Build Info ===
+Timestamp: Wed Sep  2 16:52:06 UTC 2026
+THEOS: /Users/runner/theos
+SDK: total 0
+drwxr-xr-x   4 runner  staff  128 Sep  2 16:52 .
+drwxr-xr-x  22 runner  staff  704 Sep  2 16:51 ..
+-rw-r--r--   1 runner  staff    0 Sep  2 16:51 .keep
+drwxr-xr-x   8 runner  staff  256 Nov 23  2023 iPhoneOS16.5.sdk
+
+=== Project: SneakyCam ===
+Exit code: 2
+[0;36m==> [1;36mNotice:[m Build may be slow as Theos isn’t using all available CPU cores on this computer. Consider upgrading GNU Make: https://theos.dev/docs/parallel-building
+[1;31m> [1;3;39mMaking all for tweak SneakyCamCore…[m
+[0;31m==> [1;39mPreprocessing Tweak.xm…[m
+[0;32m==> [1;39mCompiling Tweak.xm (arm64)…[m
+[0;32m==> [1;39mCompiling SCCaptureManager.m (arm64)…[m
+[0;32m==> [1;39mCompiling SCPaths.m (arm64)…[m
+[0;33m==> [1;39mLinking tweak SneakyCamCore (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for SneakyCamCore…[m
+[0;34m==> [1;39mStripping SneakyCamCore (arm64)…[m
+[0;31m==> [1;39mPreprocessing Tweak.xm…[m
+[0;32m==> [1;39mCompiling Tweak.xm (arm64e)…[m
+[0;32m==> [1;39mCompiling SCCaptureManager.m (arm64e)…[m
+[0;32m==> [1;39mCompiling SCPaths.m (arm64e)…[m
+[0;33m==> [1;39mLinking tweak SneakyCamCore (arm64e)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for SneakyCamCore…[m
+[0;34m==> [1;39mStripping SneakyCamCore (arm64e)…[m
+[0;34m==> [1;39mMerging tweak SneakyCamCore…[m
+[0;34m==> [1;39mSigning SneakyCamCore…[m
+[1;31m> [1;3;39mMaking all for tweak SneakySupport…[m
+[0;31m==> [1;39mPreprocessing Support.xm…[m
+[0;32m==> [1;39mCompiling Support.xm (arm64)…[m
+[0;32m==> [1;39mCompiling SCPaths.m (arm64)…[m
+[0;33m==> [1;39mLinking tweak SneakySupport (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for SneakySupport…[m
+[0;34m==> [1;39mStripping SneakySupport (arm64)…[m
+[0;31m==> [1;39mPreprocessing Support.xm…[m
+[0;32m==> [1;39mCompiling Support.xm (arm64e)…[m
+[0;32m==> [1;39mCompiling SCPaths.m (arm64e)…[m
+[0;33m==> [1;39mLinking tweak SneakySupport (arm64e)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for SneakySupport…[m
+[0;34m==> [1;39mStripping SneakySupport (arm64e)…[m
+[0;34m==> [1;39mMerging tweak SneakySupport…[m
+[0;34m==> [1;39mSigning SneakySupport…[m
+[1;31m> [1;3;39mMaking all for tweak SneakyCamCCRegistration…[m
+[0;31m==> [1;39mPreprocessing CCRegistration.xm…[m
+[0;32m==> [1;39mCompiling CCRegistration.xm (arm64)…[m
+[0;32m==> [1;39mCompiling SCPaths.m (arm64)…[m
+[0;33m==> [1;39mLinking tweak SneakyCamCCRegistration (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for SneakyCamCCRegistration…[m
+[0;34m==> [1;39mStripping SneakyCamCCRegistration (arm64)…[m
+[0;31m==> [1;39mPreprocessing CCRegistration.xm…[m
+[0;32m==> [1;39mCompiling CCRegistration.xm (arm64e)…[m
+[0;32m==> [1;39mCompiling SCPaths.m (arm64e)…[m
+[0;33m==> [1;39mLinking tweak SneakyCamCCRegistration (arm64e)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for SneakyCamCCRegistration…[m
+[0;34m==> [1;39mStripping SneakyCamCCRegistration (arm64e)…[m
+[0;34m==> [1;39mMerging tweak SneakyCamCCRegistration…[m
+[0;34m==> [1;39mSigning SneakyCamCCRegistration…[m
+[1;31m> [1;3;39mMaking all for tweak SneakyCamDualCam…[m
+[0;31m==> [1;39mPreprocessing DualCam.xm…[m
+[0;32m==> [1;39mCompiling DualCam.xm (arm64)…[m
+While building module 'Photos' imported from DualCam.xm:5:
+In file included from <module-includes>:1:
+In file included from /Users/runner/theos/sdks/iPhoneOS16.5.sdk/System/Library/Frameworks/Photos.framework/Headers/Photos.h:35:
+[1m/Users/runner/theos/sdks/iPhoneOS16.5.sdk/System/Library/Frameworks/Photos.framework/Headers/PHImageManager.h:18:2: [0m[0;1;31merror: [0m[1m"Photos requires C++11 or later"[0m
+#error "Photos requires C++11 or later"
+[0;1;32m ^
+[0m[1m/Users/runner/theos/sdks/iPhoneOS16.5.sdk/System/Library/Frameworks/Photos.framework/Headers/PHImageManager.h:21:47: [0m[0;1;31merror: [0m[1mexpected identifier or '{'[0m
+typedef NS_ENUM(NSInteger, UIImageOrientation);
+[0;1;32m                                              ^
+[0m[1mDualCam.xm:5:9: [0m[0;1;31mfatal error: [0m[1mcould not build module 'Photos'[0m
+#import <Photos/Photos.h>
+[0;1;32m ~~~~~~~^
+[0m3 errors generated.
+make[3]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/SneakyCam/.theos/obj/arm64/DualCam.xm.68cbd443.o] Error 1
+rm /Users/runner/work/shuangye.github.io/shuangye.github.io/debs/SneakyCam/.theos/obj/arm64/DualCam.xm.mm
+make[2]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/SneakyCam/.theos/obj/arm64/SneakyCamDualCam.dylib] Error 2
+make[1]: *** [internal-library-all_] Error 2
+make: *** [SneakyCamDualCam.all.tweak.variables] Error 2
