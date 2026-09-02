@@ -1,8 +1,0 @@
-#!/bin/sh
-# AppLowPower postinst
-case "$1" in
-configure)
-killall -q thermalmonitord 2>/dev/null || true
-;;
-esac
-exit 0
