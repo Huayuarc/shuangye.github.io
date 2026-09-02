@@ -1,0 +1,10 @@
+Package: com.huayuarc.applowpower
+Name: 指定应用低功耗
+Author: Huayuarc
+Description: 在设置中选择应用，进入所选应用自动启用低功耗调度，退出后台恢复系统原生温控调度。注入 SpringBoard 识别前台应用，并在 thermalmonitord 内限制 CPU 功率预算。
+Depends: firmware (>= 15.0), mobilesubstrate, preferenceloader
+Maintainer: Huayuarc
+Section: Tweaks
+Icon: https://huayuarc.github.io/icon/cputhermal.png
+Architecture: iphoneos-arm
+Version: 1.0.0
