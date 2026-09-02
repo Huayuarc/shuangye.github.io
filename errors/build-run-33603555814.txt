@@ -1,0 +1,138 @@
+=== Build Info ===
+Timestamp: Wed Sep  2 07:26:41 UTC 2026
+THEOS: /Users/runner/theos
+SDK: total 0
+drwxr-xr-x   4 runner  staff  128 Sep  2 07:26 .
+drwxr-xr-x  22 runner  staff  704 Sep  2 07:26 ..
+-rw-r--r--   1 runner  staff    0 Sep  2 07:26 .keep
+drwxr-xr-x   8 runner  staff  256 Nov 23  2023 iPhoneOS16.5.sdk
+
+=== Project: CPUthermal ===
+Exit code: 2
+[0;36m==> [1;36mNotice:[m Build may be slow as Theos isn’t using all available CPU cores on this computer. Consider upgrading GNU Make: https://theos.dev/docs/parallel-building
+[1;31m> [1;3;39mMaking all for tweak CPUthermal…[m
+[0;31m==> [1;39mPreprocessing Tweak.x…[m
+[0;32m==> [1;39mCompiling Tweak.x (arm64)…[m
+[0;33m==> [1;39mLinking tweak CPUthermal (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermal…[m
+[0;34m==> [1;39mStripping CPUthermal (arm64)…[m
+[0;31m==> [1;39mPreprocessing Tweak.x…[m
+[0;32m==> [1;39mCompiling Tweak.x (arm64e)…[m
+[0;33m==> [1;39mLinking tweak CPUthermal (arm64e)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermal…[m
+[0;34m==> [1;39mStripping CPUthermal (arm64e)…[m
+[0;34m==> [1;39mMerging tweak CPUthermal…[m
+[0;34m==> [1;39mSigning CPUthermal…[m
+[1;31m> [1;3;39mMaking all for tweak CPUthermalPrefHook…[m
+[0;31m==> [1;39mPreprocessing Tweak_PrefHook.xm…[m
+[0;32m==> [1;39mCompiling Tweak_PrefHook.xm (arm64)…[m
+[0;33m==> [1;39mLinking tweak CPUthermalPrefHook (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalPrefHook…[m
+[0;34m==> [1;39mStripping CPUthermalPrefHook (arm64)…[m
+[0;31m==> [1;39mPreprocessing Tweak_PrefHook.xm…[m
+[0;32m==> [1;39mCompiling Tweak_PrefHook.xm (arm64e)…[m
+[0;33m==> [1;39mLinking tweak CPUthermalPrefHook (arm64e)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalPrefHook…[m
+[0;34m==> [1;39mStripping CPUthermalPrefHook (arm64e)…[m
+[0;34m==> [1;39mMerging tweak CPUthermalPrefHook…[m
+[0;34m==> [1;39mSigning CPUthermalPrefHook…[m
+[1;31m> [1;3;39mMaking all for tweak CPUthermalFaceDownLock…[m
+[0;31m==> [1;39mPreprocessing FaceDownLock.xm…[m
+[0;32m==> [1;39mCompiling FaceDownLock.xm (arm64)…[m
+[0;33m==> [1;39mLinking tweak CPUthermalFaceDownLock (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalFaceDownLock…[m
+[0;34m==> [1;39mStripping CPUthermalFaceDownLock (arm64)…[m
+[0;31m==> [1;39mPreprocessing FaceDownLock.xm…[m
+[0;32m==> [1;39mCompiling FaceDownLock.xm (arm64e)…[m
+[0;33m==> [1;39mLinking tweak CPUthermalFaceDownLock (arm64e)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalFaceDownLock…[m
+[0;34m==> [1;39mStripping CPUthermalFaceDownLock (arm64e)…[m
+[0;34m==> [1;39mMerging tweak CPUthermalFaceDownLock…[m
+[0;34m==> [1;39mSigning CPUthermalFaceDownLock…[m
+[1;31m> [1;3;39mMaking all for bundle CPUthermalSettings…[m
+[0;32m==> [1;39mCompiling Settings/FRootListController.m (arm64)…[m
+[0;32m==> [1;39mCompiling Settings/CPUthermalMountListController.m (arm64)…[m
+[0;33m==> [1;39mLinking bundle CPUthermalSettings (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalSettings…[m
+[0;34m==> [1;39mStripping CPUthermalSettings (arm64)…[m
+[0;32m==> [1;39mCompiling Settings/FRootListController.m (arm64e)…[m
+[0;32m==> [1;39mCompiling Settings/CPUthermalMountListController.m (arm64e)…[m
+[0;33m==> [1;39mLinking bundle CPUthermalSettings (arm64e)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalSettings…[m
+[0;34m==> [1;39mStripping CPUthermalSettings (arm64e)…[m
+[0;34m==> [1;39mMerging bundle CPUthermalSettings…[m
+[0;34m==> [1;39mSigning CPUthermalSettings…[m
+[1;31m> [1;3;39mMaking all for bundle CPUthermalCC…[m
+[0;32m==> [1;39mCompiling ControlCenter/CPUthermalCCModule.m (arm64)…[m
+[0;32m==> [1;39mCompiling ControlCenter/CPUthermalCCModuleViewController.m (arm64)…[m
+[0;33m==> [1;39mLinking bundle CPUthermalCC (arm64)…[m
+ld: warning: double slash removed from -dylib_install_name (/var/jb/Library/ControlCenter/Bundles//CPUthermalCC.bundle/CPUthermalCC)
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalCC…[m
+[0;34m==> [1;39mStripping CPUthermalCC (arm64)…[m
+[0;32m==> [1;39mCompiling ControlCenter/CPUthermalCCModule.m (arm64e)…[m
+[0;32m==> [1;39mCompiling ControlCenter/CPUthermalCCModuleViewController.m (arm64e)…[m
+[0;33m==> [1;39mLinking bundle CPUthermalCC (arm64e)…[m
+ld: warning: double slash removed from -dylib_install_name (/var/jb/Library/ControlCenter/Bundles//CPUthermalCC.bundle/CPUthermalCC)
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalCC…[m
+[0;34m==> [1;39mStripping CPUthermalCC (arm64e)…[m
+[0;34m==> [1;39mMerging bundle CPUthermalCC…[m
+[0;34m==> [1;39mSigning CPUthermalCC…[m
+[1;31m> [1;3;39mMaking all for tool CPUthermalTool…[m
+[0;32m==> [1;39mCompiling Tools/CPUthermalTool.m (arm64)…[m
+[1mTools/CPUthermalTool.m:42:36: [0m[0;1;31merror: [0m[1m'SCPreferencesCreate' is unavailable: not available on iOS[0m
+    SCPreferencesRef preferences = SCPreferencesCreate(kCFAllocatorDefault, CFSTR("CPUthermal"), CFSTR("OSThermalStatus.plist"));
+[0;1;32m                                   ^
+[0m[1m/Users/runner/theos/sdks/iPhoneOS16.5.sdk/System/Library/Frameworks/SystemConfiguration.framework/Headers/SCPreferences.h:164:1: [0m[0;1;30mnote: [0m'SCPreferencesCreate' has been explicitly marked unavailable here[0m
+SCPreferencesCreate                     (
+[0;1;32m^
+[0m[1mTools/CPUthermalTool.m:44:16: [0m[0;1;31merror: [0m[1m'SCPreferencesSetValue' is unavailable: not available on iOS[0m
+    if (value) SCPreferencesSetValue(preferences, (__bridge CFStringRef)key, (__bridge CFPropertyListRef)value);
+[0;1;32m               ^
+[0m[1m/Users/runner/theos/sdks/iPhoneOS16.5.sdk/System/Library/Frameworks/SystemConfiguration.framework/Headers/SCPreferences.h:353:1: [0m[0;1;30mnote: [0m'SCPreferencesSetValue' has been explicitly marked unavailable here[0m
+SCPreferencesSetValue                   (
+[0;1;32m^
+[0m[1mTools/CPUthermalTool.m:45:10: [0m[0;1;31merror: [0m[1m'SCPreferencesRemoveValue' is unavailable: not available on iOS[0m
+    else SCPreferencesRemoveValue(preferences, (__bridge CFStringRef)key);
+[0;1;32m         ^
+[0m[1m/Users/runner/theos/sdks/iPhoneOS16.5.sdk/System/Library/Frameworks/SystemConfiguration.framework/Headers/SCPreferences.h:372:1: [0m[0;1;30mnote: [0m'SCPreferencesRemoveValue' has been explicitly marked unavailable here[0m
+SCPreferencesRemoveValue                (
+[0;1;32m^
+[0m[1mTools/CPUthermalTool.m:47:20: [0m[0;1;31merror: [0m[1m'SCPreferencesSetValue' is unavailable: not available on iOS[0m
+        if (value) SCPreferencesSetValue(preferences, (__bridge CFStringRef)persistentKey, persist ? kCFBooleanTrue : kCFBooleanFalse);
+[0;1;32m                   ^
+[0m[1m/Users/runner/theos/sdks/iPhoneOS16.5.sdk/System/Library/Frameworks/SystemConfiguration.framework/Headers/SCPreferences.h:353:1: [0m[0;1;30mnote: [0m'SCPreferencesSetValue' has been explicitly marked unavailable here[0m
+SCPreferencesSetValue                   (
+[0;1;32m^
+[0m[1mTools/CPUthermalTool.m:48:14: [0m[0;1;31merror: [0m[1m'SCPreferencesRemoveValue' is unavailable: not available on iOS[0m
+        else SCPreferencesRemoveValue(preferences, (__bridge CFStringRef)persistentKey);
+[0;1;32m             ^
+[0m[1m/Users/runner/theos/sdks/iPhoneOS16.5.sdk/System/Library/Frameworks/SystemConfiguration.framework/Headers/SCPreferences.h:372:1: [0m[0;1;30mnote: [0m'SCPreferencesRemoveValue' has been explicitly marked unavailable here[0m
+SCPreferencesRemoveValue                (
+[0;1;32m^
+[0m[1mTools/CPUthermalTool.m:50:15: [0m[0;1;31merror: [0m[1m'SCPreferencesCommitChanges' is unavailable: not available on iOS[0m
+    BOOL ok = SCPreferencesCommitChanges(preferences) && SCPreferencesApplyChanges(preferences);
+[0;1;32m              ^
+[0m[1m/Users/runner/theos/sdks/iPhoneOS16.5.sdk/System/Library/Frameworks/SystemConfiguration.framework/Headers/SCPreferences.h:238:1: [0m[0;1;30mnote: [0m'SCPreferencesCommitChanges' has been explicitly marked unavailable here[0m
+SCPreferencesCommitChanges              (
+[0;1;32m^
+[0m[1mTools/CPUthermalTool.m:50:58: [0m[0;1;31merror: [0m[1m'SCPreferencesApplyChanges' is unavailable: not available on iOS[0m
+    BOOL ok = SCPreferencesCommitChanges(preferences) && SCPreferencesApplyChanges(preferences);
+[0;1;32m                                                         ^
+[0m[1m/Users/runner/theos/sdks/iPhoneOS16.5.sdk/System/Library/Frameworks/SystemConfiguration.framework/Headers/SCPreferences.h:251:1: [0m[0;1;30mnote: [0m'SCPreferencesApplyChanges' has been explicitly marked unavailable here[0m
+SCPreferencesApplyChanges               (
+[0;1;32m^
+[0m7 errors generated.
+make[3]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/CPUthermal/.theos/obj/arm64/Tools/CPUthermalTool.m.30e757c9.o] Error 1
+make[2]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/CPUthermal/.theos/obj/arm64/CPUthermalTool] Error 2
+make[1]: *** [internal-tool-all_] Error 2
+make: *** [CPUthermalTool.all.tool.variables] Error 2
