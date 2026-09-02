@@ -2,6 +2,7 @@
 #import <spawn.h>
 #import <sys/wait.h>
 #import <notify.h>
+#import <dlfcn.h>
 #import <SystemConfiguration/SystemConfiguration.h>
 #import <CPUthermalPaths.h>
 #import <CPUthermalPressure.h>
@@ -39,16 +40,28 @@ static int restoreFullPower(void) {
 }
 
 static int SetThermalPreference(NSString *key, id value, NSString *persistentKey, BOOL persist) {
-    SCPreferencesRef preferences = SCPreferencesCreate(kCFAllocatorDefault, CFSTR("CPUthermal"), CFSTR("OSThermalStatus.plist"));
-    if (!preferences) return 1;
-    if (value) SCPreferencesSetValue(preferences, (__bridge CFStringRef)key, (__bridge CFPropertyListRef)value);
-    else SCPreferencesRemoveValue(preferences, (__bridge CFStringRef)key);
+    typedef CFTypeRef (*CreateFn)(CFAllocatorRef, CFStringRef, CFStringRef);
+    typedef Boolean (*SetFn)(CFTypeRef, CFStringRef, CFPropertyListRef);
+    typedef Boolean (*RemoveFn)(CFTypeRef, CFStringRef);
+    typedef Boolean (*ApplyFn)(CFTypeRef);
+    void *framework = dlopen("/System/Library/Frameworks/SystemConfiguration.framework/SystemConfiguration", RTLD_NOW | RTLD_LOCAL);
+    if (!framework) return 1;
+    CreateFn create = (CreateFn)dlsym(framework, "SCPreferencesCreate");
+    SetFn setValue = (SetFn)dlsym(framework, "SCPreferencesSetValue");
+    RemoveFn removeValue = (RemoveFn)dlsym(framework, "SCPreferencesRemoveValue");
+    ApplyFn commit = (ApplyFn)dlsym(framework, "SCPreferencesCommitChanges");
+    ApplyFn apply = (ApplyFn)dlsym(framework, "SCPreferencesApplyChanges");
+    if (!create || !setValue || !removeValue || !commit || !apply) { dlclose(framework); return 1; }
+    CFTypeRef preferences = create(kCFAllocatorDefault, CFSTR("CPUthermal"), CFSTR("OSThermalStatus.plist"));
+    if (!preferences) { dlclose(framework); return 1; }
+    if (value) setValue(preferences, (__bridge CFStringRef)key, (__bridge CFPropertyListRef)value);
+    else removeValue(preferences, (__bridge CFStringRef)key);
     if (persistentKey) {
-        if (value) SCPreferencesSetValue(preferences, (__bridge CFStringRef)persistentKey, persist ? kCFBooleanTrue : kCFBooleanFalse);
-        else SCPreferencesRemoveValue(preferences, (__bridge CFStringRef)persistentKey);
+        if (value) setValue(preferences, (__bridge CFStringRef)persistentKey, persist ? kCFBooleanTrue : kCFBooleanFalse);
+        else removeValue(preferences, (__bridge CFStringRef)persistentKey);
     }
-    BOOL ok = SCPreferencesCommitChanges(preferences) && SCPreferencesApplyChanges(preferences);
-    CFRelease(preferences);
+    BOOL ok = commit(preferences) && apply(preferences);
+    CFRelease(preferences); dlclose(framework);
     return ok ? 0 : 2;
 }
 
