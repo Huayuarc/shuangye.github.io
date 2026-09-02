@@ -26,6 +26,7 @@ SneakyCamCCRegistration_LDFLAGS = -Wl,-x -Wl,-dead_strip
 TWEAK_NAME += SneakyCamDualCam
 SneakyCamDualCam_FILES = DualCam.xm SCPaths.m
 SneakyCamDualCam_CFLAGS = -fobjc-arc -Wno-deprecated-declarations
+SneakyCamDualCam_CCFLAGS = -std=gnu++17
 SneakyCamDualCam_FRAMEWORKS = UIKit AVFoundation CoreMedia Photos CoreImage CoreVideo AudioToolbox
 SneakyCamDualCam_LIBRARIES = substrate
 
