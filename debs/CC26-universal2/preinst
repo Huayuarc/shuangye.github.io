@@ -1,7 +1,0 @@
-#!/bin/sh
-set -e
-if ! command -v ldid >/dev/null 2>&1; then
-  echo "CC26 universal1: ldid was not found; refusing to install an unsigned patched dylib." >&2
-  exit 1
-fi
-exit 0
