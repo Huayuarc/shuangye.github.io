@@ -1,0 +1,8 @@
+# Baselines
+7fd8cab4796fcd2f1683858a37c8a16f8247bd5eb39c4a38bedc3091fc222f17  CC26.dylib (original nomedia3 baseline)
+d06ef3a0708d1adf21cf661d000f48a8985f6e66ec0b57964bb9e1298e8c161d  baseline/CC26.dylib (user upload; upstream 0.4.9.9b)
+
+# Intermediate / outputs
+9d2160c586ff26cd86635fc4692c0a7c48f348d17e110a466c009e5e1a480633  CC26.dylib (nomedia13)
+a2fb4953e85f71f255593edd9f3b134d3d16c611817563d925cba1108ad0f9d4  CC26Core.dylib (nomedia3 -> universal1)
+83ac870ccfdd4eceb76c37e7bf83a40ec46bed4a358f0909868a468c9980b0e0  CC26Core.dylib (uploaded 0.4.9.9b -> universal2 core)

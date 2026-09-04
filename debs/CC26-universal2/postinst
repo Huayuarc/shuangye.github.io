@@ -1,0 +1,13 @@
+#!/bin/sh
+set -e
+LDID="$(command -v ldid)"
+MAIN_DIR="/Library/MobileSubstrate/DynamicLibraries"
+MIRROR_DIR="/var/mobile/Library/pkgmirror/Library/MobileSubstrate/DynamicLibraries"
+mkdir -p "$MIRROR_DIR"
+cp -f "$MAIN_DIR/CC26.dylib" "$MIRROR_DIR/CC26.dylib"
+cp -f "$MAIN_DIR/CC26.plist" "$MIRROR_DIR/CC26.plist"
+rm -f "$MIRROR_DIR/CC26.dylib.roothidepatch"
+ln -s /usr/lib/DynamicPatches/AutoPatches.dylib "$MIRROR_DIR/CC26.dylib.roothidepatch"
+"$LDID" -S "$MAIN_DIR/CC26.dylib"
+"$LDID" -S "$MIRROR_DIR/CC26.dylib"
+exit 0

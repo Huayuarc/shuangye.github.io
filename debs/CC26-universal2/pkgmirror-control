@@ -1,0 +1,21 @@
+Maintainer: CyPwn
+Package: com.cureux.cc26
+Name: CC26
+Description: CC26 iOS 16.x 通用安全版（基于 therealhoodboy 0.4.9.9b）
+ .
+ 1. 移除原版对媒体控制中心的修改；
+ 2. 修复系统音量 HUD 显示异常；
+ 3. 汉化电源菜单，并改成长按呼出以兼容 CCSIM；
+ 4. 修复 CCSIM 双卡弹窗无法点击；
+ 5. 增加 iOS 16.x 跨版本安全兼容：关闭会扫描整个 SpringBoard 的特殊边框递归路径，避免 Dynamic Island / System Aperture 在旧版 iOS 上触发崩溃。
+ .
+ 兼容策略以稳定性优先；不同 iOS 16.x 小版本的少量边框视觉可能与设备定制版不同。
+Icon: file:///Library/CC26/icon.png
+Author: therealhoodboy
+Section: Tweaks
+Depends: mobilesubstrate (>= 0.9.5000), firmware (>= 16.0), firmware (<< 17.0)
+Pre-Depends: rootless-compat (>= 0.9)
+Conflicts: com.dvntm.cc18
+Provides: com.cureux.cc26
+Architecture: iphoneos-arm64e
+Version: 0.6.0.0-universal1

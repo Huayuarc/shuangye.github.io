@@ -1,0 +1,19 @@
+Package: com.cureux.cc26
+Section: Tweaks
+Maintainer: Huayuarc
+Architecture: iphoneos-arm
+Version: 0.6.0.1-universal2
+Provides: com.cureux.cc26
+Depends: mobilesubstrate | ellekit, preferenceloader, firmware (>= 15.0), firmware (<< 17.0)
+Conflicts: com.dvntm.cc18, com.dvntm.cc18s, com.cureux.cc26s
+Description: CC26 上传修改版的 iOS 15/16 跨版本稳定包。
+ .
+ 1. 核心由用户上传 0.4.9.9b 双切片基线执行严格字节补丁生成；
+ 2. 保留 universal1 的媒体控制中心、音量 HUD、电源菜单及 CCSIM 兼容修改；
+ 3. 关闭全 SpringBoard 特殊边框递归，避免 Dynamic Island / System Aperture 材质对象崩溃；
+ 4. 新增运行时 Loader，仅在 iOS 15/16 且必要私有类与 selector 存在时加载核心；
+ 5. 新增 CFPreferences 动态设置面板与真实启用开关；
+ 6. 同时构建 rootless arm64 与 RootHide arm64e。
+Icon: file:///Library/CC26/icon.png
+Name: CC26
+Author: therealhoodboy / Huayuarc adaptation
