@@ -38,8 +38,12 @@ endif
 include $(THEOS_MAKE_PATH)/bundle.mk
 
 before-all::
+	$(ECHO_NOTHING)chmod 0755 "$(THEOS_PROJECT_DIR)/layout/DEBIAN/postinst" "$(THEOS_PROJECT_DIR)/layout/DEBIAN/prerm"$(ECHO_END)
 	$(ECHO_NOTHING)rm -f "$(THEOS_PROJECT_DIR)/CC26Core.dylib"$(ECHO_END)
 	$(ECHO_NOTHING)python3 "$(THEOS_PROJECT_DIR)/patch_cc26.py" "$(THEOS_PROJECT_DIR)/baseline/CC26.dylib" "$(THEOS_PROJECT_DIR)/CC26Core.dylib"$(ECHO_END)
+
+before-package::
+	$(ECHO_NOTHING)chmod 0755 "$(THEOS_PROJECT_DIR)/layout/DEBIAN/postinst" "$(THEOS_PROJECT_DIR)/layout/DEBIAN/prerm"$(ECHO_END)
 
 after-stage::
 	$(ECHO_NOTHING)mkdir -p "$(THEOS_STAGING_DIR)/Library/MobileSubstrate/DynamicLibraries" "$(THEOS_STAGING_DIR)/Library/PreferenceLoader/Preferences" "$(THEOS_STAGING_DIR)/Library/CC26"$(ECHO_END)
