@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>title</key>
+	<string>CPUthermal</string>
+	<key>items</key>
+	<array>
+		<!-- ===================== 第1组: 功率模式 ===================== -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>用户手动选择的“低功耗”或“解除温控”会作为常驻模式保存。设备熄屏/锁屏时运行状态临时切到 PowerSave 与 CPU Level 2，但不改写用户选择；亮屏/解锁后恢复锁屏前的对应模式。解除温控继续按当前设置处理 CPU/GPU/Package 功率策略。</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSegmentCell</string>
+			<key>default</key>
+			<string>fullPower</string>
+			<key>defaults</key>
+			<string>com.huayuarc.cputhermal</string>
+			<key>key</key>
+			<string>powerMode</string>
+			<key>label</key>
+			<string>功率模式</string>
+			<key>validTitles</key>
+			<array>
+				<string>低功耗</string>
+				<string>解除温控</string>
+			</array>
+			<key>validValues</key>
+			<array>
+				<string>lowPower</string>
+				<string>fullPower</string>
+			</array>
+		</dict>
+
+		<dict>
+			<key>cell</key><string>PSGroupCell</string>
+			<key>footerText</key><string>默认关闭。开启后在解除温控模式中锁定 CPU Floor 100，并强制 GPU/Package Ceiling 100；适合游戏和跑分。关闭后 CPU Floor 归零且 GPU/Package 恢复系统调度，降低日常发热。</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSSwitchCell</string>
+			<key>default</key><false/>
+			<key>defaults</key><string>com.huayuarc.cputhermal</string>
+			<key>key</key><string>highPerformanceModeEnabled</string>
+			<key>label</key><string>高性能满功率模式</string>
+		</dict>
+
+		<!-- ===================== 第2组: 温度计警告 ===================== -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>开启后阻止全屏「iPhone 需要冷却」警告及其高温强制锁屏行为；关闭后恢复系统原生提示与保护。</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.cputhermal</string>
+			<key>key</key>
+			<string>thermalBlockNotifPopup</string>
+			<key>label</key>
+			<string>屏蔽高温温度计警告</string>
+		</dict>
+
+		<!-- ===================== 第3组: 屏幕控制 ===================== -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>按 Insulation 修改 backlightComponentControl 并拦截 IOMFB 亮度上限；检测到热亮度写入后，再通过 Battman 使用的 CoreBrightness/DisplayBrightness 后端重新提交当前用户滑块值，清除 DCP 已落地的物理亮度压制。</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.cputhermal</string>
+			<key>key</key>
+			<string>thermalPreventDimmingEnabled</string>
+			<key>label</key>
+			<string>防温控暗屏</string>
+		</dict>
+
+		<dict>
+			<key>cell</key><string>PSGroupCell</string>
+			<key>footerText</key><string>开启后，SpringBoard 检测到设备屏幕朝下时模拟按下锁屏键。仅注入 SpringBoard，默认关闭。</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSSwitchCell</string>
+			<key>default</key><false/>
+			<key>defaults</key><string>com.huayuarc.cputhermal</string>
+			<key>key</key><string>lockWhenFaceDown</string>
+			<key>label</key><string>设备朝下自动锁屏</string>
+		</dict>
+
+		<!-- ===================== Battman 温控调校 ===================== -->
+		<dict>
+			<key>cell</key><string>PSGroupCell</string>
+			<key>label</key><string>口袋过热（HOT-IN-POCKET）模式</string>
+			<key>footerText</key><string>开启后将 HIP 保护与 simulateHip 持久锁定为 true；关闭后删除覆盖字段并恢复系统原生口袋状态判断。</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSSwitchCell</string><key>default</key><false/>
+			<key>defaults</key><string>com.huayuarc.cputhermal</string><key>key</key><string>hipLockedEnabled</string>
+			<key>label</key><string>锁定模拟口袋过热</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSGroupCell</string><key>label</key><string>阳光暴晒</string>
+			<key>footerText</key><string>开启后将 sunlightOverride 持久锁定为 true；关闭后删除覆盖字段并恢复系统自动检测。</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSSwitchCell</string><key>default</key><false/>
+			<key>defaults</key><string>com.huayuarc.cputhermal</string><key>key</key><string>sunlightLockedEnabled</string>
+			<key>label</key><string>锁定阳光暴晒模式</string>
+		</dict>
+		<!-- ===================== 第4组: 电池提示 ===================== -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>开启后隐藏设置首页及“通用 → 关于本机”中的部件与服务历史，覆盖电池、屏幕、相机等未知/更换部件记录，并保留电池健康页面显示。关闭后恢复系统原生记录。</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.cputhermal</string>
+			<key>key</key>
+			<string>suppressBatteryServiceWarnings</string>
+			<key>label</key>
+			<string>屏蔽部件与维修记录</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>开启后将系统“电池健康与充电”页面的最大容量模拟显示为 100%，并在切换时一次性尝试将 AppleSmartBattery 标称容量与当前设备 DesignCapacity 对齐。不再定时重写，不向所有应用注入基础字典 Hook。部分第三方工具直接读取驱动实时值，仍可能显示真实健康度；关闭后按隐根备份恢复真实容量。</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.cputhermal</string>
+			<key>key</key>
+			<string>simulateMaximumCapacity</string>
+			<key>label</key>
+			<string>模拟最大容量 100%</string>
+		</dict>
+
+		<!-- ===================== SmartBatteryAPI 智能停充 ===================== -->
+		<dict>
+			<key>cell</key><string>PSGroupCell</string>
+			<key>label</key><string>SmartBatteryAPI 智能停充</string>
+			<key>footerText</key><string>移植 ChargeLimiter 电量阈值核心：可优先使用 AppleSmartBattery，达到阈值后通过 PredictiveChargingInhibit 停充；可选同时将 ExternalConnected 置为 false 禁流。电量下降 5% 后先恢复输入再恢复充电。</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSSwitchCell</string>
+			<key>default</key><true/>
+			<key>defaults</key><string>com.huayuarc.cputhermal</string>
+			<key>key</key><string>smartChargeUseSmartBatteryAPI</string>
+			<key>label</key><string>使用 SmartBatteryAPI</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSSwitchCell</string>
+			<key>default</key><false/>
+			<key>defaults</key><string>com.huayuarc.cputhermal</string>
+			<key>key</key><string>smartChargeEnabled</string>
+			<key>label</key><string>智能停充</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSSwitchCell</string>
+			<key>default</key><false/>
+			<key>defaults</key><string>com.huayuarc.cputhermal</string>
+			<key>key</key><string>smartChargeDisableInflow</string>
+			<key>label</key><string>停充时自动禁流</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSSegmentCell</string>
+			<key>default</key><integer>80</integer>
+			<key>defaults</key><string>com.huayuarc.cputhermal</string>
+			<key>key</key><string>smartChargeStopLevel</string>
+			<key>label</key><string>停充电量</string>
+			<key>validTitles</key><array><string>70%</string><string>75%</string><string>80%</string><string>85%</string><string>90%</string><string>95%</string><string>100%</string></array>
+			<key>validValues</key><array><integer>70</integer><integer>75</integer><integer>80</integer><integer>85</integer><integer>90</integer><integer>95</integer><integer>100</integer></array>
+		</dict>
+
+		<!-- ===================== 挂载路径管理 ===================== -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>管理 ThermalMonitor 等路径的可读写挂载；通过后台守护与动态 RootHide 后备目录实现，不会修改只读系统分区。</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>detail</key>
+			<string>CPUthermalMountListController</string>
+			<key>isController</key>
+			<true/>
+			<key>label</key>
+			<string>挂载路径管理</string>
+		</dict>
+
+		<!-- ===================== 第5组: 操作 ===================== -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>安装或升级时会自动重启 thermalmonitord 载入插件；此处按钮用于手动重启整个用户空间。</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>重启用户空间</string>
+			<key>action</key>
+			<string>usreboot</string>
+		</dict>
+
+		<!-- ===================== 第7组: 开源代码 ===================== -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>开源</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>GitHub be-huge/insulation</string>
+			<key>action</key>
+			<string>openSourceCode</string>
+		</dict>
+	</array>
+</dict>
+</plist>
