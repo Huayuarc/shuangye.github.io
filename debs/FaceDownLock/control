@@ -1,9 +1,0 @@
-Package: com.huayuarc.facedownlock
-Name: 设备朝下自动锁屏
-Author: Huayuarc
-Description: 设备屏幕朝下或进入口袋态时，自动模拟按下锁屏键。独立提取自 CPUthermal 1.6.2-44，仅注入 SpringBoard，支持设置面板实时开关。
-Depends: firmware (>= 15.0), mobilesubstrate | ellekit, preferenceloader
-Maintainer: Huayuarc
-Section: Tweaks
-Architecture: iphoneos-arm
-Version: 1.0.0

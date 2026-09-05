@@ -1,7 +1,0 @@
-#!/bin/sh
-case "$1" in
-remove|deconfigure)
-killall -9 SpringBoard 2>/dev/null || true
-;;
-esac
-exit 0
