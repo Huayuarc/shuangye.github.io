@@ -394,9 +394,7 @@ NSString *savedMode = [prefs[S("powerMode")] isKindOfClass:[NSString class]]
 BOOL appLowPower = foregroundAppShouldUseLowPower(prefs);
 CPUthermalPowerMode selected = [savedMode isEqualToString:S(kCPUthermalLowPowerModeC)] ? CPUthermalPowerModeLow : CPUthermalPowerModeFull;
 CPUthermalPowerMode target = appLowPower ? CPUthermalPowerModeLow : selected;
-CPUthermalPowerMode previous;
 os_unfair_lock_lock(&g_modeLock);
-previous = g_powerMode;
 g_userSelectedPowerMode = selected;
 g_foregroundAppForcesLowPower = appLowPower;
 g_powerMode = target;
