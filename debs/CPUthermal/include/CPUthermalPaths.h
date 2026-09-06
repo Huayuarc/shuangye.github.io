@@ -84,24 +84,6 @@ static inline uint64_t CPUthermalReadForegroundBundleHash(void) {
     return result == NOTIFY_STATUS_OK ? state : 0;
 }
 
-static inline void CPUthermalPostRefreshRateState(BOOL force120, BOOL thermalProtection) {
-    int token = 0;
-    if (notify_register_check(kCPUthermalRefreshRateNotifC, &token) != NOTIFY_STATUS_OK) return;
-    notify_set_state(token, (force120 ? 1ULL : 0ULL) | (thermalProtection ? 2ULL : 0ULL));
-    notify_post(kCPUthermalRefreshRateNotifC);
-    notify_cancel(token);
-}
-
-static inline BOOL CPUthermalReadRefreshRateState(BOOL *force120, BOOL *thermalProtection) {
-    int token = 0; uint64_t state = 0;
-    if (notify_register_check(kCPUthermalRefreshRateNotifC, &token) != NOTIFY_STATUS_OK) return NO;
-    int result = notify_get_state(token, &state); notify_cancel(token);
-    if (result != NOTIFY_STATUS_OK) return NO;
-    if (force120) *force120 = (state & 1ULL) != 0;
-    if (thermalProtection) *thermalProtection = (state & 2ULL) != 0;
-    return YES;
-}
-
 static inline void CPUthermalPostMaximumCapacityState(BOOL enabled) {
     int token = 0;
     if (notify_register_check(kCPUthermalMaximumCapacityNotifC, &token) != NOTIFY_STATUS_OK) return;
