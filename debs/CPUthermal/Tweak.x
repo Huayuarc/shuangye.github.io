@@ -328,11 +328,6 @@ static BOOL shouldApplyHighPerformanceMode(void) {
 return shouldApplyFullCPUProtection() && g_highPerformanceModeEnabled;
 }
 
-static BOOL shouldApplyForegroundAppLowPowerLimit(void) {
-BOOL forced;os_unfair_lock_lock(&g_modeLock);forced=g_foregroundAppForcesLowPower;os_unfair_lock_unlock(&g_modeLock);
-return runtimeProtectionEnabled() && forced;
-}
-
 static BOOL shouldRestoreNativePerformance(void) {
 return shouldApplyFullCPUProtection();
 }
