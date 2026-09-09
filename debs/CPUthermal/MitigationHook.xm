@@ -47,28 +47,20 @@ static BOOL gPowerd = NO;
 static BOOL gThermal = NO;
 
 #pragma mark - 轻量诊断日志（帮助定位"温度残链"：powerd vs registry）
-#ifndef S
-#define S(x) (x)
-#endif
-
-static void logDiag(NSString *fmt, ...) {
-    static int _rate = 0; // 限流：每 4 次才写 1 次，避免日志爆炸
-    // 诊断始终写（用户主动开），每隔多次折叠到 ~0.5s 一拍
-    char *base = getenv("CPUTHERMAL_DIAG_DIR");
-    static NSString *dir;
-    if (!dir) {
-        for (NSString *d in @[ base?[NSString stringWithUTF8String:base]:nil,
-                               S("/var/jb/usr/local/share/CPUthermal"),
-                               S("/usr/local/share/CPUthermal") ]) {
-            if (!d) continue;
-            struct stat st;
-            if (stat(d.fileSystemRepresentation,&st)==0 && (st.st_mode&S_IFDIR))
-                dir = d;
-        }
+static NSString *diagLogPath(void) {
+    NSFileManager *fm = [NSFileManager defaultManager];
+    NSString *env = getenv("CPUTHERMAL_DIAG_DIR") ? [NSString stringWithUTF8String:getenv("CPUTHERMAL_DIAG_DIR")] : nil;
+    NSString *dir = env;
+    for (NSString *c in @[ dir ?: [NSString string], @"/var/jb/usr/local/share/CPUthermal",
+                           @"/usr/local/share/CPUthermal", @"/var/mobile/Media" ]) {
+        BOOL isd=NO;
+        if ([fm fileExistsAtPath:c isDirectory:&isd] && isd) { dir=c; break; }
     }
-    if (!dir) { dir = S("/tmp"); }
-    static NSString *path;
-    path = [dir stringByAppendingPathComponent:S("cputhermal-mit.log")];
+    if (!dir) dir = @"/tmp";
+    return [dir stringByAppendingPathComponent:@"cputhermal-mit.log"];
+}
+static void logDiag(NSString *fmt, ...) {
+    NSString *path = diagLogPath();
     int fd = open(path.fileSystemRepresentation, O_WRONLY|O_CREAT|O_APPEND, 0644);
     if (fd<0) return;
     va_list ap; va_start(ap, fmt);
@@ -78,7 +70,7 @@ static void logDiag(NSString *fmt, ...) {
     NSString *proc = [[NSProcessInfo processInfo] processName];
     NSString *line = [NSString stringWithFormat:@"[%lld.%03d][%@] %@\n",(long long)tv.tv_sec,(int)(tv.tv_usec/1000),proc,body];
     const char *cs = line.UTF8String;
-    if (cs && write(fd,cs,strlen(cs))>0){}
+    if (cs) (void)write(fd,cs,strlen(cs));
     close(fd);
 }
 
@@ -201,9 +193,9 @@ static kern_return_t hk_Multi(io_registry_entry_t e, CFMutableDictionaryRef *p, 
             }
         }
         BOOL batteryLike = (topT>=0 || nestedReason>=0);
-        if (batteryLike && chargeProtectOn())
+        if (batteryLike && protectOn())
             logDiag(@"multi T=%d V=%d reason=%d thermalLim=%d",topT,topV,nestedReason,nestedThermLimit);
-        if (chargeProtectOn()){
+        if (protectOn()){
             CFTypeRef clean=sanitizeNode(*p);
             if (clean){ CFRelease(*p); *p=(CFMutableDictionaryRef)clean; }
         }
