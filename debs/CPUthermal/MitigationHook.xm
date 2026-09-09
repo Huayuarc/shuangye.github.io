@@ -19,6 +19,7 @@
 #import <dlfcn.h>
 #import <substrate.h>
 #import <CoreFoundation/CoreFoundation.h>
+#import <IOKit/IOKitLib.h>
 
 #define NOTIFY_CPU_MODE "com.huayuarc.cputhermal/mitigationState"
 
@@ -28,17 +29,6 @@ static const int NeutralC100 = 2500;
 static const int SafeCurrentMA = 5000;
 static const int PeriodicSec   = 2;      // keep-alive 周期（秒）
 static int gToken = -1;
-
-typedef mach_port_t io_service_t;
-typedef mach_port_t io_registry_entry_t;
-
-extern "C" kern_return_t IOMasterPort(mach_port_t bootstrapPort, mach_port_t *masterPort);
-extern "C" CFMutableDictionaryRef IOServiceMatching(const char *name);
-extern "C" io_service_t IOServiceGetMatchingService(mach_port_t masterPort, CFDictionaryRef matching);
-extern "C" kern_return_t IORegistryEntrySetCFProperty(io_registry_entry_t entry, CFStringRef propertyName, CFTypeRef property);
-extern "C" kern_return_t IORegistryEntryCreateCFProperties(io_registry_entry_t entry, CFMutableDictionaryRef *properties, CFAllocatorRef allocator, uint32_t options);
-extern "C" CFTypeRef IORegistryEntryCreateCFProperty(io_registry_entry_t entry, CFStringRef propertyName, CFAllocatorRef allocator, uint32_t options);
-extern "C" kern_return_t IOObjectRelease(io_object_t object);
 
 static kern_return_t (*orig_SetCFProp)(io_registry_entry_t, CFStringRef, CFTypeRef) = NULL;
 static CFTypeRef      (*orig_SingleProp)(io_registry_entry_t, CFStringRef, CFAllocatorRef, uint32_t) = NULL;
