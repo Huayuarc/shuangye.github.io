@@ -1,0 +1,11 @@
+Package: com.huayuarc.cputhermal
+Name: CPU 解除温控
+Author: Huayuarc
+Description: 适配 iOS 15-17 与不同 iPhone/iPad 机型的温控管理插件。注入 thermalmonitord，固定解除温控模式，支持 CPU/GPU/Package 温控旁路、ProMotion 120Hz 与 /System/Library/ThermalMonitor 一键挂载优化。
+Depends: mobilesubstrate, preferenceloader
+Maintainer: Huayuarc
+Section: Tweaks
+Icon: https://huayuarc.github.io/icon/cputhermal.png
+Sileodepiction: https://huayuarc.github.io/sileodepiction/CPUthermal/js.json
+Architecture: iphoneos-arm
+Version: 1.6.2-70
