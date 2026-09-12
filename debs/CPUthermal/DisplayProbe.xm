@@ -11,6 +11,7 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 #import <IOKit/IOKitLib.h>
+#include <dlfcn.h>
 #import <objc/runtime.h>
 #import <objc/message.h>
 #import <notify.h>
