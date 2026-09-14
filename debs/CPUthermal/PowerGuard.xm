@@ -313,8 +313,12 @@ static NSString *ConnName(io_connect_t connection) {
         BOOL isPowerd = [name isEqualToString:@"powerd"];
         gDropEnabled = isPowerd;
         // powerd 通过 IOServiceSetProperty 写功率/频率上限，必须一并接管
-        MSHookFunction((void *)IOServiceSetProperty, (void *)PowerGuardServiceSetProperty,
-                       (void **)&orig_PowerGuardServiceSetProperty);
+        // （该符号不在公共头文件里，和主模块一致走 dlsym）
+        void *iokit = dlopen("/System/Library/Frameworks/IOKit.framework/IOKit", RTLD_NOW | RTLD_GLOBAL);
+        if (iokit) {
+            void *sym = dlsym(iokit, "IOServiceSetProperty");
+            if (sym) MSHookFunction(sym, (void *)PowerGuardServiceSetProperty, (void **)&orig_PowerGuardServiceSetProperty);
+        }
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)),
                        dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
             SampleFrame(isPowerd ? "powerd-load" : "load");
