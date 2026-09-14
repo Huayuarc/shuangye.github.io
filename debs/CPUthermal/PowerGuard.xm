@@ -75,6 +75,10 @@ static BOOL GuardEnabled(void) {
     return YES;
 }
 
+// 前置声明（定义在后文的辅助函数）
+static BOOL PrefBool(NSString *key);
+static void ReadBattery(int *soc, int *milliVolts, int *milliAmps);
+
 // ---------------------------------------------------------------------------
 // 频率 / 热压采样
 // ---------------------------------------------------------------------------
