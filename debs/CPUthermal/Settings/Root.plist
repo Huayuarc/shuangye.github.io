@@ -44,6 +44,26 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>footerText</key>
+			<string>开启后用极低占空比保活，让性能核不留在最低频率档：跑脚本、切应用、短任务不必等升频，响应更跟手。代价是待机耗电与发热略增，长期挂机建议关闭。</string>
+			<key>label</key>
+			<string>保持高频档位</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.huayuarc.cputhermal</string>
+			<key>key</key>
+			<string>keepBoostEnabled</string>
+			<key>label</key>
+			<string>保持高频档位（防掉档）</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
 			<string>开启后，SpringBoard 检测到设备屏幕朝下时模拟按下锁屏键。仅注入 SpringBoard，默认关闭。</string>
 		</dict>
 		<dict>

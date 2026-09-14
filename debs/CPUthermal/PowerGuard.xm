@@ -139,15 +139,33 @@ static void SampleFrame(const char *reason) {
     double equiv = gBestIterations > 0 ? (double)best / (double)gBestIterations * 100.0 : 100.0;
     double load = 0.0;
     getloadavg(&load, 1);
-    TLog(@"SAMPLE[%s] iter=%llu best=%llu equiv=%.0f%% load=%.2f pressure=%d thermalState=%d",
+    BOOL lpm = NO;
+    @try { lpm = [[NSProcessInfo processInfo] isLowPowerModeEnabled]; } @catch (__unused NSException *e) { }
+    int soc = -1, milliVolts = -1, milliAmps = -1;
+    ReadBattery(&soc, &milliVolts, &milliAmps);
+    TLog(@"SAMPLE[%s] iter=%llu best=%llu equiv=%.0f%% load=%.2f lpm=%d bat=%dmV/%dmA/%d%% pressure=%d thermalState=%d",
          reason, (unsigned long long)best, (unsigned long long)gBestIterations,
-         equiv, load, ThermalPressureLevel(), ThermalStateValue());
+         equiv, load, lpm ? 1 : 0, milliVolts, milliAmps, soc,
+         ThermalPressureLevel(), ThermalStateValue());
 }
 
 static void FrameTimer(void) {
     SampleFrame("tick");
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 5ull * NSEC_PER_SEC),
                    dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{ FrameTimer(); });
+}
+
+// 「保持高频档位」：低占空比保活（2ms / 100ms），让性能核不落回最低档，
+// 短任务不必等 DVFS 升档。代价是待机功耗上升，因此由面板开关控制。
+static void KeepBoostTick(void) {
+    @try {
+        if (GuardEnabled() && PrefBool(S("keepBoostEnabled"))) {
+            pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0);
+            PerfBurst(2.0);
+        }
+    } @catch (__unused NSException *e) { }
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 100ull * NSEC_PER_MSEC),
+                   dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0), ^{ KeepBoostTick(); });
 }
 
 // ---------------------------------------------------------------------------
@@ -161,6 +179,9 @@ static BOOL IsThermalLimitKey(NSString *key) {
     if ([lower containsString:@"floor"] || [lower containsString:@"minimum"]) return NO;
 
     if ([lower containsString:@"throttle"] || [lower containsString:@"mitigat"]) return YES;
+    // 低电量模式(LPM) 会明显压低 CPU 上限，属于“降性能”来源，直接拦
+    if ([lower containsString:@"lowpower"] || [lower containsString:@"low-power"]) return YES;
+    if ([lower isEqualToString:@"lpm"] || [lower hasSuffix:@"lpm"]) return YES;
     BOOL component = [lower containsString:@"cpu"] || [lower containsString:@"core"] ||
                      [lower containsString:@"ppm"] || [lower containsString:@"processor"] ||
                      [lower containsString:@"gpu"] || [lower containsString:@"package"] ||
@@ -205,6 +226,47 @@ static BOOL IsThermalishKey(NSString *key) {
     return NO;
 }
 
+// 电池/电源预算类键：只记录不拦截（电池电流保护误伤可能引起掉电关机）
+static BOOL IsPowerBudgetKey(NSString *key) {
+    if (![key isKindOfClass:[NSString class]] || key.length == 0) return NO;
+    NSString *lower = [key lowercaseString];
+    for (NSString *token in @[@"bcpm", @"battery-power", @"batterycurrent", @"current-limit",
+                              @"voltage-limit", @"peak-power", @"power-cap", @"die-temp",
+                              @"temp-limit", @"temperature-limit"]) {
+        if ([lower containsString:token]) return YES;
+    }
+    return NO;
+}
+
+static BOOL PrefBool(NSString *key) {
+    @try {
+        NSDictionary *prefs = CPUthermalReadPrefs();
+        return [prefs[key] boolValue];
+    } @catch (__unused NSException *e) { return NO; }
+}
+
+static void ReadBattery(int *soc, int *milliVolts, int *milliAmps) {
+    if (soc) *soc = -1;
+    if (milliVolts) *milliVolts = -1;
+    if (milliAmps) *milliAmps = -1;
+    io_registry_entry_t entry = IOServiceGetMatchingService(kIOMasterPortDefault, IOServiceMatching("AppleSmartBattery"));
+    if (entry == IO_OBJECT_NULL) return;
+    CFTypeRef capacity = IORegistryEntryCreateCFProperty(entry, CFSTR("CurrentCapacity"), kCFAllocatorDefault, 0);
+    CFTypeRef voltage = IORegistryEntryCreateCFProperty(entry, CFSTR("Voltage"), kCFAllocatorDefault, 0);
+    CFTypeRef amperage = IORegistryEntryCreateCFProperty(entry, CFSTR("InstantAmperage"), kCFAllocatorDefault, 0);
+    if (capacity && soc) *soc = [(__bridge NSNumber *)capacity intValue];
+    if (voltage && milliVolts) *milliVolts = [(__bridge NSNumber *)voltage intValue];
+    if (amperage && milliAmps) {
+        int value = [(__bridge NSNumber *)amperage intValue];
+        if (value > 100000) value -= 0x100000000LL;   // 有符号还原
+        *milliAmps = value;
+    }
+    if (capacity) CFRelease(capacity);
+    if (voltage) CFRelease(voltage);
+    if (amperage) CFRelease(amperage);
+    IOObjectRelease(entry);
+}
+
 static BOOL IsInterestingService(NSString *name) {
     if (![name isKindOfClass:[NSString class]] || name.length == 0) return NO;
     for (NSString *token in @[@"ppm", @"armpe", @"pmgr", @"pmu", @"smc", @"clpc", @"thermal", @"cpu", @"power", @"voltage"]) {
@@ -223,6 +285,9 @@ static BOOL IsInterestingService(NSString *name) {
             if (IsThermalLimitKey(keyString)) {
                 TLog(@"DROP IORegistryEntrySetCFProperty %@ = %@", keyString, value ? (__bridge id)value : @"(null)");
                 return KERN_SUCCESS;
+            }
+            if (IsPowerBudgetKey(keyString) && ShouldLogSignature([@"BUDGET-P" stringByAppendingString:keyString])) {
+                TLog(@"BUDGET IORegistryEntrySetCFProperty %@ = %@", keyString, value ? (__bridge id)value : @"(null)");
             }
             if (IsThermalishKey(keyString) && ShouldLogSignature([@"SEEN-P" stringByAppendingString:keyString])) {
                 TLog(@"SEEN IORegistryEntrySetCFProperty %@ = %@", keyString, value ? (__bridge id)value : @"(null)");
@@ -392,6 +457,7 @@ static NSString *ConnName(io_connect_t connection) {
                        dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
             SampleFrame(isPowerd ? "powerd-load" : "load");
             FrameTimer();
+            KeepBoostTick();
         });
     }
 }
