@@ -7,6 +7,7 @@
 #import <objc/runtime.h>
 #import <substrate.h>
 #include <signal.h>
+#include <pthread.h>
 #include <unistd.h>
 #include <spawn.h>
 #include <sys/wait.h>
