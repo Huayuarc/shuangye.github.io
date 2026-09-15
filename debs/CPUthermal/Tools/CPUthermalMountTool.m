@@ -130,6 +130,7 @@ static int RunJbctl(NSString *command,NSString *path) {
     return WIFEXITED(status)?WEXITSTATUS(status):233;
 }
 static BOOL IsBindfsMounted(NSString *path) { struct statfs i={0}; return statfs(path.fileSystemRepresentation,&i)==0&&strcmp(i.f_mntonname,path.fileSystemRepresentation)==0&&strcmp(i.f_fstypename,"bindfs")==0; }
+static int UnmountPath(NSString *path);
 static int BindfsLayerCount(NSString *path) {
     struct statfs *mounts=NULL; int count=getmntinfo(&mounts,MNT_NOWAIT); int layers=0;
     if(count<=0||!mounts)return 0;
@@ -146,7 +147,6 @@ static int UnmountAllLayers(NSString *path) {
     }
     return BindfsLayerCount(path)<=0?0:EBUSY;
 }
-static int UnmountPath(NSString *path);
 static int MountPath(NSString *path) {
     if (!MountStorageRoot().length) return 79;
     if (IsBindfsMounted(path)) {
