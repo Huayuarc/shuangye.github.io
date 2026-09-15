@@ -371,7 +371,7 @@ static int ApplyDisabledDaemons(void){
     NSString *backupRoot=DisabledBackupRoot();
     if(backupRoot.length)[fm createDirectoryAtPath:backupRoot withIntermediateDirectories:YES attributes:@{NSFilePosixPermissions:@0755} error:nil];
     NSString *manifestPath=[backupRoot stringByAppendingPathComponent:S("manifest.plist")];
-    NSMutableDictionary *manifest=[([NSDictionary dictionaryWithContentsOfFile:manifestPath] mutableCopy]?:[NSMutableDictionary dictionary]);
+    NSMutableDictionary *manifest=([[NSDictionary dictionaryWithContentsOfFile:manifestPath] mutableCopy]?:[NSMutableDictionary dictionary]);
     if([fm fileExistsAtPath:backing]&&backupRoot.length&&!manifest[visible]){
         NSString *name=DisabledBackupName(visible);
         if([fm copyItemAtPath:backing toPath:[backupRoot stringByAppendingPathComponent:name] error:nil])manifest[visible]=name;
