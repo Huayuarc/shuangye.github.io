@@ -1,0 +1,123 @@
+=== Build Info ===
+Timestamp: Tue Sep 15 16:28:49 UTC 2026
+THEOS: /Users/runner/theos
+SDK: total 0
+drwxr-xr-x   4 runner  staff  128 Sep 15 16:28 .
+drwxr-xr-x  22 runner  staff  704 Sep 15 16:28 ..
+-rw-r--r--   1 runner  staff    0 Sep 15 16:28 .keep
+drwxr-xr-x   8 runner  staff  256 Nov 23  2023 iPhoneOS16.5.sdk
+
+=== Project: CPUthermal ===
+Exit code: 2
+[0;36m==> [1;36mNotice:[m Build may be slow as Theos isn’t using all available CPU cores on this computer. Consider upgrading GNU Make: https://theos.dev/docs/parallel-building
+[1;31m> [1;3;39mMaking all for tweak CPUthermal…[m
+[0;31m==> [1;39mPreprocessing Tweak.x…[m
+[0;32m==> [1;39mCompiling Tweak.x (arm64)…[m
+[0;33m==> [1;39mLinking tweak CPUthermal (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermal…[m
+[0;34m==> [1;39mStripping CPUthermal (arm64)…[m
+[0;31m==> [1;39mPreprocessing Tweak.x…[m
+[0;32m==> [1;39mCompiling Tweak.x (arm64e)…[m
+[0;33m==> [1;39mLinking tweak CPUthermal (arm64e)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermal…[m
+[0;34m==> [1;39mStripping CPUthermal (arm64e)…[m
+[0;34m==> [1;39mMerging tweak CPUthermal…[m
+[0;34m==> [1;39mSigning CPUthermal…[m
+[1;31m> [1;3;39mMaking all for tweak CPUthermalPrefHook…[m
+[0;31m==> [1;39mPreprocessing Tweak_PrefHook.xm…[m
+[0;32m==> [1;39mCompiling Tweak_PrefHook.xm (arm64)…[m
+[0;33m==> [1;39mLinking tweak CPUthermalPrefHook (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalPrefHook…[m
+[0;34m==> [1;39mStripping CPUthermalPrefHook (arm64)…[m
+[0;31m==> [1;39mPreprocessing Tweak_PrefHook.xm…[m
+[0;32m==> [1;39mCompiling Tweak_PrefHook.xm (arm64e)…[m
+[0;33m==> [1;39mLinking tweak CPUthermalPrefHook (arm64e)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalPrefHook…[m
+[0;34m==> [1;39mStripping CPUthermalPrefHook (arm64e)…[m
+[0;34m==> [1;39mMerging tweak CPUthermalPrefHook…[m
+[0;34m==> [1;39mSigning CPUthermalPrefHook…[m
+[1;31m> [1;3;39mMaking all for tweak CPUthermalFaceDownLock…[m
+[0;31m==> [1;39mPreprocessing FaceDownLock.xm…[m
+[0;32m==> [1;39mCompiling FaceDownLock.xm (arm64)…[m
+[0;33m==> [1;39mLinking tweak CPUthermalFaceDownLock (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalFaceDownLock…[m
+[0;34m==> [1;39mStripping CPUthermalFaceDownLock (arm64)…[m
+[0;31m==> [1;39mPreprocessing FaceDownLock.xm…[m
+[0;32m==> [1;39mCompiling FaceDownLock.xm (arm64e)…[m
+[0;33m==> [1;39mLinking tweak CPUthermalFaceDownLock (arm64e)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalFaceDownLock…[m
+[0;34m==> [1;39mStripping CPUthermalFaceDownLock (arm64e)…[m
+[0;34m==> [1;39mMerging tweak CPUthermalFaceDownLock…[m
+[0;34m==> [1;39mSigning CPUthermalFaceDownLock…[m
+[1;31m> [1;3;39mMaking all for tweak CPUthermalRefreshRate…[m
+[0;31m==> [1;39mPreprocessing RefreshRate.xm…[m
+[0;32m==> [1;39mCompiling RefreshRate.xm (arm64)…[m
+[0;33m==> [1;39mLinking tweak CPUthermalRefreshRate (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalRefreshRate…[m
+[0;34m==> [1;39mStripping CPUthermalRefreshRate (arm64)…[m
+[0;31m==> [1;39mPreprocessing RefreshRate.xm…[m
+[0;32m==> [1;39mCompiling RefreshRate.xm (arm64e)…[m
+[0;33m==> [1;39mLinking tweak CPUthermalRefreshRate (arm64e)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalRefreshRate…[m
+[0;34m==> [1;39mStripping CPUthermalRefreshRate (arm64e)…[m
+[0;34m==> [1;39mMerging tweak CPUthermalRefreshRate…[m
+[0;34m==> [1;39mSigning CPUthermalRefreshRate…[m
+[1;31m> [1;3;39mMaking all for tweak CPUthermalDisplay…[m
+[0;31m==> [1;39mPreprocessing DisplayGuard.xm…[m
+[0;32m==> [1;39mCompiling DisplayGuard.xm (arm64)…[m
+[0;33m==> [1;39mLinking tweak CPUthermalDisplay (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalDisplay…[m
+[0;34m==> [1;39mStripping CPUthermalDisplay (arm64)…[m
+[0;31m==> [1;39mPreprocessing DisplayGuard.xm…[m
+[0;32m==> [1;39mCompiling DisplayGuard.xm (arm64e)…[m
+[0;33m==> [1;39mLinking tweak CPUthermalDisplay (arm64e)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalDisplay…[m
+[0;34m==> [1;39mStripping CPUthermalDisplay (arm64e)…[m
+[0;34m==> [1;39mMerging tweak CPUthermalDisplay…[m
+[0;34m==> [1;39mSigning CPUthermalDisplay…[m
+[1;31m> [1;3;39mMaking all for tweak CPUthermalPowerGuard…[m
+[0;31m==> [1;39mPreprocessing PowerGuard.xm…[m
+[0;32m==> [1;39mCompiling PowerGuard.xm (arm64)…[m
+[0;33m==> [1;39mLinking tweak CPUthermalPowerGuard (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalPowerGuard…[m
+[0;34m==> [1;39mStripping CPUthermalPowerGuard (arm64)…[m
+[0;31m==> [1;39mPreprocessing PowerGuard.xm…[m
+[0;32m==> [1;39mCompiling PowerGuard.xm (arm64e)…[m
+[0;33m==> [1;39mLinking tweak CPUthermalPowerGuard (arm64e)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalPowerGuard…[m
+[0;34m==> [1;39mStripping CPUthermalPowerGuard (arm64e)…[m
+[0;34m==> [1;39mMerging tweak CPUthermalPowerGuard…[m
+[0;34m==> [1;39mSigning CPUthermalPowerGuard…[m
+[1;31m> [1;3;39mMaking all for bundle CPUthermalSettings…[m
+[0;32m==> [1;39mCompiling Settings/FRootListController.m (arm64)…[m
+[0;32m==> [1;39mCompiling Settings/CPUthermalMountListController.m (arm64)…[m
+[1mSettings/CPUthermalMountListController.m:46:1668: [0m[0;1;31merror: [0m[1mexpected ']'[0m
+- (void)pathTapped:(PSSpecifier *)sp {NSString*p=[sp propertyForKey:S("mountPath")];BOOL mounted=[self isMounted:p];UIAlertController*a=[UIAlertController alertControllerWithTitle:p message:mounted?S("当前由 CPUthermal 可读写 bindfs 挂载。") : S("已保存但当前未挂载。") preferredStyle:UIAlertControllerStyleActionSheet];[a addAction:[UIAlertAction actionWithTitle:S("在 Filza 中编辑后备目录") style:UIAlertActionStyleDefault handler:^(__unused UIAlertAction*x){NSString*storage=[self storagePath:p];NSURL*u=[NSURL URLWithString:[S("filza://view") stringByAppendingString:[storage stringByAddingPercentEncodingWithAllowedCharacters:NSCharacterSet.URLPathAllowedCharacterSet]?:S("")]];if(u)[UIApplication.sharedApplication openURL:u options:@{} completionHandler:nil];}]];[a addAction:[UIAlertAction actionWithTitle:mounted?S("卸载但保留记录"):S("立即挂载") style:UIAlertActionStyleDefault handler:^(__unused UIAlertAction*x){int r=[self run:mounted?"unmount":"mount" path:p];[self reloadList];if(r)[self alert:S("操作失败") message:[NSString stringWithFormat:S("返回代码 %d"),r]];}]];[a addAction:[UIAlertAction actionWithTitle:[a addAction:[UIAlertAction actionWithTitle:S("取消挂载并恢复原文件") style:UIAlertActionStyleDestructive handler:^(__unused UIAlertAction*x){int r=[self run:"unmount-restore" path:p];[self reloadList];[self alert:r?S("恢复失败"):S("已取消挂载并恢复原文件") message:r?[NSString stringWithFormat:S("返回代码 %d"),r]:S("已清除该路径全部 bindfs 挂载（含重复叠加层），删除记录与后备副本；系统原文件与原目录权限已恢复。")];}]];S("卸载并删除记录及后备文件") style:UIAlertActionStyleDestructive handler:^(__unused UIAlertAction*x){int r=[self run:"remove" path:p];[self reloadList];if(r)[self alert:S("移除失败") message:[NSString stringWithFormat:S("返回代码 %d"),r]];}]];[a addAction:[UIAlertAction actionWithTitle:S("取消") style:UIAlertActionStyleCancel handler:nil]];[self presentViewController:a animated:YES completion:nil];}
+[0;1;32m                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            ^
+[0m[1mSettings/CPUthermalMountListController.m:46:1669: [0m[0;1;31merror: [0m[1mmissing '[' at start of message send expression[0m
+- (void)pathTapped:(PSSpecifier *)sp {NSString*p=[sp propertyForKey:S("mountPath")];BOOL mounted=[self isMounted:p];UIAlertController*a=[UIAlertController alertControllerWithTitle:p message:mounted?S("当前由 CPUthermal 可读写 bindfs 挂载。") : S("已保存但当前未挂载。") preferredStyle:UIAlertControllerStyleActionSheet];[a addAction:[UIAlertAction actionWithTitle:S("在 Filza 中编辑后备目录") style:UIAlertActionStyleDefault handler:^(__unused UIAlertAction*x){NSString*storage=[self storagePath:p];NSURL*u=[NSURL URLWithString:[S("filza://view") stringByAppendingString:[storage stringByAddingPercentEncodingWithAllowedCharacters:NSCharacterSet.URLPathAllowedCharacterSet]?:S("")]];if(u)[UIApplication.sharedApplication openURL:u options:@{} completionHandler:nil];}]];[a addAction:[UIAlertAction actionWithTitle:mounted?S("卸载但保留记录"):S("立即挂载") style:UIAlertActionStyleDefault handler:^(__unused UIAlertAction*x){int r=[self run:mounted?"unmount":"mount" path:p];[self reloadList];if(r)[self alert:S("操作失败") message:[NSString stringWithFormat:S("返回代码 %d"),r]];}]];[a addAction:[UIAlertAction actionWithTitle:[a addAction:[UIAlertAction actionWithTitle:S("取消挂载并恢复原文件") style:UIAlertActionStyleDestructive handler:^(__unused UIAlertAction*x){int r=[self run:"unmount-restore" path:p];[self reloadList];[self alert:r?S("恢复失败"):S("已取消挂载并恢复原文件") message:r?[NSString stringWithFormat:S("返回代码 %d"),r]:S("已清除该路径全部 bindfs 挂载（含重复叠加层），删除记录与后备副本；系统原文件与原目录权限已恢复。")];}]];S("卸载并删除记录及后备文件") style:UIAlertActionStyleDestructive handler:^(__unused UIAlertAction*x){int r=[self run:"remove" path:p];[self reloadList];if(r)[self alert:S("移除失败") message:[NSString stringWithFormat:S("返回代码 %d"),r]];}]];[a addAction:[UIAlertAction actionWithTitle:S("取消") style:UIAlertActionStyleCancel handler:nil]];[self presentViewController:a animated:YES completion:nil];}
+[0;1;32m                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             ^
+[0m[0;32m                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             [
+[0m[1minclude/CPUthermalPaths.h:9:16: [0m[0;1;30mnote: [0mexpanded from macro 'S'[0m
+#define S(str) [NSString stringWithUTF8String:(str)]
+[0;1;32m               ^
+[0m[1mSettings/CPUthermalMountListController.m:46:1711: [0m[0;1;31merror: [0m[1mno visible @interface for 'NSString' declares the selector 'style:handler:'[0m
+- (void)pathTapped:(PSSpecifier *)sp {NSString*p=[sp propertyForKey:S("mountPath")];BOOL mounted=[self isMounted:p];UIAlertController*a=[UIAlertController alertControllerWithTitle:p message:mounted?S("当前由 CPUthermal 可读写 bindfs 挂载。") : S("已保存但当前未挂载。") preferredStyle:UIAlertControllerStyleActionSheet];[a addAction:[UIAlertAction actionWithTitle:S("在 Filza 中编辑后备目录") style:UIAlertActionStyleDefault handler:^(__unused UIAlertAction*x){NSString*storage=[self storagePath:p];NSURL*u=[NSURL URLWithString:[S("filza://view") stringByAppendingString:[storage stringByAddingPercentEncodingWithAllowedCharacters:NSCharacterSet.URLPathAllowedCharacterSet]?:S("")]];if(u)[UIApplication.sharedApplication openURL:u options:@{} completionHandler:nil];}]];[a addAction:[UIAlertAction actionWithTitle:mounted?S("卸载但保留记录"):S("立即挂载") style:UIAlertActionStyleDefault handler:^(__unused UIAlertAction*x){int r=[self run:mounted?"unmount":"mount" path:p];[self reloadList];if(r)[self alert:S("操作失败") message:[NSString stringWithFormat:S("返回代码 %d"),r]];}]];[a addAction:[UIAlertAction actionWithTitle:[a addAction:[UIAlertAction actionWithTitle:S("取消挂载并恢复原文件") style:UIAlertActionStyleDestructive handler:^(__unused UIAlertAction*x){int r=[self run:"unmount-restore" path:p];[self reloadList];[self alert:r?S("恢复失败"):S("已取消挂载并恢复原文件") message:r?[NSString stringWithFormat:S("返回代码 %d"),r]:S("已清除该路径全部 bindfs 挂载（含重复叠加层），删除记录与后备副本；系统原文件与原目录权限已恢复。")];}]];S("卸载并删除记录及后备文件") style:UIAlertActionStyleDestructive handler:^(__unused UIAlertAction*x){int r=[self run:"remove" path:p];[self reloadList];if(r)[self alert:S("移除失败") message:[NSString stringWithFormat:S("返回代码 %d"),r]];}]];[a addAction:[UIAlertAction actionWithTitle:S("取消") style:UIAlertActionStyleCancel handler:nil]];[self presentViewController:a animated:YES completion:nil];}
+[0;1;32m                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[0m3 errors generated.
+make[3]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/CPUthermal/.theos/obj/arm64/Settings/CPUthermalMountListController.m.83ca4452.o] Error 1
+make[2]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/CPUthermal/.theos/obj/arm64/CPUthermalSettings.bundle/CPUthermalSettings] Error 2
+make[1]: *** [internal-bundle-all_] Error 2
+make: *** [CPUthermalSettings.all.bundle.variables] Error 2
