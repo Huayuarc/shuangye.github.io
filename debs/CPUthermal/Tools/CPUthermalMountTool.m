@@ -337,7 +337,11 @@ static NSString *BuiltinDisabledSource(void){
 }
 static NSString *DisabledBackupName(NSString *path){
     NSMutableString *out=[NSMutableString string];
-    for(NSUInteger i=0;i<path.length;i++){unichar c=[path characterAtIndex:i];[out appendFormat:@"%C",c=='/'?(unichar)'_':c];}
+    for(NSUInteger i=0;i<path.length;i++){
+        unichar c=[path characterAtIndex:i];
+        if(c==(unichar)'/')c=(unichar)'_';
+        [out appendFormat:@"%C",c];
+    }
     return [out stringByAppendingString:S(".original")];
 }
 // 权限要求：所有组 root、组 wheel、0644
