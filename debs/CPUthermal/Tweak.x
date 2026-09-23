@@ -1116,13 +1116,6 @@ static void CPUthermalThrottleLog(NSString *message) {
 //   3) 保活：面板「保持高频档位」开启时低占空比保活，减少 DVFS 升档延迟
 //   输出统一进入 cputhermal-throttle.log。
 // ============================================================================
-static BOOL CPUthermalPrefBool(NSString *key) {
-    @try {
-        NSDictionary *prefs = CPUthermalReadPrefs();
-        return [prefs[key] boolValue];
-    } @catch (__unused NSException *e) { return NO; }
-}
-
 static void CPUthermalReadBattery(int *soc, int *milliVolts, int *milliAmps) {
     if (soc) *soc = -1;
     if (milliVolts) *milliVolts = -1;
