@@ -1779,9 +1779,6 @@ if (notification && !origNotification_Thermal && CPUthermalMethodMatches(notific
 
 
 
-return design;
-}
-
 static NSDictionary *readPrefsDictionary(void) {
 return CPUthermalReadPrefs();
 }
