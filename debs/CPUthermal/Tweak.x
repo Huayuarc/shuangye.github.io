@@ -251,7 +251,6 @@ static void scheduleThermalConfigurationReload(void);
 static void switchToLowPowerForSleep(const char *source);
 static void restoreUserModeAfterWake(const char *source);
 static void registerScreenWakeObservers(void);
-static void CPUthermalCaptureBrightnessBeforeModeChange(void);
 static void CPUthermalCaptureExistingBacklightMaximum(void);
 static void CPUthermalScheduleBacklightRecovery(void);
 
@@ -1019,12 +1018,6 @@ static id CPUthermalCopyUserBrightness(void) {
     return [b respondsToSelector:@selector(doubleValue)]&&[b doubleValue]>0.0?b:nil;
 }
 
-static void CPUthermalCaptureBrightnessBeforeModeChange(void) {
-    if(!thermalDimmingPreventionEnabled()||CPUthermalScreenIsBlanked())return;
-    id b=CPUthermalCopyUserBrightness();
-    if([b respondsToSelector:@selector(doubleValue)]&&[b doubleValue]>0.0)
-        g_userBrightnessBeforeModeChange=[NSNumber numberWithDouble:[b doubleValue]];
-}
 
 static void CPUthermalRecommitUserBrightness(void) {
     if(CPUthermalScreenIsBlanked())return;
@@ -1783,31 +1776,9 @@ SEL update = sel_registerName("updateThermalNotification:");
 if (notification && !origNotification_Thermal && CPUthermalMethodMatches(notification, update, 3, 'v') && CPUthermalMethodArgumentMatches(notification, update, 2, "@")) MSHookMessageEx(notification, update, (IMP)aliasNotification_Thermal, (IMP *)&origNotification_Thermal);
 }
 
-static NSArray<NSString *> *CPUthermalBatteryCapacityKeys(void) {
-return @[S("MaxCapacity"), S("NominalChargeCapacity"), S("AppleRawMaxCapacity"), S("BatteryData")];
-}
 
-static id CPUthermalBatteryProperty(io_service_t service, NSString *key) {
-if (service == MACH_PORT_NULL || !key) return nil;
-CFTypeRef value = IORegistryEntryCreateCFProperty(service, (__bridge CFStringRef)key,
-                                                   kCFAllocatorDefault, 0);
-return value ? CFBridgingRelease(value) : nil;
-}
 
-static void CPUthermalSetBatteryProperty(io_service_t service, NSString *key, id value) {
-if (service == MACH_PORT_NULL || !key || !value) return;
-BOOL previous = g_restoringFullPower;
-g_restoringFullPower = YES;
-IORegistryEntrySetCFProperty(service, (__bridge CFStringRef)key, (__bridge CFTypeRef)value);
-g_restoringFullPower = previous;
-}
 
-static id CPUthermalCapacityLike(id original, NSNumber *design) {
-if ([original isKindOfClass:[NSArray class]]) {
-NSMutableArray *values = [NSMutableArray arrayWithCapacity:[original count]];
-for (NSUInteger i = 0; i < [original count]; i++) [values addObject:design];
-return values;
-}
 return design;
 }
 
