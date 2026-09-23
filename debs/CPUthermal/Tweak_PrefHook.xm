@@ -242,6 +242,7 @@ static id specifierPropertyHook(id self, SEL selector, id key) {
         gInspectingSpecifier = NO;
         if (warning) return [NSNumber numberWithBool:YES];
     }
+    return result;
 }
 
 static void specifierSetPropertyHook(id self, SEL selector, id value, id key) {
