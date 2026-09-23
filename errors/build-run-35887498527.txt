@@ -1,0 +1,42 @@
+=== Build Info ===
+Timestamp: Wed Sep 23 16:16:07 UTC 2026
+THEOS: /Users/runner/theos
+SDK: total 0
+drwxr-xr-x   4 runner  staff  128 Sep 23 16:16 .
+drwxr-xr-x  22 runner  staff  704 Sep 23 16:15 ..
+-rw-r--r--   1 runner  staff    0 Sep 23 16:15 .keep
+drwxr-xr-x   8 runner  staff  256 Nov 23  2023 iPhoneOS16.5.sdk
+
+=== Project: CPUthermal ===
+Exit code: 2
+[0;36m==> [1;36mNotice:[m Build may be slow as Theos isn’t using all available CPU cores on this computer. Consider upgrading GNU Make: https://theos.dev/docs/parallel-building
+[1;31m> [1;3;39mMaking all for tweak CPUthermal…[m
+[0;31m==> [1;39mPreprocessing Tweak.x…[m
+[0;32m==> [1;39mCompiling Tweak.x (arm64)…[m
+[0;33m==> [1;39mLinking tweak CPUthermal (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermal…[m
+[0;34m==> [1;39mStripping CPUthermal (arm64)…[m
+[0;31m==> [1;39mPreprocessing Tweak.x…[m
+[0;32m==> [1;39mCompiling Tweak.x (arm64e)…[m
+[0;33m==> [1;39mLinking tweak CPUthermal (arm64e)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermal…[m
+[0;34m==> [1;39mStripping CPUthermal (arm64e)…[m
+[0;34m==> [1;39mMerging tweak CPUthermal…[m
+[0;34m==> [1;39mSigning CPUthermal…[m
+[1;31m> [1;3;39mMaking all for tweak CPUthermalPrefHook…[m
+[0;31m==> [1;39mPreprocessing Tweak_PrefHook.xm…[m
+[0;32m==> [1;39mCompiling Tweak_PrefHook.xm (arm64)…[m
+[1mTweak_PrefHook.xm:235:8: [0m[0;1;31merror: [0m[1munused variable 'result' [-Werror,-Wunused-variable][0m
+    id result = gOrigSpecifierPropertyForKey ?
+[0;1;32m       ^
+[0m[1mTweak_PrefHook.xm:245:1: [0m[0;1;31merror: [0m[1mnon-void function does not return a value in all control paths [-Werror,-Wreturn-type][0m
+}
+[0;1;32m^
+[0m2 errors generated.
+make[3]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/CPUthermal/.theos/obj/arm64/Tweak_PrefHook.xm.5c58ebf5.o] Error 1
+rm /Users/runner/work/shuangye.github.io/shuangye.github.io/debs/CPUthermal/.theos/obj/arm64/Tweak_PrefHook.xm.mm
+make[2]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/CPUthermal/.theos/obj/arm64/CPUthermalPrefHook.dylib] Error 2
+make[1]: *** [internal-library-all_] Error 2
+make: *** [CPUthermalPrefHook.all.tweak.variables] Error 2
