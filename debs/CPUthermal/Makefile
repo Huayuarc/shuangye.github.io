@@ -63,6 +63,8 @@ CPUthermalCC_FILES = ControlCenter/CPUthermalCCModule.m ControlCenter/CPUthermal
 CPUthermalCC_INSTALL_PATH = /Library/ControlCenter/Bundles
 CPUthermalCC_CFLAGS = -fobjc-arc -Iinclude -IControlCenter -Wno-deprecated-declarations
 CPUthermalCC_FRAMEWORKS = UIKit Foundation
+# CCUIMenuModuleViewController / CCUIMenuModuleItem 属于私有框架，必须显式链接
+CPUthermalCC_PRIVATE_FRAMEWORKS = ControlCenterUIKit ControlCenterUI
 ifeq ($(THEOS_PACKAGE_SCHEME),rootless)
 CPUthermalSettings_CFLAGS += -DCPUTHERMAL_ROOTLESS_MOUNT=1
 endif
