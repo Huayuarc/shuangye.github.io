@@ -125,15 +125,6 @@ static id callObjectWithObject(id object, const char *selectorName, id argument)
     IMP implementation = [object methodForSelector:selector];
     return implementation ? ((id (*)(id, SEL, id))implementation)(object, selector, argument) : nil;
 }
-
-static void setSpecifierProperty(id specifier, id value, NSString *key) {
-    if (!specifier || !key) return;
-    SEL selector = sel_registerName("setProperty:forKey:");
-    if (![specifier respondsToSelector:selector]) return;
-    IMP implementation = [specifier methodForSelector:selector];
-    if (implementation) ((void (*)(id, SEL, id, id))implementation)(specifier, selector, value, key);
-}
-
 static NSString *inspectionStringForValue(id value) {
     if (!value) {
         return nil;
