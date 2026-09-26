@@ -245,6 +245,8 @@ static void forceCPUPerformanceLevelOnController(id controller);
 static void applyFullPowerBudgetsOnController(id controller);
 static void applyLowPowerToCommonProduct(void);
 static void applyLowPowerPerformancePreferenceToController(id controller);
+static void applyLowPowerLimitsToTrackedControllers(void);
+static void CPUthermalThrottleLog(NSString *message);
 static void restoreNativeRuntimeAfterDisable(void);
 static void correctNominalStateIfNeeded(void);
 static void scheduleThermalMonitorReload(void);
