@@ -17,6 +17,12 @@
 @interface FRootListController : PSListController
 @end
 
+// 前置声明：诊断区方法会用到定义在后面的 alert/prefs
+@interface FRootListController (CPUthermalDiagnosticsForward)
+- (void)alert:(NSString *)title message:(NSString *)message;
+- (NSMutableDictionary *)prefs;
+@end
+
 @implementation FRootListController
 
 - (NSString *)prefPath {
