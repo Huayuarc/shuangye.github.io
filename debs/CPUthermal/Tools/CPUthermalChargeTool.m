@@ -123,6 +123,33 @@ static void EvaluateBattery(void) {
 }
 
 
+static void AppendChargeLog(NSString *message) {
+    if (message.length == 0) return;
+    NSString *line = [NSString stringWithFormat:@"[%.3f][charge] %@\n", CFAbsoluteTimeGetCurrent(), message];
+    NSData *data = [line dataUsingEncoding:NSUTF8StringEncoding];
+    NSFileManager *fm = [NSFileManager defaultManager];
+    for (NSString *dir in @[S("/usr/local/share/CPUthermal"), S("/var/jb/usr/local/share/CPUthermal"),
+                            S("/var/mobile/Library/CPUthermal"), S("/var/tmp"), S("/tmp")]) {
+        if (![fm fileExistsAtPath:dir]) continue;
+        NSString *path = [dir stringByAppendingPathComponent:S("cputhermal-throttle.log")];
+        if (![fm fileExistsAtPath:path]) [fm createFileAtPath:path contents:nil attributes:nil];
+        NSFileHandle *handle = [NSFileHandle fileHandleForWritingAtPath:path];
+        if (!handle) continue;
+        @try { [handle seekToEndOfFile]; [handle writeData:data]; [handle closeFile]; }
+        @catch (__unused NSException *e) { }
+        break;
+    }
+}
+
+// AppleSmartBattery 的 Temperature 为百分之一摄氏度（4600 => 46.0℃），兼容十分之一
+static double BatteryTemperatureCelsius(NSDictionary *properties) {
+    id value = properties[S("Temperature")];
+    if (![value respondsToSelector:@selector(doubleValue)]) return -1.0;
+    double raw = [value doubleValue];
+    if (raw <= 0.0) return -1.0;
+    return raw > 2000.0 ? raw / 100.0 : raw / 10.0;
+}
+
 // ============================================================================
 // 充电限流降温：充电时按电池温度阶梯限制充电电流（继续充电，但显著减少发热）
 //   温度 >= 42℃ -> 上限 800mA；>= 38℃ -> 上限 1200mA；否则用面板设定值（默认 1500mA）
