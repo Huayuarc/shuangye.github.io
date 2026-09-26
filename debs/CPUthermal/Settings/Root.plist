@@ -72,9 +72,35 @@
 			<key>defaults</key>
 			<string>com.huayuarc.cputhermal</string>
 			<key>key</key>
-			<string>chargeHeatGuardEnabled</string>
+			<string>chargeCurrentLimitEnabled</string>
 			<key>label</key>
-			<string>充电高温暂停充电</string>
+			<string>充电限流降温</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSegmentCell</string>
+			<key>default</key>
+			<integer>1500</integer>
+			<key>defaults</key>
+			<string>com.huayuarc.cputhermal</string>
+			<key>key</key>
+			<string>chargeCurrentLimitMA</string>
+			<key>label</key>
+			<string>充电电流上限</string>
+			<key>validTitles</key>
+			<array>
+				<string>1000mA</string>
+				<string>1500mA</string>
+				<string>2000mA</string>
+				<string>2500mA</string>
+			</array>
+			<key>validValues</key>
+			<array>
+				<integer>1000</integer>
+				<integer>1500</integer>
+				<integer>2000</integer>
+				<integer>2500</integer>
+			</array>
 		</dict>
 		<dict>
 			<key>action</key>

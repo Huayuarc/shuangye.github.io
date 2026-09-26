@@ -124,44 +124,30 @@ static void EvaluateBattery(void) {
 
 
 // ============================================================================
-// 充电发热保护：充电过程中电池温度过高时暂停充电，降温后自动恢复
-//   阈值：chargeHeatStopTempC（默认 42℃，可写偏好调整），恢复温度 = 停止温度 - 4
-//   与智能停充共用同一套停充/恢复实现（PredictiveChargingInhibit / ExternalConnected）
+// 充电限流降温：充电时按电池温度阶梯限制充电电流（继续充电，但显著减少发热）
+//   温度 >= 42℃ -> 上限 800mA；>= 38℃ -> 上限 1200mA；否则用面板设定值（默认 1500mA）
+//   写入 AppleSmartBattery 的电流限制属性（与 powerd 限制充电电流同一通道）
 // ============================================================================
-static BOOL gHeatGuardActive = NO;
+static NSInteger gAppliedCurrentLimit = -1;
 
-static void AppendChargeLog(NSString *message) {
-    if (message.length == 0) return;
-    NSString *line = [NSString stringWithFormat:@"[%.3f][charge] %@\n", CFAbsoluteTimeGetCurrent(), message];
-    NSData *data = [line dataUsingEncoding:NSUTF8StringEncoding];
-    NSFileManager *fm = [NSFileManager defaultManager];
-    for (NSString *dir in @[S("/usr/local/share/CPUthermal"), S("/var/jb/usr/local/share/CPUthermal"),
-                            S("/var/mobile/Library/CPUthermal"), S("/var/tmp"), S("/tmp")]) {
-        if (![fm fileExistsAtPath:dir]) continue;
-        NSString *path = [dir stringByAppendingPathComponent:S("cputhermal-throttle.log")];
-        if (![fm fileExistsAtPath:path]) [fm createFileAtPath:path contents:nil attributes:nil];
-        NSFileHandle *handle = [NSFileHandle fileHandleForWritingAtPath:path];
-        if (!handle) continue;
-        @try { [handle seekToEndOfFile]; [handle writeData:data]; [handle closeFile]; }
-        @catch (__unused NSException *e) { }
-        break;
-    }
+static BOOL SetChargeCurrentLimit(BOOL preferSmart, NSInteger milliAmps) {
+    NSDictionary *properties = @{
+        S("AdapterCurrentLimit")   : @(milliAmps),
+        S("ChargeCurrentLimit")    : @(milliAmps),
+        S("ChargingCurrentLimit")  : @(milliAmps),
+        S("USBPDCurrentLimit")     : @(milliAmps),
+    };
+    return SetProperties(preferSmart, properties);
 }
 
-// AppleSmartBattery 的 Temperature 为百分之一摄氏度（4600 => 46.0℃），兼容十分之一
-static double BatteryTemperatureCelsius(NSDictionary *properties) {
-    id value = properties[S("Temperature")];
-    if (![value respondsToSelector:@selector(doubleValue)]) return -1.0;
-    double raw = [value doubleValue];
-    if (raw <= 0.0) return -1.0;
-    return raw > 2000.0 ? raw / 100.0 : raw / 10.0;
-}
-
-static void EvaluateHeatGuard(void) {
+static void EvaluateChargeHeatLimit(void) {
     NSDictionary *prefs = CPUthermalReadPrefs() ?: @{};
     BOOL preferSmart = BoolPreference(prefs, S("smartChargeUseSmartBatteryAPI"), YES);
-    if (!BoolPreference(prefs, S("chargeHeatGuardEnabled"), YES)) {
-        if (gHeatGuardActive) { gHeatGuardActive = NO; AppendChargeLog(S("HEAT 充电高温保护已关闭")); }
+    if (!BoolPreference(prefs, S("chargeCurrentLimitEnabled"), YES)) {
+        if (gAppliedCurrentLimit > 0) {
+            gAppliedCurrentLimit = -1;
+            AppendChargeLog(S("HEAT 充电限流已关闭（恢复系统默认充电电流）"));
+        }
         return;
     }
     io_service_t service = BatteryService(preferSmart);
@@ -170,24 +156,21 @@ static void EvaluateHeatGuard(void) {
     double tempC = BatteryTemperatureCelsius(properties);
     BOOL connected = AdapterConnected(properties);
     IOObjectRelease(service);
-    if (tempC < 0.0 || !connected) {
-        if (gHeatGuardActive) { gHeatGuardActive = NO; AppendChargeLog(S("HEAT 充电高温保护解除（未充电或温度不可用）")); }
-        return;
-    }
-    NSInteger stopTemp = MAX(35, MIN(55, IntegerPreference(prefs, S("chargeHeatStopTempC"), 42)));
-    NSInteger resumeTemp = MAX(30, stopTemp - 4);
-    if (!gHeatGuardActive && tempC >= (double)stopTemp) {
-        gHeatGuardActive = YES;
-        if (!gOwnsInhibit) SetChargeInhibited(preferSmart, YES);
-        if (BoolPreference(prefs, S("smartChargeDisableInflow"), NO) && !gOwnsInflowDisable) SetInflowEnabled(preferSmart, NO);
-        AppendChargeLog([NSString stringWithFormat:@"HEAT 充电高温保护生效 temp=%.1fC >= %ldC：已暂停充电",
-                         tempC, (long)stopTemp]);
-    } else if (gHeatGuardActive && tempC <= (double)resumeTemp) {
-        gHeatGuardActive = NO;
-        RestoreOwnedState();
-        EvaluateBattery();   // 再按电量阈值决定是否应继续停充
-        AppendChargeLog([NSString stringWithFormat:@"HEAT 充电高温保护解除 temp=%.1fC <= %ldC：已恢复充电评估",
-                         tempC, (long)resumeTemp]);
+    if (!connected) return;
+
+    NSInteger configured = MAX(500, MIN(3000, IntegerPreference(prefs, S("chargeCurrentLimitMA"), 1500)));
+    NSInteger limit = configured;
+    if (tempC >= 42.0) limit = MIN(limit, 800);
+    else if (tempC >= 38.0) limit = MIN(limit, 1200);
+
+    if (limit != gAppliedCurrentLimit) {
+        BOOL ok = SetChargeCurrentLimit(preferSmart, limit);
+        if (ok) {
+            gAppliedCurrentLimit = limit;
+            AppendChargeLog([NSString stringWithFormat:
+                @"HEAT 充电限流 temp=%.1fC -> 充电电流上限 %ldmA（设定 %ldmA）",
+                tempC, (long)limit, (long)configured]);
+        }
     }
 }
 
@@ -208,17 +191,17 @@ int main(int argc, char **argv) {
         if (argc > 1 && strcmp(argv[1], "reset") == 0) return ResetCharging() ? 0 : 2;
         signal(SIGTERM, SignalHandler); signal(SIGINT, SignalHandler); signal(SIGHUP, SignalHandler);
         notify_register_dispatch(kCPUthermalSettingsChangedNotifC, &gNotifyToken, dispatch_get_main_queue(), ^(int token) {
-            (void)token; @autoreleasepool { EvaluateBattery(); EvaluateHeatGuard(); }
+            (void)token; @autoreleasepool { EvaluateBattery(); EvaluateChargeHeatLimit(); }
         });
         [NSTimer scheduledTimerWithTimeInterval:15.0 repeats:YES block:^(__unused NSTimer *timer) {
             @autoreleasepool { EvaluateBattery(); }
         }];
-        // 温度变化比电量快，单独 5 秒轮询做充电高温保护
+        // 温度变化比电量快，单独 5 秒轮询做充电限流降温
         [NSTimer scheduledTimerWithTimeInterval:5.0 repeats:YES block:^(__unused NSTimer *timer) {
-            @autoreleasepool { EvaluateHeatGuard(); }
+            @autoreleasepool { EvaluateChargeHeatLimit(); }
         }];
         EvaluateBattery();
-        EvaluateHeatGuard();
+        EvaluateChargeHeatLimit();
         [[NSRunLoop mainRunLoop] run];
     }
     return 0;

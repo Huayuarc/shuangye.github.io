@@ -162,11 +162,11 @@
         IOObjectRelease(entry);
     }
     NSString *source = milliAmps > 1200 ? S("充电电流") : (milliAmps < 0 ? S("放电/CPU 负载") : S("环境积热"));
-    NSString *guard = [[prefs objectForKey:S("chargeHeatGuardEnabled")] ?: @YES boolValue]
-        ? S("开（≥42℃暂停充电，≤38℃恢复）") : S("关");
-    NSInteger stop = [[prefs objectForKey:S("chargeHeatStopTempC")] ?: @42 integerValue];
+    NSString *guard = [[prefs objectForKey:S("chargeCurrentLimitEnabled")] ?: @YES boolValue]
+        ? S("开") : S("关");
+    NSInteger stop = [[prefs objectForKey:S("chargeCurrentLimitMA")] ?: @1500 integerValue];
     return [NSString stringWithFormat:
-        S("运行方式：%@\n过热保护：%@  热压等级：%d\n电池 %d.%d℃ / %d%%  电流 %+dmA\n当前主热源：%@\n充电高温保护：%@（阈值 %ld℃）"),
+        S("运行方式：%@\n过热保护：%@  热压等级：%d\n电池 %d.%d℃ / %d%%  电流 %+dmA\n当前主热源：%@\n充电限流：%@（上限 %ldmA，≥38℃降1200、≥42℃降800）"),
         modeTitle, protection ? S("已触发（降功耗中）") : S("未触发"), [self thermalPressureLevel],
         tempTenths / 10, tempTenths % 10, soc, milliAmps, source, guard, (long)stop];
 }
