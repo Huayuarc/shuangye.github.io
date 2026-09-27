@@ -1315,9 +1315,6 @@ static int ThermalPressureLevel(void) {
     return NotifyStateForName("com.apple.system.thermalpressurelevel");
 }
 
-static int ThermalNotificationLevel(void) {
-    return NotifyStateForName("com.apple.system.thermalnotification");
-}
 
 static int ThermalStateValue(void) {
     @try { return (int)[[NSProcessInfo processInfo] thermalState]; }
