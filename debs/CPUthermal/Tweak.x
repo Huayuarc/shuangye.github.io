@@ -1595,12 +1595,6 @@ return %orig(connect);
 
 // --- IOConnectCallMethod — 保留连接追踪，不再按 selector 范围盲拦截；
 //     对 PPM/ARMPE/PMGR/PMU/SMC/CLPC 类服务只记录 selector 与入参，便于定位剩余降频来源。
-static NSString *CPUthermalConnectionServiceName(io_connect_t connection) {
-os_unfair_lock_lock(&g_connLock);
-NSString *name = nil;
-for (int i = 0; i < g_connCount; i++) {
-if (g_conns[i].conn == connection) { name = [NSString stringWithFormat:@"conn%u", (unsigned)connection]; break; }
-}
 os_unfair_lock_unlock(&g_connLock);
 return name;
 }
