@@ -1128,58 +1128,6 @@ static void CPUthermalThrottleLog(NSString *message) {
 }
 
 
-// ============================================================================
-// CPU 降频守护与探针（原 CPUthermalPowerGuard.dylib，已优化并入主模块）
-//
-//   1) 采样：以 CPU 时间为窗口的定长算力测量
-//      st=（最快核等效频率） mt=（全核聚合吞吐，用于发现“只有多核被压”）
-//   2) 记录：ApplePPM/PPM/ARMPE 等服务的 IOConnect 调用与降频等级请求
-//   3) 保活：面板「保持高频档位」开启时低占空比保活，减少 DVFS 升档延迟
-//   输出统一进入 cputhermal-throttle.log。
-// ============================================================================
-// 相同签名 10 秒内只记一次：SMC 传感器轮询很频繁，不去重会把日志刷爆
-// 电池/电源预算类键：只记录不拦截（误伤电池电流保护可能引起低电掉电关机）
-// 「保持高频档位」：低占空比保活（2ms / 100ms），性能核不落回最低档，
-// 短任务不必等 DVFS 升档；代价是待机功耗上升，由面板开关控制。
-// 固定迭代数 + 首尾各一次 CPU 时间读取：
-//   循环内不再调用 clock_gettime，避免把系统调用开销算进窗口；
-//   用 CPU 时间而非墙钟，抢占不计入。读数 = 迭代数 / CPU 秒，只反映频率。
-static void *CPUthermalPerfThread(void *context) {
-    CPUthermalPerfSlot *slot = (CPUthermalPerfSlot *)context;
-    pthread_set_qos_class_self_np(QOS_CLASS_USER_INITIATED, 0);
-    slot->rate = PerfIterationsPerCpuSecond();
-    return NULL;
-}
-// 真实的热压等级通知名（此前误用了符号名字符串，读数恒为 0）
-// 算力采样：读数 = 每秒可完成的迭代数（频率代理），峰值取历史最大值
-static double gBestStRate = 0.0;
-static double gBestMtRate = 0.0;
-// ============================================================================
-// 热流保护（thermal-aware）
-//   1) 由 电池温度 / 充电电流 / 系统负载 合成“热负荷”判定；
-//   2) 发热时暂停「保持高频档位」保活，避免插件自己再叠一层热源；
-//   3) 发热时把采样间隔从 5 秒放宽到 10 秒，降低插件自身开销；
-//   4) 每 30 秒输出一条 HEAT 归因（充电 / CPU 负载 / 环境），便于定位热源。
-// ============================================================================
-// ============================================================================
-// 温度保护引擎（参考 SBCPUFloating 的行为模型）
-//   - 过热自动保护：热压等级/热通知达到较高等级，或电池温度过高时，
-//     临时切到低功耗运行方式降低功耗帮助降温；
-//   - 温度正常后自动恢复：恢复正常并保持约 5 秒后，切回用户所选运行方式；
-//   - 极限满频：周期重申满功率预算与 CPU 等级，对抗任何重新介入的缓解。
-//   模式切换全部事件驱动、立即生效，无延迟。
-// ============================================================================
-static void CPUthermalEngineTick(void) {
-    @try {
-        // 采样与热归因日志（诊断用，不做自动降功耗干预）
-        CPUthermalUpdateHeatState();
-        if (kPeriodicReassertEnabled) {
-            if (isLowPowerMode()) { applyLowPowerToCommonProduct(); startLowPowerRescheduleTimer(); }
-        }
-    } @catch (__unused NSException *e) { }
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (gHeatThrottleActive ? 10ull : 5ull) * NSEC_PER_SEC),
-                   dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{ CPUthermalEngineTick(); });
-}
 static void CPUthermalRememberBacklightMaximum(id value) {
     if(![value respondsToSelector:@selector(doubleValue)])return;
     double v=[value doubleValue];
@@ -1718,9 +1666,6 @@ if (thermalDimmingPreventionEnabled() && keyIsBacklightThermalLimit(keyString)) 
     kern_return_t result = replacement ? %orig(entry, key, (__bridge CFTypeRef)replacement) : %orig(entry, key, value);
     CPUthermalRecommitUserBrightnessSoon();
     return result;
-}
-if (keyIsPowerBudgetProperty(keyString) && CPUthermalShouldLogSignature([@"BUDGET-P" stringByAppendingString:keyString])) {
-CPUthermalThrottleLog([NSString stringWithFormat:@"BUDGET IORegistryEntrySetCFProperty %@ = %@", keyString, (__bridge id)value]);
 }
 if (shouldApplyFullCPUProtection() && keyIsThermalThrottleProperty(keyString)) {
 CPUthermalThrottleLog([NSString stringWithFormat:@"DROP IORegistryEntrySetCFProperty %@ = %@", keyString, (__bridge id)value]);
