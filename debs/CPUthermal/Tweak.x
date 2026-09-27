@@ -1593,11 +1593,7 @@ os_unfair_lock_unlock(&g_connLock);
 return %orig(connect);
 }
 
-// --- IOConnectCallMethod — 保留连接追踪，不再按 selector 范围盲拦截；
-//     对 PPM/ARMPE/PMGR/PMU/SMC/CLPC 类服务只记录 selector 与入参，便于定位剩余降频来源。
-os_unfair_lock_unlock(&g_connLock);
-return name;
-}
+// --- IOConnectCallMethod — 仅保留连接追踪，纯透传（诊断日志已移除）
 
 
 %hookf(kern_return_t, IOConnectCallMethod, mach_port_t connection, uint32_t selector, const uint64_t *input, uint32_t inputCnt, const void *inputStruct, size_t inputStructCnt, uint64_t *output, uint32_t *outputCnt, void *outputStruct, size_t *outputStructCnt) {
