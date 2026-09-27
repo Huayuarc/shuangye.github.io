@@ -38,6 +38,7 @@ typedef struct {
 } CPUthermalHookRecord;
 
 static BOOL gEnabled = NO;
+static BOOL gBlockThermalPopup = NO;   // 屏蔽高温温度计警告（含自动锁屏抑制）
 
 static long long (*origGenuineBatteryStatus)(id, SEL) = NULL;
 static long long (*origBatteryHealthServiceState)(id, SEL) = NULL;
@@ -771,8 +772,6 @@ static void onBundleDidLoad(CFNotificationCenterRef center,
 //   仅拦截弹窗不够，锁屏动作仍会发生。这里把 SpringBoard 进程内所有热状态读取
 //   伪装为正常（nominal / 0），使高温界面与自动锁屏都不再出现。
 // ============================================================================
-static BOOL gBlockThermalPopup = NO;
-
 static BOOL CPUthermalIsThermalNotifyName(const char *name) {
     return name ? (cStringContainsInsensitive(name, "thermal") != NO) : NO;
 }
