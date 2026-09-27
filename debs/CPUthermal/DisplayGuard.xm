@@ -81,6 +81,9 @@ static inline double RawToNits(int64_t raw) { return (double)raw / 65536.0; }
 static const double kDisplayMinPlausibleNits = 850.0;
 static inline int64_t MinPlausibleRaw(void) { return NitsToRaw(kDisplayMinPlausibleNits); }
 
+// 前置声明（定义在后文）
+static CFTypeRef NodeCopyProperty(io_registry_entry_t entry, const char *name);
+
 static NSString *CapStorePath(void) {
     NSFileManager *fm = [NSFileManager defaultManager];
     for (NSString *dir in @[@"/var/mobile/Library/CPUthermal", @"/var/tmp", @"/tmp"]) {
