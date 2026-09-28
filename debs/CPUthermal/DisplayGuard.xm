@@ -207,7 +207,7 @@ static double PanelMaxNitsForCurrentDevice(void) {
     });
     size_t size = 0;
     if (sysctlbyname("hw.machine", NULL, &size, NULL, 0) != 0 || size < 2) return 0.0;
-    char *model = calloc(1, size);
+    char *model = (char *)calloc(1, size);
     if (!model) return 0.0;
     double nits = 0.0;
     if (sysctlbyname("hw.machine", model, &size, NULL, 0) == 0) {
