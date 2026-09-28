@@ -240,6 +240,7 @@ static BOOL g_thermalBlockNotifPopup = NO;
 static BOOL g_thermalPreventDimmingEnabled = NO;
 static BOOL isFullPowerMode(void);
 static BOOL shouldApplyLowPowerLimit(void);
+static void CPUthermalApplySimulatedThermalLevel(void);
 static int targetCPUPerformanceLevel(void);
 static void loadPrefs(void);
 static NSDictionary *readPrefsDictionary(void);
