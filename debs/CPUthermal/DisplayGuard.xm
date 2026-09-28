@@ -19,6 +19,7 @@
 #import <UIKit/UIKit.h>
 #import <IOKit/IOKitLib.h>
 #import <objc/runtime.h>
+#import <objc/message.h>
 #include <dlfcn.h>
 #include <math.h>
 #include <unistd.h>
