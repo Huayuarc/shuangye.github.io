@@ -931,7 +931,7 @@ static void CPUthermalMaybeReloadConfigForModeChange(void) {
     if (g_cfgReloadCount >= 6) { CPUthermalThrottleLog(@"config reload skipped (per-boot limit)"); return; }
     if (g_cfgReloadLastAt && now - g_cfgReloadLastAt < 120) { CPUthermalThrottleLog(@"config reload skipped (too soon)"); return; }
     g_cfgReloadLastMode = mode; g_cfgReloadLastAt = now; g_cfgReloadCount++;
-    CPUthermalThrottleLog(@"config reload for mode change (count=%d, lowPower=%d)", g_cfgReloadCount, mode);
+    CPUthermalThrottleLog([NSString stringWithFormat:@"config reload for mode change (count=%d, lowPower=%d)", g_cfgReloadCount, mode]);
     scheduleThermalConfigurationReload();
 }
 
