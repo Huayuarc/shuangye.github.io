@@ -1,0 +1,36 @@
+#!/bin/sh
+case "$1" in
+configure)
+killall -q thermalmonitord 2>/dev/null || true
+
+# 防温控暗屏此前默认关闭（历史缺陷），升级时把显式 false 迁移为 true；
+# 迁移失败无副作用（代码侧同样按“缺键=开启”处理），仍可在面板中关闭。
+migrate_dimming_pref() {
+    _P="$1"
+    [ -f "$_P" ] || return 0
+    _V=$(plutil -extract thermalPreventDimmingEnabled raw -o - "$_P" 2>/dev/null) || _V=""
+    if [ -z "$_V" ]; then
+        _V=$(plutil -p "$_P" 2>/dev/null | sed -n 's/.*"thermalPreventDimmingEnabled" => \([a-zA-Z0-9]*\).*/\1/p' | head -1)
+    fi
+    case "$_V" in
+        false|0)
+            plutil -replace thermalPreventDimmingEnabled -bool YES "$_P" >/dev/null 2>&1 \
+                || plutil -replace thermalPreventDimmingEnabled -bool true "$_P" >/dev/null 2>&1 || true ;;
+    esac
+    return 0
+}
+for _P in /var/jb/var/mobile/Library/Preferences/com.huayuarc.cputhermal.plist \
+          /var/mobile/Library/Preferences/com.huayuarc.cputhermal.plist \
+          /var/mobile/Containers/Shared/AppGroup/.jbroot-*/var/mobile/Library/Preferences/com.huayuarc.cputhermal.plist ; do
+    migrate_dimming_pref "$_P"
+done
+
+# 智能停充守护：已有服务重启读取新配置，首次安装执行 bootstrap。
+if launchctl print system/com.huayuarc.cputhermal.charge >/dev/null 2>&1; then
+    launchctl kickstart -k system/com.huayuarc.cputhermal.charge >/dev/null 2>&1 || true
+else
+    launchctl bootstrap system /var/jb/Library/LaunchDaemons/com.huayuarc.cputhermal.charge.plist >/dev/null 2>&1 || true
+fi
+;;
+esac
+exit 0
