@@ -1,6 +1,7 @@
 #import "CPUthermalCC1x1ModuleViewController.h"
 #import <Foundation/Foundation.h>
 #import <notify.h>
+#import <QuartzCore/QuartzCore.h>
 #import <CPUthermalPaths.h>
 
 // ============================================================
@@ -64,7 +65,7 @@ static const CGFloat kCCTinyHighlightCornerRadius = 15.0;
     self.highlightView = [[UIView alloc] initWithFrame:CGRectZero];
     self.highlightView.userInteractionEnabled = NO;
     self.highlightView.layer.cornerRadius = kCCTinyHighlightCornerRadius;
-    self.highlightView.layer.cornerCurve = kCALayerCornerCurveContinuous;
+    self.highlightView.layer.cornerCurve = kCACornerCurveContinuous;
     self.highlightView.hidden = YES;
     [self.view addSubview:self.highlightView];
 
