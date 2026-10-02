@@ -217,7 +217,6 @@ static os_unfair_lock g_controllerLock = OS_UNFAIR_LOCK_INIT;
 static os_unfair_lock g_runtimeLock = OS_UNFAIR_LOCK_INIT;    // 有限模式应用任务
 static __thread BOOL g_restoringFullPower = NO;
 static BOOL g_fullPowerRecoveryPulseScheduled = NO;
-static dispatch_source_t g_lowPowerRescheduleTimer = NULL;
 static BOOL g_thermalReloadScheduled = NO;
 static BOOL g_forceThermalConfigReload = NO;
 static int g_lockStateToken = -1;
@@ -2406,15 +2405,6 @@ static id CPUthermalPatchBacklightNode(id node) {
 //   功率通道（解除温控靠抬高它生效）。低功耗因此反向使用同一条通道：
 //   把 CPU/功率/性能/频率类数值按比例压低，亮度/显示类键一律不动。
 // ============================================================================
-static BOOL CPUthermalIsDisplayConfigKey(NSString *key) {
-    if (![key isKindOfClass:[NSString class]]) return NO;
-    NSString *lower = [key lowercaseString];
-    for (NSString *token in @[@"backlight", @"bright", @"display", @"nits", @"blnit"]) {
-        if ([lower containsString:token]) return YES;
-    }
-    return NO;
-}
-
 static NSDictionary *patchThermalPlist(NSDictionary *dict) {
     BOOL dimming = thermalDimmingPreventionEnabled();
     if (![dict isKindOfClass:[NSDictionary class]] || !dimming) return dict;
