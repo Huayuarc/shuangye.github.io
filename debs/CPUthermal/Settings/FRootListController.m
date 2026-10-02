@@ -208,24 +208,24 @@
 - (NSArray *)specifiers {
     if (!_specifiers) {
         NSArray *loaded = [self loadSpecifiersFromPlistName:S("Root") target:self];
-        _specifiers = loaded ? [self CPUthermalFilterDependentSpecifiers:loaded] : loaded;
+        _specifiers = loaded ? [self CPUthermalFilterDependentSpecifiers:loaded] : nil;
     }
     return _specifiers;
 }
 
 // 「通知不亮锁屏」关闭时隐藏其模式选择（低电/静音/始终不亮），与系统设置同款联动
-- (NSArray *)CPUthermalFilterDependentSpecifiers:(NSArray *)specifiers {
-    if (![specifiers isKindOfClass:[NSArray class]]) return specifiers;
+- (NSMutableArray *)CPUthermalFilterDependentSpecifiers:(NSArray *)specifiers {
+    if (![specifiers isKindOfClass:[NSArray class]]) return nil;
+    NSMutableArray *result = [specifiers isKindOfClass:[NSMutableArray class]]
+        ? (NSMutableArray *)specifiers : [specifiers mutableCopy];
     NSDictionary *prefs = [self prefs];
     BOOL noWake = [[prefs objectForKey:S("lockScreenNoWake")] boolValue];
-    if (noWake) return specifiers;
-    NSMutableArray *filtered = [NSMutableArray arrayWithCapacity:specifiers.count];
-    for (PSSpecifier *spec in specifiers) {
+    if (noWake) return result;
+    for (PSSpecifier *spec in [result copy]) {
         NSString *key = [spec propertyForKey:S("key")];
-        if ([key isEqualToString:S("lsBlockMode")]) continue;
-        [filtered addObject:spec];
+        if ([key isEqualToString:S("lsBlockMode")]) [result removeObject:spec];
     }
-    return filtered;
+    return result;
 }
 
 @end
