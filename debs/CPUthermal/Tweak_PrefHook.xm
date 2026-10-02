@@ -950,6 +950,8 @@ static void CPUthermalInstallThermalStateSpoof(void) {
             CFNotificationSuspensionBehaviorDeliverImmediately
         );
 
+        %init;   // 初始化无分组 hooks（Logos 组机制要求）
+
         installSpecifierHooks();
         installBatteryHooks();
         installReferenceRepairHooks();
