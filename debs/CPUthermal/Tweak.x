@@ -195,11 +195,8 @@ static BOOL g_applyingPowerMode = NO;
 // 周期性重申总开关：实测 setCPULevel/预算 setter 在 iOS 16 上不被 CLPC 采纳，
 // 而跨线程反复调用 thermalmonitord 对象是 watchdog 挂起（主线程无 checkin）的主要来源。
 // 置 NO 后只保留“切档时应用一次”，不再有任何周期性重入。
-static const BOOL kPeriodicReassertEnabled = NO;
 static os_unfair_lock g_applyLock = OS_UNFAIR_LOCK_INIT;
 
-static CPUthermalPowerMode g_powerMode = CPUthermalPowerModeFull;
-static CPUthermalPowerMode g_userSelectedPowerMode = CPUthermalPowerModeFull;
 static __thread BOOL g_reassertingLowPower = NO;  // 防 updateCPU 钩子与 reassert 互相递归
 
 // setCPULowPowerTarget:/setMaxCPUPowerTarget: 使用 mW；65000 是 thermalmonitord 的无限制哨兵值。
@@ -220,7 +217,6 @@ static os_unfair_lock g_controllerLock = OS_UNFAIR_LOCK_INIT;
 static os_unfair_lock g_runtimeLock = OS_UNFAIR_LOCK_INIT;    // 有限模式应用任务
 static __thread BOOL g_restoringFullPower = NO;
 static BOOL g_fullPowerRecoveryPulseScheduled = NO;
-static BOOL g_lowPowerApplyPulseScheduled = NO;
 static dispatch_source_t g_lowPowerRescheduleTimer = NULL;
 static BOOL g_thermalReloadScheduled = NO;
 static BOOL g_forceThermalConfigReload = NO;
@@ -233,7 +229,6 @@ static os_unfair_lock g_thermalResetLock = OS_UNFAIR_LOCK_INIT;
 static CFAbsoluteTime g_lastThermalReset = 0;
 static os_unfair_lock g_nominalLock = OS_UNFAIR_LOCK_INIT;
 static CFAbsoluteTime g_lastNominalCorrection = 0;
-static os_unfair_lock g_modeLock = OS_UNFAIR_LOCK_INIT;  // 线程安全：保护g_powerMode
 static NSHashTable *g_applePPMInstances = nil;           // 追踪 ApplePPMCPU 实例（弱引用，防止僵尸实例泄漏）
 // 高温告警默认屏蔽；防暗屏仍由用户设置决定。
 // 屏蔽高温温度计警告：**恒开**（面板已移除开关，避免误操作）
@@ -249,11 +244,9 @@ static void applyCurrentPowerModeToRuntime(void);
 static void applyPowerModeToRuntime(BOOL respectBootGuard);
 static void scheduleFullPowerRecoveryPulse(void);
 static void runFullPowerRecoveryPulse(int remainingPulses);
-static void runLowPowerApplyPulse(int remainingPulses);
 static void applyCurrentModeToApplePPMCPU(void);
 static void forceCPUPerformanceLevelOnController(id controller);
 static void applyFullPowerBudgetsOnController(id controller);
-static void applyLowPowerPerformancePreferenceToController(id controller);
 static void CPUthermalThrottleLog(NSString *message);
 static void restoreNativeRuntimeAfterDisable(void);
 static void correctNominalStateIfNeeded(void);
@@ -643,23 +636,6 @@ g_reassertingLowPower = NO;
 }
 
 // 手动低功耗与指定应用低功耗统一使用 2500mW / 45% 明确预算。
-static void applyLowPowerPerformancePreferenceToController(id controller) {
-if (!controller || !shouldApplyLowPowerLimit()) return;
-trackPowerController(controller);
-// 低功耗只限制 CPU：开启 CPU CPMS 执行 Level/预算；不启用 PowerSave，也不调用 Package 低功耗目标。
-if ([controller respondsToSelector:@selector(setCPMSMitigationsEnabled:)])
-((void (*)(id, SEL, BOOL))objc_msgSend)(controller, @selector(setCPMSMitigationsEnabled:), YES);
-if ([controller respondsToSelector:@selector(setPowerSaveActive:)])
-((void (*)(id, SEL, BOOL))objc_msgSend)(controller, @selector(setPowerSaveActive:), NO);
-sendSetPowerSaveToken(controller, 0);
-applyExplicitLowPowerBudgets(controller);
-forceCPUPerformanceLevelOnController(controller);
-if ([controller respondsToSelector:@selector(updateCPU)])
-((void (*)(id, SEL))objc_msgSend)(controller, @selector(updateCPU));
-applyExplicitLowPowerBudgets(controller);
-forceCPUPerformanceLevelOnController(controller);
-}
-
 // 解除温控模式统一恢复 CPU level 与 DVD1 level。
 static void forceCPUPerformanceLevelOnController(id controller) {
 if (!controller || !runtimeProtectionEnabled()) return;
@@ -2438,45 +2414,6 @@ static BOOL CPUthermalIsDisplayConfigKey(NSString *key) {
     }
     return NO;
 }
-
-static BOOL CPUthermalIsScalablePowerKey(NSString *key) {
-    if (![key isKindOfClass:[NSString class]]) return NO;
-    NSString *lower = [key lowercaseString];
-    if ([lower containsString:@"floor"] || [lower containsString:@"minimum"]) return NO;
-    for (NSString *token in @[@"cpu", @"power", @"perf", @"opp", @"freq", @"clpc", @"mitigation", @"limit", @"watt"]) {
-        if ([lower containsString:token]) return YES;
-    }
-    return NO;
-}
-
-static id CPUthermalScaleForLowPower(id value, NSString *contextKey) {
-    if ([value isKindOfClass:[NSNumber class]]) {
-        double v = [(NSNumber *)value doubleValue];
-        if (v <= 0.0) return value;
-        NSString *lower = [contextKey lowercaseString];
-        // 频率类（数值很大或键名含 freq）按 60%，功率/百分比类按 45%
-        double factor = ([lower containsString:@"freq"] || v > 1000.0) ? 0.60 : 0.45;
-        double scaled = v * factor;
-        if (scaled < 1.0) scaled = 1.0;
-        return [NSNumber numberWithDouble:scaled];
-    }
-    if ([value isKindOfClass:[NSArray class]]) {
-        NSMutableArray *out = [NSMutableArray arrayWithCapacity:[(NSArray *)value count]];
-        for (id item in (NSArray *)value) [out addObject:CPUthermalScaleForLowPower(item, contextKey)];
-        return out;
-    }
-    if ([value isKindOfClass:[NSDictionary class]]) {
-        NSMutableDictionary *out = [NSMutableDictionary dictionary];
-        for (id key in (NSDictionary *)value) {
-            NSString *keyText = [key isKindOfClass:[NSString class]] ? key : contextKey;
-            if (CPUthermalIsDisplayConfigKey(keyText)) { out[key] = ((NSDictionary *)value)[key]; continue; }
-            out[key] = CPUthermalScaleForLowPower(((NSDictionary *)value)[key], keyText);
-        }
-        return out;
-    }
-    return value;
-}
-
 
 static NSDictionary *patchThermalPlist(NSDictionary *dict) {
     BOOL dimming = thermalDimmingPreventionEnabled();

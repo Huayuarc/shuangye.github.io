@@ -36,9 +36,6 @@
 // ---------------------------------------------------------------------------
 // 日志
 // ---------------------------------------------------------------------------
-static const int kDisplayLogMaxLines = 4000;
-static int gDisplayLogLines = 0;
-static pthread_mutex_t gLogLock = PTHREAD_MUTEX_INITIALIZER;
 static NSString *gProcTag = @"?";
 
 
