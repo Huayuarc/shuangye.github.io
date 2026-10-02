@@ -608,7 +608,7 @@ static void CPUthermalInstallWriteInterceptors(void) {
                     return kr;
                 }
             }
-        } else if (displayKey && CFEqual(key, displayKey) && value && CFGetTypeID(value) == CFDictionaryGetTypeID()) {
+        } else if (isDisplayWrite && value && CFGetTypeID(value) == CFDictionaryGetTypeID()) {
             // 只学习请求值与实际物理亮度，不改写显示字典
             CFTypeRef nits = CFDictionaryGetValue((CFDictionaryRef)value, CFSTR("Nits"));
             CFTypeRef physical = CFDictionaryGetValue((CFDictionaryRef)value, CFSTR("NitsPhysical"));
