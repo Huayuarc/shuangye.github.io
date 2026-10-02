@@ -511,25 +511,33 @@ static CFTypeRef CPUthermalBacklightLoweringReplacement(CFStringRef key, CFTypeR
     return CFNumberCreate(kCFAllocatorDefault, kCFNumberDoubleType, &out);
 }
 
-%hookf(kern_return_t, IOServiceSetProperty, io_service_t service, CFStringRef key, CFTypeRef value) {
+// 这两个符号不在公共 SDK 头文件中（内核导出、SDK 无声明），
+// 因此不用 %hookf，改用 dlsym + MSHookFunction（与主模块 Tweak.x 同款做法，已验证可编译）。
+typedef kern_return_t (*CPUthermalServiceSetPropertyFn)(io_service_t, CFStringRef, CFTypeRef);
+static CPUthermalServiceSetPropertyFn gOrigIOServiceSetProperty = NULL;
+
+static kern_return_t CPUthermalHookedIOServiceSetProperty(io_service_t service, CFStringRef key, CFTypeRef value) {
     @try {
         CFTypeRef replacement = CPUthermalBacklightLoweringReplacement(key, value);
         if (replacement) {
-            kern_return_t kr = %orig(service, key, replacement);
+            kern_return_t kr = gOrigIOServiceSetProperty ? gOrigIOServiceSetProperty(service, key, replacement) : KERN_FAILURE;
             CFRelease(replacement);
             return kr;
         }
     } @catch (__unused NSException *e) { }
-    return %orig(service, key, value);
+    return gOrigIOServiceSetProperty ? gOrigIOServiceSetProperty(service, key, value) : KERN_FAILURE;
 }
 
-%hookf(kern_return_t, IORegistryEntrySetCFProperties, io_registry_entry_t entry, CFTypeRef properties) {
+typedef kern_return_t (*CPUthermalEntrySetCFPropertiesFn)(io_registry_entry_t, CFTypeRef);
+static CPUthermalEntrySetCFPropertiesFn gOrigIOEntrySetCFProperties = NULL;
+
+static kern_return_t CPUthermalHookedIOEntrySetCFProperties(io_registry_entry_t entry, CFTypeRef properties) {
     @try {
         if (properties && CFGetTypeID(properties) == CFDictionaryGetTypeID()) {
             CFIndex count = CFDictionaryGetCount((CFDictionaryRef)properties);
             if (count > 0) {
-                const void **keys = calloc((size_t)count, sizeof(void *));
-                const void **vals = calloc((size_t)count, sizeof(void *));
+                const void **keys = (const void **)calloc((size_t)count, sizeof(void *));
+                const void **vals = (const void **)calloc((size_t)count, sizeof(void *));
                 CFMutableDictionaryRef patched = NULL;
                 if (keys && vals) {
                     CFDictionaryGetKeysAndValues((CFDictionaryRef)properties, keys, vals);
@@ -542,17 +550,28 @@ static CFTypeRef CPUthermalBacklightLoweringReplacement(CFStringRef key, CFTypeR
                         CFRelease(rep);
                     }
                 }
-                if (keys) free(keys);
-                if (vals) free(vals);
+                if (keys) free((void *)keys);
+                if (vals) free((void *)vals);
                 if (patched) {
-                    kern_return_t kr = %orig(entry, (CFTypeRef)patched);
+                    kern_return_t kr = gOrigIOEntrySetCFProperties ? gOrigIOEntrySetCFProperties(entry, (CFTypeRef)patched) : KERN_FAILURE;
                     CFRelease(patched);
                     return kr;
                 }
             }
         }
     } @catch (__unused NSException *e) { }
-    return %orig(entry, properties);
+    return gOrigIOEntrySetCFProperties ? gOrigIOEntrySetCFProperties(entry, properties) : KERN_FAILURE;
+}
+
+static void CPUthermalInstallWriteInterceptors(void) {
+    static BOOL installed = NO;
+    if (installed) return;
+    installed = YES;
+    void *sym1 = dlsym(RTLD_DEFAULT, "IOServiceSetProperty");
+    if (sym1) MSHookFunction(sym1, (void *)CPUthermalHookedIOServiceSetProperty, (void **)&gOrigIOServiceSetProperty);
+    void *sym2 = dlsym(RTLD_DEFAULT, "IORegistryEntrySetCFProperties");
+    if (sym2) MSHookFunction(sym2, (void *)CPUthermalHookedIOEntrySetCFProperties, (void **)&gOrigIOEntrySetCFProperties);
+    DLog(@"write interceptors installed (service=%d, entryDict=%d)", sym1 != NULL, sym2 != NULL);
 }
 
 %hookf(kern_return_t, IORegistryEntrySetCFProperty, io_registry_entry_t entry, CFStringRef key, CFTypeRef value) {
@@ -666,6 +685,7 @@ if ([key isKindOfClass:[NSString class]] && [(NSString *)key isEqualToString:@"D
         CapAdoptDeviceMaximum();   // 立即读取并采用设备自身最大亮度（无需学习）
         DLog(@"brightness guard state: protection=%d, capTarget=%.2f nits",
              BrightnessProtectionEnabled(), RawToNits(gCapTargetRaw));
+        CPUthermalInstallWriteInterceptors();   // 补 IOServiceSetProperty / IORegistryEntrySetCFProperties 拦截
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)),
                        dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
             EnforcePanelBrightness(@"load");
