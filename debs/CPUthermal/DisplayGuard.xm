@@ -22,6 +22,7 @@
 #import <IOKit/IOKitLib.h>
 #import <objc/runtime.h>
 #import <objc/message.h>
+#import <substrate.h>
 #include <dlfcn.h>
 #include <math.h>
 #include <unistd.h>
