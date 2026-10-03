@@ -92,10 +92,9 @@ static BOOL gForceAirplaneMode = NO;     // 无线电断开动作期间的临时
 // 系统屏幕录制走 AVCaptureScreenInput，其 minFrameDuration 决定捕获帧率；
 // 默认 60fps（录出来约 58.6），这里强制为 1/120。
 static BOOL gForce120HzRecording = NO;
-#import <CoreGraphics/CoreGraphics.h>
 #import <objc/message.h>
 typedef void (*CPUthermalSetMinFrameDurationFn)(id, SEL, CMTime);
-typedef id (*CPUthermalScreenInputInitFn)(id, SEL, CGDirectDisplayID);
+typedef id (*CPUthermalScreenInputInitFn)(id, SEL, uint32_t);   // CGDirectDisplayID = uint32_t
 static CPUthermalSetMinFrameDurationFn gOrigRecorderSetMinFrameDuration = NULL;
 static CPUthermalScreenInputInitFn gOrigScreenInputInit = NULL;
 static BOOL gRecorderHookInstalled = NO;
@@ -108,7 +107,7 @@ static void CPUthermalForce120OnInput(id input) {
     }
 }
 
-static id CPUthermalScreenInputInitHook(id self, SEL _cmd, CGDirectDisplayID displayID) {
+static id CPUthermalScreenInputInitHook(id self, SEL _cmd, uint32_t displayID) {
     id obj = gOrigScreenInputInit ? gOrigScreenInputInit(self, _cmd, displayID) : nil;
     CPUthermalForce120OnInput(obj);
     return obj;
