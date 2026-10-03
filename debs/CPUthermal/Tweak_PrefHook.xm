@@ -106,12 +106,9 @@ static void CPUthermalForce120OnInput(id input) {
     if ([input respondsToSelector:sel_registerName("setMinFrameDuration:")]) {
         ((void (*)(id, SEL, CMTime))objc_msgSend)(input, sel_registerName("setMinFrameDuration:"), duration);
     }
-    // 兜底：常见别名属性一并尝试（KVC 需要 NSValue 包装；不存在的键会抛异常，忽略即可）
-    NSValue *boxed = [NSValue valueWithCMTime:duration];
-    for (NSString *key in @[@"videoMinFrameDuration", @"frameDuration", @"minFrameDuration"]) {
-        @try { [input setValue:boxed forKey:key]; } @catch (__unused NSException *e) { }
-    }
 }
+
+static void CPUthermalInstallRecorderHooks(void);
 
 // 延迟多次重试安装（replayd 中 AVFoundation 可能加载较晚）
 static void CPUthermalScheduleRecorderRetries(void) {
