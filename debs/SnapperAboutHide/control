@@ -1,0 +1,9 @@
+Package: com.huayuarc.snapperabouthide
+Name: Snapper About Hide
+Version: 1.0.1
+Architecture: iphoneos-arm
+Description: Hide only the About Us group and three promotional links in Snapper4 settings. Original files and all functional settings remain unchanged.
+Maintainer: Huayuarc
+Author: Huayuarc
+Section: Tweaks
+Depends: mobilesubstrate, com.axs.snapper4
