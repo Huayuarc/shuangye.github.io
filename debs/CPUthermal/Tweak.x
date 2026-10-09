@@ -1967,9 +1967,15 @@ return;
 
 // 低功耗开启 CPU CPMS 使 Level2/预算落硬件；解除温控关闭 CPMS。
 - (void)setCPMSMitigationsEnabled:(BOOL)enabled {
-if (g_restoringFullPower) { %orig(enabled); return; }
-if (shouldApplyLowPowerLimit()) { %orig(YES); return; }
-if (shouldApplyFullCPUProtection()) { %orig(NO); return; }
+if (g_restoringFullPower) {
+%orig(enabled);
+return; }
+if (shouldApplyLowPowerLimit()) {
+%orig(YES);
+return; }
+if (shouldApplyFullCPUProtection()) {
+%orig(NO);
+return; }
 %orig(enabled);
 }
 
@@ -2173,16 +2179,26 @@ return %orig;
 
 - (void)setPowerSaveActive:(BOOL)active {
 trackPowerController(self);
-if (g_restoringFullPower) { %orig(active); return; }
-if (shouldApplyLowPowerLimit()) { %orig(NO); return; }   // 只限制 CPU，不启用全局 PowerSave
-if (shouldApplyFullCPUProtection()) { %orig(NO); return; }
+if (g_restoringFullPower) {
+%orig(active);
+return; }
+if (shouldApplyLowPowerLimit()) {
+%orig(NO);
+return; }   // 只限制 CPU，不启用全局 PowerSave
+if (shouldApplyFullCPUProtection()) {
+%orig(NO);
+return; }
 %orig(active);
 }
 
 - (void)setPowerSaveToken:(uintptr_t)token {
 trackPowerController(self);
-if (g_restoringFullPower) { %orig(token); return; }
-if (shouldApplyLowPowerLimit() || shouldApplyFullCPUProtection()) { %orig(0); return; }
+if (g_restoringFullPower) {
+%orig(token);
+return; }
+if (shouldApplyLowPowerLimit() || shouldApplyFullCPUProtection()) {
+%orig(0);
+return; }
 %orig(token);
 }
 
@@ -2285,9 +2301,15 @@ return res;
 }
 
 - (void)setCPMSMitigationsEnabled:(BOOL)enabled {
-if (g_restoringFullPower) { %orig(enabled); return; }
-if (shouldApplyLowPowerLimit()) { %orig(YES); return; }
-if (shouldApplyFullCPUProtection()) { %orig(NO); return; }
+if (g_restoringFullPower) {
+%orig(enabled);
+return; }
+if (shouldApplyLowPowerLimit()) {
+%orig(YES);
+return; }
+if (shouldApplyFullCPUProtection()) {
+%orig(NO);
+return; }
 %orig(enabled);
 }
 
@@ -2300,15 +2322,25 @@ return %orig;
 
 - (void)setPowerSaveActive:(BOOL)active {
 trackPowerController(self);
-if (g_restoringFullPower) { %orig(active); return; }
-if (shouldApplyLowPowerLimit()) { %orig(NO); return; }   // 只限制 CPU，不启用全局 PowerSave
-if (shouldApplyFullCPUProtection()) { %orig(NO); return; }
+if (g_restoringFullPower) {
+%orig(active);
+return; }
+if (shouldApplyLowPowerLimit()) {
+%orig(NO);
+return; }   // 只限制 CPU，不启用全局 PowerSave
+if (shouldApplyFullCPUProtection()) {
+%orig(NO);
+return; }
 %orig(active);
 }
 
 - (void)setPowerSaveToken:(int)token {
-if (g_restoringFullPower) { %orig(token); return; }
-if (shouldApplyLowPowerLimit() || shouldApplyFullCPUProtection()) { %orig(0); return; }
+if (g_restoringFullPower) {
+%orig(token);
+return; }
+if (shouldApplyLowPowerLimit() || shouldApplyFullCPUProtection()) {
+%orig(0);
+return; }
 %orig(token);
 }
 

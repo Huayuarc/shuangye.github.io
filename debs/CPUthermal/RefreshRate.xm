@@ -90,21 +90,28 @@ static void CPUthermalApplyDisplayLink(CADisplayLink *link) {
     CADisplayLink *link=%orig; CPUthermalApplyDisplayLink(link); return link;
 }
 - (void)setPreferredFrameRateRange:(CAFrameRateRange)range {
-    if(CPUthermalShouldForce120Hz()) %orig(CPUthermalForcedRange(range, NO)); else %orig(range);
+    if(CPUthermalShouldForce120Hz()) %orig(CPUthermalForcedRange(range, NO));
+else %orig(range);
 }
 - (void)setPreferredFramesPerSecond:(NSInteger)fps {
-    if(CPUthermalShouldForce120Hz()) %orig(0); else %orig(fps);
+    if(CPUthermalShouldForce120Hz()) %orig(0);
+else %orig(fps);
 }
 - (void)setFrameInterval:(NSInteger)interval {
-    if(CPUthermalShouldForce120Hz()) %orig(1); else %orig(interval);
+    if(CPUthermalShouldForce120Hz()) %orig(1);
+else %orig(interval);
 }
 %end
 
 %hook CAMutableDisplayPreferences
-- (void)setPreferredRefreshRate:(double)rate { %orig(CPUthermalShouldForce120Hz()?120.0:rate); }
+- (void)setPreferredRefreshRate:(double)rate {
+%orig(CPUthermalShouldForce120Hz()?120.0:rate);
+}
 %end
 %hook CADisplayPreferences
-- (void)setPreferredRefreshRate:(double)rate { %orig(CPUthermalShouldForce120Hz()?120.0:rate); }
+- (void)setPreferredRefreshRate:(double)rate {
+%orig(CPUthermalShouldForce120Hz()?120.0:rate);
+}
 %end
 %hook CADisplay
 - (void)setPreferences:(id)preferences {
@@ -115,14 +122,18 @@ static void CPUthermalApplyDisplayLink(CADisplayLink *link) {
 
 %hook CAContext
 - (void)setPreferredFrameRateRange:(CAFrameRateRange)range {
-    if(CPUthermalShouldForce120Hz()) %orig(CPUthermalForcedRange(range, NO)); else %orig(range);
+    if(CPUthermalShouldForce120Hz()) %orig(CPUthermalForcedRange(range, NO));
+else %orig(range);
 }
-- (void)setPreferredFrameRate:(float)rate { %orig(CPUthermalShouldForce120Hz()&&rate>=60.0f?120.0f:rate); }
+- (void)setPreferredFrameRate:(float)rate {
+%orig(CPUthermalShouldForce120Hz()&&rate>=60.0f?120.0f:rate);
+}
 %end
 
 %hook CADynamicFrameRateSource
 - (void)setPreferredFrameRateRange:(CAFrameRateRange)range {
-    if(CPUthermalShouldForce120Hz()) %orig(CPUthermalForcedRange(range, YES)); else %orig(range);
+    if(CPUthermalShouldForce120Hz()) %orig(CPUthermalForcedRange(range, YES));
+else %orig(range);
 }
 - (CAFrameRateRange)preferredFrameRateRange {
     CAFrameRateRange range=%orig; return CPUthermalShouldForce120Hz()?CPUthermalForcedRange(range,YES):range;
