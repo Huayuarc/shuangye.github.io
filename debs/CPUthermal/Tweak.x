@@ -1860,7 +1860,9 @@ if (thermalDimmingPreventionEnabled() && keyIsBacklightThermalLimit(keyString)) 
     if (CFGetTypeID(value) == CFNumberGetTypeID() || CFGetTypeID(value) == CFStringGetTypeID()) {
         replacement = backlightReplacementMatchingValue(keyString, (__bridge id)value);
     }
-    kern_return_t result = replacement ? %orig(entry, key, (__bridge CFTypeRef)replacement) : %orig(entry, key, value);
+    kern_return_t result;
+    if (replacement) result = %orig(entry, key, (__bridge CFTypeRef)replacement);
+    else result = %orig(entry, key, value);
     CPUthermalRecommitUserBrightnessSoon();
     return result;
 }
