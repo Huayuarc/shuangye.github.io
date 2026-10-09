@@ -2752,16 +2752,7 @@ static NSDictionary *new_getConfigurationFor(NSString *key) {
 // Puppet 事件（由 Preferences 面板触发 — 模拟热级别切换）
 // ============================================================================
 static void executePuppetEvent(void) {
-CommonProduct *product = commonProductSnapshot();
-if (!product) return;
-@autoreleasepool {
-NSDictionary *prefs = readPrefsDictionary();
-id configuredLevel = [prefs isKindOfClass:[NSDictionary class]] ? prefs[S("thermalPuppetValue")] : nil;
-NSString *level = [configuredLevel isKindOfClass:[NSString class]] ? configuredLevel : S("nominal");
-// 不再使用私有 API putDeviceInThermalSimulationMode:（改用只读日志，避免遗留模拟热档）
-NSLog(@"[CPUthermal] 热级别请求（已忽略）: %@", level);
-NSLog(@"[CPUthermal] Puppet 事件: 热模式设为 %@", level);
-}
+// 旧通知保留兼容入口；不执行热模拟、不读偏好、不产生日志。
 }
 
 static void onPuppetEvent(CFNotificationCenterRef center, void *observer, CFNotificationName name, const void *object, CFDictionaryRef userInfo) {
