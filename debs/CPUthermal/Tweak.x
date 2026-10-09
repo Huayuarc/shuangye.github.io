@@ -1808,7 +1808,8 @@ return %orig(connect);
 
 %hookf(kern_return_t, IOConnectCallMethod, mach_port_t connection, uint32_t selector, const uint64_t *input, uint32_t inputCnt, const void *inputStruct, size_t inputStructCnt, uint64_t *output, uint32_t *outputCnt, void *outputStruct, size_t *outputStructCnt) {
 if (connection == MACH_PORT_NULL) return %orig;
-return %orig;   // 诊断日志已移除：热路径保持透传
+return %orig;
+// 诊断日志已移除：热路径保持透传
 }
 
 // 不安装纯透传异步调用 hook：系统 IOConnectCallAsyncMethod 为 12 参数 ABI。
@@ -2397,7 +2398,9 @@ return;
 }
 
 - (void)updateCPU {
-if (g_reassertingLowPower) { %orig; return; }   // 重断言期间的回调直接放行
+if (g_reassertingLowPower) {
+%orig;
+return; }   // 重断言期间的回调直接放行
 if (g_restoringFullPower) {
 %orig;
 return;
@@ -2457,7 +2460,9 @@ return;
 }
 
 - (void)setPackageLowPowerTarget {
-if (g_restoringFullPower) { %orig; return; }
+if (g_restoringFullPower) {
+%orig;
+return; }
 // 两种用户模式都不允许 Package 低功耗联动；低功耗只由 CPU 专用 setter 实现。
 if (shouldApplyLowPowerLimit() || shouldApplyFullCPUProtection()) return;
 %orig;

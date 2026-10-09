@@ -300,6 +300,7 @@ static inline void CPUthermalForceNominalCombined(void) {
 // 热压力检查 & 日志（用于调试）
 // ============================================================================
 static inline void CPUthermalLogPressureStatus(void) {
+#ifndef CPUTHERMAL_STRIP_LOGS
     CPUthermalPressureLevel pressure = CPUthermalGetPressureLevel();
     float maxTemp = CPUthermalGetMaxTriggerTemperature();
     int solarState = CPUthermalGetSolarState();
@@ -308,6 +309,7 @@ static inline void CPUthermalLogPressureStatus(void) {
     NSLog(@"[CPUthermalPressure] 压力=%s(%ld) 最高触发温度=%.1f°C 阳光暴露=%d 通知级别=%d",
           CPUthermalPressureString(pressure), (long)pressure,
           maxTemp, solarState, notifLevel);
+#endif
 }
 
 #endif /* CPUTHERMAL_THERMAL_PRESSURE_H */

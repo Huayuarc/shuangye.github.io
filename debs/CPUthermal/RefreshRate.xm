@@ -82,12 +82,14 @@ static void CPUthermalApplyDisplayLink(CADisplayLink *link) {
 @end
 
 %hook UIScreen
-- (NSInteger)maximumFramesPerSecond { return CPUthermalShouldForce120Hz() ? 120 : %orig; }
+- (NSInteger)maximumFramesPerSecond { return CPUthermalShouldForce120Hz() ? 120 : %orig;
+}
 %end
 
 %hook CADisplayLink
 + (CADisplayLink *)displayLinkWithTarget:(id)target selector:(SEL)selector {
-    CADisplayLink *link=%orig; CPUthermalApplyDisplayLink(link); return link;
+    CADisplayLink *link=%orig;
+CPUthermalApplyDisplayLink(link); return link;
 }
 - (void)setPreferredFrameRateRange:(CAFrameRateRange)range {
     if(CPUthermalShouldForce120Hz()) %orig(CPUthermalForcedRange(range, NO));
@@ -136,13 +138,15 @@ else %orig(range);
 else %orig(range);
 }
 - (CAFrameRateRange)preferredFrameRateRange {
-    CAFrameRateRange range=%orig; return CPUthermalShouldForce120Hz()?CPUthermalForcedRange(range,YES):range;
+    CAFrameRateRange range=%orig;
+return CPUthermalShouldForce120Hz()?CPUthermalForcedRange(range,YES):range;
 }
 %end
 
 %hook CAFrameRateRangeGroup
 - (CAFrameRateRange)arbitratedRange {
-    CAFrameRateRange range=%orig; return CPUthermalShouldForce120Hz()?CPUthermalForcedRange(range,YES):range;
+    CAFrameRateRange range=%orig;
+return CPUthermalShouldForce120Hz()?CPUthermalForcedRange(range,YES):range;
 }
 %end
 
