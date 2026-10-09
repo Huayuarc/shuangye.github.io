@@ -27,25 +27,72 @@ static void Apply(){Load();if(!enabled||touching||!onHome||editing)return;Restor
 static void Schedule(){if(![NSThread isMainThread]){dispatch_async(dispatch_get_main_queue(),^{Schedule();});return;}Load();[timer invalidate];timer=nil;Restore();if(enabled&&onHome&&!editing&&!touching)timer=[NSTimer scheduledTimerWithTimeInterval:delay repeats:NO block:^(__unused NSTimer*t){Apply();}];}
 static void Changed(__unused CFNotificationCenterRef c,__unused void*o,__unused CFStringRef n,__unused const void*x,__unused CFDictionaryRef i){Schedule();}
 %hook SpringBoard
--(void)applicationDidFinishLaunching:(id)a{%orig;CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),NULL,Changed,EVNotify,NULL,CFNotificationSuspensionBehaviorDeliverImmediately);Schedule();}
--(void)frontDisplayDidChange:(id)a{%orig;onHome=!(a&&[a isKindOfClass:NSClassFromString(@"SBApplication")]);touching=NO;Schedule();}
+- (void)applicationDidFinishLaunching:(id)a {
+    %orig;
+    CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),NULL,Changed,EVNotify,NULL,CFNotificationSuspensionBehaviorDeliverImmediately);
+    Schedule();
+}
+- (void)frontDisplayDidChange:(id)a {
+    %orig;
+    onHome=!(a&&[a isKindOfClass:NSClassFromString(@"SBApplication")]);
+    touching=NO;
+    Schedule();
+}
 %end
-// Restore before UIKit chooses a target, not after the event has been delivered.
 %hook SBHomeScreenWindow
--(UIView*)hitTest:(CGPoint)p withEvent:(UIEvent*)e{if(applied&&e&&e.type==UIEventTypeTouches)Schedule();return %orig;}
--(void)sendEvent:(UIEvent*)e{if(e.allTouches.count||e.type==UIEventTypePresses){touching=NO;for(UITouch*t in e.allTouches)if(t.phase!=UITouchPhaseEnded&&t.phase!=UITouchPhaseCancelled)touching=YES;Schedule();}%orig;}
+- (UIView *)hitTest:(CGPoint)p withEvent:(UIEvent *)e {
+    if(applied&&e&&e.type==UIEventTypeTouches) Schedule();
+    return %orig;
+}
+- (void)sendEvent:(UIEvent *)e {
+    if(e.allTouches.count||e.type==UIEventTypePresses){
+        touching=NO;
+        for(UITouch*t in e.allTouches) if(t.phase!=UITouchPhaseEnded&&t.phase!=UITouchPhaseCancelled) touching=YES;
+        Schedule();
+    }
+    %orig;
+}
 %end
 %hook SBFloatingDockWindow
--(UIView*)hitTest:(CGPoint)p withEvent:(UIEvent*)e{if(applied&&e&&e.type==UIEventTypeTouches)Schedule();return %orig;}
--(void)sendEvent:(UIEvent*)e{if(e.allTouches.count){touching=NO;for(UITouch*t in e.allTouches)if(t.phase!=UITouchPhaseEnded&&t.phase!=UITouchPhaseCancelled)touching=YES;Schedule();}%orig;}
+- (UIView *)hitTest:(CGPoint)p withEvent:(UIEvent *)e {
+    if(applied&&e&&e.type==UIEventTypeTouches) Schedule();
+    return %orig;
+}
+- (void)sendEvent:(UIEvent *)e {
+    if(e.allTouches.count){
+        touching=NO;
+        for(UITouch*t in e.allTouches) if(t.phase!=UITouchPhaseEnded&&t.phase!=UITouchPhaseCancelled) touching=YES;
+        Schedule();
+    }
+    %orig;
+}
 %end
 %hook SBUIController
--(void)handleHomeButtonSinglePressUp{Schedule();%orig;}-(void)handleHomeButtonDoublePressDown{Schedule();%orig;}
+- (void)handleHomeButtonSinglePressUp {
+    Schedule();
+    %orig;
+}
+- (void)handleHomeButtonDoublePressDown {
+    Schedule();
+    %orig;
+}
 %end
 %hook CSCoverSheetViewController
--(void)finishUIUnlockFromSource:(NSInteger)s{%orig;onHome=YES;touching=NO;Schedule();}-(void)setInScreenOffMode:(BOOL)o forAutoUnlock:(BOOL)a fromUnlockSource:(NSInteger)s{%orig;if(o){onHome=NO;touching=NO;Schedule();}}
+- (void)finishUIUnlockFromSource:(NSInteger)s {
+    %orig;
+    onHome=YES;touching=NO;Schedule();
+}
+- (void)setInScreenOffMode:(BOOL)o forAutoUnlock:(BOOL)a fromUnlockSource:(NSInteger)s {
+    %orig;
+    if(o){onHome=NO;touching=NO;Schedule();}
+}
 %end
 %hook SBFolderController
--(void)setEditing:(BOOL)e animated:(BOOL)a{editing=e;Schedule();%orig;}
+- (void)setEditing:(BOOL)e animated:(BOOL)a {
+    editing=e;Schedule();
+    %orig;
+}
 %end
-%ctor{@autoreleasepool{saved=[NSMapTable weakToStrongObjectsMapTable];}}
+%ctor {
+    @autoreleasepool { saved=[NSMapTable weakToStrongObjectsMapTable]; }
+}
