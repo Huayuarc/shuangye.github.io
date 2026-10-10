@@ -14,6 +14,7 @@
 #include <sys/sysctl.h>
 #include <stdlib.h>
 #include <notify.h>
+#import <CPUthermalPaths.h>
 #include <pthread.h>
 
 #include <substrate.h>
