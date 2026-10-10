@@ -1,0 +1,28 @@
+_site/
+.sass-cache/
+.jekyll-cache/
+.jekyll-metadata
+Gemfile.lock
+vendor/
+.bundle/
+
+# SSH 密钥（本地推送用，不上传）
+.ssh/
+
+# packages/ 根目录产物（CI 强制添加，本地 git 忽略）
+/packages/*.deb
+/packages/*.deb.md5
+
+# Theos 构建临时文件（适用于所有子目录层级）
+.theos/
+.swiftpm/
+*.o
+*.d
+
+# 项目级构建产物（debs/*/packages/ 是 Theos make package 输出）
+debs/*/packages/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+packages/
