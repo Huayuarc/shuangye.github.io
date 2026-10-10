@@ -1,0 +1,11 @@
+Package: com.huayuarc.cputhermal
+Name: CPU 解除温控
+Author: Huayuarc
+Description: 适配 iOS 15–17 的温控策略。稳定高性能模式阻止用户态热缓解并保持原生 CPU 调度；低功耗模式仅下发 CPU 专用预算与频率策略，不改变亮度。显示亮度保护独立工作；保留充电限制、锁屏、电池页面修复和控制中心。不能绕过固件或硬件紧急保护。
+Depends: mobilesubstrate, preferenceloader
+Maintainer: Huayuarc
+Section: Tweaks
+Icon: https://huayuarc.github.io/icon/cputhermal.png
+Sileodepiction: https://huayuarc.github.io/sileodepiction/CPUthermal/js.json
+Architecture: iphoneos-arm
+Version: 1.6.2-154+isolation.6
