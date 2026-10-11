@@ -1,0 +1,19 @@
+TARGET := iphone:clang:16.5:15.0
+FINALPACKAGE = 1
+include $(THEOS)/makefiles/common.mk
+
+BUNDLE_NAME = SBJetsamGuardPrefs
+SBJetsamGuardPrefs_FILES = SJGRootListController.m
+SBJetsamGuardPrefs_FRAMEWORKS = UIKit Foundation
+# Preferences is supplied by Settings/PreferenceLoader at runtime. Some SDKs have
+# headers but no Preferences.tbd; deliberately do not use _PRIVATE_FRAMEWORKS.
+SBJetsamGuardPrefs_LDFLAGS = -Wl,-undefined,dynamic_lookup
+SBJetsamGuardPrefs_CFLAGS = -fobjc-arc -Wall -Wextra
+SBJetsamGuardPrefs_RESOURCE_DIRS = Resources
+SBJetsamGuardPrefs_INSTALL_PATH = /Library/PreferenceBundles
+# Settings on arm64e devices requires the Preference Bundle to carry arm64e;
+# keep the rootless helper itself arm64 while making this bundle fat.
+SBJetsamGuardPrefs_ARCHS = arm64 arm64e
+SBJetsamGuardPrefs_VALID_ARCHS = arm64 arm64e
+
+include $(THEOS_MAKE_PATH)/bundle.mk
