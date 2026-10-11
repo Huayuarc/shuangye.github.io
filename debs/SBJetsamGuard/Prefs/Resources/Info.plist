@@ -7,8 +7,8 @@
 <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
 <key>CFBundleName</key><string>SBJetsamGuard</string>
 <key>CFBundlePackageType</key><string>BNDL</string>
-<key>CFBundleShortVersionString</key><string>1.4.0</string>
-<key>CFBundleVersion</key><string>1.4.0</string>
+<key>CFBundleShortVersionString</key><string>1.4.1</string>
+<key>CFBundleVersion</key><string>1.4.1</string>
 <key>CFBundleIconFiles</key><array><string>icon</string><string>icon@2x</string><string>icon@3x</string><string>icon.png</string></array>
 <key>CFBundleIcons</key><dict><key>CFBundlePrimaryIcon</key><dict><key>CFBundleIconFiles</key><array><string>icon</string><string>icon@2x</string><string>icon@3x</string></array><key>CFBundleIconName</key><string>icon</string></dict></dict>
 <key>NSPrincipalClass</key><string>SJGRootListController</string>

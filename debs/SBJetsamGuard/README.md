@@ -1,4 +1,4 @@
-# SBJetsamGuard 1.4.0
+# SBJetsamGuard 1.4.1
 
 SpringBoard Jetsam 进程内存限额缓解组件，DEB 安装后由 root launchd 服务运行，另含设置面板。不是日志/日记插件；后台无弹窗或持久日志，无 SpringBoard 注入和 UI Hook。面板操作确认弹窗仅响应手动按钮。
 
