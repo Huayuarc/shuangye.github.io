@@ -122,8 +122,7 @@
     }]];
     [self presentViewController:alert animated:YES completion:nil];
 }
-
-
+- (void)requestCacheCleanup {
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"请求手动清理磁盘缓存？"
         message:@"清理的是磁盘文件，不增加 RAM。仅向 helper 发送请求；服务未运行时不会执行。是否包含应用缓存由单独开关决定。"
         preferredStyle:UIAlertControllerStyleAlert];
