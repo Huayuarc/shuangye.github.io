@@ -6,6 +6,7 @@
 
 #import <Foundation/Foundation.h>
 #import <IOKit/IOKitLib.h>
+#include <dispatch/dispatch.h>
 #include <stdlib.h>
 #include <string.h>
 

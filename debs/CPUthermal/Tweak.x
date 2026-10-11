@@ -268,8 +268,9 @@ static void switchToLowPowerForSleep(const char *source);
 static void restoreUserModeAfterWake(const char *source);
 static void registerScreenWakeObservers(void);
 static void CPUthermalCaptureExistingBacklightMaximum(void);
-static void CPUthermalRaiseExistingBacklightLimits(void);
+static NSUInteger CPUthermalRaiseExistingBacklightLimits(void);
 static void CPUthermalScheduleBacklightRecovery(void);
+static void applyFullPowerToCommonProduct(void);
 
 static void runtimeConfigSnapshot(BOOL *enabled, BOOL *cpuProtection, BOOL *blockNetwork, BOOL *blockPopup, BOOL *preventDimming) {
 os_unfair_lock_lock(&g_stateLock);
