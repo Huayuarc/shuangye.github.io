@@ -1,9 +1,0 @@
-Package: com.huayuarc.sbjetsamguard
-Name: SBJetsamGuard
-Version: 1.3.1
-Architecture: iphoneos-arm64
-Description: SpringBoard Jetsam memory-limit relief with Settings panel, bounded manual disk-cache cleanup and opt-in verified sysctl tuning. Preserves existing higher limits and global memory-pressure reclamation. No UI injection, swap files or signal suppression; not a fix for SIGILL crashes.
-Maintainer: Huayuarc
-Author: Huayuarc
-Section: Tweaks
-Depends: preferenceloader
