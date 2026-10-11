@@ -1,0 +1,30 @@
+#!/bin/sh
+set -eu
+SCHEME=rootless
+MODE=postinst
+case "$MODE:${1:-}" in postinst:configure|prerm:remove|prerm:upgrade|prerm:deconfigure) ;; *) exit 0 ;; esac
+LABEL=com.huayuarc.sbjetsamguard
+case "$SCHEME" in
+ rootless) PREFIX=/var/jb; DOMAIN=user/foreground; CTL=/var/jb/bin/launchctl; [ -x "$CTL" ] || CTL=/var/jb/usr/bin/launchctl; [ -x "$CTL" ] || CTL=/bin/launchctl ;;
+ roothide) PREFIX=''; DOMAIN=system; CTL=/usr/bin/launchctl; [ -x "$CTL" ] || CTL=/bin/launchctl ;;
+ *) exit 1 ;;
+esac
+SERVICE="$DOMAIN/$LABEL"
+HELPER="$PREFIX/usr/libexec/sbjetsamguard"
+PLIST="$PREFIX/Library/LaunchDaemons/$LABEL.plist"
+[ -x "$CTL" ] || { echo 'SBJetsamGuard: launchctl missing' >&2; exit 1; }
+if "$CTL" print "$SERVICE" >/dev/null 2>&1; then
+ "$CTL" bootout "$SERVICE" || "$CTL" unload "$PLIST" || true
+ if "$CTL" print "$SERVICE" >/dev/null 2>&1; then echo 'SBJetsamGuard: daemon still registered' >&2; exit 1; fi
+fi
+[ "$MODE" = postinst ] || exit 0
+[ -f "$HELPER" ] && [ -f "$PLIST" ] || { echo 'SBJetsamGuard: payload missing' >&2; exit 1; }
+chown 0:0 "$HELPER" "$PLIST"
+chmod 0755 "$HELPER"
+chmod 0644 "$PLIST"
+# RootHide launchctl patches arg0 to its current physical root; use logical plist path.
+"$CTL" enable "$SERVICE" || true
+"$CTL" bootstrap "$DOMAIN" "$PLIST" || true
+if ! "$CTL" print "$SERVICE" >/dev/null 2>&1; then "$CTL" load -w "$PLIST" || true; fi
+"$CTL" print "$SERVICE" >/dev/null || { echo "SBJetsamGuard: daemon registration failed ($SERVICE)" >&2; exit 1; }
+exit 0
