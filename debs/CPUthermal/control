@@ -1,0 +1,11 @@
+Package: com.huayuarc.cputhermal
+Name: CPU 解除温控
+Author: Huayuarc
+Description: 适配 iOS 15–17 的用户态预算实验。解除温控请求 CPU/GPU/Package Floor/Ceiling=100、CPU Level0；Package 是共享功率预算，不是整个 SoC 硬锁，不保证最大时钟或实际满功率。低功耗仅限制 CPU 并清除 GPU/Package 满预算下限，不改变亮度。新增电流防降频：充电中仍大电流放电时把适配器输入电流上限只升不降地提高到 3000mA，放电大电流时通知温控守护重申满预算，可能增加发热且无法绕过硬件保护。新增跨版本键回退读取，全部键缺失时安全降级为不写入。显示保护职责并入核心（仅注入 thermalmonitord，原独立显示模块已删除）：热配置背光子树修补、核心自有 IOKit 写入拦截与周期/事件“只升不降”亮度恢复，只能事后纠正、无法拦截其它进程写入且可能增加发热。保留充电限制、锁屏、高温警告抑制和控制中心；高温警告抑制为独立模块（仅注入 SpringBoard），面板开关「屏蔽高温温度计警告」默认开启、写入后即时生效，关闭即恢复系统原生高温提示与自动锁屏。已移除部件/维修记录屏蔽功能。硬件紧急保护仍可接管。
+Depends: mobilesubstrate, preferenceloader
+Maintainer: Huayuarc
+Section: Tweaks
+Icon: https://huayuarc.github.io/icon/cputhermal.png
+Sileodepiction: https://huayuarc.github.io/sileodepiction/CPUthermal/js.json
+Architecture: iphoneos-arm
+Version: 1.6.2-154+isolation.11
