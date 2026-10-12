@@ -1,0 +1,133 @@
+=== Build Info ===
+Timestamp: Mon Oct 12 16:17:13 UTC 2026
+THEOS: /Users/runner/theos
+SDK: total 0
+drwxr-xr-x   4 runner  staff  128 Oct 12 16:17 .
+drwxr-xr-x  22 runner  staff  704 Oct 12 16:17 ..
+-rw-r--r--   1 runner  staff    0 Oct 12 16:17 .keep
+drwxr-xr-x   8 runner  staff  256 Nov 23  2023 iPhoneOS16.5.sdk
+
+=== Project: CPUthermal ===
+Exit code: 2
+[0;36m==> [1;36mNotice:[m Build may be slow as Theos isn’t using all available CPU cores on this computer. Consider upgrading GNU Make: https://theos.dev/docs/parallel-building
+[1;31m> [1;3;39mMaking all for tweak CPUthermal…[m
+[0;31m==> [1;39mPreprocessing Tweak.x…[m
+[0;32m==> [1;39mCompiling Tweak.x (arm64)…[m
+[0;33m==> [1;39mLinking tweak CPUthermal (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermal…[m
+[0;34m==> [1;39mStripping CPUthermal (arm64)…[m
+[0;31m==> [1;39mPreprocessing Tweak.x…[m
+[0;32m==> [1;39mCompiling Tweak.x (arm64e)…[m
+[0;33m==> [1;39mLinking tweak CPUthermal (arm64e)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermal…[m
+[0;34m==> [1;39mStripping CPUthermal (arm64e)…[m
+[0;34m==> [1;39mMerging tweak CPUthermal…[m
+[0;34m==> [1;39mSigning CPUthermal…[m
+[1;31m> [1;3;39mMaking all for tweak CPUthermalFaceDownLock…[m
+[0;31m==> [1;39mPreprocessing FaceDownLock.xm…[m
+[0;32m==> [1;39mCompiling FaceDownLock.xm (arm64)…[m
+[0;33m==> [1;39mLinking tweak CPUthermalFaceDownLock (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalFaceDownLock…[m
+[0;34m==> [1;39mStripping CPUthermalFaceDownLock (arm64)…[m
+[0;31m==> [1;39mPreprocessing FaceDownLock.xm…[m
+[0;32m==> [1;39mCompiling FaceDownLock.xm (arm64e)…[m
+[0;33m==> [1;39mLinking tweak CPUthermalFaceDownLock (arm64e)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalFaceDownLock…[m
+[0;34m==> [1;39mStripping CPUthermalFaceDownLock (arm64e)…[m
+[0;34m==> [1;39mMerging tweak CPUthermalFaceDownLock…[m
+[0;34m==> [1;39mSigning CPUthermalFaceDownLock…[m
+[1;31m> [1;3;39mMaking all for tweak CPUthermalThermalWarn…[m
+[0;31m==> [1;39mPreprocessing Tweak_ThermalWarn.xm…[m
+[0;32m==> [1;39mCompiling Tweak_ThermalWarn.xm (arm64)…[m
+[0;33m==> [1;39mLinking tweak CPUthermalThermalWarn (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalThermalWarn…[m
+[0;34m==> [1;39mStripping CPUthermalThermalWarn (arm64)…[m
+[0;31m==> [1;39mPreprocessing Tweak_ThermalWarn.xm…[m
+[0;32m==> [1;39mCompiling Tweak_ThermalWarn.xm (arm64e)…[m
+[0;33m==> [1;39mLinking tweak CPUthermalThermalWarn (arm64e)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalThermalWarn…[m
+[0;34m==> [1;39mStripping CPUthermalThermalWarn (arm64e)…[m
+[0;34m==> [1;39mMerging tweak CPUthermalThermalWarn…[m
+[0;34m==> [1;39mSigning CPUthermalThermalWarn…[m
+[1;31m> [1;3;39mMaking all for bundle CPUthermalSettings…[m
+[0;32m==> [1;39mCompiling Settings/FRootListController.m (arm64)…[m
+[1mSettings/FRootListController.m:216:142: [0m[0;1;31merror: [0m[1mno known class method for selector 'preferenceSpecifierNamed:target:set:get:detail:PSSwitchCell:edit:'[0m
+        GROUP(nil, "开启后，SpringBoard 检测到设备屏幕朝下时模拟按下锁屏键。仅注入 SpringBoard，默认关闭。"); ITEM("设备朝下自动锁屏", "lockWhenFaceDown", PSSwitchCell, [NSNumber numberWithBool:NO]);
+[0;1;32m                                                                                                              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[0m[1mSettings/FRootListController.m:206:46: [0m[0;1;30mnote: [0mexpanded from macro 'ITEM'[0m
+            PSSpecifier *item = [PSSpecifier preferenceSpecifierNamed:S(label) target:self set:@selector(setPreferenceValue:specifier:) get:@selector(readPreferenceValue:) detail:nil cell:cell edit:nil]; \
+[0;1;32m                                             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[0m[1mSettings/FRootListController.m:217:201: [0m[0;1;31merror: [0m[1mno known class method for selector 'preferenceSpecifierNamed:target:set:get:detail:PSSwitchCell:edit:'[0m
+        GROUP("阳光暴晒", "强制锁定阳光暴晒 (Sunlight) 模式：屏幕亮度上限与对比度按强光环境提升，不再等待环境光判断；关闭即恢复系统自动检测。"); ITEM("锁定阳光暴晒模式", "sunlightLockedEnabled", PSSwitchCell, [NSNumber numberWithBool:NO]);
+[0;1;32m                                                                                                                                                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[0m[1mSettings/FRootListController.m:206:46: [0m[0;1;30mnote: [0mexpanded from macro 'ITEM'[0m
+            PSSpecifier *item = [PSSpecifier preferenceSpecifierNamed:S(label) target:self set:@selector(setPreferenceValue:specifier:) get:@selector(readPreferenceValue:) detail:nil cell:cell edit:nil]; \
+[0;1;32m                                             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[0m[1mSettings/FRootListController.m:218:283: [0m[0;1;31merror: [0m[1mno known class method for selector 'preferenceSpecifierNamed:target:set:get:detail:PSSwitchCell:edit:'[0m
+        GROUP("高温警告", "开启后在 SpringBoard 进程内把高温热状态与热通知读取伪装为正常，隐藏“需要冷却”界面并避免高温自动锁屏；关闭即恢复系统原生行为。默认开启；抑制警告可能延迟你察觉设备过热。"); ITEM("屏蔽高温温度计警告", "blockThermalPopup", PSSwitchCell, [NSNumber numberWithBool:YES]);
+[0;1;32m                                                                                                                                                                                                      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[0m[1mSettings/FRootListController.m:206:46: [0m[0;1;30mnote: [0mexpanded from macro 'ITEM'[0m
+            PSSpecifier *item = [PSSpecifier preferenceSpecifierNamed:S(label) target:self set:@selector(setPreferenceValue:specifier:) get:@selector(readPreferenceValue:) detail:nil cell:cell edit:nil]; \
+[0;1;32m                                             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[0m[1mSettings/FRootListController.m:219:295: [0m[0;1;31merror: [0m[1mno known class method for selector 'preferenceSpecifierNamed:target:set:get:detail:PSSwitchCell:edit:'[0m
+        GROUP("SmartBatteryAPI 智能停充", "移植 ChargeLimiter 电量阈值核心：可优先使用 AppleSmartBattery，达到阈值后通过 PredictiveChargingInhibit 停充；可选同时将 ExternalConnected 置为 false 禁流。电量下降 5% 后先恢复输入再恢复充电。"); ITEM("使用 SmartBatteryAPI", "smartChargeUseSmartBatteryAPI", PSSwitchCell, [NSNumber numberWithBool:YES]); ITEM("智能停充", "smartChargeEnabled", PSSwitchCell, [NSNumber numberWithBool:NO]); ITEM("停充时自动禁流", "smartChargeDisableInflow", PSSwitchCell, [NSNumber numberWithBool:NO]);
+[0;1;32m                                                                                                                                                                                                                                               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[0m[1mSettings/FRootListController.m:206:46: [0m[0;1;30mnote: [0mexpanded from macro 'ITEM'[0m
+            PSSpecifier *item = [PSSpecifier preferenceSpecifierNamed:S(label) target:self set:@selector(setPreferenceValue:specifier:) get:@selector(readPreferenceValue:) detail:nil cell:cell edit:nil]; \
+[0;1;32m                                             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[0m[1mSettings/FRootListController.m:219:405: [0m[0;1;31merror: [0m[1mno known class method for selector 'preferenceSpecifierNamed:target:set:get:detail:PSSwitchCell:edit:'[0m
+        GROUP("SmartBatteryAPI 智能停充", "移植 ChargeLimiter 电量阈值核心：可优先使用 AppleSmartBattery，达到阈值后通过 PredictiveChargingInhibit 停充；可选同时将 ExternalConnected 置为 false 禁流。电量下降 5% 后先恢复输入再恢复充电。"); ITEM("使用 SmartBatteryAPI", "smartChargeUseSmartBatteryAPI", PSSwitchCell, [NSNumber numberWithBool:YES]); ITEM("智能停充", "smartChargeEnabled", PSSwitchCell, [NSNumber numberWithBool:NO]); ITEM("停充时自动禁流", "smartChargeDisableInflow", PSSwitchCell, [NSNumber numberWithBool:NO]);
+[0;1;32m                                                                                                                                                                                                                                                                                                                                                           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[0m[1mSettings/FRootListController.m:206:46: [0m[0;1;30mnote: [0mexpanded from macro 'ITEM'[0m
+            PSSpecifier *item = [PSSpecifier preferenceSpecifierNamed:S(label) target:self set:@selector(setPreferenceValue:specifier:) get:@selector(readPreferenceValue:) detail:nil cell:cell edit:nil]; \
+[0;1;32m                                             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[0m[1mSettings/FRootListController.m:219:493: [0m[0;1;31merror: [0m[1mno known class method for selector 'preferenceSpecifierNamed:target:set:get:detail:PSSwitchCell:edit:'[0m
+        GROUP("SmartBatteryAPI 智能停充", "移植 ChargeLimiter 电量阈值核心：可优先使用 AppleSmartBattery，达到阈值后通过 PredictiveChargingInhibit 停充；可选同时将 ExternalConnected 置为 false 禁流。电量下降 5% 后先恢复输入再恢复充电。"); ITEM("使用 SmartBatteryAPI", "smartChargeUseSmartBatteryAPI", PSSwitchCell, [NSNumber numberWithBool:YES]); ITEM("智能停充", "smartChargeEnabled", PSSwitchCell, [NSNumber numberWithBool:NO]); ITEM("停充时自动禁流", "smartChargeDisableInflow", PSSwitchCell, [NSNumber numberWithBool:NO]);
+[0;1;32m                                                                                                                                                                                                                                                                                                                                                                                                                                               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[0m[1mSettings/FRootListController.m:206:46: [0m[0;1;30mnote: [0mexpanded from macro 'ITEM'[0m
+            PSSpecifier *item = [PSSpecifier preferenceSpecifierNamed:S(label) target:self set:@selector(setPreferenceValue:specifier:) get:@selector(readPreferenceValue:) detail:nil cell:cell edit:nil]; \
+[0;1;32m                                             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[0m[1mSettings/FRootListController.m:221:391: [0m[0;1;31merror: [0m[1mno known class method for selector 'preferenceSpecifierNamed:target:set:get:detail:PSSwitchCell:edit:'[0m
+        GROUP("电流防降频", "依据电池充放电电流保护性能：充电时若仍在较大电流放电，会把适配器输入电流上限只升不降地提高到 3000mA（上限 3000）；大电流放电时不改写入，只通知温控守护重申满预算。默认开启。可能增加发热；无法绕过硬件/固件保护，也不能提升电池本身的放电能力。"); ITEM("启用电流防降频", "currentGuardEnabled", PSSwitchCell, [NSNumber numberWithBool:YES]);
+[0;1;32m                                                                                                                                                                                                                                                                                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[0m[1mSettings/FRootListController.m:206:46: [0m[0;1;30mnote: [0mexpanded from macro 'ITEM'[0m
+            PSSpecifier *item = [PSSpecifier preferenceSpecifierNamed:S(label) target:self set:@selector(setPreferenceValue:specifier:) get:@selector(readPreferenceValue:) detail:nil cell:cell edit:nil]; \
+[0;1;32m                                             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[0m[1mSettings/FRootListController.m:216:9: [0m[0;1;31merror: [0m[1mnull passed to a callee that requires a non-null argument [-Werror,-Wnonnull][0m
+        GROUP(nil, "开启后，SpringBoard 检测到设备屏幕朝下时模拟按下锁屏键。仅注入 SpringBoard，默认关闭。"); ITEM("设备朝下自动锁屏", "lockWhenFaceDown", PSSwitchCell, [NSNumber numberWithBool:NO]);
+[0;1;32m        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[0m[1mSettings/FRootListController.m:201:81: [0m[0;1;30mnote: [0mexpanded from macro 'GROUP'[0m
+            PSSpecifier *group = [PSSpecifier groupSpecifierWithName:((label) ? S(label) : nil)]; \
+[0;1;32m                                                                                ^~~~~~~~
+[0m[1minclude/CPUthermalPaths.h:9:26: [0m[0;1;30mnote: [0mexpanded from macro 'S'[0m
+#define S(str) [NSString stringWithUTF8String:(str)]
+[0;1;32m                         ^                    ~~~~~
+[0m[1mSettings/FRootListController.m:222:9: [0m[0;1;31merror: [0m[1mnull passed to a callee that requires a non-null argument [-Werror,-Wnonnull][0m
+        GROUP(nil, "安装或升级时会自动重启 thermalmonitord 载入插件；此处按钮用于手动重启整个用户空间。");
+[0;1;32m        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[0m[1mSettings/FRootListController.m:201:81: [0m[0;1;30mnote: [0mexpanded from macro 'GROUP'[0m
+            PSSpecifier *group = [PSSpecifier groupSpecifierWithName:((label) ? S(label) : nil)]; \
+[0;1;32m                                                                                ^~~~~~~~
+[0m[1minclude/CPUthermalPaths.h:9:26: [0m[0;1;30mnote: [0mexpanded from macro 'S'[0m
+#define S(str) [NSString stringWithUTF8String:(str)]
+[0;1;32m                         ^                    ~~~~~
+[0m[1mSettings/FRootListController.m:224:9: [0m[0;1;31merror: [0m[1mnull passed to a callee that requires a non-null argument [-Werror,-Wnonnull][0m
+        GROUP("开源", nil); PSSpecifier *source = [PSSpecifier preferenceSpecifierNamed:S("GitHub be-huge/insulation") target:self set:@selector(openSourceCode) get:nil detail:nil cell:PSButtonCell edit:nil]; [source setProperty:S("openSourceCode") forKey:S("action")]; [specifiers addObject:source];
+[0;1;32m        ^~~~~~~~~~~~~~~~~~
+[0m[1mSettings/FRootListController.m:202:44: [0m[0;1;30mnote: [0mexpanded from macro 'GROUP'[0m
+            if (footer) [group setProperty:S(footer) forKey:S("footerText")]; \
+[0;1;32m                                           ^~~~~~~~~
+[0m[1minclude/CPUthermalPaths.h:9:26: [0m[0;1;30mnote: [0mexpanded from macro 'S'[0m
+#define S(str) [NSString stringWithUTF8String:(str)]
+[0;1;32m                         ^                    ~~~~~
+[0m10 errors generated.
+make[3]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/CPUthermal/.theos/obj/arm64/Settings/FRootListController.m.972e58a0.o] Error 1
+make[2]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/CPUthermal/.theos/obj/arm64/CPUthermalSettings.bundle/CPUthermalSettings] Error 2
+make[1]: *** [internal-bundle-all_] Error 2
+make: *** [CPUthermalSettings.all.bundle.variables] Error 2
