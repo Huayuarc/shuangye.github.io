@@ -198,12 +198,13 @@
     if (!_specifiers) {
         NSMutableArray *specifiers = [NSMutableArray array];
 #define GROUP(label, footer) do { \
-            PSSpecifier *group = [PSSpecifier groupSpecifierWithName:((label) ? S(label) : nil)]; \
-            if (footer) [group setProperty:S(footer) forKey:S("footerText")]; \
+            PSSpecifier *group = [PSSpecifier groupSpecifierWithName:S(label)]; \
+            NSString *footerText = S(footer); \
+            if (footerText.length > 0) [group setProperty:footerText forKey:S("footerText")]; \
             [specifiers addObject:group]; \
         } while (0)
-#define ITEM(label, key, cell, def) do { \
-            PSSpecifier *item = [PSSpecifier preferenceSpecifierNamed:S(label) target:self set:@selector(setPreferenceValue:specifier:) get:@selector(readPreferenceValue:) detail:nil cell:cell edit:nil]; \
+#define ITEM(label, key, cellType, def) do { \
+            PSSpecifier *item = [PSSpecifier preferenceSpecifierNamed:S(label) target:self set:@selector(setPreferenceValue:specifier:) get:@selector(readPreferenceValue:) detail:nil cell:cellType edit:nil]; \
             [item setProperty:S(key) forKey:S("key")]; \
             [item setProperty:S("com.huayuarc.cputhermal") forKey:S("defaults")]; \
             [item setProperty:def forKey:S("default")]; \
@@ -213,15 +214,15 @@
         PSSpecifier *mode = [PSSpecifier preferenceSpecifierNamed:S("运行方式") target:self set:@selector(setPreferenceValue:specifier:) get:@selector(readPreferenceValue:) detail:nil cell:PSSegmentCell edit:nil];
         [mode setProperty:S("powerMode") forKey:S("key")]; [mode setProperty:S("com.huayuarc.cputhermal") forKey:S("defaults")];
         [mode setProperty:S("fullPower") forKey:S("default")]; [mode setProperty:@[S("低功耗"), S("解除温控")] forKey:S("validTitles")]; [mode setProperty:@[S("lowPower"), S("fullPower")] forKey:S("validValues")]; [specifiers addObject:mode];
-        GROUP(nil, "开启后，SpringBoard 检测到设备屏幕朝下时模拟按下锁屏键。仅注入 SpringBoard，默认关闭。"); ITEM("设备朝下自动锁屏", "lockWhenFaceDown", PSSwitchCell, [NSNumber numberWithBool:NO]);
+        GROUP("", "开启后，SpringBoard 检测到设备屏幕朝下时模拟按下锁屏键。仅注入 SpringBoard，默认关闭。"); ITEM("设备朝下自动锁屏", "lockWhenFaceDown", PSSwitchCell, [NSNumber numberWithBool:NO]);
         GROUP("阳光暴晒", "强制锁定阳光暴晒 (Sunlight) 模式：屏幕亮度上限与对比度按强光环境提升，不再等待环境光判断；关闭即恢复系统自动检测。"); ITEM("锁定阳光暴晒模式", "sunlightLockedEnabled", PSSwitchCell, [NSNumber numberWithBool:NO]);
         GROUP("高温警告", "开启后在 SpringBoard 进程内把高温热状态与热通知读取伪装为正常，隐藏“需要冷却”界面并避免高温自动锁屏；关闭即恢复系统原生行为。默认开启；抑制警告可能延迟你察觉设备过热。"); ITEM("屏蔽高温温度计警告", "blockThermalPopup", PSSwitchCell, [NSNumber numberWithBool:YES]);
         GROUP("SmartBatteryAPI 智能停充", "移植 ChargeLimiter 电量阈值核心：可优先使用 AppleSmartBattery，达到阈值后通过 PredictiveChargingInhibit 停充；可选同时将 ExternalConnected 置为 false 禁流。电量下降 5% 后先恢复输入再恢复充电。"); ITEM("使用 SmartBatteryAPI", "smartChargeUseSmartBatteryAPI", PSSwitchCell, [NSNumber numberWithBool:YES]); ITEM("智能停充", "smartChargeEnabled", PSSwitchCell, [NSNumber numberWithBool:NO]); ITEM("停充时自动禁流", "smartChargeDisableInflow", PSSwitchCell, [NSNumber numberWithBool:NO]);
         PSSpecifier *level = [PSSpecifier preferenceSpecifierNamed:S("停充电量") target:self set:@selector(setPreferenceValue:specifier:) get:@selector(readPreferenceValue:) detail:nil cell:PSSegmentCell edit:nil]; [level setProperty:S("smartChargeStopLevel") forKey:S("key")]; [level setProperty:S("com.huayuarc.cputhermal") forKey:S("defaults")]; [level setProperty:[NSNumber numberWithInt:80] forKey:S("default")]; [level setProperty:@[S("70%"),S("75%"),S("80%"),S("85%"),S("90%"),S("95%"),S("100%")] forKey:S("validTitles")]; [level setProperty:@[[NSNumber numberWithInt:70],[NSNumber numberWithInt:75],[NSNumber numberWithInt:80],[NSNumber numberWithInt:85],[NSNumber numberWithInt:90],[NSNumber numberWithInt:95],[NSNumber numberWithInt:100]] forKey:S("validValues")]; [specifiers addObject:level];
         GROUP("电流防降频", "依据电池充放电电流保护性能：充电时若仍在较大电流放电，会把适配器输入电流上限只升不降地提高到 3000mA（上限 3000）；大电流放电时不改写入，只通知温控守护重申满预算。默认开启。可能增加发热；无法绕过硬件/固件保护，也不能提升电池本身的放电能力。"); ITEM("启用电流防降频", "currentGuardEnabled", PSSwitchCell, [NSNumber numberWithBool:YES]);
-        GROUP(nil, "安装或升级时会自动重启 thermalmonitord 载入插件；此处按钮用于手动重启整个用户空间。");
+        GROUP("", "安装或升级时会自动重启 thermalmonitord 载入插件；此处按钮用于手动重启整个用户空间。");
         PSSpecifier *reboot = [PSSpecifier preferenceSpecifierNamed:S("重启用户空间") target:self set:@selector(usreboot) get:nil detail:nil cell:PSButtonCell edit:nil]; [reboot setProperty:S("usreboot") forKey:S("action")]; [specifiers addObject:reboot];
-        GROUP("开源", nil); PSSpecifier *source = [PSSpecifier preferenceSpecifierNamed:S("GitHub be-huge/insulation") target:self set:@selector(openSourceCode) get:nil detail:nil cell:PSButtonCell edit:nil]; [source setProperty:S("openSourceCode") forKey:S("action")]; [specifiers addObject:source];
+        GROUP("开源", ""); PSSpecifier *source = [PSSpecifier preferenceSpecifierNamed:S("GitHub be-huge/insulation") target:self set:@selector(openSourceCode) get:nil detail:nil cell:PSButtonCell edit:nil]; [source setProperty:S("openSourceCode") forKey:S("action")]; [specifiers addObject:source];
 #undef ITEM
 #undef GROUP
         _specifiers = [specifiers copy];
