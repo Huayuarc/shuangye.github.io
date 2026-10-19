@@ -51,7 +51,7 @@ static BOOL SCIsSpringBoardCaptureClient(id object){
 - (void)handleDeviceLockedWarning { if(!SCKeepLockRecording()) %orig; }
 - (void)setUpDeviceLockNotifications { if(!SCKeepLockRecording()) %orig; }
 - (BOOL)checkDeviceLockedRequirement { if(SCKeepLockRecording())return NO;return %orig; }
-- (void)setDeviceLocked:(BOOL)locked { BOOL effectiveLocked=SCKeepLockRecording()?NO:locked; %orig(effectiveLocked); }
+- (void)setDeviceLocked:(BOOL)locked { if(SCKeepLockRecording())locked=NO; %orig; }
 - (BOOL)deviceLocked { if(SCKeepLockRecording())return NO;return %orig; }
 %end
 
