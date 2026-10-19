@@ -1,0 +1,49 @@
+=== Build Info ===
+Timestamp: Mon Oct 19 02:29:18 UTC 2026
+THEOS: /Users/runner/theos
+SDK: total 0
+drwxr-xr-x   4 runner  staff  128 Oct 19 02:29 .
+drwxr-xr-x  22 runner  staff  704 Oct 19 02:29 ..
+-rw-r--r--   1 runner  staff    0 Oct 19 02:29 .keep
+drwxr-xr-x   8 runner  staff  256 Nov 23  2023 iPhoneOS16.5.sdk
+
+=== Project: SneakyCam ===
+Exit code: 2
+[0;36m==> [1;36mNotice:[m Build may be slow as Theos isn’t using all available CPU cores on this computer. Consider upgrading GNU Make: https://theos.dev/docs/parallel-building
+[1;31m> [1;3;39mMaking all for tweak SneakyCamCore…[m
+[0;31m==> [1;39mPreprocessing Tweak.xm…[m
+[0;32m==> [1;39mCompiling Tweak.xm (arm64)…[m
+[0;32m==> [1;39mCompiling SCCaptureManager.m (arm64)…[m
+[0;32m==> [1;39mCompiling SCPaths.m (arm64)…[m
+[0;33m==> [1;39mLinking tweak SneakyCamCore (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for SneakyCamCore…[m
+[0;34m==> [1;39mStripping SneakyCamCore (arm64)…[m
+[0;31m==> [1;39mPreprocessing Tweak.xm…[m
+[0;32m==> [1;39mCompiling Tweak.xm (arm64e)…[m
+[0;32m==> [1;39mCompiling SCCaptureManager.m (arm64e)…[m
+[0;32m==> [1;39mCompiling SCPaths.m (arm64e)…[m
+[0;33m==> [1;39mLinking tweak SneakyCamCore (arm64e)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for SneakyCamCore…[m
+[0;34m==> [1;39mStripping SneakyCamCore (arm64e)…[m
+[0;34m==> [1;39mMerging tweak SneakyCamCore…[m
+[0;34m==> [1;39mSigning SneakyCamCore…[m
+[1;31m> [1;3;39mMaking all for tweak SneakySupport…[m
+[0;31m==> [1;39mPreprocessing Support.xm…[m
+[0;32m==> [1;39mCompiling Support.xm (arm64)…[m
+[1mSupport.xm:51:179: [0m[0;1;31merror: [0m[1mfunction definition is not allowed here[0m
+static void _logos_method$_ungrouped$RPRecordingManager$handleDeviceLockedWarning(_LOGOS_SELF_TYPE_NORMAL RPRecordingManager* _LOGOS_SELF_CONST __unused self, SEL __unused _cmd) { if(!SCKeepLockRecording()) _logos_orig$_ungrouped$RPRecordingManager$handleDeviceLockedWarning(self, _cmd);
+[0;1;32m                                                                                                                                                                                  ^
+[0m[1mSupport.xm:58:3150: [0m[0;1;31merror: [0m[1mexpected '}'[0m
+static __attribute__((constructor)) void _logosLocalCtor_67125849(int __unused argc, char __unused **argv, char __unused **envp) { {Class _logos_class$_ungrouped$FigCaptureClientSessionMonitor = objc_getClass("FigCaptureClientSessionMonitor"); { MSHookMessageEx(_logos_class$_ungrouped$FigCaptureClientSessionMonitor, @selector(_updateClientStateCondition:newValue:), (IMP)&_logos_method$_ungrouped$FigCaptureClientSessionMonitor$_updateClientStateCondition$newValue$, (IMP*)&_logos_orig$_ungrouped$FigCaptureClientSessionMonitor$_updateClientStateCondition$newValue$);}Class _logos_class$_ungrouped$FigCaptureClientSessionMonitorClient = objc_getClass("FigCaptureClientSessionMonitorClient"); { MSHookMessageEx(_logos_class$_ungrouped$FigCaptureClientSessionMonitorClient, @selector(hasBackgroundCameraAccess), (IMP)&_logos_method$_ungrouped$FigCaptureClientSessionMonitorClient$hasBackgroundCameraAccess, (IMP*)&_logos_orig$_ungrouped$FigCaptureClientSessionMonitorClient$hasBackgroundCameraAccess);}Class _logos_class$_ungrouped$FigCaptureClientApplicationStateMonitorClient = objc_getClass("FigCaptureClientApplicationStateMonitorClient"); { MSHookMessageEx(_logos_class$_ungrouped$FigCaptureClientApplicationStateMonitorClient, @selector(hasBackgroundCameraAccess), (IMP)&_logos_method$_ungrouped$FigCaptureClientApplicationStateMonitorClient$hasBackgroundCameraAccess, (IMP*)&_logos_orig$_ungrouped$FigCaptureClientApplicationStateMonitorClient$hasBackgroundCameraAccess);}Class _logos_class$_ungrouped$RPSystemRecordSession = objc_getClass("RPSystemRecordSession"); { MSHookMessageEx(_logos_class$_ungrouped$RPSystemRecordSession, @selector(handleDeviceLockedWarning), (IMP)&_logos_method$_ungrouped$RPSystemRecordSession$handleDeviceLockedWarning, (IMP*)&_logos_orig$_ungrouped$RPSystemRecordSession$handleDeviceLockedWarning);}Class _logos_class$_ungrouped$RPRecordingManager = objc_getClass("RPRecordingManager"); { MSHookMessageEx(_logos_class$_ungrouped$RPRecordingManager, @selector(handleDeviceLockedWarning), (IMP)&_logos_method$_ungrouped$RPRecordingManager$handleDeviceLockedWarning, (IMP*)&_logos_orig$_ungrouped$RPRecordingManager$handleDeviceLockedWarning);}{ MSHookMessageEx(_logos_class$_ungrouped$RPRecordingManager, @selector(setUpDeviceLockNotifications), (IMP)&_logos_method$_ungrouped$RPRecordingManager$setUpDeviceLockNotifications, (IMP*)&_logos_orig$_ungrouped$RPRecordingManager$setUpDeviceLockNotifications);}{ MSHookMessageEx(_logos_class$_ungrouped$RPRecordingManager, @selector(checkDeviceLockedRequirement), (IMP)&_logos_method$_ungrouped$RPRecordingManager$checkDeviceLockedRequirement, (IMP*)&_logos_orig$_ungrouped$RPRecordingManager$checkDeviceLockedRequirement);}{ MSHookMessageEx(_logos_class$_ungrouped$RPRecordingManager, @selector(setDeviceLocked:), (IMP)&_logos_method$_ungrouped$RPRecordingManager$setDeviceLocked$, (IMP*)&_logos_orig$_ungrouped$RPRecordingManager$setDeviceLocked$);}{ MSHookMessageEx(_logos_class$_ungrouped$RPRecordingManager, @selector(deviceLocked), (IMP)&_logos_method$_ungrouped$RPRecordingManager$deviceLocked, (IMP*)&_logos_orig$_ungrouped$RPRecordingManager$deviceLocked);}} }
+[0;1;32m                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             ^
+[0m[1mSupport.xm:47:185: [0m[0;1;30mnote: [0mto match this '{'[0m
+static void _logos_method$_ungrouped$RPSystemRecordSession$handleDeviceLockedWarning(_LOGOS_SELF_TYPE_NORMAL RPSystemRecordSession* _LOGOS_SELF_CONST __unused self, SEL __unused _cmd) { if(!SCKeepLockRecording()) _logos_orig$_ungrouped$RPSystemRecordSession$handleDeviceLockedWarning(self, _cmd);
+[0;1;32m                                                                                                                                                                                        ^
+[0m2 errors generated.
+make[3]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/SneakyCam/.theos/obj/arm64/Support.xm.39ec397f.o] Error 1
+rm /Users/runner/work/shuangye.github.io/shuangye.github.io/debs/SneakyCam/.theos/obj/arm64/Support.xm.mm
+make[2]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/SneakyCam/.theos/obj/arm64/SneakySupport.dylib] Error 2
+make[1]: *** [internal-library-all_] Error 2
+make: *** [SneakySupport.all.tweak.variables] Error 2
