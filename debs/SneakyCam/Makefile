@@ -16,7 +16,7 @@ SneakyCamCore_CFLAGS = -fobjc-arc -Wno-deprecated-declarations
 SneakyCamCore_FRAMEWORKS = Foundation UIKit AVFoundation Photos AudioToolbox CoreMedia
 
 TWEAK_NAME += SneakySupport
-SneakySupport_FILES = Support.xm SCPaths.m
+SneakySupport_FILES = Support.xm
 SneakySupport_CFLAGS = -fobjc-arc
 SneakySupport_FRAMEWORKS = Foundation AVFoundation
 SneakySupport_LIBRARIES = substrate

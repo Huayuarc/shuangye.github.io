@@ -1,8 +1,5 @@
 #import <Foundation/Foundation.h>
 #import <objc/message.h>
-#import "SCPaths.h"
-
-static BOOL SCKeepLockRecording(void){ id v=SCReadPreferences()[@"LockScreenKeepRecording"]; return v?[v boolValue]:YES; }
 
 static NSString *SCMonitorApplicationID(id object){
     for(NSString *name in @[@"applicationID",@"clientApplicationID",@"bundleID",@"bundleIdentifier"]){SEL sel=NSSelectorFromString(name);if([object respondsToSelector:sel]){id value=((id(*)(id,SEL))objc_msgSend)(object,sel);if([value isKindOfClass:NSString.class]&&[value length])return value;}}
@@ -38,34 +35,6 @@ static BOOL SCIsSpringBoardCaptureClient(id object){
 %hook FigCaptureClientApplicationStateMonitorClient
 - (BOOL)hasBackgroundCameraAccess {
     if (SCIsSpringBoardCaptureClient(self)) return YES;
-    return %orig;
-}
-%end
-
-// RecordAnywhere 1.1.0 的锁屏状态策略：仅在开关启用时让 ReplayKit 认为设备未锁定。
-%hook RPSystemRecordSession
-- (void)handleDeviceLockedWarning {
-    if(!SCKeepLockRecording()) { %orig; }
-}
-%end
-
-%hook RPRecordingManager
-- (void)handleDeviceLockedWarning {
-    if(!SCKeepLockRecording()) { %orig; }
-}
-- (void)setUpDeviceLockNotifications {
-    if(!SCKeepLockRecording()) { %orig; }
-}
-- (BOOL)checkDeviceLockedRequirement {
-    if(SCKeepLockRecording()) return NO;
-    return %orig;
-}
-- (void)setDeviceLocked:(BOOL)locked {
-    if(SCKeepLockRecording()) locked=NO;
-    %orig;
-}
-- (BOOL)deviceLocked {
-    if(SCKeepLockRecording()) return NO;
     return %orig;
 }
 %end
