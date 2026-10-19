@@ -44,15 +44,30 @@ static BOOL SCIsSpringBoardCaptureClient(id object){
 
 // RecordAnywhere 1.1.0 的锁屏状态策略：仅在开关启用时让 ReplayKit 认为设备未锁定。
 %hook RPSystemRecordSession
-- (void)handleDeviceLockedWarning { if(!SCKeepLockRecording()) %orig; }
+- (void)handleDeviceLockedWarning {
+    if(!SCKeepLockRecording()) { %orig; }
+}
 %end
 
 %hook RPRecordingManager
-- (void)handleDeviceLockedWarning { if(!SCKeepLockRecording()) %orig; }
-- (void)setUpDeviceLockNotifications { if(!SCKeepLockRecording()) %orig; }
-- (BOOL)checkDeviceLockedRequirement { if(SCKeepLockRecording())return NO;return %orig; }
-- (void)setDeviceLocked:(BOOL)locked { if(SCKeepLockRecording())locked=NO; %orig; }
-- (BOOL)deviceLocked { if(SCKeepLockRecording())return NO;return %orig; }
+- (void)handleDeviceLockedWarning {
+    if(!SCKeepLockRecording()) { %orig; }
+}
+- (void)setUpDeviceLockNotifications {
+    if(!SCKeepLockRecording()) { %orig; }
+}
+- (BOOL)checkDeviceLockedRequirement {
+    if(SCKeepLockRecording()) return NO;
+    return %orig;
+}
+- (void)setDeviceLocked:(BOOL)locked {
+    if(SCKeepLockRecording()) locked=NO;
+    %orig;
+}
+- (BOOL)deviceLocked {
+    if(SCKeepLockRecording()) return NO;
+    return %orig;
+}
 %end
 
 %ctor { %init; }
