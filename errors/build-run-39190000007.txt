@@ -1,0 +1,39 @@
+=== Build Info ===
+Timestamp: Mon Oct 19 02:27:19 UTC 2026
+THEOS: /Users/runner/theos
+SDK: total 0
+drwxr-xr-x   4 runner  staff  128 Oct 19 02:27 .
+drwxr-xr-x  22 runner  staff  704 Oct 19 02:27 ..
+-rw-r--r--   1 runner  staff    0 Oct 19 02:27 .keep
+drwxr-xr-x   8 runner  staff  256 Nov 23  2023 iPhoneOS16.5.sdk
+
+=== Project: SneakyCam ===
+Exit code: 2
+[0;36m==> [1;36mNotice:[m Build may be slow as Theos isn’t using all available CPU cores on this computer. Consider upgrading GNU Make: https://theos.dev/docs/parallel-building
+[1;31m> [1;3;39mMaking all for tweak SneakyCamCore…[m
+[0;31m==> [1;39mPreprocessing Tweak.xm…[m
+[0;32m==> [1;39mCompiling Tweak.xm (arm64)…[m
+[0;32m==> [1;39mCompiling SCCaptureManager.m (arm64)…[m
+[0;32m==> [1;39mCompiling SCPaths.m (arm64)…[m
+[0;33m==> [1;39mLinking tweak SneakyCamCore (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for SneakyCamCore…[m
+[0;34m==> [1;39mStripping SneakyCamCore (arm64)…[m
+[0;31m==> [1;39mPreprocessing Tweak.xm…[m
+[0;32m==> [1;39mCompiling Tweak.xm (arm64e)…[m
+[0;32m==> [1;39mCompiling SCCaptureManager.m (arm64e)…[m
+[0;32m==> [1;39mCompiling SCPaths.m (arm64e)…[m
+[0;33m==> [1;39mLinking tweak SneakyCamCore (arm64e)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for SneakyCamCore…[m
+[0;34m==> [1;39mStripping SneakyCamCore (arm64e)…[m
+[0;34m==> [1;39mMerging tweak SneakyCamCore…[m
+[0;34m==> [1;39mSigning SneakyCamCore…[m
+[1;31m> [1;3;39mMaking all for tweak SneakySupport…[m
+[0;31m==> [1;39mPreprocessing Support.xm…[m
+Support.xm:54: error: Invalid argument structure in %orig
+make[3]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/SneakyCam/.theos/obj/arm64/Support.xm.mm] Error 255
+rm /Users/runner/work/shuangye.github.io/shuangye.github.io/debs/SneakyCam/.theos/obj/arm64/Support.xm.mm
+make[2]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/SneakyCam/.theos/obj/arm64/SneakySupport.dylib] Error 2
+make[1]: *** [internal-library-all_] Error 2
+make: *** [SneakySupport.all.tweak.variables] Error 2
