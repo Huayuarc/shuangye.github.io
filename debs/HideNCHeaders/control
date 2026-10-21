@@ -1,0 +1,9 @@
+Package: com.minis.hidencheaders
+Name: 隐藏通知清除按钮
+Version: 1.0.5
+Architecture: iphoneos-arm64e
+Description: Hide notification group header and footer controls with zero occupancy. No preferences.
+Maintainer: L.E
+Author: L.E
+Section: Tweaks
+Tag: role::enduser
