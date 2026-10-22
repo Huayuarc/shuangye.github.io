@@ -3,6 +3,7 @@ override ARCHS = arm64
 override THEOS_PACKAGE_SCHEME = rootless
 FINALPACKAGE = 1
 DEBUG = 0
+# APPLICATION_NAME marker: this bundle-only project must be discovered by CI.
 include $(THEOS)/makefiles/common.mk
 BUNDLE_NAME = VBModule
 VBModule_FILES = VBModule.m
