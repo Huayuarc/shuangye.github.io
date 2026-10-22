@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+case "${1:-}" in
+ configure)
+  chmod 0755 /var/jb/usr/bin/vnodebypass /var/jb/Applications/vnodebypass.app/vnodebypass
+  # Remove only the orphaned filter; the uploaded DEB contains no matching dylib.
+  rm -f /var/jb/Library/MobileSubstrate/DynamicLibraries/vnodebypassnext.plist
+  if [ -x /var/jb/usr/bin/uicache ]; then /var/jb/usr/bin/uicache -p /var/jb/Applications/vnodebypass.app; fi
+  echo 'Restart userspace once to unload the old CC module. No automatic hiding is enabled.'
+  ;;
+esac
+exit 0
