@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<array>
+	<string>/var/mobile/Library/Caches/org.coolstar.SileoStore</string>
+	<string>/var/mobile/Library/Caches/ws.hbang.Terminal</string>
+	<string>/var/mobile/Library/Caches/xyz.willy.Zebra</string>
+	<string>/var/mobile/Library/WebKit/org.coolstar.SileoStore</string>
+	<string>/var/mobile/Library/WebKit/xyz.willy.Zebra</string>
+	<string>/var/cache/clutch_cracked.plist</string>
+	<string>/var/cache/clutch.plist</string>
+	<string>/var/checkra1n.dmg</string>
+	<string>/var/containers/Bundle/.installed_rootlessJB3</string>
+	<string>/var/log/jailbreakd-stderr.log</string>
+	<string>/var/log/jailbreakd-stdout.log</string>
+	<string>/var/log/pspawn_payload_xpcproxy.log</string>
+	<string>/var/mobile/Library/.sbinjectSafeMode</string>
+	<string>/var/mobile/Library/Caches/com.saurik.Cydia</string>
+	<string>/var/mobile/Library/Caches/kjc.loader</string>
+	<string>/var/mobile/Library/Logs/Cydia</string>
+	<string>/var/mobile/Media/.evasi0n7_installed</string>
+	<string>/var/mobile/Library/Saved Application State/com.tigisoftware.Filza.savedState</string>
+	<string>/var/mobile/Library/HTTPStorages/ws.hbang.Terminal</string>
+	<string>/Applications/Zebra.app</string>
+	<string>/Applications/blackra1n.app</string>
+	<string>/Applications/FakeCarrier.app</string>
+	<string>/var/mobile/Library/SplashBoard/Snapshots/ru.domo.cocoatop64</string>
+	<string>/var/mobile/.ekenablelogging</string>
+	<string>/var/mobile/Library/Caches/Cephei</string>
+	<string>/var/mobile/Library/HTTPStorages/org.coolstar.SileoStore</string>
+	<string>/Applications/Filza.app</string>
+	<string>/Applications/NewTerm.app</string>
+	<string>/var/mobile/Library/Saved Application State/ru.domo.cocoatop64.savedState</string>
+	<string>/var/mobile/Library/SplashBoard/Snapshots/xyz.willy.Zebra</string>
+	<string>/var/mobile/Library/HTTPStorages/xyz.willy.Zebra</string>
+	<string>/var/mobile/Library/SplashBoard/Snapshots/org.coolstar.SileoStore</string>
+	<string>/var/mobile/Library/SplashBoard/Snapshots/com.tigisoftware.Filza</string>
+	<string>/var/mobile/Library/SplashBoard/Snapshots/com.xina.jailbreak</string>
+	<string>/var/mobile/Library/Saved Application State/org.coolstar.SileoStore.savedState</string>
+	<string>/Applications/RockApp.app</string>
+	<string>/Applications/SBSettings.app</string>
+	<string>/var/mobile/Library/Caches/com.tigisoftware.Filza</string>
+	<string>/.bootstrapped_electra</string>
+	<string>/.cydia_no_stash</string>
+	<string>/Applications/MxTube.app</string>
+	<string>/Applications/IntelliScreen.app</string>
+	<string>/var/mobile/Library/HTTPStorages/com.tigisoftware.Filza</string>
+	<string>/var/mobile/Library/SplashBoard/Snapshots/ws.hbang.Terminal</string>
+	<string>/Applications/Flex3.app</string>
+	<string>/Applications/Sileo.app</string>
+	<string>/var/mobile/Library/Saved Application State/ws.hbang.Terminal.savedState</string>
+	<string>/var/mobile/Library/Saved Application State/xyz.willy.Zebra.savedState</string>
+	<string>/Applications/Icy.app</string>
+	<string>/.installed_unc0ver</string>
+	<string>/Applications/WinterBoard.app</string>
+	<string>/Applications/iFile.app</string>
+	<string>/var/mobile/.eksafemode</string>
+	<string>/Applications/FlyJB.app</string>
+	<string>/Applications/Cydia.app</string>
+</array>
+</plist>
