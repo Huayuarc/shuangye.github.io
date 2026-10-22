@@ -1,0 +1,9 @@
+=== Build Info ===
+Timestamp: Thu Oct 22 03:46:13 UTC 2026
+THEOS: /Users/runner/theos
+SDK: total 0
+drwxr-xr-x   4 runner  staff  128 Oct 22 03:46 .
+drwxr-xr-x  22 runner  staff  704 Oct 22 03:46 ..
+-rw-r--r--   1 runner  staff    0 Oct 22 03:46 .keep
+drwxr-xr-x   8 runner  staff  256 Nov 23  2023 iPhoneOS16.5.sdk
+RootHide 未产出 deb
