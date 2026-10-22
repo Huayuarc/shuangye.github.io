@@ -1,0 +1,35 @@
+#!/bin/bash
+set -e
+
+Delete_File_folder() {
+    echo "Catalogs and files are being removed..."
+    rm -rf /var/jb/Applications/vnodebypass.app/
+    rm -rf /var/jb/Library/ControlCenter/Bundles/VBModule.bundle/
+    rm -f /var/jb/Library/MobileSubstrate/DynamicLibraries/vnodebypassnext.plist
+}
+
+Delete_File() {
+    echo "Removing binary documents and configuration files..."
+    rm -f /var/jb/usr/bin/vnodebypass
+    rm -f /var/jb/usr/share/vnodebypass/hidePathList.plist
+}
+
+main() {
+    case "$1" in
+        remove|upgrade|deconfigure)
+            echo "Start cleaning up vnodebypass..."
+            Delete_File_folder
+            Delete_File
+            echo "Clean up"
+            ;;
+        failed-upgrade|abort-install|abort-upgrade|disappear)
+            echo "Skip cleaning (installation failure)"
+            ;;
+        *)
+            echo "Error: Unknown parameters '$1'" >&2
+            exit 1
+            ;;
+    esac
+}
+
+main "$1"

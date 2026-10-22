@@ -1,0 +1,179 @@
+#!/bin/bash
+
+mkdir -p /var/jb/usr/share/vnodebypass/
+touch /var/jb/usr/share/vnodebypass/hidePathList.plist
+
+HIDE_PLIST="/var/jb/usr/share/vnodebypass/hidePathList.plist"
+
+check_environment() {
+    if [[ ! -f "$HIDE_PLIST" ]]; then
+        return 1
+    fi
+    return 0
+}
+
+find_jailbreak_paths() {
+    local -a found_paths=()
+    
+    local -a jailbreak_paths=(
+        "/Applications/TrollStore.app"
+        "/Applications/PersistenceHelper.app"
+        "/Applications/Eliza.app"
+        "/Applications/Santander.app"
+        "/Applications/Tips.app"
+        "/var/containers/Bundle/TrollStore"
+        "/var/mobile/Library/TrollStore"
+        "/var/mobile/Library/Caches/com.opa334.TrollStore"
+        "/var/mobile/Library/Preferences/com.opa334.TrollStore.plist"
+        "/Applications/Cydia.app"
+        "/Library/MobileSubstrate"
+        "/var/lib/apt"
+        "/var/lib/cydia"
+        "/var/cache/apt"
+        "/var/lib/dpkg"
+        "/etc/apt"
+        "/private/var/lib/apt"
+        "/private/var/lib/cydia"
+        "/private/var/mobile/Library/SBSettings"
+        "/private/var/stash"
+        "/System/Library/LaunchDaemons/com.saurik.Cydia.Startup.plist"
+        "/usr/libexec/cydia"
+        "/usr/share/cydia"
+        "/var/containers/Bundle/tweaksupport"
+        "/var/containers/Bundle/iosbinpack64"
+        "/var/containers/Bundle/dylibs"
+        "/var/mobile/Library/Sileo"
+        "/var/mobile/Library/SBInject"
+        "/var/usr/lib/TweakInject"
+        "/var/usr/lib/pspawn_payload.dylib"
+        "/var/usr/lib/libhooker.dylib"
+        "/var/usr/lib/libsubstitute.dylib"
+        "/var/usr/lib/substrate"
+        "/var/mobile/Library/Caches/libactivator.plist"
+        "/var/mobile/Library/Preferences/jp.ashikase.libpackageinfo.plist"
+        "/var/mobile/Library/Application Support/xyz.willy.Zebra"
+        "/var/mobile/Library/Application Support/org.coolstar.Sileo"
+        "/var/mobile/Library/Application Support/Procursus"
+        "/var/mobile/Library/Application Support/ElleKit"
+        "/var/mobile/Library/Caches/org.coolstar.SileoStore"
+        "/var/mobile/Library/Caches/xyz.willy.Zebra"
+        "/var/mobile/Library/Sileo/sileo.sqlite3"
+        "/var/mobile/Library/Filza"
+        "/var/mobile/Library/AutoTouch"
+        "/var/mobile/Documents/Flex"
+        "/var/mobile/Library/Application Support/Flex3"
+        "/var/mobile/Library/Flex3"
+        "/var/mobile/Library/Preferences/com.julioverne.jailprotect.plist"
+        "/var/mobile/Library/Preferences/com.ryleyangus.liberty.plist"
+        "/var/mobile/Library/Preferences/com.ryleyangus.libertylite.plist"
+        "/var/mobile/Library/Preferences/com.skylerk99.nosub.plist"
+        "/var/mobile/Library/Preferences/jp.akusio.kernbypass.plist"
+        "/var/mobile/Library/Preferences/jp.akusio.kernbypass-unofficial.plist"
+        "/var/mobile/Library/Preferences/kr.typostudio.tsprotector.plist"
+        "/var/mobile/Library/Preferences/kr.xsf1re.flyjb.plist"
+        "/var/mobile/Library/Preferences/me.nepeta.unsub.plist"
+        "/var/mobile/Library/.sbinjectSafeMode"
+        "/var/mobile/fakevar"
+        "/var/MobileSoftwareUpdate/mnt1/fakevar"
+        "/var/containers/Bundle/.installed_rootlessJB3"
+        "/var/dropbear"
+        "/var/checkra1n.dmg"
+        "/var/cache/clutch.plist"
+        "/var/cache/clutch_cracked.plist"
+        "/var/tmp/cydia.log"
+        "/var/tmp/slide.txt"
+        "/var/tmp/vnodeMem.txt"
+        "/var/log/jailbreakd-stderr.log"
+        "/var/log/jailbreakd-stdout.log"
+        "/var/log/pspawn_payload_xpcproxy.log"
+        "/usr/lib/sandbox.plist"
+        "/usr/lib/systemhook.dylib"
+        "/usr/libexec/filza"
+        "/usr/libexec/ssh-keysign"
+        "/usr/sbin/sshd"
+        "/bin/bash"
+        "/bin/sh"
+        "/usr/bin/ssh"
+    )
+    
+    for path in "${jailbreak_paths[@]}"; do
+        if [[ -e "$path" ]]; then
+            found_paths+=("$path")
+        fi
+    done
+    
+    printf '%s\n' "${found_paths[@]}"
+    return 0
+}
+
+update_plist() {
+    local -a new_paths=("$@")
+    
+    if [[ ${#new_paths[@]} -eq 0 ]]; then
+        return 0
+    fi
+    
+    # 读取现有plist中的所有路径
+    local -a existing_paths=()
+    if [[ -f "$HIDE_PLIST" ]]; then
+        while IFS= read -r line; do
+            # 提取<string>标签内的内容
+            if [[ "$line" =~ \<string\>(.*)\</string\> ]]; then
+                existing_paths+=("${BASH_REMATCH[1]}")
+            fi
+        done < "$HIDE_PLIST"
+    fi
+    
+    # 合并现有路径和新路径，去重
+    local -a all_paths=("${existing_paths[@]}")
+    for new_path in "${new_paths[@]}"; do
+        local found=0
+        for existing_path in "${existing_paths[@]}"; do
+            if [[ "$existing_path" == "$new_path" ]]; then
+                found=1
+                break
+            fi
+        done
+        if [[ $found -eq 0 ]]; then
+            all_paths+=("$new_path")
+        fi
+    done
+    
+    # 生成新的plist文件
+    local temp_plist=$(mktemp)
+    {
+        echo '<?xml version="1.0" encoding="UTF-8"?>'
+        echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
+        echo '<plist version="1.0">'
+        echo '<array>'
+        
+        # 写入所有路径
+        for path in "${all_paths[@]}"; do
+            echo "	<string>$path</string>"
+        done
+        
+        echo '</array>'
+        echo '</plist>'
+    } > "$temp_plist"
+    
+    mv "$temp_plist" "$HIDE_PLIST"
+    
+    return 0
+}
+
+main() {
+    if ! check_environment; then
+        exit 1
+    fi
+    
+    local -a found_paths
+    mapfile -t found_paths < <(find_jailbreak_paths)
+    
+    if ! update_plist "${found_paths[@]}"; then
+        exit 1
+    fi
+    
+    exit 0
+}
+
+main "$@"
