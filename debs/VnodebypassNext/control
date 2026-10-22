@@ -1,9 +1,0 @@
-Package: kr.xsf1re.vnodebypass
-Name: Vnodebypass-next (State Fix Candidate)
-Version: 0.4.7-Next-fix2
-Architecture: iphoneos-arm64
-Description: Explicit-action-only UI and unified helper status; reduced global path impact. Dopamine rootless iOS 15-16 only. Device verification pending.
-Maintainer: Huayuarc
-Author: XsF1re, ichitaso, level3tjg; state-fix contributors
-Section: System
-Depends: firmware (>= 15.0), firmware (<< 17.0), com.opa334.ccsupport, libkrw0-dopamine (>= 2.0)
