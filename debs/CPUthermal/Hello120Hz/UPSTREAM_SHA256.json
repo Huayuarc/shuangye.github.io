@@ -1,0 +1,14 @@
+{
+  "Core/H120Hooks.mm": "b3ffed3ba59771f13e8f3f6bc4afc9aa5c1d181b21036855512e6443d45934fb",
+  "Core/H120Recording.mm": "34afdab8b2a5b5de0a2abc1b45f89da0d7600eab6cd06acb7e896d96ba8dcc52",
+  "Core/H120Policy.c": "d8c09b82f76ee9ebf05dedc63c60523a6938b0e7378086b36a240b136d34db95",
+  "Core/H120Policy.h": "cd86867f8d56f0f374093d0beca0c5bcc77b78af26aa0b57368f45eecd2435f9",
+  "Core/H120RangeTrampolines.S": "b024ae8d2b1198c320df24601479ce50bc2d3170a0df2842e9efdf2feb91a44a",
+  "Core/H120Runtime.h": "6f5eff01106eaf5112c615e405e21350c4ee1e084bb057ccf565ee7f48a59423",
+  "Core/H120Recording.h": "3e92aaf35d9903eeaab0fbe2d6faf4e90a159f6e76f303c8f8b3e58c43642446",
+  "Shared/H120Preferences.mm": "fab22f808fd0be53248afb5e6b9a67fca832cea12d8ba1515e39c9d996b459c4",
+  "Shared/H120Preferences.h": "7ce59aa48c7dfe702818fc6d5be421f9ee73dfea56801aeced6f4231d0510fd2",
+  "Preferences/H120SettingsController.mm": "f90dfa41307555e252a788febce9ef18161a93126c55789d577c71db6a6eb50b",
+  "Preferences/Hello120HzPreferences.mm": "1d09da88340cdc75559256e07a2b8587c35790d963278f0a03895cf580234870",
+  "Preferences/H120SettingsController.h": "a0ef1653750b6a2360bd90dbec2166fed09412ce37fb8ca789df0a3985605f49"
+}
