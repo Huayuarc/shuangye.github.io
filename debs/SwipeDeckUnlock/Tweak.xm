@@ -87,10 +87,10 @@ static void SDPatchImage(const struct mach_header_64 *mh, const char *path) {
                   @"跳过以免打坏", base, off, *slot);
             return;
         }
-        BOOL ok = SDWriteInsn(slot, SD_INSN_PATCH);
+        SDWriteInsn(slot, SD_INSN_PATCH);
         NSLog(@"[SwipeDeckUnlock] %s[%s] 0x%X %@",
               base, isArm64e ? "arm64e" : "arm64", off,
-              ok ? @"patch ok" : @"patch FAILED");
+              @"patch attempted");
         return;
     }
 }
