@@ -28,6 +28,79 @@
 #import <substrate.h>
 
 #pragma mark - 补丁点
+
+// and w0, w22, #1   （函数返回点：把 w22 的布尔结果截到 w0）
+#define SD_INSN_ORIG   ((uint32_t)0x120002C0)
+// mov w0, #1        （恒返回「已激活」）
+#define SD_INSN_PATCH  ((uint32_t)0x52800020)
+
+typedef struct {
+    const char *image;   // 镜像 basename
+    uint32_t    arm64;   // arm64  切片里返回点的文件/VM 偏移（__TEXT vmaddr = 0）
+    uint32_t    arm64e;  // arm64e 切片里同一处
+} SD_SITE;
+
+static const SD_SITE kSites[] = {
+    // SwipeDeck.dylib  —— isActivated() 返回点，constructor 门禁与全部功能页都看它
+    { "SwipeDeck.dylib", 0x962A0, 0x9DA1C },
+    // SwipeDeckPrefs   —— 设置面板里同一份判定（决定抬头「已激活 / 未激活」）
+    { "SwipeDeckPrefs",  0xAAD18, 0xB3BA8 },
+};
+
+static const char *kKillSwitch =
+    "/var/mobile/Library/Preferences/com.zooah.swipedeck.unlock.disabled";
+
+#pragma mark - 内存改写
+
+static BOOL SDWriteInsn(uint32_t *slot, uint32_t value) {
+    if (!slot) return NO;
+    if (*slot == value) return YES;                       // 已经打过
+
+    vm_address_t page = (vm_address_t)slot & ~(vm_page_size - 1);
+    kern_return_t kr = vm_protect(mach_task_self(), page, vm_page_size,
+                                  FALSE,
+                                  VM_PROT_READ | VM_PROT_WRITE | VM_PROT_COPY);
+    if (kr != KERN_SUCCESS) return NO;
+
+    *slot = value;
+    sys_icache_invalidate(slot, sizeof(uint32_t));         // 冲指令缓存
+    __builtin___clear_cache((char *)slot, (char *)slot + sizeof(uint32_t));
+    return YES;
+}
+
+static void SDPatchImage(const struct mach_header_64 *mh, const char *path) {
+    if (!mh || !path) return;
+
+    const char *base = strrchr(path, '/');
+    base = base ? base + 1 : path;
+
+    for (size_t i = 0; i < sizeof(kSites) / sizeof(kSites[0]); i++) {
+        if (strcmp(base, kSites[i].image) != 0) continue;
+
+        // arm64e 的 cpusubtype 低位是 2（高位是 ABI/capability 标志，要掩掉）
+        BOOL isArm64e = ((mh->cpusubtype & 0x00FFFFFF) == 2);
+        uint32_t off  = isArm64e ? kSites[i].arm64e : kSites[i].arm64;
+
+        uint32_t *slot = (uint32_t *)((uintptr_t)mh + off);
+        if (*slot != SD_INSN_ORIG && *slot != SD_INSN_PATCH) {
+            NSLog(@"[SwipeDeckUnlock] %s 偏移 0x%X 不是预期指令 (0x%08X)，"
+                  @"跳过以免打坏", base, off, *slot);
+            return;
+        }
+        BOOL ok = SDWriteInsn(slot, SD_INSN_PATCH);
+        NSLog(@"[SwipeDeckUnlock] %s[%s] 0x%X %@",
+              base, isArm64e ? "arm64e" : "arm64", off,
+              ok ? @"patch ok" : @"patch FAILED");
+        return;
+    }
+}
+
+#pragma mark - 设置面板兜底（ObjC 层）
+
+// 面板里的状态读取与「未激活」提示，双保险：即使内存 patch 晚到，
+// 设置页也不会再显示未激活、不会弹拦截框。
+
+static long (*origActivationState)(id, SEL);
 static long sdActivationState(id self, SEL _cmd) {
     return 1;
 }
