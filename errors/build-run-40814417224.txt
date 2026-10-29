@@ -1,0 +1,24 @@
+=== Build Info ===
+Timestamp: Thu Oct 29 03:51:11 UTC 2026
+THEOS: /Users/runner/theos
+SDK: total 0
+drwxr-xr-x   4 runner  staff  128 Oct 29 03:51 .
+drwxr-xr-x  22 runner  staff  704 Oct 29 03:51 ..
+-rw-r--r--   1 runner  staff    0 Oct 29 03:51 .keep
+drwxr-xr-x   8 runner  staff  256 Nov 23  2023 iPhoneOS16.5.sdk
+
+=== Project: SwipeDeckUnlock ===
+Exit code: 2
+[0;36m==> [1;36mNotice:[m Build may be slow as Theos isn’t using all available CPU cores on this computer. Consider upgrading GNU Make: https://theos.dev/docs/parallel-building
+[1;31m> [1;3;39mMaking all for tweak SwipeDeckUnlock…[m
+[0;31m==> [1;39mPreprocessing Tweak.xm…[m
+[0;32m==> [1;39mCompiling Tweak.xm (arm64)…[m
+[1mTweak.xm:90:14: [0m[0;1;31merror: [0m[1munused variable 'ok' [-Werror,-Wunused-variable][0m
+        BOOL ok = SDWriteInsn(slot, SD_INSN_PATCH);
+[0;1;32m             ^
+[0m1 error generated.
+make[3]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/SwipeDeckUnlock/.theos/obj/arm64/Tweak.xm.1dee937e.o] Error 1
+rm /Users/runner/work/shuangye.github.io/shuangye.github.io/debs/SwipeDeckUnlock/.theos/obj/arm64/Tweak.xm.mm
+make[2]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/SwipeDeckUnlock/.theos/obj/arm64/SwipeDeckUnlock.dylib] Error 2
+make[1]: *** [internal-library-all_] Error 2
+make: *** [SwipeDeckUnlock.all.tweak.variables] Error 2
