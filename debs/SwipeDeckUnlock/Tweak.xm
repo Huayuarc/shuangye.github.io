@@ -64,7 +64,6 @@ static BOOL SDWriteInsn(uint32_t *slot, uint32_t value) {
 
     *slot = value;
     sys_icache_invalidate(slot, sizeof(uint32_t));         // 冲指令缓存
-    __builtin___clear_cache((char *)slot, (char *)slot + sizeof(uint32_t));
     return YES;
 }
 
