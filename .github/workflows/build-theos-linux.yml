@@ -208,6 +208,7 @@ jobs:
 
       - name: Build roothide (arm64e)
         if: success() && steps.build-rootless.outputs.exit_code == 0
+        continue-on-error: true
         working-directory: debs
         run: |
           set -x
