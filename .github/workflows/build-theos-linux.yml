@@ -207,7 +207,7 @@ jobs:
           git push origin build-logs --force 2>&1 || echo "推送失败（可能权限不足）"
 
       - name: Build roothide (arm64e)
-        if: success() && steps.build-rootless.outputs.exit_code == 0
+        if: false
         continue-on-error: true
         working-directory: debs
         run: |
@@ -271,7 +271,7 @@ jobs:
           git push origin build-logs --force
 
       - name: Collect debs
-        if: success() && steps.build-rootless.outputs.exit_code == 0
+        if: ${{ !cancelled() && steps.build-rootless.outputs.exit_code == 0 }}
         run: |
           set -x
 
@@ -294,7 +294,7 @@ jobs:
           ls -la "${{ github.workspace }}/packages/" || echo "packages 为空"
 
       - name: Commit and push debs
-        if: success() && steps.build-rootless.outputs.exit_code == 0
+        if: ${{ !cancelled() && steps.build-rootless.outputs.exit_code == 0 }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -318,7 +318,7 @@ jobs:
           fi
 
       - name: Clean up source code after build
-        if: success() && steps.build-rootless.outputs.exit_code == 0
+        if: ${{ !cancelled() && steps.build-rootless.outputs.exit_code == 0 }}
         run: |
           set -x
           git config user.name "github-actions[bot]"
