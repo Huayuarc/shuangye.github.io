@@ -143,3 +143,5 @@ before-all::
 after-stage::
 	$(ECHO_NOTHING)mkdir -p "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/CPUthermalSettings.bundle/Hello120Hz"$(ECHO_END)
 	$(ECHO_NOTHING)cp Hello120Hz/Preferences/Resources/icon@2x.png "$(THEOS_STAGING_DIR)/Library/PreferenceBundles/CPUthermalSettings.bundle/Hello120Hz/"$(ECHO_END)
+
+# build trigger: isolation.25 re-run
