@@ -1,0 +1,13 @@
+name: CI Probe macOS
+on:
+  push:
+    paths:
+      - ".github/workflows/ci-probe.yml"
+jobs:
+  probe:
+    runs-on: macos-14
+    steps:
+      - name: hello
+        run: |
+          echo "runner ok"
+          uname -a
