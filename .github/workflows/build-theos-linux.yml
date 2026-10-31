@@ -22,26 +22,39 @@ jobs:
 
       - name: Setup Theos (Linux cross-compile)
         run: |
-          set -e
+          set -euxo pipefail
           sudo apt-get update -qq
-          sudo apt-get install -y -qq make git perl clang lld llvm ldid dpkg fakeroot \
-            xz-utils libssl-dev libplist-dev libxml2-dev zlib1g-dev build-essential
+          sudo apt-get install -y -qq build-essential make git perl curl xz-utils \
+            clang lld llvm dpkg-dev fakeroot libssl-dev libplist-dev libxml2-dev zlib1g-dev cmake || true
 
-          echo "=== 工具链 ==="
-          clang --version | head -2
-          which ld64.lld || ls /usr/bin | grep -i '^ld64' || true
+          echo "=== 基础工具 ==="
+          clang --version | head -2 || true
+          command -v ld64.lld || command -v lld || true
+
+          echo "=== ldid（缺失则源码编译）==="
+          if ! command -v ldid >/dev/null 2>&1; then
+            sudo apt-get install -y -qq ldid >/dev/null 2>&1 || true
+          fi
+          if ! command -v ldid >/dev/null 2>&1; then
+            git clone --depth 1 https://github.com/ProcursusTeam/ldid /tmp/ldid
+            make -C /tmp/ldid -j"$(nproc)" CXXFLAGS="-O2"
+            sudo install -m755 /tmp/ldid/ldid /usr/local/bin/ldid
+          fi
           ldid -v 2>&1 | head -1 || true
+          command -v ldid
 
           echo "=== 克隆 roothide Theos ==="
           rm -rf "$HOME/theos"
           git clone --depth 1 --recursive --branch master https://github.com/roothide/theos.git "$HOME/theos"
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
-          cd "$HOME/theos"
-          git submodule update --init --recursive 2>&1 | tail -3
-          ls -la vendor/include/roothide.h || echo "MISSING roothide.h"
-          ls -la vendor/lib/libroothide.tbd || echo "MISSING libroothide.tbd"
-          cd "$OLDPWD"
+          git -C "$HOME/theos" submodule update --init --recursive 2>&1 | tail -3 || true
+          ls -la "$HOME/theos/vendor/include/roothide.h" || echo "MISSING roothide.h"
+          ls -la "$HOME/theos/vendor/lib/libroothide.tbd" || echo "MISSING libroothide.tbd"
+          # Theos 在 Linux 上优先找 $THEOS/bin/ldid
+          mkdir -p "$HOME/theos/bin"
+          ln -sf "$(command -v ldid)" "$HOME/theos/bin/ldid" || true
 
+          echo "=== iOS SDK ==="
           mkdir -p "$HOME/theos/sdks"
           curl -fsSL -o /tmp/sdk.tar.xz \
             "https://github.com/theos/sdks/releases/download/master-146e41f/iPhoneOS16.5.sdk.tar.xz"
@@ -55,7 +68,7 @@ jobs:
         run: |
           set -x
           export ARCHS="arm64"
-          export ADDITIONAL_LDFLAGS="-fuse-ld=ld64.lld"
+          export ADDITIONAL_LDFLAGS="-fuse-ld=lld"
           ERRLOG="${{ github.workspace }}/build-errors.txt"
 
           echo "=== THEOS ==="
@@ -186,7 +199,7 @@ jobs:
         run: |
           set -x
           export ARCHS="arm64 arm64e"
-          export ADDITIONAL_LDFLAGS="-fuse-ld=ld64.lld"
+          export ADDITIONAL_LDFLAGS="-fuse-ld=lld"
 
           echo "=== 检查 roothide vendor ==="
           ls -la "$THEOS/vendor/include/roothide.h" 2>/dev/null && echo "roothide.h 存在"
