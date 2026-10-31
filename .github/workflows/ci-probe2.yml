@@ -1,0 +1,10 @@
+name: CI Probe2
+on:
+  push:
+    paths:
+      - ".github/workflows/ci-probe2.yml"
+jobs:
+  probe:
+    runs-on: macos-14
+    steps:
+      - run: echo ok && sw_vers
