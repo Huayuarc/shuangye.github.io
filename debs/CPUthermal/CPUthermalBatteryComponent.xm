@@ -12,6 +12,19 @@
 #import <notify.h>
 #import <CPUthermalPaths.h>
 
+// Logos 只生成 @class 前置声明；这里给出真实接口，供语句级消息调用通过编译。
+@interface PSSpecifier : NSObject
+- (NSString *)name;
+- (id)propertyForKey:(NSString *)key;
+@end
+
+@interface PSGAboutController : NSObject
+- (void)reloadSpecifiers;
+@end
+
+@interface CRUAlertCell : UITableViewCell
+@end
+
 static BOOL gCPUthermalComponentSuppressed = NO;
 static int gCPUthermalComponentToken = -1;
 
@@ -171,11 +184,6 @@ static void CPUthermalHideInVisibleAboutPages(void) {
     } @catch (...) {
     }
 }
-
-@interface PSSpecifier (CPUthermalAboutParts)
-- (NSString *)name;
-- (id)propertyForKey:(NSString *)key;
-@end
 
 static BOOL CPUthermalSpecifierIsBatteryUnknownPart(id spec) {
     if (!spec || ![spec respondsToSelector:@selector(name)]) return NO;
