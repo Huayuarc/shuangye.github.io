@@ -54,6 +54,19 @@ jobs:
           mkdir -p "$HOME/theos/bin"
           ln -sf "$(command -v ldid)" "$HOME/theos/bin/ldid" || true
 
+          echo "=== 构造 Theos Linux 工具链目录 ==="
+          TC="$HOME/theos/toolchain/linux/iphone/bin"
+          mkdir -p "$TC"
+          for t in clang clang++ lld ld64.lld llvm-ar llvm-ranlib llvm-strip llvm-nm llvm-objdump; do
+            p=$(command -v "$t" 2>/dev/null || true)
+            [ -n "$p" ] && ln -sf "$p" "$TC/$t"
+          done
+          ln -sf "$(command -v ldid)" "$TC/ldid"
+          # clang 驱动在 Linux 上默认找 ld；指向 Mach-O 链接器
+          [ -e "$TC/ld64.lld" ] && ln -sf "$TC/ld64.lld" "$TC/ld"
+          ls -la "$TC" | head -20
+          "$TC/clang" --version | head -2
+
           echo "=== iOS SDK ==="
           mkdir -p "$HOME/theos/sdks"
           curl -fsSL -o /tmp/sdk.tar.xz \
