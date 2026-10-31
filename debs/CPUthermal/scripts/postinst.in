@@ -1,0 +1,61 @@
+#!/bin/sh
+case "$1" in
+configure)
+# Full Hello120Hz writable filter/symlink setup (adapted for both package schemes).
+h120base="${DPKG_ROOT:-@JBROOT@}"
+for candidate in "$h120base/.jbroot" "$h120base"; do
+    if [ -d "$candidate/Library/MobileSubstrate/DynamicLibraries" ]; then
+        h120base="$candidate"
+        break
+    fi
+done
+h120directory="$h120base/var/mobile/Library/Preferences"
+h120loader="$h120base/Library/MobileSubstrate/DynamicLibraries/0hello120hz.plist"
+h120preferences="$h120directory/cn.zqbb.fix120hz.injection.plist"
+h120legacy="$h120base/var/mobile/Hello120hz/0hello120hz.plist"
+mkdir -p "$h120directory"
+if [ ! -e "$h120preferences" ]; then
+    if [ -f "$h120legacy" ]; then
+        cp "$h120legacy" "$h120preferences"
+    elif [ -f "$h120loader" ]; then
+        cp "$h120loader" "$h120preferences"
+    else
+        cp "$h120base/Library/PreferenceBundles/CPUthermalSettings.bundle/DefaultInjection.plist" "$h120preferences"
+    fi
+fi
+chown mobile:mobile "$h120directory" "$h120preferences"
+chmod 755 "$h120directory"
+chmod 644 "$h120preferences"
+if [ ! -L "$h120loader" ] || [ "$(readlink "$h120loader")" != "../../../var/mobile/Library/Preferences/cn.zqbb.fix120hz.injection.plist" ]; then
+    rm -f "$h120loader"
+    ln -s "../../../var/mobile/Library/Preferences/cn.zqbb.fix120hz.injection.plist" "$h120loader"
+fi
+# isolation.18：偏好迁入越狱根（与 Hello 120Hz 同一路径模型），避免 var 清理工具识别。
+h18old="/var/mobile/Library/Preferences/com.huayuarc.cputhermal.plist"
+h18newdir="$h120base/var/mobile/Library/Preferences"
+h18new="$h18newdir/com.huayuarc.cputhermal.plist"
+mkdir -p "$h18newdir"
+if [ ! -e "$h18new" ] && [ -f "$h18old" ]; then
+    cp "$h18old" "$h18new"
+fi
+chown mobile:mobile "$h18newdir" 2>/dev/null || true
+chmod 755 "$h18newdir" 2>/dev/null || true
+chown mobile:mobile "$h18new" 2>/dev/null || true
+chmod 644 "$h18new" 2>/dev/null || true
+if [ -f "$h18new" ] && [ -f "$h18old" ] && [ ! "$h18new" -ef "$h18old" ]; then
+    rm -f "$h18old"
+fi
+killall -q thermalmonitord 2>/dev/null || true
+# isolation.15：修复已有偏好文件属主/权限——模块以 root 写入后属主会变成 root:wheel，
+# 设置面板（mobile）读不到会导致开关状态丢失（面板以空字典覆盖、只留单个键）。
+chown mobile:mobile "$h18new" 2>/dev/null || true
+chmod 644 "$h18new" 2>/dev/null || true
+# 智能停充守护：已有服务重启读取新配置，首次安装执行 bootstrap。
+if launchctl print system/com.huayuarc.cputhermal.charge >/dev/null 2>&1; then
+    launchctl kickstart -k system/com.huayuarc.cputhermal.charge >/dev/null 2>&1 || true
+else
+    launchctl bootstrap system @JBROOT@/Library/LaunchDaemons/com.huayuarc.cputhermal.charge.plist >/dev/null 2>&1 || true
+fi
+;;
+esac
+exit 0
