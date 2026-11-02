@@ -10,7 +10,7 @@
 [  6] /Users/runner/theos/sdks/iPhoneOS16.5.sdk/System/Library/Frameworks/Foundation.framework/Foundation.tbd
 [  7] /Users/runner/theos/sdks/iPhoneOS16.5.sdk/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation.tbd
 [  8] /Users/runner/theos/sdks/iPhoneOS16.5.sdk/System/Library/Frameworks/IOKit.framework/Versions/A/IOKit.tbd
-[  9] /Users/runner/work/shuangye.github.io/shuangye.github.io/debs/CPUthermal/.theos/obj/arm64e/Tweak.x.58dc82d1.o
+[  9] /Users/runner/work/shuangye.github.io/shuangye.github.io/debs/CPUthermal/.theos/obj/arm64e/Tweak.x.5681834b.o
 [ 10] /usr/lib/system/libdispatch.dylib
 [ 11] /usr/lib/system/libdyld.dylib
 [ 12] /usr/lib/system/libsystem_blocks.dylib
