@@ -250,11 +250,15 @@ jobs:
         run: |
           set -x
           mkdir -p "${{ github.workspace }}/symbols"
-          find .theos/obj -maxdepth 3 -name '*.dylib.dSYM' | while read -r d; do
-            n=$(basename "$d" .dylib.dSYM)
+          if [ -f build-map.txt ]; then
+            cp build-map.txt "${{ github.workspace }}/symbols/CPUthermal-build-map.txt"
+          fi
+          find . -name '*build-map*.txt' -o -name '*.dSYM' -maxdepth 4 | tee "${{ github.workspace }}/symbols/found.txt"
+          find . -maxdepth 4 -name '*.dSYM' | while read -r d; do
+            n=$(basename "$d" | sed 's/\.dylib\.dSYM$//; s/\.dSYM$//')
             bin="$d/Contents/Resources/DWARF/$n"
             if [ -f "$bin" ]; then
-              nm -n "$bin" > "${{ github.workspace }}/symbols/$n-arm64e.txt" || true
+              nm -n "$bin" > "${{ github.workspace }}/symbols/$n.txt" || true
             fi
           done
           ls -l "${{ github.workspace }}/symbols"
