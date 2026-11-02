@@ -1,0 +1,1304 @@
+# Path: /Users/runner/work/shuangye.github.io/shuangye.github.io/debs/CPUthermal/.theos/obj/arm64e/CPUthermal.dylib
+# Arch: arm64e
+# Object files:
+[  0] linker synthesized
+[  1] objc-stubs-file
+[  2] tlv-file
+[  3] inits-file
+[  4] objc-file
+[  5] /Users/runner/theos/sdks/iPhoneOS16.5.sdk/usr/lib/libobjc.A.tbd
+[  6] /Users/runner/theos/sdks/iPhoneOS16.5.sdk/System/Library/Frameworks/Foundation.framework/Foundation.tbd
+[  7] /Users/runner/theos/sdks/iPhoneOS16.5.sdk/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation.tbd
+[  8] /Users/runner/theos/sdks/iPhoneOS16.5.sdk/System/Library/Frameworks/IOKit.framework/Versions/A/IOKit.tbd
+[  9] /Users/runner/work/shuangye.github.io/shuangye.github.io/debs/CPUthermal/.theos/obj/arm64e/Tweak.x.58dc82d1.o
+[ 10] /usr/lib/system/libdispatch.dylib
+[ 11] /usr/lib/system/libdyld.dylib
+[ 12] /usr/lib/system/libsystem_blocks.dylib
+[ 13] /usr/lib/system/libsystem_c.dylib
+[ 14] /usr/lib/system/libsystem_kernel.dylib
+[ 15] /usr/lib/system/libsystem_malloc.dylib
+[ 16] /usr/lib/system/libsystem_notify.dylib
+[ 17] /usr/lib/system/libsystem_platform.dylib
+[ 18] /usr/lib/system/libsystem_pthread.dylib
+[ 19] /usr/lib/system/libsystem_trace.dylib
+[ 20] /usr/lib/system/libunwind.dylib
+[ 21] /Users/runner/theos/vendor/lib/iphone/roothide/CydiaSubstrate.framework/CydiaSubstrate.tbd
+# Sections:
+# Address	Size    	Segment	Section
+0x00004000	0x0000F280	__TEXT	__text
+0x00013280	0x00000530	__TEXT	__auth_stubs
+0x000137B0	0x00000700	__TEXT	__objc_stubs
+0x00013EB0	0x00000008	__TEXT	__init_offsets
+0x00013EC0	0x00000030	__TEXT	__const
+0x00013EF0	0x000001D0	__TEXT	__gcc_except_tab
+0x000140C0	0x00000D02	__TEXT	__cstring
+0x00014DC2	0x00000931	__TEXT	__objc_methname
+0x000156F3	0x00000001	__TEXT	__objc_classname
+0x000156F4	0x000002D8	__TEXT	__unwind_info
+0x00018000	0x000000E5	__TEXT	__oslogstring
+0x0001C000	0x000002A8	__DATA_CONST	__auth_got
+0x0001C2A8	0x00000068	__DATA_CONST	__got
+0x0001C310	0x00001F68	__DATA_CONST	__const
+0x0001E278	0x00000260	__DATA_CONST	__cfstring
+0x0001E4D8	0x00000008	__DATA_CONST	__objc_imageinfo
+0x0001E4E0	0x00000080	__DATA_CONST	__objc_arraydata
+0x0001E560	0x00000030	__DATA_CONST	__objc_arrayobj
+0x00020000	0x00000328	__DATA	__objc_selrefs
+0x00020328	0x00000048	__DATA	__objc_classrefs
+0x00020370	0x00000058	__DATA	__data
+0x000203C8	0x00000048	__DATA	__thread_vars
+0x00020410	0x00000003	__DATA	__thread_bss
+0x00020418	0x000008C8	__DATA	__bss
+# Symbols:
+# Address	Size    	File  Name
+0x00004000	0x00000644	[  9] __logosLocalCtor_bab90827
+0x00004644	0x000003C8	[  9] _loadPrefs
+0x00004A0C	0x00000054	[  9] _CPUthermalRuntimeLog
+0x00004A60	0x000001CC	[  9] _hooked_IOServiceSetProperty
+0x00004C2C	0x00000070	[  9] _new_getConfigurationFor
+0x00004C9C	0x0000008C	[  9] _CPUthermalForceNominalPressure
+0x00004D28	0x00000004	[  9] _onPuppetEvent
+0x00004D2C	0x0000004C	[  9] _onSettingsChanged
+0x00004D78	0x000002DC	[  9] _installCrossVersionThermalAliases
+0x00005054	0x00000004	[  9] ____logosLocalCtor_bab90827_block_invoke
+0x00005058	0x00000B6C	[  9] __logosLocalInit
+0x00005BC4	0x0000009C	[  9] __logos_method$_ungrouped$CommonProduct$setServiceProperty$key$value$scaleToFixedPoint$
+0x00005C60	0x00000038	[  9] __logos_method$_ungrouped$CommonProduct$shouldEnforceLightThermalPressure
+0x00005C98	0x00000038	[  9] __logos_method$_ungrouped$CommonProduct$getPotentialForcedThermalLevel$
+0x00005CD0	0x00000038	[  9] __logos_method$_ungrouped$CommonProduct$getPotentialForcedThermalPressureLevel
+0x00005D08	0x000000D4	[  9] __logos_method$_ungrouped$CommonProduct$initProduct$
+0x00005DDC	0x00000044	[  9] __logos_method$_ungrouped$CommonProduct$tryTakeAction
+0x00005E20	0x00000040	[  9] __logos_method$_ungrouped$CommonProduct$simulateLightThermalPressure
+0x00005E60	0x00000058	[  9] __logos_method$_ungrouped$CommonProduct$updatePowerzoneTelemetry
+0x00005EB8	0x000000AC	[  9] __logos_method$_ungrouped$CommonProduct$setCPMSMitigationsEnabled$
+0x00005F64	0x000000AC	[  9] __logos_method$_ungrouped$CommonProduct$setCPULevel$
+0x00006010	0x0000009C	[  9] __logos_method$_ungrouped$CommonProduct$setCPUPowerCeiling$fromDecisionSource$
+0x000060AC	0x0000009C	[  9] __logos_method$_ungrouped$CommonProduct$setCPUPowerFloor$fromDecisionSource$
+0x00006148	0x0000009C	[  9] __logos_method$_ungrouped$CommonProduct$setGPUPowerCeiling$fromDecisionSource$
+0x000061E4	0x0000009C	[  9] __logos_method$_ungrouped$CommonProduct$setPackagePowerCeiling$fromDecisionSource$
+0x00006280	0x000000C8	[  9] __logos_method$_ungrouped$HidSensors$handleTemperatureEvent$service$
+0x00006348	0x00000068	[  9] __logos_method$_ungrouped$ThermalManager$evaluateDecisionTree
+0x000063B0	0x0000005C	[  9] __logos_method$_ungrouped$ThermalManager$setCPMSMitigationState$
+0x0000640C	0x00000044	[  9] __logos_method$_ungrouped$ThermalManager$updateThermalPressureLevelNotification$shouldForceThermalPressure$
+0x00006450	0x00000054	[  9] __logos_method$_ungrouped$ThermalManager$updateThermalNotification$
+0x000064A4	0x00000038	[  9] __logos_method$_ungrouped$ThermalManager$shouldEnforceLightThermalPressure
+0x000064DC	0x00000038	[  9] __logos_method$_ungrouped$ThermalManager$getPotentialForcedThermalLevel$
+0x00006514	0x00000038	[  9] __logos_method$_ungrouped$ThermalManager$getPotentialForcedThermalPressureLevel
+0x0000654C	0x0000000C	[  9] __logos_method$_ungrouped$ThermalManager$getBatteryServiceSuggestion$
+0x00006558	0x000000D0	[  9] __logos_method$_ungrouped$ThermalManager$getConfigurationFor$
+0x00006628	0x0000009C	[  9] __logos_method$_ungrouped$ThermalControl$setServiceProperty$key$value$scaleToFixedPoint$
+0x000066C4	0x00000060	[  9] __logos_method$_ungrouped$ThermalControl$initForFastLoop$noDisplay$powerSaveParams$powerZoneParams$
+0x00006724	0x00000060	[  9] __logos_method$_ungrouped$ThermalControl$initWithParams$
+0x00006784	0x0000005C	[  9] __logos_method$_ungrouped$ThermalControl$powerSaveActive
+0x000067E0	0x0000005C	[  9] __logos_method$_ungrouped$ThermalControl$setPowerSaveActive$
+0x0000683C	0x00000058	[  9] __logos_method$_ungrouped$ThermalControl$setPowerSaveToken$
+0x00006894	0x00000058	[  9] __logos_method$_ungrouped$ThermalControl$actionComponentControl
+0x000068EC	0x00000058	[  9] __logos_method$_ungrouped$ThermalControl$readReleaseRateForAllComponents
+0x00006944	0x0000003C	[  9] __logos_method$_ungrouped$ApplePPMCPU$init
+0x00006980	0x000000B0	[  9] __logos_method$_ungrouped$ApplePPMCPU$setCPULevel$
+0x00006A30	0x00000104	[  9] __logos_method$_ungrouped$ApplePPMCPU$updateCPU
+0x00006B34	0x00000060	[  9] __logos_method$_ungrouped$ApplePPM$init
+0x00006B94	0x000000B0	[  9] __logos_method$_ungrouped$ApplePPM$setCPULevel$
+0x00006C44	0x00000060	[  9] __logos_method$_ungrouped$MitigationController$initForFastLoop$noDisplay$powerSaveParams$powerZoneParams$
+0x00006CA4	0x000000AC	[  9] __logos_method$_ungrouped$MitigationController$setCPMSMitigationsEnabled$
+0x00006D50	0x0000005C	[  9] __logos_method$_ungrouped$MitigationController$powerSaveActive
+0x00006DAC	0x0000005C	[  9] __logos_method$_ungrouped$MitigationController$setPowerSaveActive$
+0x00006E08	0x0000000C	[  9] __logos_method$_ungrouped$MitigationController$setPowerSaveToken$
+0x00006E14	0x000000B0	[  9] __logos_method$_ungrouped$MitigationController$setCPULevel$
+0x00006EC4	0x000000B0	[  9] __logos_method$_ungrouped$MitigationController$setCPUMitigationLevel$
+0x00006F74	0x00000094	[  9] __logos_method$_ungrouped$MitigationController$setDVD1Level$
+0x00007008	0x000000CC	[  9] __logos_method$_ungrouped$MitigationController$updateCPU
+0x000070D4	0x00000048	[  9] __logos_method$_ungrouped$MitigationController$updateGPU
+0x0000711C	0x00000048	[  9] __logos_method$_ungrouped$MitigationController$updatePackage
+0x00007164	0x000000AC	[  9] __logos_method$_ungrouped$MitigationController$setCPULowPowerTarget$
+0x00007210	0x00000078	[  9] __logos_method$_ungrouped$MitigationController$setPackageLowPowerTarget
+0x00007288	0x00000108	[  9] __logos_method$_ungrouped$MitigationController$setMaxCPUPowerTarget$useLegacyPath$setProperty$
+0x00007390	0x000000B4	[  9] __logos_method$_ungrouped$MitigationController$setCPUPowerCeiling$fromDecisionSource$
+0x00007444	0x000000B4	[  9] __logos_method$_ungrouped$MitigationController$setCPUPowerCeiling$forDVD1Contributor$
+0x000074F8	0x000000B4	[  9] __logos_method$_ungrouped$MitigationController$setCPUPowerFloor$fromDecisionSource$
+0x000075AC	0x000000AC	[  9] __logos_method$_ungrouped$MitigationController$setCPUPowerZoneTarget$
+0x00007658	0x00000128	[  9] __logos_meta_method$_ungrouped$NSDictionary$dictionaryWithContentsOfFile$
+0x00007780	0x00000074	[  9] __logos_method$_ungrouped$NotificationManager$updateThermalPressureLevelNotification$shouldForceThermalPressure$
+0x000077F4	0x00000078	[  9] __logos_method$_ungrouped$ComponentControl$updatePowerParameters$
+0x0000786C	0x00000064	[  9] __logos_method$_ungrouped$ComponentControl$updatePackage
+0x000078D0	0x0000000C	[  9] __logos_method$_ungrouped$ComponentControl$setPackageLowPowerTarget
+0x000078DC	0x0000000C	[  9] __logos_method$_ungrouped$ComponentControl$powerSaveActive
+0x000078E8	0x0000009C	[  9] __logos_method$_ungrouped$ComponentControl$setServiceProperty$key$value$scaleToFixedPoint$
+0x00007984	0x00000134	[  9] __logos_function$_ungrouped$IOServiceOpen
+0x00007AB8	0x000000C0	[  9] __logos_function$_ungrouped$IOServiceClose
+0x00007B78	0x00000014	[  9] __logos_function$_ungrouped$IOConnectCallMethod
+0x00007B8C	0x0000000C	[  9] __logos_function$_ungrouped$IOConnectCallStructMethod
+0x00007B98	0x000001BC	[  9] __logos_function$_ungrouped$IORegistryEntrySetCFProperty
+0x00007D54	0x00000338	[  9] __logos_function$_ungrouped$IORegistryEntrySetCFProperties
+0x0000808C	0x00000558	[  9] _CPUthermalReadMutablePrefs
+0x000085E4	0x00000284	[  9] _CPUthermalWritePrefs
+0x00008868	0x00000610	[  9] _CPUthermalLegacyPrefPaths
+0x00008E78	0x000001D4	[  9] _CPUthermalPrefDeletionAllowed
+0x0000904C	0x000000D0	[  9] _CPUthermalSameFile
+0x0000911C	0x00000130	[  9] _CPUthermalWritePrefsAtPathVerified
+0x0000924C	0x000000E4	[  9] _CPUthermalRootHidePrefPathForRoot
+0x00009330	0x00000110	[  9] _CPUthermalRootlessPrefPath
+0x00009440	0x00000444	[  9] _CPUthermalCurrentRootHideRoot
+0x00009884	0x00000048	[  9] ___CPUthermalRuntimeLog_block_invoke
+0x000098CC	0x0000010C	[  9] _isNetworkThrottleProperty
+0x000099D8	0x000005A8	[  9] _keyIsBacklightThermalLimit
+0x00009F80	0x000001B0	[  9] _backlightReplacementMatchingValue
+0x0000A130	0x000000F8	[  9] _CPUthermalRecommitUserBrightnessSoon
+0x0000A228	0x0000005C	[  9] _shouldApplyFullCPUProtection
+0x0000A284	0x00000734	[  9] _keyIsThermalThrottleProperty
+0x0000A9B8	0x000003C8	[  9] _keyIsDisplayLifecycleProperty
+0x0000AD80	0x000000BC	[  9] _CPUthermalRememberBacklightMaximum
+0x0000AE3C	0x00000070	[  9] _CPUthermalScreenIsBlanked
+0x0000AEAC	0x00000004	[  9] ___CPUthermalRecommitUserBrightnessSoon_block_invoke
+0x0000AEB0	0x0000014C	[  9] _patchThermalPlist
+0x0000AFFC	0x0000088C	[  9] _CPUthermalPatchBacklightControl
+0x0000B888	0x00000384	[  9] _CPUthermalPatchBacklightNode
+0x0000BC0C	0x0000025C	[  9] _CPUthermalMaximumNumericInValue
+0x0000BE68	0x0000014C	[  9] _CPUthermalMaximumElementOfBacklightArray
+0x0000BFB4	0x000000C4	[  9] _CPUthermalIsDisplayMitigationKey
+0x0000C078	0x000000B8	[  9] _CPUthermalZeroDisplayMitigationValue
+0x0000C130	0x00000360	[  9] _CPUthermalCaptureExistingBacklightMaximum
+0x0000C490	0x00000084	[  9] ___CPUthermalScheduleBacklightRecovery_block_invoke
+0x0000C514	0x00000004	[  9] ___CPUthermalStartBacklightAuditTimer_block_invoke
+0x0000C518	0x00000094	[  9] _CPUthermalBacklightAuditTick
+0x0000C5AC	0x00000228	[  9] _CPUthermalRaiseExistingBacklightLimits
+0x0000C7D4	0x00000004	[  9] ___CPUthermalBacklightAuditTick_block_invoke
+0x0000C7D8	0x00000058	[  9] ___onSettingsChanged_block_invoke
+0x0000C830	0x00000204	[  9] _applyPowerModeToRuntime
+0x0000CA34	0x00000054	[  9] _CPUthermalEngineQueue
+0x0000CA88	0x000000A8	[  9] _applyLowPowerToCommonProduct
+0x0000CB30	0x000001C8	[  9] _applyLowPowerLimitsToTrackedControllers
+0x0000CCF8	0x000002B0	[  9] _applyCurrentModeToApplePPMCPU
+0x0000CFA8	0x000000D0	[  9] _scheduleLowPowerApplyPulse
+0x0000D078	0x0000026C	[  9] _applyFullPowerToCommonProduct
+0x0000D2E4	0x00000018	[  9] lJTI119_0
+0x0000D2FC	0x00000220	[  9] _restoreFullPowerToTrackedControllers
+0x0000D51C	0x0000005C	[  9] _shouldApplyLowPowerLimit
+0x0000D578	0x00000058	[  9] _commonProductSnapshot
+0x0000D5D0	0x000000C8	[  9] _setRequestedFloors
+0x0000D698	0x00000344	[  9] _sendTwoIntegerArguments
+0x0000D9DC	0x000000F8	[  9] _methodArgumentTypeCode
+0x0000DAD4	0x0000007C	[  9] _trackedPowerControllersSnapshot
+0x0000DB50	0x00000090	[  9] _trackPowerController
+0x0000DBE0	0x0000016C	[  9] _applyExplicitLowPowerBudgets
+0x0000DD4C	0x000000F8	[  9] _forceCPUPerformanceLevelOnController
+0x0000DE44	0x000000B0	[  9] _sendSetMaxCPUPowerTarget
+0x0000DEF4	0x00000064	[  9] _setMaxCPUPowerTargetUsesCFString
+0x0000DF58	0x0000003C	[  9] ___cpuMaxPowerPropertyName_block_invoke
+0x0000DF94	0x00000218	[  9] _CPUthermalSetCPUPropertyOnService
+0x0000E1AC	0x00000008	[  9] ___scheduleLowPowerApplyPulse_block_invoke
+0x0000E1B4	0x00000138	[  9] _runLowPowerApplyPulse
+0x0000E2EC	0x0000000C	[  9] ___runLowPowerApplyPulse_block_invoke
+0x0000E2F8	0x0000012C	[  9] _setCommonProductCeiling
+0x0000E424	0x00000124	[  9] _reassertSharedFullPowerBudgets
+0x0000E548	0x0000025C	[  9] _applyFullPowerBudgetsOnController
+0x0000E7A4	0x00000008	[  9] ___scheduleFullPowerRecoveryPulse_block_invoke
+0x0000E7AC	0x00000138	[  9] _runFullPowerRecoveryPulse
+0x0000E8E4	0x0000000C	[  9] ___runFullPowerRecoveryPulse_block_invoke
+0x0000E8F0	0x00000044	[  9] ___CPUthermalEngineQueue_block_invoke
+0x0000E934	0x0000009C	[  9] _ctCommonGPUFloorii
+0x0000E9D0	0x0000009C	[  9] _ctCommonGPUFlooriI
+0x0000EA6C	0x0000009C	[  9] _ctCommonGPUFlooriq
+0x0000EB08	0x0000009C	[  9] _ctCommonGPUFlooriQ
+0x0000EBA4	0x0000009C	[  9] _ctCommonGPUFloorIi
+0x0000EC40	0x0000009C	[  9] _ctCommonGPUFloorII
+0x0000ECDC	0x0000009C	[  9] _ctCommonGPUFloorIq
+0x0000ED78	0x0000009C	[  9] _ctCommonGPUFloorIQ
+0x0000EE14	0x0000009C	[  9] _ctCommonGPUFloorqi
+0x0000EEB0	0x0000009C	[  9] _ctCommonGPUFloorqI
+0x0000EF4C	0x0000009C	[  9] _ctCommonGPUFloorqq
+0x0000EFE8	0x0000009C	[  9] _ctCommonGPUFloorqQ
+0x0000F084	0x0000009C	[  9] _ctCommonGPUFloorQi
+0x0000F120	0x0000009C	[  9] _ctCommonGPUFloorQI
+0x0000F1BC	0x0000009C	[  9] _ctCommonGPUFloorQq
+0x0000F258	0x0000009C	[  9] _ctCommonGPUFloorQQ
+0x0000F2F4	0x0000009C	[  9] _ctCommonPackageFloorii
+0x0000F390	0x0000009C	[  9] _ctCommonPackageFlooriI
+0x0000F42C	0x0000009C	[  9] _ctCommonPackageFlooriq
+0x0000F4C8	0x0000009C	[  9] _ctCommonPackageFlooriQ
+0x0000F564	0x0000009C	[  9] _ctCommonPackageFloorIi
+0x0000F600	0x0000009C	[  9] _ctCommonPackageFloorII
+0x0000F69C	0x0000009C	[  9] _ctCommonPackageFloorIq
+0x0000F738	0x0000009C	[  9] _ctCommonPackageFloorIQ
+0x0000F7D4	0x0000009C	[  9] _ctCommonPackageFloorqi
+0x0000F870	0x0000009C	[  9] _ctCommonPackageFloorqI
+0x0000F90C	0x0000009C	[  9] _ctCommonPackageFloorqq
+0x0000F9A8	0x0000009C	[  9] _ctCommonPackageFloorqQ
+0x0000FA44	0x0000009C	[  9] _ctCommonPackageFloorQi
+0x0000FAE0	0x0000009C	[  9] _ctCommonPackageFloorQI
+0x0000FB7C	0x0000009C	[  9] _ctCommonPackageFloorQq
+0x0000FC18	0x0000009C	[  9] _ctCommonPackageFloorQQ
+0x0000FCB4	0x0000009C	[  9] _ctMitigationGPUFloorii
+0x0000FD50	0x0000009C	[  9] _ctMitigationGPUFlooriI
+0x0000FDEC	0x0000009C	[  9] _ctMitigationGPUFlooriq
+0x0000FE88	0x0000009C	[  9] _ctMitigationGPUFlooriQ
+0x0000FF24	0x0000009C	[  9] _ctMitigationGPUFloorIi
+0x0000FFC0	0x0000009C	[  9] _ctMitigationGPUFloorII
+0x0001005C	0x0000009C	[  9] _ctMitigationGPUFloorIq
+0x000100F8	0x0000009C	[  9] _ctMitigationGPUFloorIQ
+0x00010194	0x0000009C	[  9] _ctMitigationGPUFloorqi
+0x00010230	0x0000009C	[  9] _ctMitigationGPUFloorqI
+0x000102CC	0x0000009C	[  9] _ctMitigationGPUFloorqq
+0x00010368	0x0000009C	[  9] _ctMitigationGPUFloorqQ
+0x00010404	0x0000009C	[  9] _ctMitigationGPUFloorQi
+0x000104A0	0x0000009C	[  9] _ctMitigationGPUFloorQI
+0x0001053C	0x0000009C	[  9] _ctMitigationGPUFloorQq
+0x000105D8	0x0000009C	[  9] _ctMitigationGPUFloorQQ
+0x00010674	0x0000009C	[  9] _ctMitigationPackageFloorii
+0x00010710	0x0000009C	[  9] _ctMitigationPackageFlooriI
+0x000107AC	0x0000009C	[  9] _ctMitigationPackageFlooriq
+0x00010848	0x0000009C	[  9] _ctMitigationPackageFlooriQ
+0x000108E4	0x0000009C	[  9] _ctMitigationPackageFloorIi
+0x00010980	0x0000009C	[  9] _ctMitigationPackageFloorII
+0x00010A1C	0x0000009C	[  9] _ctMitigationPackageFloorIq
+0x00010AB8	0x0000009C	[  9] _ctMitigationPackageFloorIQ
+0x00010B54	0x0000009C	[  9] _ctMitigationPackageFloorqi
+0x00010BF0	0x0000009C	[  9] _ctMitigationPackageFloorqI
+0x00010C8C	0x0000009C	[  9] _ctMitigationPackageFloorqq
+0x00010D28	0x0000009C	[  9] _ctMitigationPackageFloorqQ
+0x00010DC4	0x0000009C	[  9] _ctMitigationPackageFloorQi
+0x00010E60	0x0000009C	[  9] _ctMitigationPackageFloorQI
+0x00010EFC	0x0000009C	[  9] _ctMitigationPackageFloorQq
+0x00010F98	0x0000009C	[  9] _ctMitigationPackageFloorQQ
+0x00011034	0x00000060	[  9] _ctTreeEvaluate
+0x00011094	0x00000058	[  9] _ctTreeAction
+0x000110EC	0x00000058	[  9] _ctTreeReadSingular
+0x00011144	0x00000084	[  9] _ctTreeReleaseFO
+0x000111C8	0x00000084	[  9] _ctTreeReleaseDO
+0x0001124C	0x00000070	[  9] _ctTreeReleaseFQ
+0x000112BC	0x00000070	[  9] _ctTreeReleaseDQ
+0x0001132C	0x00000070	[  9] _ctTreeReleaseFq
+0x0001139C	0x00000070	[  9] _ctTreeReleaseDq
+0x0001140C	0x00000070	[  9] _ctTreeReleaseFI
+0x0001147C	0x00000070	[  9] _ctTreeReleaseDI
+0x000114EC	0x00000070	[  9] _ctTreeReleaseFi
+0x0001155C	0x00000070	[  9] _ctTreeReleaseDi
+0x000115CC	0x00000070	[  9] _ctTreeReleaseFP
+0x0001163C	0x00000070	[  9] _ctTreeReleaseDP
+0x000116AC	0x00000084	[  9] _ctManagerReleaseFO
+0x00011730	0x00000084	[  9] _ctManagerReleaseDO
+0x000117B4	0x00000070	[  9] _ctManagerReleaseFQ
+0x00011824	0x00000070	[  9] _ctManagerReleaseDQ
+0x00011894	0x00000070	[  9] _ctManagerReleaseFq
+0x00011904	0x00000070	[  9] _ctManagerReleaseDq
+0x00011974	0x00000070	[  9] _ctManagerReleaseFI
+0x000119E4	0x00000070	[  9] _ctManagerReleaseDI
+0x00011A54	0x00000070	[  9] _ctManagerReleaseFi
+0x00011AC4	0x00000070	[  9] _ctManagerReleaseDi
+0x00011B34	0x00000070	[  9] _ctManagerReleaseFP
+0x00011BA4	0x00000070	[  9] _ctManagerReleaseDP
+0x00011C14	0x000000A0	[  9] _ctSupervisorEffortFO
+0x00011CB4	0x000000A0	[  9] _ctSupervisorEffortDO
+0x00011D54	0x00000078	[  9] _ctSupervisorEffortFQ
+0x00011DCC	0x00000078	[  9] _ctSupervisorEffortDQ
+0x00011E44	0x00000078	[  9] _ctSupervisorEffortFq
+0x00011EBC	0x00000078	[  9] _ctSupervisorEffortDq
+0x00011F34	0x00000078	[  9] _ctSupervisorEffortFI
+0x00011FAC	0x00000078	[  9] _ctSupervisorEffortDI
+0x00012024	0x00000078	[  9] _ctSupervisorEffortFi
+0x0001209C	0x00000078	[  9] _ctSupervisorEffortDi
+0x00012114	0x00000078	[  9] _ctSupervisorEffortFP
+0x0001218C	0x00000078	[  9] _ctSupervisorEffortDP
+0x00012204	0x000000A0	[  9] _ctControlEffortFO
+0x000122A4	0x000000A0	[  9] _ctControlEffortDO
+0x00012344	0x00000078	[  9] _ctControlEffortFQ
+0x000123BC	0x00000078	[  9] _ctControlEffortDQ
+0x00012434	0x00000078	[  9] _ctControlEffortFq
+0x000124AC	0x00000078	[  9] _ctControlEffortDq
+0x00012524	0x00000078	[  9] _ctControlEffortFI
+0x0001259C	0x00000078	[  9] _ctControlEffortDI
+0x00012614	0x00000078	[  9] _ctControlEffortFi
+0x0001268C	0x00000078	[  9] _ctControlEffortDi
+0x00012704	0x00000078	[  9] _ctControlEffortFP
+0x0001277C	0x00000078	[  9] _ctControlEffortDP
+0x000127F4	0x00000068	[  9] _ctComponentCPMSi
+0x0001285C	0x00000068	[  9] _ctComponentCPMSI
+0x000128C4	0x00000068	[  9] _ctComponentCPMSq
+0x0001292C	0x00000068	[  9] _ctComponentCPMSQ
+0x00012994	0x0000007C	[  9] _ctNotificationO
+0x00012A10	0x00000068	[  9] _ctNotificationi
+0x00012A78	0x00000068	[  9] _ctNotificationI
+0x00012AE0	0x000000B0	[  9] _correctNominalStateIfNeeded
+0x00012B90	0x00000078	[  9] _CPUthermalABITypeMatches
+0x00012C08	0x00000008	[  9] ___registerThermalLevelResetObservers_block_invoke
+0x00012C10	0x000000C8	[  9] _handleThermalLevelNotification
+0x00012CD8	0x00000008	[  9] ___registerThermalLevelResetObservers_block_invoke_2
+0x00012CE0	0x00000048	[  9] ___registerScreenWakeObservers_block_invoke
+0x00012D28	0x00000008	[  9] ___registerScreenWakeObservers_block_invoke_2
+0x00012D30	0x00000044	[  9] _handleBlankedScreenToken
+0x00012D74	0x00000148	[  9] _restoreUserModeAfterWake
+0x00012EBC	0x0000015C	[  9] _CPUthermalIsThermalServiceKey
+0x00013018	0x0000004C	[  9] ____logos_method$_ungrouped$CommonProduct$initProduct$_block_invoke
+0x00013064	0x00000004	[  9] ____logos_method$_ungrouped$CommonProduct$initProduct$_block_invoke_2
+0x00013068	0x00000004	[  9] ____logos_method$_ungrouped$CommonProduct$initProduct$_block_invoke_3
+0x0001306C	0x00000004	[  9] ____logos_method$_ungrouped$ThermalControl$initForFastLoop$noDisplay$powerSaveParams$powerZoneParams$_block_invoke
+0x00013070	0x00000004	[  9] ____logos_method$_ungrouped$ThermalControl$initWithParams$_block_invoke
+0x00013074	0x00000090	[  9] _trackApplePPMInstance
+0x00013104	0x00000004	[  9] ____logos_method$_ungrouped$ApplePPM$init_block_invoke
+0x00013108	0x00000004	[  9] ____logos_method$_ungrouped$MitigationController$initForFastLoop$noDisplay$powerSaveParams$powerZoneParams$_block_invoke
+0x0001310C	0x000000F0	[  9] _reassertLowPowerStateWithoutUpdate
+0x000131FC	0x00000084	[  9] _CPUthermalSetCPUPropertyOnService.cold.1
+0x00013280	0x00000010	[  7] _CFAbsoluteTimeGetCurrent.auth_stub
+0x00013290	0x00000010	[  7] _CFDictionaryGetCount.auth_stub
+0x000132A0	0x00000010	[  7] _CFDictionaryGetTypeID.auth_stub
+0x000132B0	0x00000010	[  7] _CFGetTypeID.auth_stub
+0x000132C0	0x00000010	[  7] _CFNotificationCenterAddObserver.auth_stub
+0x000132D0	0x00000010	[  7] _CFNotificationCenterGetDarwinNotifyCenter.auth_stub
+0x000132E0	0x00000010	[  7] _CFNumberCreate.auth_stub
+0x000132F0	0x00000010	[  7] _CFNumberGetTypeID.auth_stub
+0x00013300	0x00000010	[  7] _CFNumberGetValue.auth_stub
+0x00013310	0x00000010	[  7] _CFRelease.auth_stub
+0x00013320	0x00000010	[  7] _CFStringCreateWithCString.auth_stub
+0x00013330	0x00000010	[  7] _CFStringGetTypeID.auth_stub
+0x00013340	0x00000010	[  8] _IOIteratorNext.auth_stub
+0x00013350	0x00000010	[  8] _IOObjectRelease.auth_stub
+0x00013360	0x00000010	[  8] _IORegistryCreateIterator.auth_stub
+0x00013370	0x00000010	[  8] _IORegistryEntryCreateCFProperty.auth_stub
+0x00013380	0x00000010	[  8] _IORegistryEntryGetName.auth_stub
+0x00013390	0x00000010	[  8] _IORegistryEntrySetCFProperty.auth_stub
+0x000133A0	0x00000010	[  8] _IOServiceGetMatchingService.auth_stub
+0x000133B0	0x00000010	[  8] _IOServiceMatching.auth_stub
+0x000133C0	0x00000010	[ 21] _MSHookFunction.auth_stub
+0x000133D0	0x00000010	[ 21] _MSHookMessageEx.auth_stub
+0x000133E0	0x00000010	[  6] _NSSelectorFromString.auth_stub
+0x000133F0	0x00000010	[ 20] __Unwind_Resume.auth_stub
+0x00013400	0x00000010	[ 13] ___stack_chk_fail.auth_stub
+0x00013410	0x00000010	[ 19] __os_log_error_impl.auth_stub
+0x00013420	0x00000010	[ 19] __os_log_impl.auth_stub
+0x00013430	0x00000010	[ 14] _chmod.auth_stub
+0x00013440	0x00000010	[ 14] _chown.auth_stub
+0x00013450	0x00000010	[  5] _class_copyMethodList.auth_stub
+0x00013460	0x00000010	[  5] _class_getInstanceMethod.auth_stub
+0x00013470	0x00000010	[ 10] _dispatch_after.auth_stub
+0x00013480	0x00000010	[ 10] _dispatch_async.auth_stub
+0x00013490	0x00000010	[ 10] _dispatch_get_global_queue.auth_stub
+0x000134A0	0x00000010	[ 10] _dispatch_once.auth_stub
+0x000134B0	0x00000010	[ 10] _dispatch_queue_create.auth_stub
+0x000134C0	0x00000010	[ 10] _dispatch_time.auth_stub
+0x000134D0	0x00000010	[ 11] _dlopen.auth_stub
+0x000134E0	0x00000010	[ 11] _dlsym.auth_stub
+0x000134F0	0x00000010	[ 15] _free.auth_stub
+0x00013500	0x00000010	[ 13] _memchr.auth_stub
+0x00013510	0x00000010	[  5] _method_getArgumentType.auth_stub
+0x00013520	0x00000010	[  5] _method_getName.auth_stub
+0x00013530	0x00000010	[  5] _method_getNumberOfArguments.auth_stub
+0x00013540	0x00000010	[  5] _method_getReturnType.auth_stub
+0x00013550	0x00000010	[  5] _method_getTypeEncoding.auth_stub
+0x00013560	0x00000010	[ 16] _notify_cancel.auth_stub
+0x00013570	0x00000010	[ 16] _notify_get_state.auth_stub
+0x00013580	0x00000010	[ 16] _notify_post.auth_stub
+0x00013590	0x00000010	[ 16] _notify_register_check.auth_stub
+0x000135A0	0x00000010	[ 16] _notify_register_dispatch.auth_stub
+0x000135B0	0x00000010	[ 16] _notify_set_state.auth_stub
+0x000135C0	0x00000010	[  5] _objc_alloc_init.auth_stub
+0x000135D0	0x00000010	[  5] _objc_autoreleasePoolPop.auth_stub
+0x000135E0	0x00000010	[  5] _objc_autoreleasePoolPush.auth_stub
+0x000135F0	0x00000010	[  5] _objc_autoreleaseReturnValue.auth_stub
+0x00013600	0x00000010	[  5] _objc_begin_catch.auth_stub
+0x00013610	0x00000010	[  5] _objc_end_catch.auth_stub
+0x00013620	0x00000010	[  5] _objc_enumerationMutation.auth_stub
+0x00013630	0x00000010	[  5] _objc_exception_rethrow.auth_stub
+0x00013640	0x00000010	[  5] _objc_getClass.auth_stub
+0x00013650	0x00000010	[  5] _objc_msgSend.auth_stub
+0x00013660	0x00000010	[  5] _objc_opt_class.auth_stub
+0x00013670	0x00000010	[  5] _objc_opt_isKindOfClass.auth_stub
+0x00013680	0x00000010	[  5] _objc_opt_respondsToSelector.auth_stub
+0x00013690	0x00000010	[  5] _objc_release.auth_stub
+0x000136A0	0x00000010	[  5] _objc_retain.auth_stub
+0x000136B0	0x00000010	[  5] _objc_retainAutorelease.auth_stub
+0x000136C0	0x00000010	[  5] _objc_retainAutoreleaseReturnValue.auth_stub
+0x000136D0	0x00000010	[  5] _objc_retainAutoreleasedReturnValue.auth_stub
+0x000136E0	0x00000010	[  5] _objc_terminate.auth_stub
+0x000136F0	0x00000010	[  5] _object_getClass.auth_stub
+0x00013700	0x00000010	[ 19] _os_log_create.auth_stub
+0x00013710	0x00000010	[ 19] _os_log_type_enabled.auth_stub
+0x00013720	0x00000010	[ 17] _os_unfair_lock_lock.auth_stub
+0x00013730	0x00000010	[ 17] _os_unfair_lock_unlock.auth_stub
+0x00013740	0x00000010	[ 18] _pthread_mutex_lock.auth_stub
+0x00013750	0x00000010	[ 18] _pthread_mutex_unlock.auth_stub
+0x00013760	0x00000010	[  5] _sel_registerName.auth_stub
+0x00013770	0x00000010	[ 14] _stat.auth_stub
+0x00013780	0x00000010	[ 13] _strcmp.auth_stub
+0x00013790	0x00000010	[ 13] _strlen.auth_stub
+0x000137A0	0x00000010	[ 13] _strstr.auth_stub
+0x000137B0	0x00000020	[  1] _objc_msgSend$UTF8String
+0x000137D0	0x00000020	[  1] _objc_msgSend$addObject:
+0x000137F0	0x00000020	[  1] _objc_msgSend$allKeys
+0x00013810	0x00000020	[  1] _objc_msgSend$allObjects
+0x00013830	0x00000020	[  1] _objc_msgSend$allValues
+0x00013850	0x00000020	[  1] _objc_msgSend$array
+0x00013870	0x00000020	[  1] _objc_msgSend$arrayWithCapacity:
+0x00013890	0x00000020	[  1] _objc_msgSend$arrayWithObjects:count:
+0x000138B0	0x00000020	[  1] _objc_msgSend$attributesOfItemAtPath:error:
+0x000138D0	0x00000020	[  1] _objc_msgSend$boolValue
+0x000138F0	0x00000020	[  1] _objc_msgSend$caseInsensitiveCompare:
+0x00013910	0x00000020	[  1] _objc_msgSend$compare:
+0x00013930	0x00000020	[  1] _objc_msgSend$containsObject:
+0x00013950	0x00000020	[  1] _objc_msgSend$containsString:
+0x00013970	0x00000020	[  1] _objc_msgSend$contentsOfDirectoryAtPath:error:
+0x00013990	0x00000020	[  1] _objc_msgSend$copy
+0x000139B0	0x00000020	[  1] _objc_msgSend$count
+0x000139D0	0x00000020	[  1] _objc_msgSend$countByEnumeratingWithState:objects:count:
+0x000139F0	0x00000020	[  1] _objc_msgSend$createDirectoryAtPath:withIntermediateDirectories:attributes:error:
+0x00013A10	0x00000020	[  1] _objc_msgSend$defaultManager
+0x00013A30	0x00000020	[  1] _objc_msgSend$destinationOfSymbolicLinkAtPath:error:
+0x00013A50	0x00000020	[  1] _objc_msgSend$dictionaryWithContentsOfFile:
+0x00013A70	0x00000020	[  1] _objc_msgSend$distantPast
+0x00013A90	0x00000020	[  1] _objc_msgSend$doubleValue
+0x00013AB0	0x00000020	[  1] _objc_msgSend$fileExistsAtPath:
+0x00013AD0	0x00000020	[  1] _objc_msgSend$fileExistsAtPath:isDirectory:
+0x00013AF0	0x00000020	[  1] _objc_msgSend$fileSystemRepresentation
+0x00013B10	0x00000020	[  1] _objc_msgSend$firstObject
+0x00013B30	0x00000020	[  1] _objc_msgSend$hasPrefix:
+0x00013B50	0x00000020	[  1] _objc_msgSend$hasSuffix:
+0x00013B70	0x00000020	[  1] _objc_msgSend$isEqualToDictionary:
+0x00013B90	0x00000020	[  1] _objc_msgSend$isEqualToString:
+0x00013BB0	0x00000020	[  1] _objc_msgSend$length
+0x00013BD0	0x00000020	[  1] _objc_msgSend$lowercaseString
+0x00013BF0	0x00000020	[  1] _objc_msgSend$mutableCopy
+0x00013C10	0x00000020	[  1] _objc_msgSend$numberWithBool:
+0x00013C30	0x00000020	[  1] _objc_msgSend$numberWithDouble:
+0x00013C50	0x00000020	[  1] _objc_msgSend$numberWithInt:
+0x00013C70	0x00000020	[  1] _objc_msgSend$numberWithLongLong:
+0x00013C90	0x00000020	[  1] _objc_msgSend$objectForKey:
+0x00013CB0	0x00000020	[  1] _objc_msgSend$objectForKeyedSubscript:
+0x00013CD0	0x00000020	[  1] _objc_msgSend$powerSaveActive
+0x00013CF0	0x00000020	[  1] _objc_msgSend$putDeviceInThermalSimulationMode:
+0x00013D10	0x00000020	[  1] _objc_msgSend$removeItemAtPath:error:
+0x00013D30	0x00000020	[  1] _objc_msgSend$removeObjectForKey:
+0x00013D50	0x00000020	[  1] _objc_msgSend$setCPULevel:
+0x00013D70	0x00000020	[  1] _objc_msgSend$setObject:forKey:
+0x00013D90	0x00000020	[  1] _objc_msgSend$setObject:forKeyedSubscript:
+0x00013DB0	0x00000020	[  1] _objc_msgSend$stringByAppendingPathComponent:
+0x00013DD0	0x00000020	[  1] _objc_msgSend$stringByDeletingLastPathComponent
+0x00013DF0	0x00000020	[  1] _objc_msgSend$stringByResolvingSymlinksInPath
+0x00013E10	0x00000020	[  1] _objc_msgSend$stringValue
+0x00013E30	0x00000020	[  1] _objc_msgSend$stringWithFormat:
+0x00013E50	0x00000020	[  1] _objc_msgSend$stringWithUTF8String:
+0x00013E70	0x00000020	[  1] _objc_msgSend$weakObjectsHashTable
+0x00013E90	0x00000020	[  1] _objc_msgSend$writeToFile:atomically:
+0x00013EB0	0x00000004	[  3] anon
+0x00013EB4	0x00000004	[  3] anon
+0x00013EC0	0x00000008	[  9] anon
+0x00013EC8	0x00000008	[  9] anon
+0x00013ED0	0x00000008	[  9] anon
+0x00013ED8	0x00000008	[  9] anon
+0x00013EE0	0x00000010	[  9] anon
+0x00013EF0	0x0000001C	[  9] GCC_except_table34
+0x00013F0C	0x0000002C	[  9] GCC_except_table106
+0x00013F38	0x0000002C	[  9] GCC_except_table113
+0x00013F64	0x0000001C	[  9] GCC_except_table115
+0x00013F80	0x00000040	[  9] GCC_except_table117
+0x00013FC0	0x00000054	[  9] GCC_except_table119
+0x00014014	0x00000034	[  9] GCC_except_table120
+0x00014048	0x0000002C	[  9] GCC_except_table138
+0x00014074	0x00000020	[  9] GCC_except_table274
+0x00014094	0x0000002C	[  9] GCC_except_table284
+0x000140C0	0x0000000D	[  9] literal string: "isolation.40"
+0x000140CD	0x00000009	[  9] literal string: "lowPower"
+0x000140D6	0x0000000A	[  9] literal string: "fullPower"
+0x000140E0	0x00000031	[  9] literal string: "/System/Library/Frameworks/IOKit.framework/IOKit"
+0x00014111	0x00000015	[  9] literal string: "IOServiceSetProperty"
+0x00014126	0x00000048	[  9] literal string: "/System/Library/PrivateFrameworks/DeviceMonitor.framework/DeviceMonitor"
+0x0001416E	0x00000015	[  9] literal string: "_getConfigurationFor"
+0x00014183	0x0000001F	[  9] literal string: "com.huayuarc.cputhermal.puppet"
+0x000141A2	0x00000006	[  9] literal string: "v8@?0"
+0x000141A8	0x0000000E	[  9] literal string: "CommonProduct"
+0x000141B6	0x0000000B	[  9] literal string: "HidSensors"
+0x000141C1	0x0000000F	[  9] literal string: "ThermalManager"
+0x000141D0	0x0000000F	[  9] literal string: "ThermalControl"
+0x000141DF	0x0000000C	[  9] literal string: "ApplePPMCPU"
+0x000141EB	0x00000009	[  9] literal string: "ApplePPM"
+0x000141F4	0x00000015	[  9] literal string: "MitigationController"
+0x00014209	0x0000000D	[  9] literal string: "NSDictionary"
+0x00014216	0x00000014	[  9] literal string: "NotificationManager"
+0x0001422A	0x00000011	[  9] literal string: "ComponentControl"
+0x0001423B	0x0000001B	[  9] literal string: "highPerformanceModeEnabled"
+0x00014256	0x00000017	[  9] literal string: "forceFastChargeEnabled"
+0x0001426D	0x00000018	[  9] literal string: "killThermalStopCharging"
+0x00014285	0x0000000D	[  9] literal string: "lowPowerApps"
+0x00014292	0x0000000E	[  9] literal string: "hipLockedMode"
+0x000142A0	0x00000020	[  9] literal string: "refreshThermalProtectionEnabled"
+0x000142C0	0x00000027	[  9] literal string: "/var/mobile/Containers/Shared/AppGroup"
+0x000142E7	0x00000009	[  9] literal string: ".jbroot-"
+0x000142F0	0x00000008	[  9] literal string: "/var/jb"
+0x000142F8	0x0000003D	[  9] literal string: "var/mobile/Library/Preferences/com.huayuarc.cputhermal.plist"
+0x00014335	0x0000001F	[  9] literal string: "var/mobile/Library/Preferences"
+0x00014354	0x0000001E	[  9] literal string: "com.huayuarc.cputhermal.plist"
+0x00014372	0x00000032	[  9] literal string: "Library/Preferences/com.huayuarc.cputhermal.plist"
+0x000143A4	0x0000003E	[  9] literal string: "/var/mobile/Library/Preferences/com.huayuarc.cputhermal.plist"
+0x000143E2	0x00000025	[  9] literal string: "/Containers/Shared/AppGroup/.jbroot-"
+0x00014407	0x0000003A	[  9] literal string: "Library/MobileSubstrate/DynamicLibraries/CPUthermal.dylib"
+0x00014441	0x00000018	[  9] literal string: "Library/MobileSubstrate"
+0x00014459	0x00000008	[  9] literal string: "usr/lib"
+0x00014461	0x00000012	[  9] literal string: "blockThermalPopup"
+0x00014473	0x0000000A	[  9] literal string: "powerMode"
+0x0001447D	0x0000000F	[  9] literal string: "thermalRunMode"
+0x0001448C	0x00000007	[  9] literal string: "(null)"
+0x00014493	0x00000018	[  9] literal string: "com.huayuarc.cputhermal"
+0x000144AB	0x00000008	[  9] literal string: "runtime"
+0x000144B3	0x0000000D	[  9] literal string: "txPowerLimit"
+0x000144C0	0x00000013	[  9] literal string: "transmitPowerLimit"
+0x000144D3	0x0000000E	[  9] literal string: "maxThroughput"
+0x000144E1	0x0000000D	[  9] literal string: "rateLimiting"
+0x000144EE	0x00000017	[  9] literal string: "thermalThrottleEnabled"
+0x00014505	0x00000010	[  9] literal string: "antennaThrottle"
+0x00014515	0x00000010	[  9] literal string: "thermalPowerCap"
+0x00014525	0x00000010	[  9] literal string: "radioPowerLimit"
+0x00014535	0x00000012	[  9] literal string: "modemThermalLimit"
+0x00014547	0x00000013	[  9] literal string: "basebandPowerLimit"
+0x0001455A	0x0000000A	[  9] literal string: "blnitscap"
+0x00014564	0x00000010	[  9] literal string: "brightness-nits"
+0x00014574	0x00000017	[  9] literal string: "iomfb_brightness_limit"
+0x0001458B	0x0000000F	[  9] literal string: "max-brightness"
+0x0001459A	0x00000011	[  9] literal string: "brightness-limit"
+0x000145AB	0x00000011	[  9] literal string: "brightness_limit"
+0x000145BC	0x0000000E	[  9] literal string: "maxbrightness"
+0x000145CA	0x0000000E	[  9] literal string: "brightnesscap"
+0x000145D8	0x00000008	[  9] literal string: "thermal"
+0x000145E0	0x0000000B	[  9] literal string: "mitigation"
+0x000145EB	0x0000000C	[  9] literal string: "temperature"
+0x000145F7	0x00000006	[  9] literal string: "limit"
+0x000145FD	0x00000008	[  9] literal string: "ceiling"
+0x00014605	0x00000008	[  9] literal string: "maximum"
+0x0001460D	0x00000005	[  9] literal string: "max-"
+0x00014612	0x00000004	[  9] literal string: "cap"
+0x00014616	0x0000000B	[  9] literal string: "brightness"
+0x00014621	0x0000000A	[  9] literal string: "luminance"
+0x0001462B	0x00000005	[  9] literal string: "nits"
+0x00014630	0x00000006	[  9] literal string: "iomfb"
+0x00014636	0x0000000A	[  9] literal string: "backlight"
+0x00014640	0x00000008	[  9] literal string: "display"
+0x00014648	0x00000005	[  9] literal string: "idle"
+0x0001464D	0x00000009	[  9] literal string: "autolock"
+0x00014656	0x0000000A	[  9] literal string: "lockstate"
+0x00014660	0x00000006	[  9] literal string: "sleep"
+0x00014666	0x00000006	[  9] literal string: "blank"
+0x0001466C	0x0000000A	[  9] literal string: "screenoff"
+0x00014676	0x0000000B	[  9] literal string: "screen-off"
+0x00014681	0x0000000B	[  9] literal string: "powerstate"
+0x0001468C	0x0000000C	[  9] literal string: "power-state"
+0x00014698	0x0000000D	[  9] literal string: "displaystate"
+0x000146A5	0x0000000C	[  9] literal string: "screenstate"
+0x000146B1	0x00000005	[  9] literal string: "wake"
+0x000146B6	0x0000000A	[  9] literal string: "proximity"
+0x000146C0	0x0000000F	[  9] literal string: "backlightpower"
+0x000146CF	0x00000005	[  9] literal string: "%.0f"
+0x000146D4	0x00000027	[  9] literal string: "com.apple.springboard.hasBlankedScreen"
+0x000146FB	0x0000004A	[  9] literal string: "/System/Library/PrivateFrameworks/CoreBrightness.framework/CoreBrightness"
+0x00014745	0x0000004A	[  9] literal string: "/System/Library/PrivateFrameworks/corebrightness.framework/corebrightness"
+0x0001478F	0x00000017	[  9] literal string: "BrightnessSystemClient"
+0x000147A6	0x00000014	[  9] literal string: "copyPropertyForKey:"
+0x000147BA	0x00000006	[  9] literal string: "floor"
+0x000147C0	0x00000009	[  9] literal string: "throttle"
+0x000147C9	0x00000009	[  9] literal string: "lowpower"
+0x000147D2	0x0000000A	[  9] literal string: "low-power"
+0x000147DC	0x00000004	[  9] literal string: "lpm"
+0x000147E0	0x00000004	[  9] literal string: "cpu"
+0x000147E4	0x00000005	[  9] literal string: "core"
+0x000147E9	0x00000004	[  9] literal string: "ppm"
+0x000147ED	0x0000000A	[  9] literal string: "processor"
+0x000147F7	0x00000004	[  9] literal string: "gpu"
+0x000147FB	0x00000008	[  9] literal string: "package"
+0x00014803	0x0000000A	[  9] literal string: "component"
+0x0001480D	0x00000005	[  9] literal string: "freq"
+0x00014812	0x0000000A	[  9] literal string: "frequency"
+0x0001481C	0x00000007	[  9] literal string: "target"
+0x00014823	0x00000008	[  9] literal string: "minimum"
+0x0001482B	0x00000006	[  9] literal string: "speed"
+0x00014831	0x00000006	[  9] literal string: "power"
+0x00014837	0x00000006	[  9] literal string: "level"
+0x0001483D	0x00000006	[  9] literal string: "state"
+0x00014843	0x00000014	[  9] literal string: "BacklightBrightness"
+0x00014857	0x0000000F	[  9] literal string: "BacklightPower"
+0x00014866	0x00000013	[  9] literal string: "expectsCPMSSupport"
+0x00014879	0x00000010	[  9] literal string: "maxThermalPower"
+0x00014889	0x00000010	[  9] literal string: "minThermalPower"
+0x00014899	0x0000000A	[  9] literal string: "IOService"
+0x000148A3	0x00000012	[  9] literal string: "DisplayBrightness"
+0x000148B5	0x00000017	[  9] literal string: "DisplayBrightnessLimit"
+0x000148CC	0x00000010	[  9] literal string: "BrightnessLimit"
+0x000148DC	0x00000017	[  9] literal string: "IOMFB_brightness_limit"
+0x000148F3	0x00000015	[  9] literal string: "IOMFB_max_brightness"
+0x00014908	0x00000015	[  9] literal string: "IOMFB_brightness_max"
+0x0001491D	0x0000000F	[  9] literal string: "brightness-max"
+0x0001492C	0x0000000F	[  9] literal string: "brightness-cap"
+0x0001493B	0x0000000E	[  9] literal string: "MaxBrightness"
+0x00014949	0x0000000E	[  9] literal string: "BrightnessCap"
+0x00014957	0x0000000A	[  9] literal string: "BLNitsCap"
+0x00014961	0x00000020	[  9] literal string: "needsPushingTSFDtoDisplayDriver"
+0x00014981	0x0000001C	[  9] literal string: "displayBrightnessMitigation"
+0x0001499D	0x00000012	[  9] literal string: "displayMitigation"
+0x000149AF	0x00000014	[  9] literal string: "eventDimmingEnabled"
+0x000149C3	0x00000015	[  9] literal string: "needsContextualClamp"
+0x000149D8	0x00000022	[  9] literal string: "shouldEnforceLightThermalPressure"
+0x000149FA	0x0000001D	[  9] literal string: "shouldEnforceThermalPressure"
+0x00014A17	0x0000001A	[  9] literal string: "thermalPressureMitigation"
+0x00014A31	0x00000016	[  9] literal string: "performanceMitigation"
+0x00014A47	0x00000002	[  9] literal string: "0"
+0x00014A49	0x0000001A	[  9] literal string: "backlightComponentControl"
+0x00014A63	0x00000002	[  9] literal string: "v"
+0x00014A65	0x00000002	[  9] literal string: "@"
+0x00014A67	0x00000002	[  9] literal string: ":"
+0x00014A69	0x00000005	[  9] literal string: "iIqQ"
+0x00014A6E	0x00000008	[  9] literal string: "rnNoORV"
+0x00014A76	0x0000000F	[  9] literal string: "^{__CFString=}"
+0x00014A85	0x0000000C	[  9] literal string: "CPUMaxPower"
+0x00014A91	0x0000000A	[  9] literal string: "AppleCLPC"
+0x00014A9B	0x00000016	[  9] literal string: "`pkg-low-power-target"
+0x00014AB1	0x0000001C	[  9] literal string: "`pkg-avg-therm-power-target"
+0x00014ACD	0x0000001F	[  9] literal string: "com.huayuarc.cputhermal.engine"
+0x00014AEC	0x00000028	[  9] literal string: "com.huayuarc.cputhermal/settingsChanged"
+0x00014B14	0x0000000C	[  9] literal string: "PowerFloor:"
+0x00014B20	0x00000025	[  9] literal string: "setGPUPowerFloor:fromDecisionSource:"
+0x00014B45	0x00000002	[  9] literal string: "i"
+0x00014B47	0x00000002	[  9] literal string: "I"
+0x00014B49	0x00000002	[  9] literal string: "q"
+0x00014B4B	0x00000002	[  9] literal string: "Q"
+0x00014B4D	0x00000029	[  9] literal string: "setPackagePowerFloor:fromDecisionSource:"
+0x00014B76	0x00000018	[  9] literal string: "TableDrivenDecisionTree"
+0x00014B8E	0x00000015	[  9] literal string: "evaluateDecisionTree"
+0x00014BA3	0x00000017	[  9] literal string: "actionComponentControl"
+0x00014BBA	0x00000020	[  9] literal string: "readReleaseRateForAllComponents"
+0x00014BDA	0x0000001C	[  9] literal string: "getReleaseRateForComponent:"
+0x00014BF6	0x00000002	[  9] literal string: "f"
+0x00014BF8	0x00000002	[  9] literal string: "d"
+0x00014BFA	0x00000003	[  9] literal string: "^v"
+0x00014BFD	0x00000012	[  9] literal string: "SupervisorControl"
+0x00014C0F	0x00000020	[  9] literal string: "calculateControlEffort:trigger:"
+0x00014C2F	0x00000018	[  9] literal string: "setCPMSMitigationState:"
+0x00014C47	0x0000001B	[  9] literal string: "updateThermalNotification:"
+0x00014C62	0x00000026	[  9] literal string: "com.huayuarc.cputhermal.thermal-reset"
+0x00014C88	0x00000009	[  9] literal string: "v12@?0i8"
+0x00014C91	0x00000025	[  9] literal string: "com.apple.system.thermalnotification"
+0x00014CB6	0x00000020	[  9] literal string: "com.apple.springboard.lockstate"
+0x00014CD6	0x00000008	[  9] literal string: "nominal"
+0x00014CDE	0x00000004	[  9] literal string: "die"
+0x00014CE2	0x00000005	[  9] literal string: "skin"
+0x00014CE7	0x00000009	[  9] literal string: "pressure"
+0x00014CF0	0x00000005	[  9] literal string: "cpms"
+0x00014CF5	0x0000000A	[  9] literal string: "hippocket"
+0x00014CFF	0x00000007	[  9] literal string: "pocket"
+0x00014D06	0x0000000A	[  9] literal string: "powerzone"
+0x00014D10	0x00000008	[  9] literal string: "p-state"
+0x00014D18	0x00000007	[  9] literal string: "pstate"
+0x00014D1F	0x0000001F	[  9] literal string: "/System/Library/ThermalMonitor"
+0x00014D3E	0x00000009	[  9] literal string: "AppleSPU"
+0x00014D47	0x00000012	[  9] literal string: "AppleSPU.original"
+0x00014D59	0x00000011	[  9] literal string: "AppleARMPlatform"
+0x00014D6A	0x00000004	[  9] literal string: "pmu"
+0x00014D6E	0x0000000A	[  9] literal string: "ApplePMGR"
+0x00014D78	0x00000009	[  9] literal string: "AppleGPU"
+0x00014D81	0x0000000A	[  9] literal string: "AGXDriver"
+0x00014D8B	0x00000013	[  9] literal string: "ANECompilerService"
+0x00014D9E	0x00000009	[  9] literal string: "AppleANE"
+0x00014DA7	0x00000011	[  9] literal string: "AppleM2ScalerCSC"
+0x00014DB8	0x0000000A	[  9] literal string: "IOSurface"
+0x00014DC2	0x00000008	[  1] anon
+0x00014DCA	0x00000017	[  9] anon
+0x00014DE1	0x00000010	[  1] anon
+0x00014DF1	0x0000000B	[  1] anon
+0x00014DFC	0x00000020	[  9] anon
+0x00014E1C	0x00000006	[  1] anon
+0x00014E22	0x00000010	[  1] anon
+0x00014E32	0x00000018	[  1] anon
+0x00014E4A	0x00000010	[  1] anon
+0x00014E5A	0x0000000A	[  1] anon
+0x00014E64	0x00000020	[  9] anon
+0x00014E84	0x00000009	[  1] anon
+0x00014E8D	0x00000020	[  1] anon
+0x00014EAD	0x0000000B	[  1] anon
+0x00014EB8	0x00000010	[  1] anon
+0x00014EC8	0x0000000B	[  1] anon
+0x00014ED3	0x00000020	[  9] anon
+0x00014EF3	0x0000000A	[  1] anon
+0x00014EFD	0x00000010	[  9] anon
+0x00014F0D	0x00000013	[  1] anon
+0x00014F20	0x00000010	[  1] anon
+0x00014F30	0x0000001E	[  1] anon
+0x00014F4E	0x00000020	[  9] anon
+0x00014F6E	0x00000018	[  1] anon
+0x00014F86	0x00000020	[  1] anon
+0x00014FA6	0x00000021	[  1] anon
+0x00014FC7	0x00000005	[  1] anon
+0x00014FCC	0x00000006	[  1] anon
+0x00014FD2	0x0000002B	[  1] anon
+0x00014FFD	0x00000044	[  1] anon
+0x00015041	0x0000000F	[  1] anon
+0x00015050	0x00000027	[  1] anon
+0x00015077	0x0000001E	[  1] anon
+0x00015095	0x0000000C	[  1] anon
+0x000150A1	0x0000000C	[  1] anon
+0x000150AD	0x00000015	[  9] anon
+0x000150C2	0x00000012	[  1] anon
+0x000150D4	0x0000001E	[  1] anon
+0x000150F2	0x00000019	[  1] anon
+0x0001510B	0x0000000C	[  1] anon
+0x00015117	0x0000001D	[  9] anon
+0x00015134	0x00000015	[  9] anon
+0x00015149	0x00000027	[  9] anon
+0x00015170	0x0000000B	[  1] anon
+0x0001517B	0x0000000B	[  1] anon
+0x00015186	0x00000005	[  9] anon
+0x0001518B	0x0000003B	[  9] anon
+0x000151C6	0x0000000D	[  9] anon
+0x000151D3	0x00000015	[  1] anon
+0x000151E8	0x00000011	[  1] anon
+0x000151F9	0x00000007	[  1] anon
+0x00015200	0x0000000C	[  1] anon
+0x0001520C	0x00000012	[  1] anon
+0x0001521E	0x0000000F	[  1] anon
+0x0001522D	0x00000014	[  1] anon
+0x00015241	0x0000000E	[  1] anon
+0x0001524F	0x00000019	[  1] anon
+0x00015268	0x00000022	[  1] anon
+0x0001528A	0x00000018	[  1] anon
+0x000152A2	0x00000014	[  1] anon
+0x000152B6	0x00000018	[  9] anon
+0x000152CE	0x0000001B	[  9] anon
+0x000152E9	0x0000000D	[  1] anon
+0x000152F6	0x00000016	[  9] anon
+0x0001530C	0x00000017	[  9] anon
+0x00015323	0x00000027	[  9] anon
+0x0001534A	0x00000027	[  9] anon
+0x00015371	0x00000025	[  9] anon
+0x00015396	0x00000017	[  9] anon
+0x000153AD	0x0000000E	[  9] anon
+0x000153BB	0x00000027	[  9] anon
+0x000153E2	0x00000025	[  9] anon
+0x00015407	0x00000017	[  9] anon
+0x0001541E	0x00000030	[  9] anon
+0x0001544E	0x00000014	[  9] anon
+0x00015462	0x00000012	[  1] anon
+0x00015474	0x0000001D	[  1] anon
+0x00015491	0x00000019	[  9] anon
+0x000154AA	0x0000002B	[  9] anon
+0x000154D5	0x00000029	[  9] anon
+0x000154FE	0x00000014	[  9] anon
+0x00015512	0x00000013	[  9] anon
+0x00015525	0x0000000D	[  9] anon
+0x00015532	0x00000030	[  9] anon
+0x00015562	0x00000011	[  9] anon
+0x00015573	0x00000022	[  9] anon
+0x00015595	0x0000001D	[  9] anon
+0x000155B2	0x00000022	[  1] anon
+0x000155D4	0x0000000C	[  1] anon
+0x000155E0	0x00000012	[  1] anon
+0x000155F2	0x00000016	[  1] anon
+0x00015608	0x0000000E	[  9] anon
+0x00015616	0x0000000A	[  9] anon
+0x00015620	0x0000000A	[  9] anon
+0x0001562A	0x0000000E	[  9] anon
+0x00015638	0x00000017	[  9] anon
+0x0001564F	0x00000019	[  9] anon
+0x00015668	0x0000001B	[  9] anon
+0x00015683	0x00000043	[  9] anon
+0x000156C6	0x00000015	[  1] anon
+0x000156DB	0x00000018	[  1] anon
+0x000156F3	0x00000001	[  9] anon
+0x00018000	0x00000040	[  9] anon
+0x00018040	0x00000033	[  9] anon
+0x00018073	0x0000001C	[  9] anon
+0x0001808F	0x00000056	[  9] anon
+0x0001C000	0x00000008	[  7] _CFAbsoluteTimeGetCurrent.auth_got
+0x0001C008	0x00000008	[  7] _CFDictionaryGetCount.auth_got
+0x0001C010	0x00000008	[  7] _CFDictionaryGetTypeID.auth_got
+0x0001C018	0x00000008	[  7] _CFGetTypeID.auth_got
+0x0001C020	0x00000008	[  7] _CFNotificationCenterAddObserver.auth_got
+0x0001C028	0x00000008	[  7] _CFNotificationCenterGetDarwinNotifyCenter.auth_got
+0x0001C030	0x00000008	[  7] _CFNumberCreate.auth_got
+0x0001C038	0x00000008	[  7] _CFNumberGetTypeID.auth_got
+0x0001C040	0x00000008	[  7] _CFNumberGetValue.auth_got
+0x0001C048	0x00000008	[  7] _CFRelease.auth_got
+0x0001C050	0x00000008	[  7] _CFStringCreateWithCString.auth_got
+0x0001C058	0x00000008	[  7] _CFStringGetTypeID.auth_got
+0x0001C060	0x00000008	[  8] _IOIteratorNext.auth_got
+0x0001C068	0x00000008	[  8] _IOObjectRelease.auth_got
+0x0001C070	0x00000008	[  8] _IORegistryCreateIterator.auth_got
+0x0001C078	0x00000008	[  8] _IORegistryEntryCreateCFProperty.auth_got
+0x0001C080	0x00000008	[  8] _IORegistryEntryGetName.auth_got
+0x0001C088	0x00000008	[  8] _IORegistryEntrySetCFProperty.auth_got
+0x0001C090	0x00000008	[  8] _IOServiceGetMatchingService.auth_got
+0x0001C098	0x00000008	[  8] _IOServiceMatching.auth_got
+0x0001C0A0	0x00000008	[ 21] _MSHookFunction.auth_got
+0x0001C0A8	0x00000008	[ 21] _MSHookMessageEx.auth_got
+0x0001C0B0	0x00000008	[  6] _NSSelectorFromString.auth_got
+0x0001C0B8	0x00000008	[ 20] __Unwind_Resume.auth_got
+0x0001C0C0	0x00000008	[  5] ___objc_personality_v0.auth_got
+0x0001C0C8	0x00000008	[ 13] ___stack_chk_fail.auth_got
+0x0001C0D0	0x00000008	[ 19] __os_log_error_impl.auth_got
+0x0001C0D8	0x00000008	[ 19] __os_log_impl.auth_got
+0x0001C0E0	0x00000008	[ 14] _chmod.auth_got
+0x0001C0E8	0x00000008	[ 14] _chown.auth_got
+0x0001C0F0	0x00000008	[  5] _class_copyMethodList.auth_got
+0x0001C0F8	0x00000008	[  5] _class_getInstanceMethod.auth_got
+0x0001C100	0x00000008	[ 10] _dispatch_after.auth_got
+0x0001C108	0x00000008	[ 10] _dispatch_async.auth_got
+0x0001C110	0x00000008	[ 10] _dispatch_get_global_queue.auth_got
+0x0001C118	0x00000008	[ 10] _dispatch_once.auth_got
+0x0001C120	0x00000008	[ 10] _dispatch_queue_create.auth_got
+0x0001C128	0x00000008	[ 10] _dispatch_time.auth_got
+0x0001C130	0x00000008	[ 11] _dlopen.auth_got
+0x0001C138	0x00000008	[ 11] _dlsym.auth_got
+0x0001C140	0x00000008	[ 15] _free.auth_got
+0x0001C148	0x00000008	[ 13] _memchr.auth_got
+0x0001C150	0x00000008	[  5] _method_getArgumentType.auth_got
+0x0001C158	0x00000008	[  5] _method_getName.auth_got
+0x0001C160	0x00000008	[  5] _method_getNumberOfArguments.auth_got
+0x0001C168	0x00000008	[  5] _method_getReturnType.auth_got
+0x0001C170	0x00000008	[  5] _method_getTypeEncoding.auth_got
+0x0001C178	0x00000008	[ 16] _notify_cancel.auth_got
+0x0001C180	0x00000008	[ 16] _notify_get_state.auth_got
+0x0001C188	0x00000008	[ 16] _notify_post.auth_got
+0x0001C190	0x00000008	[ 16] _notify_register_check.auth_got
+0x0001C198	0x00000008	[ 16] _notify_register_dispatch.auth_got
+0x0001C1A0	0x00000008	[ 16] _notify_set_state.auth_got
+0x0001C1A8	0x00000008	[  5] _objc_alloc_init.auth_got
+0x0001C1B0	0x00000008	[  5] _objc_autoreleasePoolPop.auth_got
+0x0001C1B8	0x00000008	[  5] _objc_autoreleasePoolPush.auth_got
+0x0001C1C0	0x00000008	[  5] _objc_autoreleaseReturnValue.auth_got
+0x0001C1C8	0x00000008	[  5] _objc_begin_catch.auth_got
+0x0001C1D0	0x00000008	[  5] _objc_end_catch.auth_got
+0x0001C1D8	0x00000008	[  5] _objc_enumerationMutation.auth_got
+0x0001C1E0	0x00000008	[  5] _objc_exception_rethrow.auth_got
+0x0001C1E8	0x00000008	[  5] _objc_getClass.auth_got
+0x0001C1F0	0x00000008	[  5] _objc_msgSend.auth_got
+0x0001C1F8	0x00000008	[  5] _objc_msgSend.auth_got
+0x0001C200	0x00000008	[  5] _objc_opt_class.auth_got
+0x0001C208	0x00000008	[  5] _objc_opt_isKindOfClass.auth_got
+0x0001C210	0x00000008	[  5] _objc_opt_respondsToSelector.auth_got
+0x0001C218	0x00000008	[  5] _objc_release.auth_got
+0x0001C220	0x00000008	[  5] _objc_retain.auth_got
+0x0001C228	0x00000008	[  5] _objc_retainAutorelease.auth_got
+0x0001C230	0x00000008	[  5] _objc_retainAutoreleaseReturnValue.auth_got
+0x0001C238	0x00000008	[  5] _objc_retainAutoreleasedReturnValue.auth_got
+0x0001C240	0x00000008	[  5] _objc_terminate.auth_got
+0x0001C248	0x00000008	[  5] _object_getClass.auth_got
+0x0001C250	0x00000008	[ 19] _os_log_create.auth_got
+0x0001C258	0x00000008	[ 19] _os_log_type_enabled.auth_got
+0x0001C260	0x00000008	[ 17] _os_unfair_lock_lock.auth_got
+0x0001C268	0x00000008	[ 17] _os_unfair_lock_unlock.auth_got
+0x0001C270	0x00000008	[ 18] _pthread_mutex_lock.auth_got
+0x0001C278	0x00000008	[ 18] _pthread_mutex_unlock.auth_got
+0x0001C280	0x00000008	[  5] _sel_registerName.auth_got
+0x0001C288	0x00000008	[ 14] _stat.auth_got
+0x0001C290	0x00000008	[ 13] _strcmp.auth_got
+0x0001C298	0x00000008	[ 13] _strlen.auth_got
+0x0001C2A0	0x00000008	[ 13] _strstr.auth_got
+0x0001C2A8	0x00000008	[  8] _IOConnectCallMethod.got
+0x0001C2B0	0x00000008	[  8] _IOConnectCallStructMethod.got
+0x0001C2B8	0x00000008	[  8] _IORegistryEntrySetCFProperties.got
+0x0001C2C0	0x00000008	[  8] _IORegistryEntrySetCFProperty.got
+0x0001C2C8	0x00000008	[  8] _IOServiceClose.got
+0x0001C2D0	0x00000008	[  8] _IOServiceOpen.got
+0x0001C2D8	0x00000008	[  6] _NSFileModificationDate.got
+0x0001C2E0	0x00000008	[  7] _OBJC_EHTYPE_$_NSException.got
+0x0001C2E8	0x00000008	[ 12] __NSConcreteStackBlock.got
+0x0001C2F0	0x00000008	[ 13] ___stack_chk_guard.got
+0x0001C2F8	0x00000008	[ 10] __dispatch_main_q.got
+0x0001C300	0x00000008	[  7] _kCFAllocatorDefault.got
+0x0001C308	0x00000008	[ 13] _kOSThermalNotificationPressureLevelName.got
+0x0001C310	0x00000020	[  9] ___block_descriptor_32_e5_v8?0l
+0x0001C330	0x00000020	[  9] ___block_literal_global
+0x0001C350	0x00000020	[  9] ___block_literal_global.128
+0x0001C370	0x00000058	[  9] _networkThrottleKeys
+0x0001C3C8	0x00000020	[  9] ___block_literal_global.182
+0x0001C3E8	0x00000078	[  9] _kCPUthermalBacklightLimitKeys
+0x0001C460	0x00000018	[  9] l___const.CPUthermalRememberCoreBrightnessMaximum.paths
+0x0001C478	0x00000050	[  9] l___const.CPUthermalIsDisplayMitigationKey.keys
+0x0001C4C8	0x00000020	[  9] ___block_descriptor_33_e5_v8?0l
+0x0001C4E8	0x00000020	[  9] ___block_literal_global.244
+0x0001C508	0x00000020	[  9] ___block_literal_global.246
+0x0001C528	0x00000020	[  9] ___block_literal_global.249
+0x0001C548	0x00000020	[  9] ___block_literal_global.262
+0x0001C568	0x00000020	[  9] ___block_literal_global.272
+0x0001C588	0x00000020	[  9] ___block_descriptor_36_e5_v8?0l
+0x0001C5A8	0x00000020	[  9] ___block_literal_global.285
+0x0001C5C8	0x00000020	[  9] ___block_literal_global.287
+0x0001C5E8	0x00001AB0	[  9] _g_thermalABIHooks
+0x0001E098	0x00000020	[  9] ___block_descriptor_32_e8_v12?0i8l
+0x0001E0B8	0x00000020	[  9] ___block_literal_global.312
+0x0001E0D8	0x00000020	[  9] ___block_literal_global.315
+0x0001E0F8	0x00000020	[  9] ___block_literal_global.318
+0x0001E118	0x00000020	[  9] ___block_literal_global.320
+0x0001E138	0x00000020	[  9] ___block_literal_global.369
+0x0001E158	0x00000020	[  9] ___block_literal_global.371
+0x0001E178	0x00000020	[  9] ___block_literal_global.373
+0x0001E198	0x00000020	[  9] ___block_literal_global.375
+0x0001E1B8	0x00000020	[  9] ___block_literal_global.377
+0x0001E1D8	0x00000020	[  9] ___block_literal_global.379
+0x0001E1F8	0x00000020	[  9] ___block_literal_global.381
+0x0001E218	0x00000060	[  9] _g_hotServices
+0x0001E278	0x00000020	[  9] anon
+0x0001E298	0x00000020	[  9] anon
+0x0001E2B8	0x00000020	[  9] anon
+0x0001E2D8	0x00000020	[  9] anon
+0x0001E2F8	0x00000020	[  9] anon
+0x0001E318	0x00000020	[  9] anon
+0x0001E338	0x00000020	[  9] anon
+0x0001E358	0x00000020	[  9] anon
+0x0001E378	0x00000020	[  9] anon
+0x0001E398	0x00000020	[  9] anon
+0x0001E3B8	0x00000020	[  9] anon
+0x0001E3D8	0x00000020	[  9] anon
+0x0001E3F8	0x00000020	[  9] anon
+0x0001E418	0x00000020	[  9] anon
+0x0001E438	0x00000020	[  9] anon
+0x0001E458	0x00000020	[  9] anon
+0x0001E478	0x00000020	[  9] anon
+0x0001E498	0x00000020	[  9] anon
+0x0001E4B8	0x00000020	[  9] anon
+0x0001E4D8	0x00000008	[  4] anon
+0x0001E4E0	0x00000018	[  9] anon
+0x0001E4F8	0x00000068	[  9] anon
+0x0001E560	0x00000018	[  9] anon
+0x0001E578	0x00000018	[  9] anon
+0x00020000	0x00000008	[  1] anon
+0x00020008	0x00000008	[  9] anon
+0x00020010	0x00000008	[  1] anon
+0x00020018	0x00000008	[  1] anon
+0x00020020	0x00000008	[  1] anon
+0x00020028	0x00000008	[  1] anon
+0x00020030	0x00000008	[  1] anon
+0x00020038	0x00000008	[  1] anon
+0x00020040	0x00000008	[  1] anon
+0x00020048	0x00000008	[  1] anon
+0x00020050	0x00000008	[  1] anon
+0x00020058	0x00000008	[  1] anon
+0x00020060	0x00000008	[  1] anon
+0x00020068	0x00000008	[  1] anon
+0x00020070	0x00000008	[  1] anon
+0x00020078	0x00000008	[  1] anon
+0x00020080	0x00000008	[  1] anon
+0x00020088	0x00000008	[  1] anon
+0x00020090	0x00000008	[  1] anon
+0x00020098	0x00000008	[  1] anon
+0x000200A0	0x00000008	[  1] anon
+0x000200A8	0x00000008	[  1] anon
+0x000200B0	0x00000008	[  1] anon
+0x000200B8	0x00000008	[  1] anon
+0x000200C0	0x00000008	[  1] anon
+0x000200C8	0x00000008	[  9] anon
+0x000200D0	0x00000008	[  1] anon
+0x000200D8	0x00000008	[  1] anon
+0x000200E0	0x00000008	[  1] anon
+0x000200E8	0x00000008	[  1] anon
+0x000200F0	0x00000008	[  9] anon
+0x000200F8	0x00000008	[  9] anon
+0x00020100	0x00000008	[  9] anon
+0x00020108	0x00000008	[  9] anon
+0x00020110	0x00000008	[  9] anon
+0x00020118	0x00000008	[  1] anon
+0x00020120	0x00000008	[  1] anon
+0x00020128	0x00000008	[  9] anon
+0x00020130	0x00000008	[  9] anon
+0x00020138	0x00000008	[  9] anon
+0x00020140	0x00000008	[  9] anon
+0x00020148	0x00000008	[  1] anon
+0x00020150	0x00000008	[  1] anon
+0x00020158	0x00000008	[  1] anon
+0x00020160	0x00000008	[  1] anon
+0x00020168	0x00000008	[  1] anon
+0x00020170	0x00000008	[  1] anon
+0x00020178	0x00000008	[  1] anon
+0x00020180	0x00000008	[  1] anon
+0x00020188	0x00000008	[  1] anon
+0x00020190	0x00000008	[  1] anon
+0x00020198	0x00000008	[  1] anon
+0x000201A0	0x00000008	[  1] anon
+0x000201A8	0x00000008	[  1] anon
+0x000201B0	0x00000008	[  9] anon
+0x000201B8	0x00000008	[  1] anon
+0x000201C0	0x00000008	[  1] anon
+0x000201C8	0x00000008	[  9] anon
+0x000201D0	0x00000008	[  9] anon
+0x000201D8	0x00000008	[  1] anon
+0x000201E0	0x00000008	[  9] anon
+0x000201E8	0x00000008	[  9] anon
+0x000201F0	0x00000008	[  9] anon
+0x000201F8	0x00000008	[  9] anon
+0x00020200	0x00000008	[  9] anon
+0x00020208	0x00000008	[  9] anon
+0x00020210	0x00000008	[  9] anon
+0x00020218	0x00000008	[  9] anon
+0x00020220	0x00000008	[  9] anon
+0x00020228	0x00000008	[  9] anon
+0x00020230	0x00000008	[  9] anon
+0x00020238	0x00000008	[  9] anon
+0x00020240	0x00000008	[  9] anon
+0x00020248	0x00000008	[  1] anon
+0x00020250	0x00000008	[  1] anon
+0x00020258	0x00000008	[  9] anon
+0x00020260	0x00000008	[  9] anon
+0x00020268	0x00000008	[  9] anon
+0x00020270	0x00000008	[  9] anon
+0x00020278	0x00000008	[  9] anon
+0x00020280	0x00000008	[  9] anon
+0x00020288	0x00000008	[  9] anon
+0x00020290	0x00000008	[  9] anon
+0x00020298	0x00000008	[  9] anon
+0x000202A0	0x00000008	[  9] anon
+0x000202A8	0x00000008	[  1] anon
+0x000202B0	0x00000008	[  1] anon
+0x000202B8	0x00000008	[  1] anon
+0x000202C0	0x00000008	[  1] anon
+0x000202C8	0x00000008	[  1] anon
+0x000202D0	0x00000008	[  1] anon
+0x000202D8	0x00000008	[  9] anon
+0x000202E0	0x00000008	[  9] anon
+0x000202E8	0x00000008	[  9] anon
+0x000202F0	0x00000008	[  9] anon
+0x000202F8	0x00000008	[  9] anon
+0x00020300	0x00000008	[  9] anon
+0x00020308	0x00000008	[  9] anon
+0x00020310	0x00000008	[  9] anon
+0x00020318	0x00000008	[  1] anon
+0x00020320	0x00000008	[  1] anon
+0x00020328	0x00000008	[  9] anon
+0x00020330	0x00000008	[  9] anon
+0x00020338	0x00000008	[  9] anon
+0x00020340	0x00000008	[  9] anon
+0x00020348	0x00000008	[  9] anon
+0x00020350	0x00000008	[  9] anon
+0x00020358	0x00000008	[  9] anon
+0x00020360	0x00000008	[  9] anon
+0x00020368	0x00000008	[  9] anon
+0x00020370	0x00000008	[  9] _g_thermalBlockNotifPopup
+0x00020378	0x00000040	[  9] _g_thermalABIInstallLock
+0x000203B8	0x00000004	[  9] _g_thermalPressureToken
+0x000203BC	0x00000004	[  9] _g_thermalNotificationToken
+0x000203C0	0x00000004	[  9] _g_lockStateToken
+0x000203C4	0x00000004	[  9] _g_blankedScreenToken
+0x000203C8	0x00000018	[  2] _g_restoringFullPower
+0x000203E0	0x00000018	[  2] _g_reassertingSharedBudgets
+0x000203F8	0x00000018	[  2] _g_reassertingLowPower
+0x00020410	0x00000001	[  9] _g_restoringFullPower$tlv$init
+0x00020411	0x00000001	[  9] _g_reassertingSharedBudgets$tlv$init
+0x00020412	0x00000001	[  9] _g_reassertingLowPower$tlv$init
+0x00020418	0x00000008	[  9] _g_commonProduct
+0x00020420	0x00000008	[  9] _g_mitigationControllers
+0x00020428	0x00000008	[  9] _g_thermalResetQueue
+0x00020430	0x00000008	[  9] _g_applePPMInstances
+0x00020438	0x00000008	[  9] _g_maxBacklightBrightnessValue
+0x00020440	0x00000008	[  9] _orig_IOServiceSetProperty
+0x00020448	0x00000008	[  9] _orig_getConfigurationFor
+0x00020450	0x00000008	[  9] __logos_orig$_ungrouped$CommonProduct$setServiceProperty$key$value$scaleToFixedPoint$
+0x00020458	0x00000008	[  9] __logos_orig$_ungrouped$CommonProduct$shouldEnforceLightThermalPressure
+0x00020460	0x00000008	[  9] __logos_orig$_ungrouped$CommonProduct$getPotentialForcedThermalLevel$
+0x00020468	0x00000008	[  9] __logos_orig$_ungrouped$CommonProduct$getPotentialForcedThermalPressureLevel
+0x00020470	0x00000008	[  9] __logos_orig$_ungrouped$CommonProduct$initProduct$
+0x00020478	0x00000008	[  9] __logos_orig$_ungrouped$CommonProduct$tryTakeAction
+0x00020480	0x00000008	[  9] __logos_orig$_ungrouped$CommonProduct$simulateLightThermalPressure
+0x00020488	0x00000008	[  9] __logos_orig$_ungrouped$CommonProduct$updatePowerzoneTelemetry
+0x00020490	0x00000008	[  9] __logos_orig$_ungrouped$CommonProduct$setCPMSMitigationsEnabled$
+0x00020498	0x00000008	[  9] __logos_orig$_ungrouped$CommonProduct$setCPULevel$
+0x000204A0	0x00000008	[  9] __logos_orig$_ungrouped$CommonProduct$setCPUPowerCeiling$fromDecisionSource$
+0x000204A8	0x00000008	[  9] __logos_orig$_ungrouped$CommonProduct$setCPUPowerFloor$fromDecisionSource$
+0x000204B0	0x00000008	[  9] __logos_orig$_ungrouped$CommonProduct$setGPUPowerCeiling$fromDecisionSource$
+0x000204B8	0x00000008	[  9] __logos_orig$_ungrouped$CommonProduct$setPackagePowerCeiling$fromDecisionSource$
+0x000204C0	0x00000008	[  9] __logos_orig$_ungrouped$HidSensors$handleTemperatureEvent$service$
+0x000204C8	0x00000008	[  9] __logos_orig$_ungrouped$ThermalManager$evaluateDecisionTree
+0x000204D0	0x00000008	[  9] __logos_orig$_ungrouped$ThermalManager$setCPMSMitigationState$
+0x000204D8	0x00000008	[  9] __logos_orig$_ungrouped$ThermalManager$updateThermalPressureLevelNotification$shouldForceThermalPressure$
+0x000204E0	0x00000008	[  9] __logos_orig$_ungrouped$ThermalManager$updateThermalNotification$
+0x000204E8	0x00000008	[  9] __logos_orig$_ungrouped$ThermalManager$shouldEnforceLightThermalPressure
+0x000204F0	0x00000008	[  9] __logos_orig$_ungrouped$ThermalManager$getPotentialForcedThermalLevel$
+0x000204F8	0x00000008	[  9] __logos_orig$_ungrouped$ThermalManager$getPotentialForcedThermalPressureLevel
+0x00020500	0x00000008	[  9] __logos_orig$_ungrouped$ThermalManager$getBatteryServiceSuggestion$
+0x00020508	0x00000008	[  9] __logos_orig$_ungrouped$ThermalManager$getConfigurationFor$
+0x00020510	0x00000008	[  9] __logos_orig$_ungrouped$ThermalControl$setServiceProperty$key$value$scaleToFixedPoint$
+0x00020518	0x00000008	[  9] __logos_orig$_ungrouped$ThermalControl$initForFastLoop$noDisplay$powerSaveParams$powerZoneParams$
+0x00020520	0x00000008	[  9] __logos_orig$_ungrouped$ThermalControl$initWithParams$
+0x00020528	0x00000008	[  9] __logos_orig$_ungrouped$ThermalControl$powerSaveActive
+0x00020530	0x00000008	[  9] __logos_orig$_ungrouped$ThermalControl$setPowerSaveActive$
+0x00020538	0x00000008	[  9] __logos_orig$_ungrouped$ThermalControl$setPowerSaveToken$
+0x00020540	0x00000008	[  9] __logos_orig$_ungrouped$ThermalControl$actionComponentControl
+0x00020548	0x00000008	[  9] __logos_orig$_ungrouped$ThermalControl$readReleaseRateForAllComponents
+0x00020550	0x00000008	[  9] __logos_orig$_ungrouped$ApplePPMCPU$init
+0x00020558	0x00000008	[  9] __logos_orig$_ungrouped$ApplePPMCPU$setCPULevel$
+0x00020560	0x00000008	[  9] __logos_orig$_ungrouped$ApplePPMCPU$updateCPU
+0x00020568	0x00000008	[  9] __logos_orig$_ungrouped$ApplePPM$init
+0x00020570	0x00000008	[  9] __logos_orig$_ungrouped$ApplePPM$setCPULevel$
+0x00020578	0x00000008	[  9] __logos_orig$_ungrouped$MitigationController$initForFastLoop$noDisplay$powerSaveParams$powerZoneParams$
+0x00020580	0x00000008	[  9] __logos_orig$_ungrouped$MitigationController$setCPMSMitigationsEnabled$
+0x00020588	0x00000008	[  9] __logos_orig$_ungrouped$MitigationController$powerSaveActive
+0x00020590	0x00000008	[  9] __logos_orig$_ungrouped$MitigationController$setPowerSaveActive$
+0x00020598	0x00000008	[  9] __logos_orig$_ungrouped$MitigationController$setPowerSaveToken$
+0x000205A0	0x00000008	[  9] __logos_orig$_ungrouped$MitigationController$setCPULevel$
+0x000205A8	0x00000008	[  9] __logos_orig$_ungrouped$MitigationController$setCPUMitigationLevel$
+0x000205B0	0x00000008	[  9] __logos_orig$_ungrouped$MitigationController$setDVD1Level$
+0x000205B8	0x00000008	[  9] __logos_orig$_ungrouped$MitigationController$updateCPU
+0x000205C0	0x00000008	[  9] __logos_orig$_ungrouped$MitigationController$updateGPU
+0x000205C8	0x00000008	[  9] __logos_orig$_ungrouped$MitigationController$updatePackage
+0x000205D0	0x00000008	[  9] __logos_orig$_ungrouped$MitigationController$setCPULowPowerTarget$
+0x000205D8	0x00000008	[  9] __logos_orig$_ungrouped$MitigationController$setPackageLowPowerTarget
+0x000205E0	0x00000008	[  9] __logos_orig$_ungrouped$MitigationController$setMaxCPUPowerTarget$useLegacyPath$setProperty$
+0x000205E8	0x00000008	[  9] __logos_orig$_ungrouped$MitigationController$setCPUPowerCeiling$fromDecisionSource$
+0x000205F0	0x00000008	[  9] __logos_orig$_ungrouped$MitigationController$setCPUPowerCeiling$forDVD1Contributor$
+0x000205F8	0x00000008	[  9] __logos_orig$_ungrouped$MitigationController$setCPUPowerFloor$fromDecisionSource$
+0x00020600	0x00000008	[  9] __logos_orig$_ungrouped$MitigationController$setCPUPowerZoneTarget$
+0x00020608	0x00000008	[  9] __logos_meta_orig$_ungrouped$NSDictionary$dictionaryWithContentsOfFile$
+0x00020610	0x00000008	[  9] __logos_orig$_ungrouped$NotificationManager$updateThermalPressureLevelNotification$shouldForceThermalPressure$
+0x00020618	0x00000008	[  9] __logos_orig$_ungrouped$ComponentControl$updatePowerParameters$
+0x00020620	0x00000008	[  9] __logos_orig$_ungrouped$ComponentControl$updatePackage
+0x00020628	0x00000008	[  9] __logos_orig$_ungrouped$ComponentControl$setPackageLowPowerTarget
+0x00020630	0x00000008	[  9] __logos_orig$_ungrouped$ComponentControl$powerSaveActive
+0x00020638	0x00000008	[  9] __logos_orig$_ungrouped$ComponentControl$setServiceProperty$key$value$scaleToFixedPoint$
+0x00020640	0x00000008	[  9] __logos_orig$_ungrouped$IOServiceOpen
+0x00020648	0x00000008	[  9] __logos_orig$_ungrouped$IOServiceClose
+0x00020650	0x00000008	[  9] __logos_orig$_ungrouped$IOConnectCallMethod
+0x00020658	0x00000008	[  9] __logos_orig$_ungrouped$IOConnectCallStructMethod
+0x00020660	0x00000008	[  9] __logos_orig$_ungrouped$IORegistryEntrySetCFProperty
+0x00020668	0x00000008	[  9] __logos_orig$_ungrouped$IORegistryEntrySetCFProperties
+0x00020670	0x00000004	[  9] _g_stateLock
+0x00020674	0x00000004	[  9] _g_modeLock
+0x00020678	0x00000004	[  9] _g_userSelectedPowerMode
+0x0002067C	0x00000004	[  9] _g_powerMode
+0x00020680	0x00000008	[  9] _CPUthermalRuntimeLog.logger
+0x00020688	0x00000008	[  9] _CPUthermalRuntimeLog.onceToken
+0x00020690	0x00000008	[  9] _g_brightnessRecommitLock
+0x00020698	0x00000008	[  9] _g_lastBrightnessRecommitSchedule
+0x000206A0	0x00000001	[  9] _CPUthermalRememberCoreBrightnessMaximum.tried
+0x000206A1	0x00000001	[  9] _g_backlightRecoveryScheduled
+0x000206A2	0x00000002	[  9] _CPUthermalStartBacklightAuditTimer.started
+0x000206A4	0x00000004	[  9] _g_applyLock
+0x000206A8	0x00000004	[  9] _g_applyingPowerMode
+0x000206AC	0x00000004	[  9] _g_controllerLock
+0x000206B0	0x00000008	[  9] _cpuMaxPowerPropertyName.propertyName
+0x000206B8	0x00000008	[  9] _cpuMaxPowerPropertyName.once
+0x000206C0	0x00000004	[  9] _g_runtimeLock
+0x000206C4	0x00000001	[  9] _g_lowPowerApplyPulseScheduled
+0x000206C5	0x00000003	[  9] _g_fullPowerRecoveryPulseScheduled
+0x000206C8	0x00000008	[  9] _CPUthermalEngineQueue.queue
+0x000206D0	0x00000008	[  9] _CPUthermalEngineQueue.onceToken
+0x000206D8	0x00000008	[  9] _ctCommonGPUFloorii_original
+0x000206E0	0x00000008	[  9] _ctCommonGPUFlooriI_original
+0x000206E8	0x00000008	[  9] _ctCommonGPUFlooriq_original
+0x000206F0	0x00000008	[  9] _ctCommonGPUFlooriQ_original
+0x000206F8	0x00000008	[  9] _ctCommonGPUFloorIi_original
+0x00020700	0x00000008	[  9] _ctCommonGPUFloorII_original
+0x00020708	0x00000008	[  9] _ctCommonGPUFloorIq_original
+0x00020710	0x00000008	[  9] _ctCommonGPUFloorIQ_original
+0x00020718	0x00000008	[  9] _ctCommonGPUFloorqi_original
+0x00020720	0x00000008	[  9] _ctCommonGPUFloorqI_original
+0x00020728	0x00000008	[  9] _ctCommonGPUFloorqq_original
+0x00020730	0x00000008	[  9] _ctCommonGPUFloorqQ_original
+0x00020738	0x00000008	[  9] _ctCommonGPUFloorQi_original
+0x00020740	0x00000008	[  9] _ctCommonGPUFloorQI_original
+0x00020748	0x00000008	[  9] _ctCommonGPUFloorQq_original
+0x00020750	0x00000008	[  9] _ctCommonGPUFloorQQ_original
+0x00020758	0x00000008	[  9] _ctCommonPackageFloorii_original
+0x00020760	0x00000008	[  9] _ctCommonPackageFlooriI_original
+0x00020768	0x00000008	[  9] _ctCommonPackageFlooriq_original
+0x00020770	0x00000008	[  9] _ctCommonPackageFlooriQ_original
+0x00020778	0x00000008	[  9] _ctCommonPackageFloorIi_original
+0x00020780	0x00000008	[  9] _ctCommonPackageFloorII_original
+0x00020788	0x00000008	[  9] _ctCommonPackageFloorIq_original
+0x00020790	0x00000008	[  9] _ctCommonPackageFloorIQ_original
+0x00020798	0x00000008	[  9] _ctCommonPackageFloorqi_original
+0x000207A0	0x00000008	[  9] _ctCommonPackageFloorqI_original
+0x000207A8	0x00000008	[  9] _ctCommonPackageFloorqq_original
+0x000207B0	0x00000008	[  9] _ctCommonPackageFloorqQ_original
+0x000207B8	0x00000008	[  9] _ctCommonPackageFloorQi_original
+0x000207C0	0x00000008	[  9] _ctCommonPackageFloorQI_original
+0x000207C8	0x00000008	[  9] _ctCommonPackageFloorQq_original
+0x000207D0	0x00000008	[  9] _ctCommonPackageFloorQQ_original
+0x000207D8	0x00000008	[  9] _ctMitigationGPUFloorii_original
+0x000207E0	0x00000008	[  9] _ctMitigationGPUFlooriI_original
+0x000207E8	0x00000008	[  9] _ctMitigationGPUFlooriq_original
+0x000207F0	0x00000008	[  9] _ctMitigationGPUFlooriQ_original
+0x000207F8	0x00000008	[  9] _ctMitigationGPUFloorIi_original
+0x00020800	0x00000008	[  9] _ctMitigationGPUFloorII_original
+0x00020808	0x00000008	[  9] _ctMitigationGPUFloorIq_original
+0x00020810	0x00000008	[  9] _ctMitigationGPUFloorIQ_original
+0x00020818	0x00000008	[  9] _ctMitigationGPUFloorqi_original
+0x00020820	0x00000008	[  9] _ctMitigationGPUFloorqI_original
+0x00020828	0x00000008	[  9] _ctMitigationGPUFloorqq_original
+0x00020830	0x00000008	[  9] _ctMitigationGPUFloorqQ_original
+0x00020838	0x00000008	[  9] _ctMitigationGPUFloorQi_original
+0x00020840	0x00000008	[  9] _ctMitigationGPUFloorQI_original
+0x00020848	0x00000008	[  9] _ctMitigationGPUFloorQq_original
+0x00020850	0x00000008	[  9] _ctMitigationGPUFloorQQ_original
+0x00020858	0x00000008	[  9] _ctMitigationPackageFloorii_original
+0x00020860	0x00000008	[  9] _ctMitigationPackageFlooriI_original
+0x00020868	0x00000008	[  9] _ctMitigationPackageFlooriq_original
+0x00020870	0x00000008	[  9] _ctMitigationPackageFlooriQ_original
+0x00020878	0x00000008	[  9] _ctMitigationPackageFloorIi_original
+0x00020880	0x00000008	[  9] _ctMitigationPackageFloorII_original
+0x00020888	0x00000008	[  9] _ctMitigationPackageFloorIq_original
+0x00020890	0x00000008	[  9] _ctMitigationPackageFloorIQ_original
+0x00020898	0x00000008	[  9] _ctMitigationPackageFloorqi_original
+0x000208A0	0x00000008	[  9] _ctMitigationPackageFloorqI_original
+0x000208A8	0x00000008	[  9] _ctMitigationPackageFloorqq_original
+0x000208B0	0x00000008	[  9] _ctMitigationPackageFloorqQ_original
+0x000208B8	0x00000008	[  9] _ctMitigationPackageFloorQi_original
+0x000208C0	0x00000008	[  9] _ctMitigationPackageFloorQI_original
+0x000208C8	0x00000008	[  9] _ctMitigationPackageFloorQq_original
+0x000208D0	0x00000008	[  9] _ctMitigationPackageFloorQQ_original
+0x000208D8	0x00000008	[  9] _ctTreeEvaluate_original
+0x000208E0	0x00000008	[  9] _ctTreeAction_original
+0x000208E8	0x00000008	[  9] _ctTreeReadSingular_original
+0x000208F0	0x00000008	[  9] _ctTreeReleaseFO_original
+0x000208F8	0x00000008	[  9] _ctTreeReleaseDO_original
+0x00020900	0x00000008	[  9] _ctTreeReleaseFQ_original
+0x00020908	0x00000008	[  9] _ctTreeReleaseDQ_original
+0x00020910	0x00000008	[  9] _ctTreeReleaseFq_original
+0x00020918	0x00000008	[  9] _ctTreeReleaseDq_original
+0x00020920	0x00000008	[  9] _ctTreeReleaseFI_original
+0x00020928	0x00000008	[  9] _ctTreeReleaseDI_original
+0x00020930	0x00000008	[  9] _ctTreeReleaseFi_original
+0x00020938	0x00000008	[  9] _ctTreeReleaseDi_original
+0x00020940	0x00000008	[  9] _ctTreeReleaseFP_original
+0x00020948	0x00000008	[  9] _ctTreeReleaseDP_original
+0x00020950	0x00000008	[  9] _ctManagerReleaseFO_original
+0x00020958	0x00000008	[  9] _ctManagerReleaseDO_original
+0x00020960	0x00000008	[  9] _ctManagerReleaseFQ_original
+0x00020968	0x00000008	[  9] _ctManagerReleaseDQ_original
+0x00020970	0x00000008	[  9] _ctManagerReleaseFq_original
+0x00020978	0x00000008	[  9] _ctManagerReleaseDq_original
+0x00020980	0x00000008	[  9] _ctManagerReleaseFI_original
+0x00020988	0x00000008	[  9] _ctManagerReleaseDI_original
+0x00020990	0x00000008	[  9] _ctManagerReleaseFi_original
+0x00020998	0x00000008	[  9] _ctManagerReleaseDi_original
+0x000209A0	0x00000008	[  9] _ctManagerReleaseFP_original
+0x000209A8	0x00000008	[  9] _ctManagerReleaseDP_original
+0x000209B0	0x00000008	[  9] _ctSupervisorEffortFO_original
+0x000209B8	0x00000008	[  9] _ctSupervisorEffortDO_original
+0x000209C0	0x00000008	[  9] _ctSupervisorEffortFQ_original
+0x000209C8	0x00000008	[  9] _ctSupervisorEffortDQ_original
+0x000209D0	0x00000008	[  9] _ctSupervisorEffortFq_original
+0x000209D8	0x00000008	[  9] _ctSupervisorEffortDq_original
+0x000209E0	0x00000008	[  9] _ctSupervisorEffortFI_original
+0x000209E8	0x00000008	[  9] _ctSupervisorEffortDI_original
+0x000209F0	0x00000008	[  9] _ctSupervisorEffortFi_original
+0x000209F8	0x00000008	[  9] _ctSupervisorEffortDi_original
+0x00020A00	0x00000008	[  9] _ctSupervisorEffortFP_original
+0x00020A08	0x00000008	[  9] _ctSupervisorEffortDP_original
+0x00020A10	0x00000008	[  9] _ctControlEffortFO_original
+0x00020A18	0x00000008	[  9] _ctControlEffortDO_original
+0x00020A20	0x00000008	[  9] _ctControlEffortFQ_original
+0x00020A28	0x00000008	[  9] _ctControlEffortDQ_original
+0x00020A30	0x00000008	[  9] _ctControlEffortFq_original
+0x00020A38	0x00000008	[  9] _ctControlEffortDq_original
+0x00020A40	0x00000008	[  9] _ctControlEffortFI_original
+0x00020A48	0x00000008	[  9] _ctControlEffortDI_original
+0x00020A50	0x00000008	[  9] _ctControlEffortFi_original
+0x00020A58	0x00000008	[  9] _ctControlEffortDi_original
+0x00020A60	0x00000008	[  9] _ctControlEffortFP_original
+0x00020A68	0x00000008	[  9] _ctControlEffortDP_original
+0x00020A70	0x00000008	[  9] _ctComponentCPMSi_original
+0x00020A78	0x00000008	[  9] _ctComponentCPMSI_original
+0x00020A80	0x00000008	[  9] _ctComponentCPMSq_original
+0x00020A88	0x00000008	[  9] _ctComponentCPMSQ_original
+0x00020A90	0x00000008	[  9] _ctNotificationO_original
+0x00020A98	0x00000008	[  9] _ctNotificationi_original
+0x00020AA0	0x00000008	[  9] _ctNotificationI_original
+0x00020AA8	0x00000008	[  9] _g_nominalLock
+0x00020AB0	0x00000008	[  9] _g_lastNominalCorrection
+0x00020AB8	0x00000008	[  9] _g_thermalResetLock
+0x00020AC0	0x00000008	[  9] _g_lastThermalReset
+0x00020AC8	0x00000008	[  9] _restoreUserModeAfterWake.lastWakeRestore
+0x00020AD0	0x00000008	[  9] __logos_method$_ungrouped$CommonProduct$initProduct$.aliasOnce
+0x00020AD8	0x00000004	[  9] _g_connLock
+0x00020ADC	0x00000004	[  9] _g_connCount
+0x00020AE0	0x00000200	[  9] _g_conns
