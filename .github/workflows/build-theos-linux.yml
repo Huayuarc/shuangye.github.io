@@ -1,12 +1,8 @@
 name: Build Theos Linux
 
+# isolation.39：本仓库以 macOS 的 “Build Theos Projects” 为唯一自动构建通道（rootless arm64 + roothide arm64e）。
+# 该 Linux 工作流只保留手动触发，避免同一次 debs/** 推送触发两个工作流并行提交 packages/ 造成互相覆盖。
 on:
-  push:
-    branches: ["main"]
-    paths:
-      - "debs/**"
-      - ".github/workflows/build-theos.yml"
-      - ".github/workflows/build-theos-linux.yml"
   workflow_dispatch:
 
 jobs:

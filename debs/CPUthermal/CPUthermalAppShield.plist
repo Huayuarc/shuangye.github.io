@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- isolation.39：MobileSubstrate 过滤器无法表达“排除进程”，因此本模块不带 Filter，
+         由 dylib 在 %ctor 内自我闸门：只有位于应用容器的普通应用才安装钩子，
+         SpringBoard / thermalmonitord / backboardd / powerd 及所有系统守护进程直接返回。 -->
+</dict>
+</plist>
