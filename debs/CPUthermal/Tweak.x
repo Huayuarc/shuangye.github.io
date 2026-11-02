@@ -21,6 +21,12 @@
 #import <mach/host_info.h>
 #import <mach/task_info.h>
 
+// 本仓库的 GitHub CI 不定义 APELIN_BUILD_ID（该宏由 Apelin 构建注入），
+// 这里给出可直接编译的默认标记，避免 CI 因未定义标识符失败。
+#ifndef APELIN_BUILD_ID
+#define APELIN_BUILD_ID "isolation.40"
+#endif
+
 // The public SDK marks these private iOS IOKit entry points unavailable even though
 // thermalmonitord exports and uses them. Keep the runtime ABI without referencing
 // the unavailable declarations directly.
@@ -1931,7 +1937,7 @@ os_unfair_lock_lock(&g_modeLock);
 g_userSelectedPowerMode = userMode;
 g_powerMode = userMode;
 os_unfair_lock_unlock(&g_modeLock);
-os_log(CPUthermalRuntimeLog(), "isolation.38 prefs mode=%{public}s path=%{public}s", userMode == CPUthermalPowerModeLow ? "lowPower" : "fullPower", CPUthermalCurrentPrefPath().UTF8String ?: "(null)");
+os_log(CPUthermalRuntimeLog(), "isolation.40 prefs mode=%{public}s path=%{public}s", userMode == CPUthermalPowerModeLow ? "lowPower" : "fullPower", CPUthermalCurrentPrefPath().UTF8String ?: "(null)");
 }
 }
 
@@ -3107,7 +3113,7 @@ cleanupRemovedFeaturePrefs();
 // root:wheel，导致设置面板（mobile）读不到、进而以空字典覆盖抹掉其它键；这里补一次修复。
 CPUthermalFixPrefOwnership(CPUthermalCurrentPrefPath());
 loadPrefs();
-os_log(CPUthermalRuntimeLog(), "ApelinLoaded %{public}s CPUthermal isolation.38 mode=%{public}s", APELIN_BUILD_ID, isLowPowerMode() ? "lowPower" : "fullPower");
+os_log(CPUthermalRuntimeLog(), "ApelinLoaded %{public}s CPUthermal isolation.40 mode=%{public}s", APELIN_BUILD_ID, isLowPowerMode() ? "lowPower" : "fullPower");
 
 // 确保 IOKit 已加载
 void *iokit = dlopen("/System/Library/Frameworks/IOKit.framework/IOKit", RTLD_NOW | RTLD_GLOBAL);
