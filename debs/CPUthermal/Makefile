@@ -66,12 +66,12 @@ CPUthermalDisplayShield_LDFLAGS += $(ROOTHIDE_LDFLAGS)
 endif
 # Hello 120Hz 3.3.3-3 full upstream implementation (no policy/hook/UI reductions).
 0hello120hz_FILES = Hello120Hz/Core/H120Hooks.mm Hello120Hz/Core/H120Recording.mm Hello120Hz/Core/H120Policy.c Hello120Hz/Core/H120RangeTrampolines.S Hello120Hz/Shared/H120Preferences.mm
-0hello120hz_CFLAGS = -Wall -Wextra -Wno-deprecated-declarations
+0hello120hz_CFLAGS = -Wall -Wextra -Wno-deprecated-declarations -Iinclude
 0hello120hz_CCFLAGS = -std=c++17
 0hello120hz_FRAMEWORKS = UIKit Foundation QuartzCore CoreFoundation AVFoundation CoreMedia CoreGraphics
 0hello120hz_LIBRARIES = substrate
 Hello120Hz/Core/H120Hooks.mm_CFLAGS = -fobjc-arc
-Hello120Hz/Shared/H120Preferences.mm_CFLAGS = -fobjc-arc
+Hello120Hz/Shared/H120Preferences.mm_CFLAGS = -fobjc-arc -Iinclude
 Hello120Hz/Core/H120Recording.mm_CFLAGS = -fno-objc-arc
 ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
 0hello120hz_CFLAGS += -DTHEOS_PACKAGE_SCHEME_ROOTHIDE=1
