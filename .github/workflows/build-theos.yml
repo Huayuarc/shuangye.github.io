@@ -244,6 +244,21 @@ jobs:
           git commit -m "ci: save roothide error log for run #${{ github.run_id }}" || true
           git push origin build-logs --force
 
+      - name: Dump symbols for crash triage
+        if: success() && steps.build-rootless.outputs.exit_code == 0
+        working-directory: debs/CPUthermal
+        run: |
+          set -x
+          mkdir -p "${{ github.workspace }}/symbols"
+          find .theos/obj -maxdepth 3 -name '*.dylib.dSYM' | while read -r d; do
+            n=$(basename "$d" .dylib.dSYM)
+            bin="$d/Contents/Resources/DWARF/$n"
+            if [ -f "$bin" ]; then
+              nm -n "$bin" > "${{ github.workspace }}/symbols/$n-arm64e.txt" || true
+            fi
+          done
+          ls -l "${{ github.workspace }}/symbols"
+
       - name: Collect debs
         if: success() && steps.build-rootless.outputs.exit_code == 0
         run: |
@@ -282,6 +297,7 @@ jobs:
           git ls-files 'packages/*.deb' | xargs -r git rm --cached
           # 强制添加新 deb
           git add -f packages/*.deb
+          git add -f symbols/*.txt 2>/dev/null || true
           if git diff --quiet --cached; then
             echo "无变更，跳过提交"
           else
