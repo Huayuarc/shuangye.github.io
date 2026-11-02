@@ -658,7 +658,8 @@ return;
 // 未识别 ABI 不发送；floor setter 的百分比语义沿用现工程，不猜新 SoC 接口。
 }
 
-static void sendSetPowerSaveToken(id controller, int token) {
+// isolation.40：保留该 ABI 探测实现备查，但当前主链路不再调用；-Werror 下需显式标注未使用。
+static void __attribute__((unused)) sendSetPowerSaveToken(id controller, int token) {
 if (!controller || ![controller respondsToSelector:@selector(setPowerSaveToken:)]) return;
 char argumentType = methodArgumentTypeCode(controller, @selector(setPowerSaveToken:), 2);
 if (argumentType == '@') {
