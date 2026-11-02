@@ -52,7 +52,9 @@ class DisplayShieldContracts(unittest.TestCase):
 
     def test_hooks_both_iokit_writers(self):
         self.assertIn('%hookf(kern_return_t, IORegistryEntrySetCFProperty, io_registry_entry_t entry', DISPLAY)
-        self.assertIn('%hookf(kern_return_t, IOServiceSetProperty, io_service_t service', DISPLAY)
+        # IOServiceSetProperty 无公开声明，必须 dlsym 后 MSHookFunction。
+        self.assertIn('dlsym(iokit, "IOServiceSetProperty")', DISPLAY)
+        self.assertIn('MSHookFunction(symbol, (void *)CPUthermalHookedIOServiceSetProperty', DISPLAY)
 
     def test_learns_plausible_nits_and_fixed_point(self):
         self.assertIn('kCPUthermalShieldMinimumPlausibleNits = 400.0', DISPLAY)

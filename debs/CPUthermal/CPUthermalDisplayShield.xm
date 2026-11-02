@@ -7,6 +7,7 @@
 #import <notify.h>
 #import <IOKit/IOKitLib.h>
 #import <CoreFoundation/CoreFoundation.h>
+#import <dlfcn.h>
 #import <os/lock.h>
 #import <stdint.h>
 #import <stdlib.h>
@@ -159,16 +160,30 @@ static id CPUthermalDisplayReplacement(NSString *key, CFTypeRef value) {
     return %orig(entry, key, value);
 }
 
-%hookf(kern_return_t, IOServiceSetProperty, io_service_t service, CFStringRef key, CFTypeRef value) {
-    if (!key || !value || !CPUthermalDisplayShieldIsEnabled()) return %orig(service, key, value);
+// IOServiceSetProperty 不在 IOKit 头文件中，必须像核心模块一样从 IOKit 动态解析后 MSHookFunction。
+typedef kern_return_t (*CPUthermalIOServiceSetPropertyFn)(io_service_t, CFStringRef, CFTypeRef);
+static CPUthermalIOServiceSetPropertyFn gOriginalIOServiceSetProperty = NULL;
+
+static kern_return_t CPUthermalHookedIOServiceSetProperty(io_service_t service, CFStringRef key, CFTypeRef value) {
+    if (!gOriginalIOServiceSetProperty) return KERN_FAILURE;
+    if (!key || !value || !CPUthermalDisplayShieldIsEnabled()) return gOriginalIOServiceSetProperty(service, key, value);
     id replacement = CPUthermalDisplayReplacement((__bridge NSString *)key, value);
-    if (replacement) return %orig(service, key, (__bridge CFTypeRef)replacement);
-    return %orig(service, key, value);
+    return gOriginalIOServiceSetProperty(service, key, replacement ? (__bridge CFTypeRef)replacement : value);
+}
+
+static void CPUthermalInstallIOServiceSetPropertyHook(void) {
+    void *iokit = dlopen("/System/Library/Frameworks/IOKit.framework/IOKit", RTLD_NOW | RTLD_GLOBAL);
+    if (!iokit) return;
+    void *symbol = dlsym(iokit, "IOServiceSetProperty");
+    if (!symbol) return;
+    MSHookFunction(symbol, (void *)CPUthermalHookedIOServiceSetProperty,
+                   (void **)&gOriginalIOServiceSetProperty);
 }
 
 %ctor {
     @autoreleasepool {
         CPUthermalReloadDisplayShieldPreferences();
+        CPUthermalInstallIOServiceSetPropertyHook();
         dispatch_queue_t queue = dispatch_queue_create("com.huayuarc.cputhermal.display-shield.prefs",
                                                        DISPATCH_QUEUE_SERIAL);
         notify_register_dispatch(kCPUthermalSettingsChangedNotifC, &gDisplayShieldSettingsToken,
