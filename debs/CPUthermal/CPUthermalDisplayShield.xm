@@ -26,7 +26,7 @@ static double CPUthermalCopyPanelMaximumNits(void) {
     if (!cls) return 0.0;
     id client = nil;
     @try { client = [[cls alloc] init]; } @catch (__unused NSException *e) { return 0.0; }
-    if (!client || ![client respondsTo:NSSelectorFromString(S("copyPropertyForKey:"))]) return 0.0;
+    if (!client || ![client respondsToSelector:NSSelectorFromString(S("copyPropertyForKey:"))]) return 0.0;
     NSArray *keys = @[
         @"DisplayBrightnessMax", @"BrightnessMax", @"SliderMax",
         @"MaxBrightness", @"BrightnessMaxNits",
@@ -36,7 +36,7 @@ static double CPUthermalCopyPanelMaximumNits(void) {
         id value = nil;
         @try { value = ((id(*)(id,SEL,id))objc_msgSend)(client, NSSelectorFromString(S("copyPropertyForKey:")), key); }
         @catch (__unused NSException *e) { value = nil; }
-        if (!value || ![value respondsTo:@selector(doubleValue)]) continue;
+        if (!value || ![value respondsToSelector:@selector(doubleValue)]) continue;
         double v = [value doubleValue];
         if (v > best && v >= kCPUthermalDisplayMinimumCapNits && v <= kCPUthermalDisplayMaximumPlausibleCapNits) best = v;
     }
