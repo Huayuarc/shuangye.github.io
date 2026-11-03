@@ -31,18 +31,18 @@
 0x00013E48	0x00000008	__TEXT	__init_offsets
 0x00013E50	0x00000030	__TEXT	__const
 0x00013E80	0x000001D0	__TEXT	__gcc_except_tab
-0x00014050	0x00000D02	__TEXT	__cstring
-0x00014D52	0x00000931	__TEXT	__objc_methname
-0x00015683	0x00000001	__TEXT	__objc_classname
-0x00015684	0x000002D8	__TEXT	__unwind_info
+0x00014050	0x00000D41	__TEXT	__cstring
+0x00014D91	0x00000931	__TEXT	__objc_methname
+0x000156C2	0x00000001	__TEXT	__objc_classname
+0x000156C4	0x000002D8	__TEXT	__unwind_info
 0x00018000	0x000000E5	__TEXT	__oslogstring
 0x0001C000	0x000002A8	__DATA_CONST	__auth_got
 0x0001C2A8	0x00000068	__DATA_CONST	__got
 0x0001C310	0x00001F68	__DATA_CONST	__const
-0x0001E278	0x00000260	__DATA_CONST	__cfstring
-0x0001E4D8	0x00000008	__DATA_CONST	__objc_imageinfo
-0x0001E4E0	0x00000080	__DATA_CONST	__objc_arraydata
-0x0001E560	0x00000030	__DATA_CONST	__objc_arrayobj
+0x0001E278	0x00000300	__DATA_CONST	__cfstring
+0x0001E578	0x00000008	__DATA_CONST	__objc_imageinfo
+0x0001E580	0x000000A8	__DATA_CONST	__objc_arraydata
+0x0001E628	0x00000030	__DATA_CONST	__objc_arrayobj
 0x00020000	0x00000328	__DATA	__objc_selrefs
 0x00020328	0x00000048	__DATA	__objc_classrefs
 0x00020370	0x00000058	__DATA	__data
@@ -51,7 +51,7 @@
 0x00020418	0x000008C0	__DATA	__bss
 # Symbols:
 # Address	Size    	File  Name
-0x00004000	0x00000644	[  9] __logosLocalCtor_b5c39b1b
+0x00004000	0x00000644	[  9] __logosLocalCtor_7c3dae07
 0x00004644	0x000003C8	[  9] _loadPrefs
 0x00004A0C	0x00000054	[  9] _CPUthermalRuntimeLog
 0x00004A60	0x000001CC	[  9] _hooked_IOServiceSetProperty
@@ -60,7 +60,7 @@
 0x00004D28	0x00000004	[  9] _onPuppetEvent
 0x00004D2C	0x0000004C	[  9] _onSettingsChanged
 0x00004D78	0x000002DC	[  9] _installCrossVersionThermalAliases
-0x00005054	0x00000004	[  9] ____logosLocalCtor_b5c39b1b_block_invoke
+0x00005054	0x00000004	[  9] ____logosLocalCtor_7c3dae07_block_invoke
 0x00005058	0x00000B48	[  9] __logosLocalInit
 0x00005BA0	0x0000009C	[  9] __logos_method$_ungrouped$CommonProduct$setServiceProperty$key$value$scaleToFixedPoint$
 0x00005C3C	0x00000038	[  9] __logos_method$_ungrouped$CommonProduct$shouldEnforceLightThermalPressure
@@ -613,187 +613,191 @@
 0x00014809	0x00000010	[  9] literal string: "maxThermalPower"
 0x00014819	0x00000010	[  9] literal string: "minThermalPower"
 0x00014829	0x0000000A	[  9] literal string: "IOService"
-0x00014833	0x00000012	[  9] literal string: "DisplayBrightness"
-0x00014845	0x00000017	[  9] literal string: "DisplayBrightnessLimit"
-0x0001485C	0x00000010	[  9] literal string: "BrightnessLimit"
-0x0001486C	0x00000017	[  9] literal string: "IOMFB_brightness_limit"
-0x00014883	0x00000015	[  9] literal string: "IOMFB_max_brightness"
-0x00014898	0x00000015	[  9] literal string: "IOMFB_brightness_max"
-0x000148AD	0x0000000F	[  9] literal string: "brightness-max"
-0x000148BC	0x0000000F	[  9] literal string: "brightness-cap"
-0x000148CB	0x0000000E	[  9] literal string: "MaxBrightness"
-0x000148D9	0x0000000E	[  9] literal string: "BrightnessCap"
-0x000148E7	0x0000000A	[  9] literal string: "BLNitsCap"
-0x000148F1	0x00000020	[  9] literal string: "needsPushingTSFDtoDisplayDriver"
-0x00014911	0x0000001C	[  9] literal string: "displayBrightnessMitigation"
-0x0001492D	0x00000012	[  9] literal string: "displayMitigation"
-0x0001493F	0x00000014	[  9] literal string: "eventDimmingEnabled"
-0x00014953	0x00000015	[  9] literal string: "needsContextualClamp"
-0x00014968	0x00000022	[  9] literal string: "shouldEnforceLightThermalPressure"
-0x0001498A	0x0000001D	[  9] literal string: "shouldEnforceThermalPressure"
-0x000149A7	0x0000001A	[  9] literal string: "thermalPressureMitigation"
-0x000149C1	0x00000016	[  9] literal string: "performanceMitigation"
-0x000149D7	0x00000002	[  9] literal string: "0"
-0x000149D9	0x0000001A	[  9] literal string: "backlightComponentControl"
-0x000149F3	0x00000002	[  9] literal string: "v"
-0x000149F5	0x00000002	[  9] literal string: "@"
-0x000149F7	0x00000002	[  9] literal string: ":"
-0x000149F9	0x00000005	[  9] literal string: "iIqQ"
-0x000149FE	0x00000008	[  9] literal string: "rnNoORV"
-0x00014A06	0x0000000F	[  9] literal string: "^{__CFString=}"
-0x00014A15	0x0000000C	[  9] literal string: "CPUMaxPower"
-0x00014A21	0x0000000A	[  9] literal string: "AppleCLPC"
-0x00014A2B	0x00000016	[  9] literal string: "`pkg-low-power-target"
-0x00014A41	0x0000001C	[  9] literal string: "`pkg-avg-therm-power-target"
-0x00014A5D	0x0000001F	[  9] literal string: "com.huayuarc.cputhermal.engine"
-0x00014A7C	0x00000028	[  9] literal string: "com.huayuarc.cputhermal/settingsChanged"
-0x00014AA4	0x0000000C	[  9] literal string: "PowerFloor:"
-0x00014AB0	0x00000025	[  9] literal string: "setGPUPowerFloor:fromDecisionSource:"
-0x00014AD5	0x00000002	[  9] literal string: "i"
-0x00014AD7	0x00000002	[  9] literal string: "I"
-0x00014AD9	0x00000002	[  9] literal string: "q"
-0x00014ADB	0x00000002	[  9] literal string: "Q"
-0x00014ADD	0x00000029	[  9] literal string: "setPackagePowerFloor:fromDecisionSource:"
-0x00014B06	0x00000018	[  9] literal string: "TableDrivenDecisionTree"
-0x00014B1E	0x00000015	[  9] literal string: "evaluateDecisionTree"
-0x00014B33	0x00000017	[  9] literal string: "actionComponentControl"
-0x00014B4A	0x00000020	[  9] literal string: "readReleaseRateForAllComponents"
-0x00014B6A	0x0000001C	[  9] literal string: "getReleaseRateForComponent:"
-0x00014B86	0x00000002	[  9] literal string: "f"
-0x00014B88	0x00000002	[  9] literal string: "d"
-0x00014B8A	0x00000003	[  9] literal string: "^v"
-0x00014B8D	0x00000012	[  9] literal string: "SupervisorControl"
-0x00014B9F	0x00000020	[  9] literal string: "calculateControlEffort:trigger:"
-0x00014BBF	0x00000018	[  9] literal string: "setCPMSMitigationState:"
-0x00014BD7	0x0000001B	[  9] literal string: "updateThermalNotification:"
-0x00014BF2	0x00000026	[  9] literal string: "com.huayuarc.cputhermal.thermal-reset"
-0x00014C18	0x00000009	[  9] literal string: "v12@?0i8"
-0x00014C21	0x00000025	[  9] literal string: "com.apple.system.thermalnotification"
-0x00014C46	0x00000020	[  9] literal string: "com.apple.springboard.lockstate"
-0x00014C66	0x00000008	[  9] literal string: "nominal"
-0x00014C6E	0x00000004	[  9] literal string: "die"
-0x00014C72	0x00000005	[  9] literal string: "skin"
-0x00014C77	0x00000009	[  9] literal string: "pressure"
-0x00014C80	0x00000005	[  9] literal string: "cpms"
-0x00014C85	0x0000000A	[  9] literal string: "hippocket"
-0x00014C8F	0x00000007	[  9] literal string: "pocket"
-0x00014C96	0x0000000A	[  9] literal string: "powerzone"
-0x00014CA0	0x00000008	[  9] literal string: "p-state"
-0x00014CA8	0x00000007	[  9] literal string: "pstate"
-0x00014CAF	0x0000001F	[  9] literal string: "/System/Library/ThermalMonitor"
-0x00014CCE	0x00000009	[  9] literal string: "AppleSPU"
-0x00014CD7	0x00000012	[  9] literal string: "AppleSPU.original"
-0x00014CE9	0x00000011	[  9] literal string: "AppleARMPlatform"
-0x00014CFA	0x00000004	[  9] literal string: "pmu"
-0x00014CFE	0x0000000A	[  9] literal string: "ApplePMGR"
-0x00014D08	0x00000009	[  9] literal string: "AppleGPU"
-0x00014D11	0x0000000A	[  9] literal string: "AGXDriver"
-0x00014D1B	0x00000013	[  9] literal string: "ANECompilerService"
-0x00014D2E	0x00000009	[  9] literal string: "AppleANE"
-0x00014D37	0x00000011	[  9] literal string: "AppleM2ScalerCSC"
-0x00014D48	0x0000000A	[  9] literal string: "IOSurface"
-0x00014D52	0x00000008	[  1] anon
-0x00014D5A	0x00000017	[  9] anon
-0x00014D71	0x00000010	[  1] anon
-0x00014D81	0x0000000B	[  1] anon
-0x00014D8C	0x00000020	[  9] anon
-0x00014DAC	0x00000006	[  1] anon
-0x00014DB2	0x00000010	[  1] anon
-0x00014DC2	0x00000018	[  1] anon
-0x00014DDA	0x00000010	[  9] anon
-0x00014DEA	0x0000000A	[  1] anon
-0x00014DF4	0x00000020	[  9] anon
-0x00014E14	0x00000009	[  1] anon
-0x00014E1D	0x00000020	[  1] anon
-0x00014E3D	0x0000000B	[  1] anon
-0x00014E48	0x00000010	[  1] anon
-0x00014E58	0x0000000B	[  1] anon
-0x00014E63	0x00000020	[  9] anon
-0x00014E83	0x0000000A	[  1] anon
-0x00014E8D	0x00000010	[  9] anon
-0x00014E9D	0x00000013	[  1] anon
-0x00014EB0	0x00000010	[  1] anon
-0x00014EC0	0x0000001E	[  1] anon
-0x00014EDE	0x00000020	[  9] anon
-0x00014EFE	0x00000018	[  1] anon
-0x00014F16	0x00000020	[  1] anon
-0x00014F36	0x00000021	[  1] anon
-0x00014F57	0x00000005	[  1] anon
-0x00014F5C	0x00000006	[  1] anon
-0x00014F62	0x0000002B	[  1] anon
-0x00014F8D	0x00000044	[  1] anon
-0x00014FD1	0x0000000F	[  1] anon
-0x00014FE0	0x00000027	[  1] anon
-0x00015007	0x0000001E	[  1] anon
-0x00015025	0x0000000C	[  1] anon
-0x00015031	0x0000000C	[  1] anon
-0x0001503D	0x00000015	[  9] anon
-0x00015052	0x00000012	[  1] anon
-0x00015064	0x0000001E	[  1] anon
-0x00015082	0x00000019	[  1] anon
-0x0001509B	0x0000000C	[  1] anon
-0x000150A7	0x0000001D	[  9] anon
-0x000150C4	0x00000015	[  9] anon
-0x000150D9	0x00000027	[  9] anon
-0x00015100	0x0000000B	[  1] anon
-0x0001510B	0x0000000B	[  1] anon
-0x00015116	0x00000005	[  9] anon
-0x0001511B	0x0000003B	[  9] anon
-0x00015156	0x0000000D	[  9] anon
-0x00015163	0x00000015	[  1] anon
-0x00015178	0x00000011	[  1] anon
-0x00015189	0x00000007	[  1] anon
-0x00015190	0x0000000C	[  1] anon
-0x0001519C	0x00000012	[  1] anon
-0x000151AE	0x0000000F	[  1] anon
-0x000151BD	0x00000014	[  1] anon
-0x000151D1	0x0000000E	[  1] anon
-0x000151DF	0x00000019	[  1] anon
-0x000151F8	0x00000022	[  1] anon
-0x0001521A	0x00000018	[  1] anon
-0x00015232	0x00000014	[  1] anon
-0x00015246	0x00000018	[  9] anon
-0x0001525E	0x0000001B	[  9] anon
-0x00015279	0x0000000D	[  1] anon
-0x00015286	0x00000016	[  9] anon
-0x0001529C	0x00000017	[  9] anon
-0x000152B3	0x00000027	[  9] anon
-0x000152DA	0x00000027	[  9] anon
-0x00015301	0x00000025	[  9] anon
-0x00015326	0x00000017	[  9] anon
-0x0001533D	0x0000000E	[  9] anon
-0x0001534B	0x00000027	[  9] anon
-0x00015372	0x00000025	[  9] anon
-0x00015397	0x00000017	[  9] anon
-0x000153AE	0x00000030	[  9] anon
-0x000153DE	0x00000014	[  9] anon
-0x000153F2	0x00000012	[  1] anon
-0x00015404	0x0000001D	[  1] anon
-0x00015421	0x00000019	[  9] anon
-0x0001543A	0x0000002B	[  9] anon
-0x00015465	0x00000029	[  9] anon
-0x0001548E	0x00000014	[  9] anon
-0x000154A2	0x00000013	[  9] anon
-0x000154B5	0x0000000D	[  9] anon
-0x000154C2	0x00000030	[  9] anon
-0x000154F2	0x00000011	[  9] anon
-0x00015503	0x00000022	[  9] anon
-0x00015525	0x0000001D	[  9] anon
-0x00015542	0x00000022	[  1] anon
-0x00015564	0x0000000C	[  1] anon
-0x00015570	0x00000012	[  1] anon
-0x00015582	0x00000016	[  1] anon
-0x00015598	0x0000000E	[  9] anon
-0x000155A6	0x0000000A	[  9] anon
-0x000155B0	0x0000000A	[  9] anon
-0x000155BA	0x0000000E	[  9] anon
-0x000155C8	0x00000017	[  9] anon
-0x000155DF	0x00000019	[  9] anon
-0x000155F8	0x0000001B	[  9] anon
-0x00015613	0x00000043	[  9] anon
-0x00015656	0x00000015	[  1] anon
-0x0001566B	0x00000018	[  1] anon
-0x00015683	0x00000001	[  9] anon
+0x00014833	0x00000015	[  9] literal string: "DisplayBrightnessMax"
+0x00014848	0x0000000E	[  9] literal string: "BrightnessMax"
+0x00014856	0x0000000A	[  9] literal string: "SliderMax"
+0x00014860	0x0000000E	[  9] literal string: "MaxBrightness"
+0x0001486E	0x00000012	[  9] literal string: "BrightnessMaxNits"
+0x00014880	0x00000012	[  9] literal string: "DisplayBrightness"
+0x00014892	0x00000017	[  9] literal string: "DisplayBrightnessLimit"
+0x000148A9	0x00000010	[  9] literal string: "BrightnessLimit"
+0x000148B9	0x00000017	[  9] literal string: "IOMFB_brightness_limit"
+0x000148D0	0x00000015	[  9] literal string: "IOMFB_max_brightness"
+0x000148E5	0x00000015	[  9] literal string: "IOMFB_brightness_max"
+0x000148FA	0x0000000F	[  9] literal string: "brightness-max"
+0x00014909	0x0000000F	[  9] literal string: "brightness-cap"
+0x00014918	0x0000000E	[  9] literal string: "BrightnessCap"
+0x00014926	0x0000000A	[  9] literal string: "BLNitsCap"
+0x00014930	0x00000020	[  9] literal string: "needsPushingTSFDtoDisplayDriver"
+0x00014950	0x0000001C	[  9] literal string: "displayBrightnessMitigation"
+0x0001496C	0x00000012	[  9] literal string: "displayMitigation"
+0x0001497E	0x00000014	[  9] literal string: "eventDimmingEnabled"
+0x00014992	0x00000015	[  9] literal string: "needsContextualClamp"
+0x000149A7	0x00000022	[  9] literal string: "shouldEnforceLightThermalPressure"
+0x000149C9	0x0000001D	[  9] literal string: "shouldEnforceThermalPressure"
+0x000149E6	0x0000001A	[  9] literal string: "thermalPressureMitigation"
+0x00014A00	0x00000016	[  9] literal string: "performanceMitigation"
+0x00014A16	0x00000002	[  9] literal string: "0"
+0x00014A18	0x0000001A	[  9] literal string: "backlightComponentControl"
+0x00014A32	0x00000002	[  9] literal string: "v"
+0x00014A34	0x00000002	[  9] literal string: "@"
+0x00014A36	0x00000002	[  9] literal string: ":"
+0x00014A38	0x00000005	[  9] literal string: "iIqQ"
+0x00014A3D	0x00000008	[  9] literal string: "rnNoORV"
+0x00014A45	0x0000000F	[  9] literal string: "^{__CFString=}"
+0x00014A54	0x0000000C	[  9] literal string: "CPUMaxPower"
+0x00014A60	0x0000000A	[  9] literal string: "AppleCLPC"
+0x00014A6A	0x00000016	[  9] literal string: "`pkg-low-power-target"
+0x00014A80	0x0000001C	[  9] literal string: "`pkg-avg-therm-power-target"
+0x00014A9C	0x0000001F	[  9] literal string: "com.huayuarc.cputhermal.engine"
+0x00014ABB	0x00000028	[  9] literal string: "com.huayuarc.cputhermal/settingsChanged"
+0x00014AE3	0x0000000C	[  9] literal string: "PowerFloor:"
+0x00014AEF	0x00000025	[  9] literal string: "setGPUPowerFloor:fromDecisionSource:"
+0x00014B14	0x00000002	[  9] literal string: "i"
+0x00014B16	0x00000002	[  9] literal string: "I"
+0x00014B18	0x00000002	[  9] literal string: "q"
+0x00014B1A	0x00000002	[  9] literal string: "Q"
+0x00014B1C	0x00000029	[  9] literal string: "setPackagePowerFloor:fromDecisionSource:"
+0x00014B45	0x00000018	[  9] literal string: "TableDrivenDecisionTree"
+0x00014B5D	0x00000015	[  9] literal string: "evaluateDecisionTree"
+0x00014B72	0x00000017	[  9] literal string: "actionComponentControl"
+0x00014B89	0x00000020	[  9] literal string: "readReleaseRateForAllComponents"
+0x00014BA9	0x0000001C	[  9] literal string: "getReleaseRateForComponent:"
+0x00014BC5	0x00000002	[  9] literal string: "f"
+0x00014BC7	0x00000002	[  9] literal string: "d"
+0x00014BC9	0x00000003	[  9] literal string: "^v"
+0x00014BCC	0x00000012	[  9] literal string: "SupervisorControl"
+0x00014BDE	0x00000020	[  9] literal string: "calculateControlEffort:trigger:"
+0x00014BFE	0x00000018	[  9] literal string: "setCPMSMitigationState:"
+0x00014C16	0x0000001B	[  9] literal string: "updateThermalNotification:"
+0x00014C31	0x00000026	[  9] literal string: "com.huayuarc.cputhermal.thermal-reset"
+0x00014C57	0x00000009	[  9] literal string: "v12@?0i8"
+0x00014C60	0x00000025	[  9] literal string: "com.apple.system.thermalnotification"
+0x00014C85	0x00000020	[  9] literal string: "com.apple.springboard.lockstate"
+0x00014CA5	0x00000008	[  9] literal string: "nominal"
+0x00014CAD	0x00000004	[  9] literal string: "die"
+0x00014CB1	0x00000005	[  9] literal string: "skin"
+0x00014CB6	0x00000009	[  9] literal string: "pressure"
+0x00014CBF	0x00000005	[  9] literal string: "cpms"
+0x00014CC4	0x0000000A	[  9] literal string: "hippocket"
+0x00014CCE	0x00000007	[  9] literal string: "pocket"
+0x00014CD5	0x0000000A	[  9] literal string: "powerzone"
+0x00014CDF	0x00000008	[  9] literal string: "p-state"
+0x00014CE7	0x00000007	[  9] literal string: "pstate"
+0x00014CEE	0x0000001F	[  9] literal string: "/System/Library/ThermalMonitor"
+0x00014D0D	0x00000009	[  9] literal string: "AppleSPU"
+0x00014D16	0x00000012	[  9] literal string: "AppleSPU.original"
+0x00014D28	0x00000011	[  9] literal string: "AppleARMPlatform"
+0x00014D39	0x00000004	[  9] literal string: "pmu"
+0x00014D3D	0x0000000A	[  9] literal string: "ApplePMGR"
+0x00014D47	0x00000009	[  9] literal string: "AppleGPU"
+0x00014D50	0x0000000A	[  9] literal string: "AGXDriver"
+0x00014D5A	0x00000013	[  9] literal string: "ANECompilerService"
+0x00014D6D	0x00000009	[  9] literal string: "AppleANE"
+0x00014D76	0x00000011	[  9] literal string: "AppleM2ScalerCSC"
+0x00014D87	0x0000000A	[  9] literal string: "IOSurface"
+0x00014D91	0x00000008	[  1] anon
+0x00014D99	0x00000017	[  9] anon
+0x00014DB0	0x00000010	[  1] anon
+0x00014DC0	0x0000000B	[  1] anon
+0x00014DCB	0x00000020	[  9] anon
+0x00014DEB	0x00000006	[  1] anon
+0x00014DF1	0x00000010	[  1] anon
+0x00014E01	0x00000018	[  1] anon
+0x00014E19	0x00000010	[  9] anon
+0x00014E29	0x0000000A	[  1] anon
+0x00014E33	0x00000020	[  9] anon
+0x00014E53	0x00000009	[  1] anon
+0x00014E5C	0x00000020	[  1] anon
+0x00014E7C	0x0000000B	[  1] anon
+0x00014E87	0x00000010	[  1] anon
+0x00014E97	0x0000000B	[  1] anon
+0x00014EA2	0x00000020	[  9] anon
+0x00014EC2	0x0000000A	[  1] anon
+0x00014ECC	0x00000010	[  9] anon
+0x00014EDC	0x00000013	[  1] anon
+0x00014EEF	0x00000010	[  1] anon
+0x00014EFF	0x0000001E	[  1] anon
+0x00014F1D	0x00000020	[  9] anon
+0x00014F3D	0x00000018	[  1] anon
+0x00014F55	0x00000020	[  1] anon
+0x00014F75	0x00000021	[  1] anon
+0x00014F96	0x00000005	[  1] anon
+0x00014F9B	0x00000006	[  1] anon
+0x00014FA1	0x0000002B	[  1] anon
+0x00014FCC	0x00000044	[  1] anon
+0x00015010	0x0000000F	[  1] anon
+0x0001501F	0x00000027	[  1] anon
+0x00015046	0x0000001E	[  1] anon
+0x00015064	0x0000000C	[  1] anon
+0x00015070	0x0000000C	[  1] anon
+0x0001507C	0x00000015	[  9] anon
+0x00015091	0x00000012	[  1] anon
+0x000150A3	0x0000001E	[  1] anon
+0x000150C1	0x00000019	[  1] anon
+0x000150DA	0x0000000C	[  1] anon
+0x000150E6	0x0000001D	[  9] anon
+0x00015103	0x00000015	[  9] anon
+0x00015118	0x00000027	[  9] anon
+0x0001513F	0x0000000B	[  1] anon
+0x0001514A	0x0000000B	[  1] anon
+0x00015155	0x00000005	[  9] anon
+0x0001515A	0x0000003B	[  9] anon
+0x00015195	0x0000000D	[  9] anon
+0x000151A2	0x00000015	[  1] anon
+0x000151B7	0x00000011	[  1] anon
+0x000151C8	0x00000007	[  1] anon
+0x000151CF	0x0000000C	[  1] anon
+0x000151DB	0x00000012	[  1] anon
+0x000151ED	0x0000000F	[  1] anon
+0x000151FC	0x00000014	[  1] anon
+0x00015210	0x0000000E	[  1] anon
+0x0001521E	0x00000019	[  1] anon
+0x00015237	0x00000022	[  1] anon
+0x00015259	0x00000018	[  1] anon
+0x00015271	0x00000014	[  1] anon
+0x00015285	0x00000018	[  9] anon
+0x0001529D	0x0000001B	[  9] anon
+0x000152B8	0x0000000D	[  1] anon
+0x000152C5	0x00000016	[  9] anon
+0x000152DB	0x00000017	[  9] anon
+0x000152F2	0x00000027	[  9] anon
+0x00015319	0x00000027	[  9] anon
+0x00015340	0x00000025	[  9] anon
+0x00015365	0x00000017	[  9] anon
+0x0001537C	0x0000000E	[  9] anon
+0x0001538A	0x00000027	[  9] anon
+0x000153B1	0x00000025	[  9] anon
+0x000153D6	0x00000017	[  9] anon
+0x000153ED	0x00000030	[  9] anon
+0x0001541D	0x00000014	[  9] anon
+0x00015431	0x00000012	[  1] anon
+0x00015443	0x0000001D	[  1] anon
+0x00015460	0x00000019	[  9] anon
+0x00015479	0x0000002B	[  9] anon
+0x000154A4	0x00000029	[  9] anon
+0x000154CD	0x00000014	[  9] anon
+0x000154E1	0x00000013	[  9] anon
+0x000154F4	0x0000000D	[  9] anon
+0x00015501	0x00000030	[  9] anon
+0x00015531	0x00000011	[  9] anon
+0x00015542	0x00000022	[  9] anon
+0x00015564	0x0000001D	[  9] anon
+0x00015581	0x00000022	[  1] anon
+0x000155A3	0x0000000C	[  1] anon
+0x000155AF	0x00000012	[  1] anon
+0x000155C1	0x00000016	[  1] anon
+0x000155D7	0x0000000E	[  9] anon
+0x000155E5	0x0000000A	[  9] anon
+0x000155EF	0x0000000A	[  9] anon
+0x000155F9	0x0000000E	[  9] anon
+0x00015607	0x00000017	[  9] anon
+0x0001561E	0x00000019	[  9] anon
+0x00015637	0x0000001B	[  9] anon
+0x00015652	0x00000043	[  9] anon
+0x00015695	0x00000015	[  1] anon
+0x000156AA	0x00000018	[  1] anon
+0x000156C2	0x00000001	[  9] anon
 0x00018000	0x00000040	[  9] anon
 0x00018040	0x00000033	[  9] anon
 0x00018073	0x0000001C	[  9] anon
@@ -905,27 +909,27 @@
 0x0001C460	0x00000018	[  9] l___const.CPUthermalRememberCoreBrightnessMaximum.paths
 0x0001C478	0x00000050	[  9] l___const.CPUthermalIsDisplayMitigationKey.keys
 0x0001C4C8	0x00000020	[  9] ___block_descriptor_33_e5_v8?0l
-0x0001C4E8	0x00000020	[  9] ___block_literal_global.244
-0x0001C508	0x00000020	[  9] ___block_literal_global.246
-0x0001C528	0x00000020	[  9] ___block_literal_global.249
-0x0001C548	0x00000020	[  9] ___block_literal_global.262
-0x0001C568	0x00000020	[  9] ___block_literal_global.272
+0x0001C4E8	0x00000020	[  9] ___block_literal_global.259
+0x0001C508	0x00000020	[  9] ___block_literal_global.261
+0x0001C528	0x00000020	[  9] ___block_literal_global.264
+0x0001C548	0x00000020	[  9] ___block_literal_global.277
+0x0001C568	0x00000020	[  9] ___block_literal_global.287
 0x0001C588	0x00000020	[  9] ___block_descriptor_36_e5_v8?0l
-0x0001C5A8	0x00000020	[  9] ___block_literal_global.285
-0x0001C5C8	0x00000020	[  9] ___block_literal_global.287
+0x0001C5A8	0x00000020	[  9] ___block_literal_global.300
+0x0001C5C8	0x00000020	[  9] ___block_literal_global.302
 0x0001C5E8	0x00001AB0	[  9] _g_thermalABIHooks
 0x0001E098	0x00000020	[  9] ___block_descriptor_32_e8_v12?0i8l
-0x0001E0B8	0x00000020	[  9] ___block_literal_global.312
-0x0001E0D8	0x00000020	[  9] ___block_literal_global.315
-0x0001E0F8	0x00000020	[  9] ___block_literal_global.318
-0x0001E118	0x00000020	[  9] ___block_literal_global.320
-0x0001E138	0x00000020	[  9] ___block_literal_global.369
-0x0001E158	0x00000020	[  9] ___block_literal_global.371
-0x0001E178	0x00000020	[  9] ___block_literal_global.373
-0x0001E198	0x00000020	[  9] ___block_literal_global.375
-0x0001E1B8	0x00000020	[  9] ___block_literal_global.377
-0x0001E1D8	0x00000020	[  9] ___block_literal_global.379
-0x0001E1F8	0x00000020	[  9] ___block_literal_global.381
+0x0001E0B8	0x00000020	[  9] ___block_literal_global.327
+0x0001E0D8	0x00000020	[  9] ___block_literal_global.330
+0x0001E0F8	0x00000020	[  9] ___block_literal_global.333
+0x0001E118	0x00000020	[  9] ___block_literal_global.335
+0x0001E138	0x00000020	[  9] ___block_literal_global.384
+0x0001E158	0x00000020	[  9] ___block_literal_global.386
+0x0001E178	0x00000020	[  9] ___block_literal_global.388
+0x0001E198	0x00000020	[  9] ___block_literal_global.390
+0x0001E1B8	0x00000020	[  9] ___block_literal_global.392
+0x0001E1D8	0x00000020	[  9] ___block_literal_global.394
+0x0001E1F8	0x00000020	[  9] ___block_literal_global.396
 0x0001E218	0x00000060	[  9] _g_hotServices
 0x0001E278	0x00000020	[  9] anon
 0x0001E298	0x00000020	[  9] anon
@@ -946,11 +950,16 @@
 0x0001E478	0x00000020	[  9] anon
 0x0001E498	0x00000020	[  9] anon
 0x0001E4B8	0x00000020	[  9] anon
-0x0001E4D8	0x00000008	[  4] anon
-0x0001E4E0	0x00000018	[  9] anon
-0x0001E4F8	0x00000068	[  9] anon
-0x0001E560	0x00000018	[  9] anon
-0x0001E578	0x00000018	[  9] anon
+0x0001E4D8	0x00000020	[  9] anon
+0x0001E4F8	0x00000020	[  9] anon
+0x0001E518	0x00000020	[  9] anon
+0x0001E538	0x00000020	[  9] anon
+0x0001E558	0x00000020	[  9] anon
+0x0001E578	0x00000008	[  4] anon
+0x0001E580	0x00000040	[  9] anon
+0x0001E5C0	0x00000068	[  9] anon
+0x0001E628	0x00000018	[  9] anon
+0x0001E640	0x00000018	[  9] anon
 0x00020000	0x00000008	[  1] anon
 0x00020008	0x00000008	[  9] anon
 0x00020010	0x00000008	[  1] anon
