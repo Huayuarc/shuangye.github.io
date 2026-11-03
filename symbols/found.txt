@@ -1,4 +1,5 @@
 ./.theos/obj/arm64e/CPUthermalSpringBoard.dylib.dSYM
+./.theos/obj/arm64e/CPUthermalDisplayTool.dSYM
 ./.theos/obj/arm64e/0hello120hz.dylib.dSYM
 ./.theos/obj/arm64e/CPUthermalBatteryHealth.dylib.dSYM
 ./.theos/obj/arm64e/CPUthermalChargeTool.dSYM
@@ -8,6 +9,7 @@
 ./.theos/obj/arm64e/CPUthermalTool.dSYM
 ./.theos/obj/arm64e/CPUthermalBatteryComponent.dylib.dSYM
 ./.theos/obj/arm64/CPUthermalSpringBoard.dylib.dSYM
+./.theos/obj/arm64/CPUthermalDisplayTool.dSYM
 ./.theos/obj/arm64/0hello120hz.dylib.dSYM
 ./.theos/obj/arm64/CPUthermalBatteryHealth.dylib.dSYM
 ./.theos/obj/arm64/CPUthermalChargeTool.dSYM
