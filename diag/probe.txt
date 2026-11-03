@@ -1,0 +1,544 @@
+===== CoreBrightness 属性 =====
+CB DisplayBrightness                = {
+    Brightness = 1;
+    Nits = 1060;
+    NitsPhysical = "163.3492";
+}
+CB DisplayBrightnessLimit           = (nil)
+CB DisplayBrightnessMax             = 1
+CB BrightnessLimit                  = (nil)
+CB BrightnessMax                    = (nil)
+CB SliderMax                        = (nil)
+CB MaxBrightness                    = (nil)
+CB BrightnessMaxNits                = (nil)
+CB DisplayBrightnessFactor          = 1
+CB DisplayBrightnessFactors         = (nil)
+CB BrightnessCapabilities           = (nil)
+CB DisplayBrightnessAuto            = 0
+CB DisplayBrightnessDimming         = (nil)
+CB BrightnessDimming                = (nil)
+
+===== IORegistry 显示服务 =====
+=== AppleCLCD2[0] AppleCLCD2
+   ACSSColorChannelCount                    = 3
+   ACSSRegionCount                          = 4
+   ACSSSensorChannelCount                   = 6
+   ACSSSumsPrecision                        = 36
+   ACSSSupported                            = 1
+   ADCLLoadAll                              = 1
+   ADP is generic pipe                      = 1
+   ALSSChannelCount                         = 4
+   ALSSRGBCoeffsPrecision                   = 8
+   ALSSSumsPrecision                        = 36
+   ALSSSupported                            = 1
+   ALSSWindowCount                          = 64
+   AODFixedRR                               = 0
+   AODWaitForWalkdown                       = 1
+   AOTEnable                                = 0
+   AOTEnableOffTimestamp                    = 789171388132
+   APTDefaultGrayValue                      = 255
+   APTDevice                                = 1
+   APTEnableCA                              = 0
+   APTEnableCDFD                            = 0
+   APTEnableConfigExpired                   = 0
+   APTEnableDefaultGray                     = 1
+   APTEnableEvents                          = 0
+   APTEnableLogs                            = 0
+   APTEnablePRC                             = 1
+   APTEventsMask                            = 0
+   APTFixedRR                               = 0
+   APTLimitRefreshRate                      = 0
+   APTPDCBrightness                         = 16076339
+   APTPDCEnable                             = 1
+   APTPDCEnablePM                           = 1
+   APTPDCEnableRepeat                       = 1
+   APTPDCTemperature                        = 2460084
+   APTPanicOnChargeOOB                      = 0
+   APTPanicOnChargeParity                   = 0
+   APTPanicOnStuckPolarity                  = 0
+   APTResetCA                               = 0
+   AmbientBrightness                        = 5264725
+   BLNitsCap                                = 69468160
+   BacklightMatching                        = {
+    IOPropertyMatch =     {
+        "backlight-control" = 1;
+    };
+}
+   BlendOutputCSCMethod                     = 0
+   Brightness_Scale                         = 98424
+   CECorrectionFactor                       = 65536
+   CFBundleIdentifier                       = com.apple.driver.AppleMobileDispH14P-DCP
+   CFBundleIdentifierKernel                 = com.apple.driver.AppleMobileDispH14P-DCP
+   CMDegammaMethod                          = 0
+   ChargeValuesPublish                      = 0
+   ChargeValuesReset                        = 0
+   ColorElements                            = (
+        {
+        Colorimetry = 16;
+        Depth = 8;
+        DynamicRange = 0;
+        EOTF = 0;
+        ElementData = {length = 32, bytes = 0x080…
+   DebugUInt32                              = 0
+   DisableDisplayOptimize                   = 0
+   DisableTempComp                          = 0
+   DisplayAttributes                        = {
+    ProductAttributes =     {
+    };
+}
+   DisplayPipePlaneBaseAlignment            = {
+    DefaultStride = 0;
+    "LinearX_Alignment" = 64;
+    "LinearY_Alignment" = 1;
+    PlaneBaseAlignmentLinear = 64;
+}
+   DisplayPipeStrideRequirements            = {
+    StrideLinearHorizontal = 64;
+    StrideLinearVertical = 1;
+}
+   FFR_raw_index                            = 48644
+   FFR_table_index                          = 4
+   FrameInfoForRepeats                      = 0
+   IOClass                                  = AppleCLCD2
+   IOGeneralInterest                        = IOCommand is not serializable
+   IOMFB Debug Info                         = {
+}
+   IOMFBBICSType                            = 1
+   IOMFBBrightnessCompensationEnable        = 1
+   IOMFBBrightnessLevel                     = 10705254
+   IOMFBBrightnessLevelIDAC                 = -1
+   IOMFBBrightnessLevelMA                   = -1
+   IOMFBContrastEnhancerStrength            = 0
+   IOMFBDisplayRefresh                      = {
+    displayMaxRefreshInterval = 429531089;
+    displayMaxRefreshIntervalMachTime = 2400192;
+    displayMinRefreshInterval = 35794257;
+    displayMin…
+   IOMFBMaxSrcPixels                        = {
+    IOMFBMaxCompressedSizeInBytes = 0;
+    MaxSrcBufferHeight = 16384;
+    MaxSrcBufferWidth = 16384;
+    MaxSrcRectTotal = 10316160;
+    MaxSrcRect…
+   IOMFBScalingLimits                       = {
+    "RGBLayer_MaxScale" = 4;
+    "RGBLayer_MinScaleFraction" = 2;
+    "YUVLayer_MaxScale" = 4;
+    "YUVLayer_MinScaleFraction" = 2;
+}
+   IOMFBStatsTapPoint                       = 1
+   IOMFBSupportsXFlip                       = 1
+   IOMFBSupportsYFlip                       = 1
+   IOMFBTemperatureCompensationEnable       = 1
+   IOMFBTestBacklightDimValue               = 4921
+   IOMFB_KTRACE_API_VERSION                 = 3.0
+   IOMatchCategory                          = IODefaultMatchCategory
+   IOMatchedAtBoot                          = 1
+   IONameMatch                              = (
+    "disp0,t8110",
+    "dispext0,t8110"
+)
+   IONameMatched                            = disp0,t8110
+   IOPersonalityPublisher                   = com.apple.driver.AppleMobileDispH14P-DCP
+   IOPowerManagement                        = {
+    CapabilityFlags = 32768;
+    CurrentPowerState = 1;
+    MaxPowerState = 1;
+}
+   IOProbeScore                             = 0
+   IOProviderClass                          = AppleARMIODevice
+   IdleCachingMethod                        = 2
+   IdleState                                = 5
+   InitialPanelTemperature                  = 2529034
+   M3TimingParameters                       = {
+    "display-lead-time-nclks" = 26000;
+    "initial-subframe-irq-time-lines" = 1267;
+    "initial-vbi-advance-lines" = 4;
+    "subframe-duration-ncl…
+   MaxVideoSrcDownscalingWidth              = 3330
+   NormalModeActive                         = 1
+   NormalModeEnable                         = 1
+   PCC2DEnable                              = 1
+   PCCCabalEnable                           = 1
+   PCCEnable                                = 1
+   PCCEnableLogs                            = 0
+   PCCTrinityEnable                         = 0
+   PDCAlwaysOnNits                          = 1966080
+   PDCContentSwitchCount                    = 5
+   PDCCutoffLux                             = 327680
+   PDCDataVersion                           = 109
+   PDCEntryTime                             = 2188902
+   PDCExitCount                             = 5
+   PDCExitTime                              = 104857600
+   PDCGlobalTemp                            = 0
+   PDCSaveLongFrames                        = 0
+   PDCSaveRepeatUnstablePCC                 = 0
+   PDCSettleCount                           = 1
+   PRCBinningDebugEnable                    = 0
+   Panel_ID                                 = G9P1504KDQ3PQCKA7+A2000000000000000241+FXC14570HFV17VP9M+0A004276000127001080616263+1504K0000000PY000000IBBVC31782BK0000000000000000000000000000000000…
+   PixelCaptureConfig                       = 0
+   PixelClock                               = 300000000
+   ProxScanPlan                             = -1
+   ProxScanPosition                         = 0
+   QMSVRREnableConfig                       = 0
+   QoSDebug                                 = 0
+   RuntimeProperty::frameInfoTraceEnable    = 0
+   RuntimeProperty::registerTraceEnable     = 0
+   SPLCSupported                            = 0
+   SystemConsoleMode                        = 0
+   TimingElements                           = (
+        {
+        AspectRatio = 15;
+        ColorModes =         (
+                        {
+                Colorimetry = 16;
+                Depth…
+   VideoClock                               = 210800000
+   W40a_Blending_OK                         = 1
+   bics_mode                                = 0
+   brightnessCorrection                     = 65536
+   brightnessCorrectionB                    = 65536
+   clockRatio                               = 93267
+   color-accuracy-index                     = 54
+   darkBoot                                 = 0
+   dcvrr-a                                  = 1683564
+   dcvrr-b                                  = 1681561
+   dcvrr-c                                  = 1682563
+   dcvrr-d                                  = 1681561
+   dcvrr-version-control                    = 101
+   displayOnContinuousTimestamp             = 789401286329
+   displayOnTimestamp                       = 322026551801
+   ean-mode-caching                         = 0
+   enable2DTemperatureCorrection            = 1
+   enableABGMode                            = 1
+   enableAmbientLightSensorStatistics       = 0
+   enableBICMode                            = 1
+   enableBICUpdates                         = 1
+   enableDBMMode                            = 1
+   enableDarkEnhancer                       = 1
+   enableDefaultTemperatureCorrection       = 0
+   enableDither                             = 1
+   enableHighGrayOD                         = 1
+   enableLatLeakComp                        = 1
+   enablePixelCapture                       = 0
+   enableSBIM                               = 0
+   forceEnableACSS                          = 0
+   forcePixelBacklightModulation            = 2
+   maxAverageBpp                            = 0
+   maxPeakBpp                               = 0
+   overdriveCompCutoff                      = 78970880
+   requestPixelBacklightModulation          = 0
+   uniformity2D                             = 1
+=== IOMobileFramebuffer[0] AppleCLCD2
+   ACSSColorChannelCount                    = 3
+   ACSSRegionCount                          = 4
+   ACSSSensorChannelCount                   = 6
+   ACSSSumsPrecision                        = 36
+   ACSSSupported                            = 1
+   ADCLLoadAll                              = 1
+   ADP is generic pipe                      = 1
+   ALSSChannelCount                         = 4
+   ALSSRGBCoeffsPrecision                   = 8
+   ALSSSumsPrecision                        = 36
+   ALSSSupported                            = 1
+   ALSSWindowCount                          = 64
+   AODFixedRR                               = 0
+   AODWaitForWalkdown                       = 1
+   AOTEnable                                = 0
+   AOTEnableOffTimestamp                    = 789171388132
+   APTDefaultGrayValue                      = 255
+   APTDevice                                = 1
+   APTEnableCA                              = 0
+   APTEnableCDFD                            = 0
+   APTEnableConfigExpired                   = 0
+   APTEnableDefaultGray                     = 1
+   APTEnableEvents                          = 0
+   APTEnableLogs                            = 0
+   APTEnablePRC                             = 1
+   APTEventsMask                            = 0
+   APTFixedRR                               = 0
+   APTLimitRefreshRate                      = 0
+   APTPDCBrightness                         = 16076339
+   APTPDCEnable                             = 1
+   APTPDCEnablePM                           = 1
+   APTPDCEnableRepeat                       = 1
+   APTPDCTemperature                        = 2460084
+   APTPanicOnChargeOOB                      = 0
+   APTPanicOnChargeParity                   = 0
+   APTPanicOnStuckPolarity                  = 0
+   APTResetCA                               = 0
+   AmbientBrightness                        = 5264725
+   BLNitsCap                                = 69468160
+   BacklightMatching                        = {
+    IOPropertyMatch =     {
+        "backlight-control" = 1;
+    };
+}
+   BlendOutputCSCMethod                     = 0
+   Brightness_Scale                         = 98424
+   CECorrectionFactor                       = 65536
+   CFBundleIdentifier                       = com.apple.driver.AppleMobileDispH14P-DCP
+   CFBundleIdentifierKernel                 = com.apple.driver.AppleMobileDispH14P-DCP
+   CMDegammaMethod                          = 0
+   ChargeValuesPublish                      = 0
+   ChargeValuesReset                        = 0
+   ColorElements                            = (
+        {
+        Colorimetry = 16;
+        Depth = 8;
+        DynamicRange = 0;
+        EOTF = 0;
+        ElementData = {length = 32, bytes = 0x080…
+   DebugUInt32                              = 0
+   DisableDisplayOptimize                   = 0
+   DisableTempComp                          = 0
+   DisplayAttributes                        = {
+    ProductAttributes =     {
+    };
+}
+   DisplayPipePlaneBaseAlignment            = {
+    DefaultStride = 0;
+    "LinearX_Alignment" = 64;
+    "LinearY_Alignment" = 1;
+    PlaneBaseAlignmentLinear = 64;
+}
+   DisplayPipeStrideRequirements            = {
+    StrideLinearHorizontal = 64;
+    StrideLinearVertical = 1;
+}
+   FFR_raw_index                            = 48644
+   FFR_table_index                          = 4
+   FrameInfoForRepeats                      = 0
+   IOClass                                  = AppleCLCD2
+   IOGeneralInterest                        = IOCommand is not serializable
+   IOMFB Debug Info                         = {
+}
+   IOMFBBICSType                            = 1
+   IOMFBBrightnessCompensationEnable        = 1
+   IOMFBBrightnessLevel                     = 10705254
+   IOMFBBrightnessLevelIDAC                 = -1
+   IOMFBBrightnessLevelMA                   = -1
+   IOMFBContrastEnhancerStrength            = 0
+   IOMFBDisplayRefresh                      = {
+    displayMaxRefreshInterval = 429531089;
+    displayMaxRefreshIntervalMachTime = 2400192;
+    displayMinRefreshInterval = 35794257;
+    displayMin…
+   IOMFBMaxSrcPixels                        = {
+    IOMFBMaxCompressedSizeInBytes = 0;
+    MaxSrcBufferHeight = 16384;
+    MaxSrcBufferWidth = 16384;
+    MaxSrcRectTotal = 10316160;
+    MaxSrcRect…
+   IOMFBScalingLimits                       = {
+    "RGBLayer_MaxScale" = 4;
+    "RGBLayer_MinScaleFraction" = 2;
+    "YUVLayer_MaxScale" = 4;
+    "YUVLayer_MinScaleFraction" = 2;
+}
+   IOMFBStatsTapPoint                       = 1
+   IOMFBSupportsXFlip                       = 1
+   IOMFBSupportsYFlip                       = 1
+   IOMFBTemperatureCompensationEnable       = 1
+   IOMFBTestBacklightDimValue               = 4921
+   IOMFB_KTRACE_API_VERSION                 = 3.0
+   IOMatchCategory                          = IODefaultMatchCategory
+   IOMatchedAtBoot                          = 1
+   IONameMatch                              = (
+    "disp0,t8110",
+    "dispext0,t8110"
+)
+   IONameMatched                            = disp0,t8110
+   IOPersonalityPublisher                   = com.apple.driver.AppleMobileDispH14P-DCP
+   IOPowerManagement                        = {
+    CapabilityFlags = 32768;
+    CurrentPowerState = 1;
+    MaxPowerState = 1;
+}
+   IOProbeScore                             = 0
+   IOProviderClass                          = AppleARMIODevice
+   IdleCachingMethod                        = 2
+   IdleState                                = 5
+   InitialPanelTemperature                  = 2529034
+   M3TimingParameters                       = {
+    "display-lead-time-nclks" = 26000;
+    "initial-subframe-irq-time-lines" = 1267;
+    "initial-vbi-advance-lines" = 4;
+    "subframe-duration-ncl…
+   MaxVideoSrcDownscalingWidth              = 3330
+   NormalModeActive                         = 1
+   NormalModeEnable                         = 1
+   PCC2DEnable                              = 1
+   PCCCabalEnable                           = 1
+   PCCEnable                                = 1
+   PCCEnableLogs                            = 0
+   PCCTrinityEnable                         = 0
+   PDCAlwaysOnNits                          = 1966080
+   PDCContentSwitchCount                    = 5
+   PDCCutoffLux                             = 327680
+   PDCDataVersion                           = 109
+   PDCEntryTime                             = 2188902
+   PDCExitCount                             = 5
+   PDCExitTime                              = 104857600
+   PDCGlobalTemp                            = 0
+   PDCSaveLongFrames                        = 0
+   PDCSaveRepeatUnstablePCC                 = 0
+   PDCSettleCount                           = 1
+   PRCBinningDebugEnable                    = 0
+   Panel_ID                                 = G9P1504KDQ3PQCKA7+A2000000000000000241+FXC14570HFV17VP9M+0A004276000127001080616263+1504K0000000PY000000IBBVC31782BK0000000000000000000000000000000000…
+   PixelCaptureConfig                       = 0
+   PixelClock                               = 300000000
+   ProxScanPlan                             = -1
+   ProxScanPosition                         = 0
+   QMSVRREnableConfig                       = 0
+   QoSDebug                                 = 0
+   RuntimeProperty::frameInfoTraceEnable    = 0
+   RuntimeProperty::registerTraceEnable     = 0
+   SPLCSupported                            = 0
+   SystemConsoleMode                        = 0
+   TimingElements                           = (
+        {
+        AspectRatio = 15;
+        ColorModes =         (
+                        {
+                Colorimetry = 16;
+                Depth…
+   VideoClock                               = 210800000
+   W40a_Blending_OK                         = 1
+   bics_mode                                = 0
+   brightnessCorrection                     = 65536
+   brightnessCorrectionB                    = 65536
+   clockRatio                               = 93267
+   color-accuracy-index                     = 54
+   darkBoot                                 = 0
+   dcvrr-a                                  = 1683564
+   dcvrr-b                                  = 1681561
+   dcvrr-c                                  = 1682563
+   dcvrr-d                                  = 1681561
+   dcvrr-version-control                    = 101
+   displayOnContinuousTimestamp             = 789401286329
+   displayOnTimestamp                       = 322026551801
+   ean-mode-caching                         = 0
+   enable2DTemperatureCorrection            = 1
+   enableABGMode                            = 1
+   enableAmbientLightSensorStatistics       = 0
+   enableBICMode                            = 1
+   enableBICUpdates                         = 1
+   enableDBMMode                            = 1
+   enableDarkEnhancer                       = 1
+   enableDefaultTemperatureCorrection       = 0
+   enableDither                             = 1
+   enableHighGrayOD                         = 1
+   enableLatLeakComp                        = 1
+   enablePixelCapture                       = 0
+   enableSBIM                               = 0
+   forceEnableACSS                          = 0
+   forcePixelBacklightModulation            = 2
+   maxAverageBpp                            = 0
+   maxPeakBpp                               = 0
+   overdriveCompCutoff                      = 78970880
+   requestPixelBacklightModulation          = 0
+   uniformity2D                             = 1
+=== AppleARMBacklight[0] AppleARMBacklight
+   CFBundleIdentifier                       = com.apple.driver.AppleARMPlatform
+   CFBundleIdentifierKernel                 = com.apple.driver.AppleARMPlatform
+   CurrentNits                              = 0
+   IOClass                                  = AppleARMBacklight
+   IODisplayParameters                      = {
+    BrightnessMicroAmps =     {
+        max = 0;
+        min = 0;
+        value = 0;
+    };
+    BrightnessMilliNits =     {
+        max = 1200000;
+ …
+   IOFunctionParent00000104                 = {length = 0, bytes = 0x}
+   IOGeneralInterest                        = IOCommand is not serializable
+   IOMatchCategory                          = IODefaultMatchCategory
+   IOMatchedAtBoot                          = 1
+   IONameMatch                              = backlight
+   IONameMatched                            = backlight
+   IOPersonalityPublisher                   = com.apple.driver.AppleARMPlatform
+   IOProbeScore                             = 0
+   IOProviderClass                          = IOPlatformDevice
+   IOReportLegend                           = (
+        {
+        IOReportChannelInfo =         {
+            IOReportChannelUnit = 0;
+        };
+        IOReportChannels =         (
+             …
+   IOReportLegendPublic                     = 1
+   backlight-calibration-parameters         = {
+    "current-for-max-backlight" = 0;
+    "current-for-mid-backlight" = 0;
+    "hardware-max-current-limit" = 1638400;
+    lMaxPanel = 78643200;
+    …
+   backlight-control                        = 1
+   backlight-marketing-table                = {length = 404, bytes = 0xd7230700 e1600900 18ad0b00 d3090e00 ... 00008004 0000b004 }
+   display-backlight-compensation           = {length = 164, bytes = 0x00000001 00040000 00010000 00010000 ... 00010000 00010000 }
+   new-backlight-architecture               = 1
+   use-AAP                                  = 1
+
+===== 含 brightness/nits 关键字的服务名 =====
+ - backlight
+ - dcp
+ - dcp0-expert
+ - dart-dcp
+ - dcp-sac-controller
+ - mapper-dcp
+ - iop-dcp-nub
+ - DCPAVSACController
+ - DCPEndpoint1
+ - DCPEndpoint2
+ - DCPEndpoint3
+ - DCPEndpoint6
+ - DCPEndpoint10
+ - DCPEndpoint9
+ - DCPEndpoint11
+ - DCPEndpoint12
+ - DCPEndpoint4
+ - DCPEndpoint5
+ - DCPEndpoint15
+ - DCPEndpoint24
+ - display-eeprom
+ - dcp-control
+ - display-eeprom-generic-data
+ - display-eeprom-data
+ - AppleSPUDCPDriver
+ - AppleDCPExpert
+ - DCPEndpoint
+ - DCPEndpoint
+ - DCPEndpoint
+ - DCPEndpoint
+ - DCPEndpoint
+ - DCPEndpoint
+ - DCPEndpoint
+ - DCPEndpoint
+ - DCPEndpoint
+ - DCPEndpoint
+ - DCPEndpoint
+ - AppleDCPLinkServiceSoC
+ - disp0:dcpav-sac-epic:0
+ - dcpexpert-service
+ - disp0:dcpdp-controller-epic:0
+ - disp0:dcpav-controller-epic:0
+ - disp0:dcpav-power-epic:0
+ - disp0:dcpav-device-epic:0
+ - disp0:dcpav-service-epic:0
+ - disp0:dcpdp-service-epic:0
+ - disp0:dcpdp-device-epic:0
+ - disp0:dcpav-video-interface-epi
+ - DCPAVRemoteSACControllerProxy
+ - DCPDPControllerProxy
+ - DCPAVControllerProxy
+ - DCPAVPowerControllerProxy
+ - DCPAVDeviceProxy
+ - DCPAVServiceProxy
+ - DCPDPDeviceProxy
+ - DCPDPServiceProxy
+ - DCPAVVideoInterfaceProxy
+ - AppleARMBacklight
+ - AppleCLCD2
