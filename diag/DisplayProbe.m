@@ -85,6 +85,36 @@ static int setDisplayProperty(const char *keyName, double nits, int fixedPoint) 
     return kr == KERN_SUCCESS ? 0 : 1;
 }
 
+// 持续把面板亮度级顶到 min(滑块请求, 850)，用于验证“正确授权下”的跟随效果。
+static int enforceDisplayLevel(int seconds, int intervalMs) {
+    if (seconds <= 0) seconds = 30;
+    if (intervalMs <= 0) intervalMs = 2000;
+    printf("# 强制跟随：目标 = min(请求, 850)，死区 8 nits\n");
+    for (int i = 0; i < seconds; i += intervalMs / 1000 ? intervalMs / 1000 : 1) {
+        double requested = probeSliderNits(0);
+        double target = requested > 850.0 ? 850.0 : requested;
+        io_service_t service = IOServiceGetMatchingService(kIOMasterPortDefault, IOServiceMatching("AppleCLCD2"));
+        double current = service ? registryNumber(service, "IOMFBBrightnessLevel") : -1.0;
+        int wrote = 0;
+        if (service && requested > 0.0 && target >= 20.0 && current > 0.0 && fabs(current - target) > 8.0) {
+            SetPropertyFn setProperty = (SetPropertyFn)dlsym(RTLD_DEFAULT, "IORegistryEntrySetCFProperty");
+            CFStringRef key = CFStringCreateWithCString(kCFAllocatorDefault, "IOMFBBrightnessLevel", kCFStringEncodingUTF8);
+            long long raw = (long long)(target * 65536.0 + 0.5);
+            CFNumberRef value = CFNumberCreate(kCFAllocatorDefault, kCFNumberLongLongType, &raw);
+            kern_return_t kr = setProperty ? setProperty(service, key, value) : -1;
+            printf("  req=%.1f target=%.1f current=%.1f kr=0x%x -> 读回 %.1f\n",
+                   requested, target, current, kr, registryNumber(service, "IOMFBBrightnessLevel"));
+            wrote = 1;
+            if (value) CFRelease(value);
+            if (key) CFRelease(key);
+        }
+        if (!wrote) printf("  保持：req=%.1f current=%.1f\n", requested, current);
+        if (service) IOObjectRelease(service);
+        usleep((useconds_t)intervalMs * 1000);
+    }
+    return 0;
+}
+
 static double probeSliderNits(int verbose);
 
 static double registryNumber(io_registry_entry_t entry, const char *key) {
