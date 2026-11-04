@@ -18,6 +18,15 @@
 #import <dlfcn.h>
 #import <mach-o/dyld.h>
 #import <dispatch/dispatch.h>
+#import <spawn.h>
+#import <unistd.h>
+#import <string.h>
+#import <stdio.h>
+#import <limits.h>
+#import <errno.h>
+#import <stdarg.h>
+#import <sys/stat.h>
+#import <time.h>
 
 // substrate 的头文件在两种构建环境里位置不同，符号在安装时用 dlsym 取，
 // 这样 dylib 不留下未定义符号（本机 ld 不允许 -undefined dynamic_lookup）。
@@ -42,6 +51,47 @@ static BOOL gInstalled;   // 不再重试（装好了，或这台系统不需要
 static BOOL gHooked;      // 真的装上了 hook
 static int gTimeoutStreak;
 static CFAbsoluteTime gCoolDownUntil;
+
+// 同时写一份文件日志：os_log 是实时的、事后读不到，方便用户操作完再回来查。
+// 依次尝试几个注入进程里通常可写的目录，第一个能写的就用。
+static void FileLog(const char *fmt, ...)
+{
+    static FILE *fp;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        static const char *dirs[] = {
+            "/var/mobile/Library/CCSIMGuard",
+            "/var/mobile/Library/Preferences",
+            "/var/mobile/tmp",
+            "/tmp",
+        };
+        for (size_t i = 0; i < sizeof(dirs) / sizeof(dirs[0]) && !fp; i++) {
+            mkdir(dirs[i], 0755);
+            char p[PATH_MAX];
+            snprintf(p, sizeof(p), "%s/CCSIMGuard.log", dirs[i]);
+            struct stat st;
+            if (stat(p, &st) == 0 && st.st_size > 256 * 1024) unlink(p);
+            fp = fopen(p, "a");
+        }
+    });
+    if (!fp) return;
+    va_list ap;
+    va_start(ap, fmt);
+    vfprintf(fp, fmt, ap);
+    va_end(ap);
+    fputc('\n', fp);
+    fflush(fp);
+}
+
+static const char *NowStr(void)
+{
+    static char b[32];
+    time_t t = time(NULL);
+    struct tm tmv;
+    localtime_r(&t, &tmv);
+    strftime(b, sizeof(b), "%m-%d %H:%M:%S", &tmv);
+    return b;
+}
 
 static inline void release_(id obj) { [obj release]; }
 
@@ -115,6 +165,7 @@ static id GuardedCall(IMP imp, id target, SEL cmd, id arg, NSError **errOut,
         } else {
             os_log_with_type(gLog, OS_LOG_TYPE_ERROR,
                              "CCSIMGuard: %{public}s timed out after %.1fs", what, kTimeout);
+        FileLog("%s %s timed out after %.1fs", NowStr(), what, kTimeout);
         }
         if (errOut) *errOut = MakeTimeoutError(what);
         return nil;
@@ -191,10 +242,85 @@ static id hook_getMobileEquipmentInfo(id self, SEL cmd, NSError **err)
                        "getMobileEquipmentInfo:", NO);
 }
 
+#pragma mark - posix_spawn 兜底
+
+// 上游 bundle 里写死了 /var/jb/usr/local/bin/CCSIMTool 这类 rootless 路径，
+// roothide 上真实文件系统没有 /var/jb（只有隐根），路径补丁一旦没生效，
+// 点开关就 spawn 不到工具、什么也不会发生。这里在 spawn 时把 /var/jb 前缀
+// 映射到隐根（用 libroothide 的 jbroot()），路径本来就能用时原样放行。
+typedef int (*spawn_fn)(pid_t *, const char *, const posix_spawn_file_actions_t *,
+                        const posix_spawnattr_t *, char *const[], char *const[]);
+typedef void (*hook_fn)(void *target, void *replacement, void **result);
+
+static spawn_fn gOrigSpawn;
+static hook_fn gHookFunc;
+static char *(*gJbroot)(const char *);
+
+static void loadJBRoot(void)
+{
+    if (gJbroot) return;
+    void *h = dlopen("/usr/lib/libroothide.dylib", RTLD_LAZY);
+    if (!h) h = dlopen("libroothide.dylib", RTLD_LAZY);
+    if (h) gJbroot = (char *(*)(const char *))dlsym(h, "jbroot");
+}
+
+static const char *resolveJBPath(const char *path, char *out, size_t outLen)
+{
+    if (!path) return path;
+    if (strncmp(path, "/var/jb/", 8) != 0) return path;      // 不是 rootless 路径
+    if (access(path, X_OK) == 0) return path;                // rootless 上本来就通
+
+    loadJBRoot();
+    if (!gJbroot) return path;
+    char *mapped = gJbroot(path + 7);                        // "/usr/local/bin/CCSIMTool"
+    if (!mapped || !*mapped) return path;
+    snprintf(out, outLen, "%s", mapped);
+    return access(out, X_OK) == 0 ? out : path;
+}
+
+static int hookedPosixSpawn(pid_t *pid, const char *path,
+                            const posix_spawn_file_actions_t *fa,
+                            const posix_spawnattr_t *attr,
+                            char *const argv[], char *const envp[])
+{
+    char mapped[PATH_MAX];
+    const char *use = resolveJBPath(path, mapped, sizeof(mapped));
+    int rc = gOrigSpawn(pid, use, fa, attr, argv, envp);
+    if (use != path) {
+        os_log_with_type(gLog, OS_LOG_TYPE_DEFAULT,
+                         "CCSIMGuard: spawn %{public}s -> %{public}s rc=%d",
+                         path, use, rc);
+        FileLog("%s spawn %s -> %s rc=%d", NowStr(), path, use, rc);
+    } else {
+        os_log_with_type(gLog, OS_LOG_TYPE_DEFAULT,
+                         "CCSIMGuard: spawn %{public}s rc=%d", path, rc);
+        FileLog("%s spawn %s rc=%d", NowStr(), path, rc);
+    }
+    return rc;
+}
+
+static void InstallSpawnHook(void)
+{
+    static BOOL done;
+    if (done) return;
+    if (!gHookFunc) gHookFunc = (hook_fn)dlsym(RTLD_DEFAULT, "MSHookFunction");
+    if (!gHookFunc) return;
+    gHookFunc((void *)posix_spawn, (void *)hookedPosixSpawn, (void **)&gOrigSpawn);
+    done = YES;
+    os_log_with_type(gLog, OS_LOG_TYPE_DEFAULT,
+                     "CCSIMGuard: posix_spawn hook installed (pid %d)", getpid());
+    FileLog("%s posix_spawn hook installed (pid %d)", NowStr(), getpid());
+    FileLog("%s tool /var/jb/usr/local/bin/CCSIMTool reachable=%d", NowStr(),
+            access("/var/jb/usr/local/bin/CCSIMTool", X_OK) == 0);
+}
+
 #pragma mark - 安装
 
 static void attemptInstall(void)
 {
+    // 与 iOS 版本无关：修 /var/jb 路径，保证模块能启动 CCSIMTool
+    InstallSpawnHook();
+
     if (gInstalled) return;
 
 #ifndef CCSIMGUARD_TESTING
@@ -209,6 +335,8 @@ static void attemptInstall(void)
         os_log_with_type(gLog, OS_LOG_TYPE_DEFAULT,
                          "CCSIMGuard: iOS %ld.%ld < 17, CoreTelephony left untouched (pid %d)",
                          (long)v.majorVersion, (long)v.minorVersion, getpid());
+        FileLog("%s iOS %ld.%ld < 17, CT hooks skipped (pid %d)", NowStr(),
+                (long)v.majorVersion, (long)v.minorVersion, getpid());
         return;
     }
 #endif
@@ -245,6 +373,7 @@ static void attemptInstall(void)
     gHooked = YES;
     os_log_with_type(gLog, OS_LOG_TYPE_DEFAULT,
                      "CCSIMGuard: hooks installed on CoreTelephonyClient (pid %d)", getpid());
+    FileLog("%s CT hooks installed (pid %d)", NowStr(), getpid());
 }
 
 static void retryInstall(int attempt)
@@ -285,6 +414,7 @@ __attribute__((constructor)) static void CCSIMGuardInit(void)
     os_log_with_type(gLog, OS_LOG_TYPE_DEFAULT, "ApelinLoaded " APELIN_BUILD_ID);
 #endif
     os_log_with_type(gLog, OS_LOG_TYPE_DEFAULT, "CCSIMGuard: loaded (pid %d)", getpid());
+    FileLog("%s loaded (pid %d)", NowStr(), getpid());
     attemptInstall();
     _dyld_register_func_for_add_image(imageAdded);
     if (!gInstalled) retryInstall(0);
