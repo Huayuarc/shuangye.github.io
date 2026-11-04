@@ -1,4 +1,4 @@
-// CCSIMFix — 让 CCSIM 控制中心模块在 iOS 17 上不再卡死 SpringBoard。
+// CCSIMGuard — 让 CCSIM 控制中心模块在 iOS 17 上不再卡死 SpringBoard。
 //
 // 背景（签名是本机 iOS 16.1.2 的 CoreTelephony 上实际读出来的）：
 //   -[CoreTelephonyClient getSIMStatus:error:]  enc=@32@0:8@16^@24
@@ -30,7 +30,7 @@ static MSHookFunc hookFunction(void)
     return fn;
 }
 
-#define kSubsystem "com.huayuarc.ccsimfix"
+#define kSubsystem "com.netskao.ccsim"
 #define kTimeout 2.0     // 单次同步调用最长等待
 #define kTripAfter 2     // 连续超时几次后熔断
 #define kCooldown 30.0   // 熔断持续多久
@@ -47,8 +47,8 @@ static inline void release_(id obj) { [obj release]; }
 static NSError *MakeTimeoutError(const char *what)
 {
     NSDictionary *info = @{ NSLocalizedDescriptionKey :
-                                [NSString stringWithFormat:@"CCSIMFix: %s timed out", what] };
-    return [NSError errorWithDomain:@"com.huayuarc.ccsimfix" code:1001 userInfo:info];
+                                [NSString stringWithFormat:@"CCSIMGuard: %s timed out", what] };
+    return [NSError errorWithDomain:@"com.netskao.ccsim.guard" code:1001 userInfo:info];
 }
 
 typedef struct {
@@ -109,11 +109,11 @@ static id GuardedCall(IMP imp, id target, SEL cmd, id arg, NSError **errOut,
             gTimeoutStreak = 0;
             gCoolDownUntil = CFAbsoluteTimeGetCurrent() + kCooldown;
             os_log_with_type(gLog, OS_LOG_TYPE_ERROR,
-                             "CCSIMFix: %{public}s timed out, cooling down %.0fs",
+                             "CCSIMGuard: %{public}s timed out, cooling down %.0fs",
                              what, kCooldown);
         } else {
             os_log_with_type(gLog, OS_LOG_TYPE_ERROR,
-                             "CCSIMFix: %{public}s timed out after %.1fs", what, kTimeout);
+                             "CCSIMGuard: %{public}s timed out after %.1fs", what, kTimeout);
         }
         if (errOut) *errOut = MakeTimeoutError(what);
         return nil;
@@ -137,10 +137,10 @@ static id GuardedCall(IMP imp, id target, SEL cmd, id arg, NSError **errOut,
 
 #pragma mark - hooks
 
-#ifdef CCSIMFIX_TESTING
-BOOL CCSIMFixHooksInstalled(void);
-void CCSIMFixInstallNow(void);
-id CCSIMFixTestGuard(IMP imp, id target, SEL cmd, id arg, NSError **err,
+#ifdef CCSIMGUARD_TESTING
+BOOL CCSIMGuardHooksInstalled(void);
+void CCSIMGuardInstallNow(void);
+id CCSIMGuardTestGuard(IMP imp, id target, SEL cmd, id arg, NSError **err,
                      const char *what, BOOL owned);
 #endif
 
@@ -223,7 +223,7 @@ static void attemptInstall(void)
 
     gInstalled = YES;
     os_log_with_type(gLog, OS_LOG_TYPE_DEFAULT,
-                     "CCSIMFix: hooks installed on CoreTelephonyClient (pid %d)", getpid());
+                     "CCSIMGuard: hooks installed on CoreTelephonyClient (pid %d)", getpid());
 }
 
 static void retryInstall(int attempt)
@@ -233,7 +233,7 @@ static void retryInstall(int attempt)
     if (gInstalled) return;
     if (attempt >= kMaxRetries) {
         os_log_with_type(gLog, OS_LOG_TYPE_ERROR,
-                         "CCSIMFix: CoreTelephonyClient never appeared (pid %d)", getpid());
+                         "CCSIMGuard: CoreTelephonyClient never appeared (pid %d)", getpid());
         return;
     }
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)),
@@ -246,24 +246,24 @@ static void imageAdded(const struct mach_header *mh, intptr_t slide)
     attemptInstall();
 }
 
-#ifdef CCSIMFIX_TESTING
-BOOL CCSIMFixHooksInstalled(void) { return gInstalled; }
-void CCSIMFixInstallNow(void) { attemptInstall(); }
-id CCSIMFixTestGuard(IMP imp, id target, SEL cmd, id arg, NSError **err,
+#ifdef CCSIMGUARD_TESTING
+BOOL CCSIMGuardHooksInstalled(void) { return gInstalled; }
+void CCSIMGuardInstallNow(void) { attemptInstall(); }
+id CCSIMGuardTestGuard(IMP imp, id target, SEL cmd, id arg, NSError **err,
                      const char *what, BOOL owned)
 {
     return GuardedCall(imp, target, cmd, arg, err, what, owned);
 }
 #endif
 
-__attribute__((constructor)) static void CCSIMFixInit(void)
+__attribute__((constructor)) static void CCSIMGuardInit(void)
 {
     gLog = os_log_create(kSubsystem, "springboard");
-    gQueue = dispatch_queue_create("com.huayuarc.ccsimfix.guard", NULL);
+    gQueue = dispatch_queue_create("com.netskao.ccsim.guard", NULL);
 #ifdef APELIN_BUILD_ID
     os_log_with_type(gLog, OS_LOG_TYPE_DEFAULT, "ApelinLoaded " APELIN_BUILD_ID);
 #endif
-    os_log_with_type(gLog, OS_LOG_TYPE_DEFAULT, "CCSIMFix: loaded (pid %d)", getpid());
+    os_log_with_type(gLog, OS_LOG_TYPE_DEFAULT, "CCSIMGuard: loaded (pid %d)", getpid());
     attemptInstall();
     _dyld_register_func_for_add_image(imageAdded);
     if (!gInstalled) retryInstall(0);
@@ -271,6 +271,6 @@ __attribute__((constructor)) static void CCSIMFixInit(void)
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3 * NSEC_PER_SEC)),
                    gQueue, ^{
         os_log_with_type(gLog, OS_LOG_TYPE_DEFAULT,
-                         "CCSIMFix: status installed=%d (pid %d)", (int)gInstalled, getpid());
+                         "CCSIMGuard: status installed=%d (pid %d)", (int)gInstalled, getpid());
     });
 }

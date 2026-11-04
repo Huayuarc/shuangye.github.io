@@ -20,10 +20,10 @@ void MSHookMessageEx(Class cls, SEL selector, IMP replacement, IMP *result)
     printf("[stub] hooked -[%s %s]\n", class_getName(cls), sel_getName(selector));
 }
 
-#ifdef CCSIMFIX_TESTING
-BOOL CCSIMFixHooksInstalled(void);
-void CCSIMFixInstallNow(void);
-id CCSIMFixTestGuard(IMP imp, id target, SEL cmd, id arg, NSError **err,
+#ifdef CCSIMGUARD_TESTING
+BOOL CCSIMGuardHooksInstalled(void);
+void CCSIMGuardInstallNow(void);
+id CCSIMGuardTestGuard(IMP imp, id target, SEL cmd, id arg, NSError **err,
                      const char *what, BOOL owned);
 #endif
 
@@ -47,7 +47,7 @@ int main(void)
         // 1) 普通返回：应立刻拿到值
         CFAbsoluteTime t0 = CFAbsoluteTimeGetCurrent();
         NSError *e = nil;
-        id v = CCSIMFixTestGuard((IMP)fast_imp, (id)@"target", @selector(copyLabel:error:),
+        id v = CCSIMGuardTestGuard((IMP)fast_imp, (id)@"target", @selector(copyLabel:error:),
                                  (id)@"arg", &e, "fast", NO);
         double dt = CFAbsoluteTimeGetCurrent() - t0;
         printf("[1] fast: value=%s elapsed=%.3fs\n", [[v description] UTF8String], dt);
@@ -56,7 +56,7 @@ int main(void)
         // 2) 卡住不返回：应在 ~2s 后返回 nil（不是永远挂住）
         t0 = CFAbsoluteTimeGetCurrent();
         e = nil;
-        v = CCSIMFixTestGuard((IMP)slow_imp, (id)@"target", @selector(copyLabel:error:),
+        v = CCSIMGuardTestGuard((IMP)slow_imp, (id)@"target", @selector(copyLabel:error:),
                               (id)@"arg", &e, "slow#1", NO);
         dt = CFAbsoluteTimeGetCurrent() - t0;
         printf("[2] slow#1: value=%s err=%s elapsed=%.3fs\n",
@@ -66,7 +66,7 @@ int main(void)
         // 3) 再卡一次 → 触发熔断
         t0 = CFAbsoluteTimeGetCurrent();
         e = nil;
-        v = CCSIMFixTestGuard((IMP)slow_imp, (id)@"target", @selector(copyLabel:error:),
+        v = CCSIMGuardTestGuard((IMP)slow_imp, (id)@"target", @selector(copyLabel:error:),
                               (id)@"arg", &e, "slow#2", NO);
         dt = CFAbsoluteTimeGetCurrent() - t0;
         printf("[3] slow#2: elapsed=%.3fs\n", dt);
@@ -75,7 +75,7 @@ int main(void)
         // 4) 熔断期内立刻返回
         t0 = CFAbsoluteTimeGetCurrent();
         e = nil;
-        v = CCSIMFixTestGuard((IMP)slow_imp, (id)@"t", @selector(copyLabel:error:),
+        v = CCSIMGuardTestGuard((IMP)slow_imp, (id)@"t", @selector(copyLabel:error:),
                               (id)@"arg", &e, "slow#3", NO);
         dt = CFAbsoluteTimeGetCurrent() - t0;
         printf("[4] cool-down: elapsed=%.4fs\n", dt);
@@ -102,13 +102,13 @@ int main(void)
         }
 
         printf("[6] hooks installed in this process: %s\n",
-               CCSIMFixHooksInstalled() ? "yes" : "no");
-        if (!CCSIMFixHooksInstalled()) {
+               CCSIMGuardHooksInstalled() ? "yes" : "no");
+        if (!CCSIMGuardHooksInstalled()) {
             printf("[6] retrying install synchronously...\n");
-            CCSIMFixInstallNow();
-            printf("[6] after retry: %s\n", CCSIMFixHooksInstalled() ? "yes" : "no");
+            CCSIMGuardInstallNow();
+            printf("[6] after retry: %s\n", CCSIMGuardHooksInstalled() ? "yes" : "no");
         }
-        if (!CCSIMFixHooksInstalled()) { printf("FAIL step 6\n"); return 6; }
+        if (!CCSIMGuardHooksInstalled()) { printf("FAIL step 6\n"); return 6; }
 
         printf("ALL OK\n");
     }

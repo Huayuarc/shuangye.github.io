@@ -24,7 +24,7 @@ void MSHookMessageEx(Class cls, SEL selector, IMP replacement, IMP *result)
 int main(int argc, char **argv)
 {
     @autoreleasepool {
-        const char *path = argc > 1 ? argv[1] : "./CCSIMFix.dylib";
+        const char *path = argc > 1 ? argv[1] : "./CCSIMGuard.dylib";
         void *h = dlopen(path, RTLD_NOW);
         if (!h) {
             printf("FAIL dlopen: %s\n", dlerror());
@@ -32,8 +32,8 @@ int main(int argc, char **argv)
         }
         printf("[1] dylib loaded: %s\n", path);
 
-        BOOL (*installed)(void) = (BOOL (*)(void))dlsym(h, "CCSIMFixHooksInstalled");
-        if (!installed) { printf("FAIL: no CCSIMFixHooksInstalled export\n"); return 2; }
+        BOOL (*installed)(void) = (BOOL (*)(void))dlsym(h, "CCSIMGuardHooksInstalled");
+        if (!installed) { printf("FAIL: no CCSIMGuardHooksInstalled export\n"); return 2; }
 
         for (int i = 0; i < 20 && !installed(); i++) usleep(100 * 1000);
         printf("[2] hooks installed: %s\n", installed() ? "yes" : "no");

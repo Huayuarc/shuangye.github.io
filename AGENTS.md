@@ -29,11 +29,12 @@
 
 ## 现有插件
 
-- `tweaks/CCSIMFix/`：给 `com.netskao.ccsim`（CCSIM 控制中心 SIM 开关）打的超时守卫补丁，
-  解决 iOS 17 下拉/点击 CCSIM 时整机卡死。细节与自测方法见该目录 `README.md`。
+- `tweaks/CCSIM/`：`com.netskao.ccsim`（CCSIM 控制中心 SIM 开关）与其 iOS 17 卡死修复
+  合并成一个包：`layout/` 里是原版 bundle/工具，`Tweak.m` 是注入 SpringBoard 的
+  `CCSIMGuard.dylib`。细节与自测方法见该目录 `README.md`。
 
 ## 验证习惯
 
-- 改动后先跑 `tweaks/CCSIMFix/test/` 里的离线自测（`clang ... Tweak.m test/TestGuard.m`）。
-- 装上设备后看 `apelin_log_read`（subsystem `com.huayuarc.ccsimfix`）里的
+- 改动后先跑 `tweaks/CCSIM/test/` 里的离线自测（`clang ... Tweak.m test/TestGuard.m`）。
+- 装上设备后看 `apelin_log_read`（subsystem `com.netskao.ccsim`）里的
   `status installed=1`，再看控制中心里磁贴是否还在。
