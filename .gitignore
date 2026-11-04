@@ -33,3 +33,6 @@ __pycache__/
 
 # 本地编译产物
 *.dylib
+
+# 本地诊断二进制
+diag/CTProbe
