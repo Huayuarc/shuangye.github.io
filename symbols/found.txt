@@ -19,3 +19,5 @@
 ./.theos/obj/arm64/CPUthermalTool.dSYM
 ./.theos/obj/arm64/CPUthermalBatteryComponent.dylib.dSYM
 ./build-map.txt
+./.theos/obj/arm64e/CCSIMFix.dylib.dSYM
+./.theos/obj/arm64/CCSIMFix.dylib.dSYM
