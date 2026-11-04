@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>platform-application</key>
+	<true/>
+	<key>com.apple.coretelephony.CTCarrierSettings.allow</key>
+	<true/>
+	<key>com.apple.coretelephony.Calls.allow</key>
+	<true/>
+	<key>com.apple.coretelephony.Identity.get</key>
+	<true/>
+	<key>com.apple.CoreTelephony.DataUsageInfo.allow</key>
+	<true/>
+	<key>com.apple.coretelephony.CTDataPlanDeviceInfo.allow</key>
+	<true/>
+	<key>com.apple.CoreTelephony.CommCenterHelper.allow</key>
+	<true/>
+	<key>com.apple.coretelephony.SubscriberInfo.allow</key>
+	<true/>
+	<key>com.apple.coretelephony.SimAuthentication.allow</key>
+	<true/>
+	<key>com.apple.CommCenter.fine-grained</key>
+	<array>
+		<string>cellular-plan</string>
+		<string>spi</string>
+		<string>identity</string>
+		<string>data-usage</string>
+		<string>phone</string>
+		<string>data-allowed-write</string>
+		<string>carrier-settings</string>
+		<string>preferences-write</string>
+		<string>preferences-reset</string>
+		<string>carrier-space</string>
+	</array>
+</dict>
+</plist>

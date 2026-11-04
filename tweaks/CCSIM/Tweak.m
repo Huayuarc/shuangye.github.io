@@ -49,17 +49,74 @@ static os_log_t gLog;
 static dispatch_queue_t gQueue;
 static BOOL gInstalled;   // 不再重试（装好了，或这台系统不需要装）
 static BOOL gHooked;      // 真的装上了 hook
+static BOOL gGuard;       // iOS 17+ 才做超时；否则只记录、原样返回
 static int gTimeoutStreak;
 static CFAbsoluteTime gCoolDownUntil;
 
-// 同时写一份文件日志：os_log 是实时的、事后读不到，方便用户操作完再回来查。
-// 依次尝试几个注入进程里通常可写的目录，第一个能写的就用。
-static void FileLog(const char *fmt, ...)
+static const char *NowStr(void)
 {
+    static char b[32];
+    time_t t = time(NULL);
+    struct tm tmv;
+    localtime_r(&t, &tmv);
+    strftime(b, sizeof(b), "%m-%d %H:%M:%S", &tmv);
+    return b;
+}
+
+// 诊断日志三条道一起写：
+//   os_log（实时，每次监听只能看到新产生的行）
+//   文件（首选 /var/mobile/Library/SpringBoard，依次回退）
+//   偏好域 com.netskao.ccsim.guarddiag 的 events 数组（cfprefsd 负责落盘，沙箱挡不住，
+//   事后用 icli prefs read 一读就有）
+static void PrefLogRaw(const char *line)
+{
+    static CFStringRef appID;
+    static CFStringRef key;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        appID = CFSTR("com.netskao.ccsim.guarddiag");
+        key = CFSTR("events");
+    });
+
+    CFStringRef entry = CFStringCreateWithCString(kCFAllocatorDefault, line,
+                                                  kCFStringEncodingUTF8);
+    if (!entry) return;
+
+    CFMutableArrayRef arr = CFArrayCreateMutable(kCFAllocatorDefault, 0, &kCFTypeArrayCallBacks);
+    CFTypeRef old = CFPreferencesCopyAppValue(key, appID);
+    if (old && CFGetTypeID(old) == CFArrayGetTypeID()) {
+        CFArrayRef o = (CFArrayRef)old;
+        CFIndex n = CFArrayGetCount(o);
+        for (CFIndex i = (n > 29 ? n - 29 : 0); i < n; i++)
+            CFArrayAppendValue(arr, CFArrayGetValueAtIndex(o, i));
+    }
+    if (old) CFRelease(old);
+    CFArrayAppendValue(arr, entry);
+    CFPreferencesSetAppValue(key, arr, appID);
+    CFPreferencesAppSynchronize(appID);
+    CFRelease(arr);
+    CFRelease(entry);
+}
+
+static void LogEvent(const char *fmt, ...)
+{
+    char line[480];
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(line, sizeof(line), fmt, ap);
+    va_end(ap);
+
+    char stamped[512];
+    snprintf(stamped, sizeof(stamped), "%s %s", NowStr(), line);
+
+    os_log_with_type(gLog, OS_LOG_TYPE_DEFAULT, "CCSIMGuard: %{public}s", line);
+    PrefLogRaw(stamped);
+
     static FILE *fp;
     static dispatch_once_t once;
     dispatch_once(&once, ^{
         static const char *dirs[] = {
+            "/var/mobile/Library/SpringBoard",
             "/var/mobile/Library/CCSIMGuard",
             "/var/mobile/Library/Preferences",
             "/var/mobile/tmp",
@@ -74,23 +131,10 @@ static void FileLog(const char *fmt, ...)
             fp = fopen(p, "a");
         }
     });
-    if (!fp) return;
-    va_list ap;
-    va_start(ap, fmt);
-    vfprintf(fp, fmt, ap);
-    va_end(ap);
-    fputc('\n', fp);
-    fflush(fp);
-}
-
-static const char *NowStr(void)
-{
-    static char b[32];
-    time_t t = time(NULL);
-    struct tm tmv;
-    localtime_r(&t, &tmv);
-    strftime(b, sizeof(b), "%m-%d %H:%M:%S", &tmv);
-    return b;
+    if (fp) {
+        fprintf(fp, "%s\n", stamped);
+        fflush(fp);
+    }
 }
 
 static inline void release_(id obj) { [obj release]; }
@@ -165,7 +209,7 @@ static id GuardedCall(IMP imp, id target, SEL cmd, id arg, NSError **errOut,
         } else {
             os_log_with_type(gLog, OS_LOG_TYPE_ERROR,
                              "CCSIMGuard: %{public}s timed out after %.1fs", what, kTimeout);
-        FileLog("%s %s timed out after %.1fs", NowStr(), what, kTimeout);
+        LogEvent("%s timed out after %.1fs", what, kTimeout);
         }
         if (errOut) *errOut = MakeTimeoutError(what);
         return nil;
@@ -192,6 +236,16 @@ static id GuardedCall(IMP imp, id target, SEL cmd, id arg, NSError **errOut,
 
 #pragma mark - hooks
 
+// iOS 16 及更早：装同样的 hook，但不改行为，只把调用和返回记下来，
+// 好判断模块到底问了什么、拿到了什么。
+static id PassThrough(IMP imp, id self, SEL cmd, id arg, NSError **errOut, const char *what)
+{
+    id r = ((id (*)(id, SEL, id, NSError **))imp)(self, cmd, arg, errOut);
+    LogEvent("%s%s -> %s", what, errOut && *errOut ? " (err)" : "",
+             r ? object_getClassName(r) : "nil");
+    return r;
+}
+
 #ifdef CCSIMGUARD_TESTING
 BOOL CCSIMGuardHooksInstalled(void);
 void CCSIMGuardInstallNow(void);
@@ -206,12 +260,16 @@ static id (*orig_getMobileEquipmentInfo)(id, SEL, NSError **);
 
 static id hook_getSIMStatus(id self, SEL cmd, id context, NSError **err)
 {
+    if (!gGuard) return PassThrough((IMP)orig_getSIMStatus, self, cmd, context, err,
+                                    "getSIMStatus:error:");
     return GuardedCall((IMP)orig_getSIMStatus, self, cmd, context, err,
                        "getSIMStatus:error:", NO);
 }
 
 static id hook_copyLabel(id self, SEL cmd, id context, NSError **err)
 {
+    if (!gGuard) return PassThrough((IMP)orig_copyLabel, self, cmd, context, err,
+                                    "copyLabel:error:");
     return GuardedCall((IMP)orig_copyLabel, self, cmd, context, err,
                        "copyLabel:error:", YES);
 }
@@ -222,6 +280,7 @@ static id hook_copyLabel(id self, SEL cmd, id context, NSError **err)
     static id (*orig_##name)(id, SEL, id, NSError **);                          \
     static id hook_##name(id self, SEL cmd, id arg, NSError **err)              \
     {                                                                           \
+        if (!gGuard) return PassThrough((IMP)orig_##name, self, cmd, arg, err, str); \
         return GuardedCall((IMP)orig_##name, self, cmd, arg, err, str, NO);     \
     }
 
@@ -254,28 +313,54 @@ typedef void (*hook_fn)(void *target, void *replacement, void **result);
 
 static spawn_fn gOrigSpawn;
 static hook_fn gHookFunc;
-static char *(*gJbroot)(const char *);
+typedef char *(*jbroot_fn)(const char *);
+static char gJBRoot[PATH_MAX];
 
+// 找隐根前缀：优先 libroothide 的 jbroot()，取不到就从我们自己的 dylib 路径反推
+// （插件就在 <jbroot>/Library/MobileSubstrate/DynamicLibraries/ 下）。
 static void loadJBRoot(void)
 {
-    if (gJbroot) return;
+    if (gJBRoot[0]) return;
+
     void *h = dlopen("/usr/lib/libroothide.dylib", RTLD_LAZY);
     if (!h) h = dlopen("libroothide.dylib", RTLD_LAZY);
-    if (h) gJbroot = (char *(*)(const char *))dlsym(h, "jbroot");
+    jbroot_fn jb = h ? (jbroot_fn)dlsym(h, "jbroot") : NULL;
+    if (!jb) jb = (jbroot_fn)dlsym(RTLD_DEFAULT, "jbroot");
+    if (jb) {
+        char *root = jb("/");
+        if (root && *root) {
+            snprintf(gJBRoot, sizeof(gJBRoot), "%s", root);
+            size_t n = strlen(gJBRoot);
+            while (n > 1 && gJBRoot[n - 1] == '/') gJBRoot[--n] = 0;
+        }
+    }
+
+    if (!gJBRoot[0]) {
+        Dl_info info;
+        if (dladdr((void *)LogEvent, &info) && info.dli_fname) {
+            const char *mark = "/Library/MobileSubstrate/DynamicLibraries/";
+            const char *hit = strstr(info.dli_fname, mark);
+            if (hit) {
+                size_t n = (size_t)(hit - info.dli_fname);
+                if (n > 0 && n < sizeof(gJBRoot)) {
+                    memcpy(gJBRoot, info.dli_fname, n);
+                    gJBRoot[n] = 0;
+                }
+            }
+        }
+    }
 }
 
 static const char *resolveJBPath(const char *path, char *out, size_t outLen)
 {
     if (!path) return path;
-    if (strncmp(path, "/var/jb/", 8) != 0) return path;      // 不是 rootless 路径
+    if (strncmp(path, "/var/jb/", 8) != 0) return path;      // 不是 rootless 写法
     if (access(path, X_OK) == 0) return path;                // rootless 上本来就通
 
     loadJBRoot();
-    if (!gJbroot) return path;
-    char *mapped = gJbroot(path + 7);                        // "/usr/local/bin/CCSIMTool"
-    if (!mapped || !*mapped) return path;
-    snprintf(out, outLen, "%s", mapped);
-    return access(out, X_OK) == 0 ? out : path;
+    if (!gJBRoot[0]) return path;
+    snprintf(out, outLen, "%s%s", gJBRoot, path + 7);
+    return out;
 }
 
 static int hookedPosixSpawn(pid_t *pid, const char *path,
@@ -290,11 +375,11 @@ static int hookedPosixSpawn(pid_t *pid, const char *path,
         os_log_with_type(gLog, OS_LOG_TYPE_DEFAULT,
                          "CCSIMGuard: spawn %{public}s -> %{public}s rc=%d",
                          path, use, rc);
-        FileLog("%s spawn %s -> %s rc=%d", NowStr(), path, use, rc);
+        LogEvent("spawn %s -> %s rc=%d", path, use, rc);
     } else {
         os_log_with_type(gLog, OS_LOG_TYPE_DEFAULT,
                          "CCSIMGuard: spawn %{public}s rc=%d", path, rc);
-        FileLog("%s spawn %s rc=%d", NowStr(), path, rc);
+        LogEvent("spawn %s rc=%d", path, rc);
     }
     return rc;
 }
@@ -309,9 +394,55 @@ static void InstallSpawnHook(void)
     done = YES;
     os_log_with_type(gLog, OS_LOG_TYPE_DEFAULT,
                      "CCSIMGuard: posix_spawn hook installed (pid %d)", getpid());
-    FileLog("%s posix_spawn hook installed (pid %d)", NowStr(), getpid());
-    FileLog("%s tool /var/jb/usr/local/bin/CCSIMTool reachable=%d", NowStr(),
+    LogEvent("posix_spawn hook installed (pid %d)", getpid());
+    loadJBRoot();
+    LogEvent("jbroot=%s ; /var/jb tool reachable=%d", 
+            gJBRoot[0] ? gJBRoot : "(unknown)",
             access("/var/jb/usr/local/bin/CCSIMTool", X_OK) == 0);
+}
+
+#pragma mark - CellularPlanManager 诊断
+
+// 模块真正切换 SIM 卡要经过 CTCellularPlanManager（可能运行时 dlopen 进来），
+// 这里只记录调用与返回值，不改行为。
+typedef id (*planItems_fn)(id, SEL, BOOL);
+typedef id (*didSelect_fn)(id, SEL, id, BOOL);
+static planItems_fn orig_planItems;
+static didSelect_fn orig_didSelect;
+
+static id hook_planItemsShouldUpdate(id self, SEL cmd, BOOL shouldUpdate)
+{
+    id r = orig_planItems(self, cmd, shouldUpdate);
+    LogEvent("planItemsShouldUpdate:%d -> %s", (int)shouldUpdate,
+             r ? object_getClassName(r) : "nil");
+    return r;
+}
+
+static id hook_didSelectPlanItem(id self, SEL cmd, id item, BOOL isEnable)
+{
+    LogEvent("didSelectPlanItem:%s isEnable:%d (calling)",
+             item ? object_getClassName(item) : "nil", (int)isEnable);
+    id r = orig_didSelect(self, cmd, item, isEnable);
+    LogEvent("didSelectPlanItem isEnable:%d -> %s", (int)isEnable,
+             r ? object_getClassName(r) : "nil");
+    return r;
+}
+
+static void InstallPlanManagerHooks(void)
+{
+    static BOOL done;
+    if (done) return;
+    MSHookFunc hook = hookFunction();
+    Class pm = objc_getClass("CTCellularPlanManager");
+    if (!hook || !pm) return;
+    if (class_getInstanceMethod(pm, @selector(planItemsShouldUpdate:)))
+        hook(pm, @selector(planItemsShouldUpdate:), (IMP)hook_planItemsShouldUpdate,
+             (IMP *)&orig_planItems);
+    if (class_getInstanceMethod(pm, @selector(didSelectPlanItem:isEnable:)))
+        hook(pm, @selector(didSelectPlanItem:isEnable:), (IMP)hook_didSelectPlanItem,
+             (IMP *)&orig_didSelect);
+    done = YES;
+    LogEvent("CTCellularPlanManager hooks installed");
 }
 
 #pragma mark - 安装
@@ -320,24 +451,19 @@ static void attemptInstall(void)
 {
     // 与 iOS 版本无关：修 /var/jb 路径，保证模块能启动 CCSIMTool
     InstallSpawnHook();
+    InstallPlanManagerHooks();
 
     if (gInstalled) return;
 
 #ifndef CCSIMGUARD_TESTING
-    // iOS 16 及更早没有这个卡死问题：一个 hook 都不装，行为与原版完全一致。
-    static BOOL tooOld;
-    if (tooOld) return;
-    NSOperatingSystemVersion need = { 17, 0, 0 };
-    if (![[NSProcessInfo processInfo] isOperatingSystemAtLeastVersion:need]) {
-        tooOld = YES;
-        gInstalled = YES;   // 不再重试
+    static BOOL versionChecked;
+    if (!versionChecked) {
+        versionChecked = YES;
+        NSOperatingSystemVersion need = { 17, 0, 0 };
+        gGuard = [[NSProcessInfo processInfo] isOperatingSystemAtLeastVersion:need];
         NSOperatingSystemVersion v = [[NSProcessInfo processInfo] operatingSystemVersion];
-        os_log_with_type(gLog, OS_LOG_TYPE_DEFAULT,
-                         "CCSIMGuard: iOS %ld.%ld < 17, CoreTelephony left untouched (pid %d)",
-                         (long)v.majorVersion, (long)v.minorVersion, getpid());
-        FileLog("%s iOS %ld.%ld < 17, CT hooks skipped (pid %d)", NowStr(),
-                (long)v.majorVersion, (long)v.minorVersion, getpid());
-        return;
+        LogEvent("iOS %ld.%ld -> guard=%d (0 = 只记录不改行为)",
+                 (long)v.majorVersion, (long)v.minorVersion, (int)gGuard);
     }
 #endif
 
@@ -373,7 +499,7 @@ static void attemptInstall(void)
     gHooked = YES;
     os_log_with_type(gLog, OS_LOG_TYPE_DEFAULT,
                      "CCSIMGuard: hooks installed on CoreTelephonyClient (pid %d)", getpid());
-    FileLog("%s CT hooks installed (pid %d)", NowStr(), getpid());
+    LogEvent("CT hooks installed (pid %d)", getpid());
 }
 
 static void retryInstall(int attempt)
@@ -394,6 +520,7 @@ static void retryInstall(int attempt)
 static void imageAdded(const struct mach_header *mh, intptr_t slide)
 {
     attemptInstall();
+    InstallPlanManagerHooks();
 }
 
 #ifdef CCSIMGUARD_TESTING
@@ -414,7 +541,7 @@ __attribute__((constructor)) static void CCSIMGuardInit(void)
     os_log_with_type(gLog, OS_LOG_TYPE_DEFAULT, "ApelinLoaded " APELIN_BUILD_ID);
 #endif
     os_log_with_type(gLog, OS_LOG_TYPE_DEFAULT, "CCSIMGuard: loaded (pid %d)", getpid());
-    FileLog("%s loaded (pid %d)", NowStr(), getpid());
+    LogEvent("loaded (pid %d)", getpid());
     attemptInstall();
     _dyld_register_func_for_add_image(imageAdded);
     if (!gInstalled) retryInstall(0);
