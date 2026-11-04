@@ -15,29 +15,39 @@ CCSIM.bundle 由 SpringBoard 加载，它在**主线程**调用 CoreTelephony �
 
 ## 怎么修
 
-`CCSIMGuard.dylib` 注入 SpringBoard，把这一族同步取值方法换成"带超时的守卫调用"：
+`CCSIMGuard.dylib` 注入 SpringBoard，**只在 iOS 17 及以上生效**（iOS 16 及更早一个 hook 都不装，行为与原版完全一致），把这一族同步取值方法换成"带超时的守卫调用"：
 
 - 真正的调用放到后台串行队列执行，主线程最多等 **2 秒**；
 - 超时返回 nil + `NSError`（domain `com.netskao.ccsim.guard`, code 1001），CCSIM 走自己的失败分支，不再冻结；
 - 连续 2 次超时后熔断 **30 秒**，期间直接返回安全值，避免每次刷新都卡 2 秒；
-- 覆盖 `getSIMStatus:`、`copyLabel:`、`getSimLabel:`、`getShortLabel:`、`copySIMIdentity:`、`getMobileEquipmentInfo(For:)`、`getSubscriptionInfoWithError`。
+- 覆盖 `getSIMStatus:`、`copyLabel:`、`getSimLabel:`、`getShortLabel:`、`copySIMIdentity:`、`getMobileEquipmentInfo(For:)`、`getSubscriptionInfoWithError`；
+- 返回值所有权保守处理：一律把 retain 过的 +1 交出去，宁可泄漏一个对象，也不让调用方拿到已释放对象。
 
-日志（`apelin_log_read` / Console）subsystem `com.netskao.ccsim`，关键字 `CCSIMGuard:`；启动 3 秒后会打一行 `status installed=1`，可用来确认真机上 hook 装好了。
+日志（`apelin_log_read` / Console）subsystem `com.netskao.ccsim`，关键字 `CCSIMGuard:`；启动 3 秒后打一行
+`status hooked=1`（iOS 17+ 守卫已装）或 `iOS x.y < 17, CoreTelephony left untouched`（低版本不干预）。
 
 ## 目录
 
 ```
-control              包信息（com.netskao.ccsim 1.1-10，Conflicts/Replaces com.huayuarc.ccsimfix）
+control              包信息（com.netskao.ccsim，Conflicts/Replaces com.huayuarc.ccsimfix）
 CCSIMGuard.plist     注入过滤（com.apple.springboard）
 Tweak.m              守卫实现（全部逻辑）
 layout/              原版 CCSIM 的模块 bundle 与 CCSIMTool，原样打进同一个 deb
+  DEBIAN/postinst    在 roothide 上补回 <binary>.roothidepatch 标记（prerm 负责删）
   Library/ControlCenter/Bundles/CCSIM.bundle/
   usr/local/bin/CCSIMTool
 test/TestGuard.m     守卫逻辑离线自测（假的不返回实现、熔断路径）
 test/TestDylib.m     把真 dylib 载进普通进程，验证 hook 装到真 CoreTelephonyClient 上
 ```
 
-`layout/` 里是原版二进制，不要改动它们的内容；两个架构同一份。
+`layout/` 里的原版二进制不要改动内容；两个架构同一份。
+
+## 为什么还要 postinst
+
+原版 bundle 里写死了 `/var/jb/usr/local/bin/CCSIMTool` 这类路径，而 roothide 上真实不存在
+`/var/jb`：那边靠二进制旁边的 `<path>.roothidepatch` 标记，让 roothide 载入时做路径补丁。
+dpkg 升级会把原有标记软链删掉，结果就是"点开关没反应"。postinst 在
+`/usr/lib/DynamicPatches/AutoPatches.dylib` 存在时（即 roothide）把它补回来，rootless 上自动跳过。
 
 ## 本地自测（iOS 16 上验证过）
 

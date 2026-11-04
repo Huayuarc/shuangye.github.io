@@ -1,6 +1,6 @@
 Package: com.netskao.ccsim
 Name: CCSIM
-Version: 1.1-10
+Version: 1.1-11
 Architecture: iphoneos-arm
 Description: 控制中心快速启用或禁用其中一张 SIM 卡（已内置 iOS 17 卡死修复）。
 Maintainer: Huayuarc

@@ -39,7 +39,16 @@ libdir="$stage${APELIN_PREFIX?}/Library/MobileSubstrate/DynamicLibraries"
 mkdir -p "$libdir" "$stage/DEBIAN"
 cp "$objdir/CCSIMGuard.dylib" "$libdir/CCSIMGuard.dylib"
 cp "$src_dir/CCSIMGuard.plist" "$libdir/CCSIMGuard.plist"
-cp -RP "$src_dir/layout/." "$stage${APELIN_PREFIX?}/"
+
+# layout/ 里除 DEBIAN 之外的文件按前缀装；DEBIAN/ 下的维护者脚本进包的 DEBIAN
+if [ -d "$src_dir/layout/DEBIAN" ]; then
+  cp -RP "$src_dir/layout/DEBIAN/." "$stage/DEBIAN/"
+fi
+for d in "$src_dir"/layout/*/; do
+  n=$(basename "$d")
+  [ "$n" = DEBIAN ] && continue
+  cp -RP "$d." "$stage${APELIN_PREFIX?}/$n"
+done
 
 for f in Package Version Name Author Maintainer Section Description Depends Conflicts Replaces; do
   v=$(sed -n "s/^$f: *//p" "$src_dir/control" | head -1)

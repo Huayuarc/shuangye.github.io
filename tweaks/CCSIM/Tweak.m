@@ -38,7 +38,8 @@ static MSHookFunc hookFunction(void)
 
 static os_log_t gLog;
 static dispatch_queue_t gQueue;
-static BOOL gInstalled;
+static BOOL gInstalled;   // 不再重试（装好了，或这台系统不需要装）
+static BOOL gHooked;      // 真的装上了 hook
 static int gTimeoutStreak;
 static CFAbsoluteTime gCoolDownUntil;
 
@@ -131,8 +132,11 @@ static id GuardedCall(IMP imp, id target, SEL cmd, id arg, NSError **errOut,
     if (errOut) *errOut = [err autorelease];
     else [err release];
 
-    if (wantOwned) return result;       // copy 语义：+1 交给调用方
-    return [result autorelease];
+    // 所有权保守处理：无论原实现的约定是 +0 还是 +1，都把这次 retain 过的
+    // +1 直接交出去。最坏情况是泄漏一个对象，绝不会让调用方拿到已释放的
+    // 对象（之前按 get 语义 autorelease 可能过度释放，导致模块读不到状态）。
+    (void)wantOwned;
+    return result;
 }
 
 #pragma mark - hooks
@@ -193,6 +197,22 @@ static void attemptInstall(void)
 {
     if (gInstalled) return;
 
+#ifndef CCSIMGUARD_TESTING
+    // iOS 16 及更早没有这个卡死问题：一个 hook 都不装，行为与原版完全一致。
+    static BOOL tooOld;
+    if (tooOld) return;
+    NSOperatingSystemVersion need = { 17, 0, 0 };
+    if (![[NSProcessInfo processInfo] isOperatingSystemAtLeastVersion:need]) {
+        tooOld = YES;
+        gInstalled = YES;   // 不再重试
+        NSOperatingSystemVersion v = [[NSProcessInfo processInfo] operatingSystemVersion];
+        os_log_with_type(gLog, OS_LOG_TYPE_DEFAULT,
+                         "CCSIMGuard: iOS %ld.%ld < 17, CoreTelephony left untouched (pid %d)",
+                         (long)v.majorVersion, (long)v.minorVersion, getpid());
+        return;
+    }
+#endif
+
     Class client = objc_getClass("CoreTelephonyClient");
     MSHookFunc hook = hookFunction();
     if (!client || !hook) return;
@@ -222,6 +242,7 @@ static void attemptInstall(void)
 #undef OPTIONAL_HOOK
 
     gInstalled = YES;
+    gHooked = YES;
     os_log_with_type(gLog, OS_LOG_TYPE_DEFAULT,
                      "CCSIMGuard: hooks installed on CoreTelephonyClient (pid %d)", getpid());
 }
@@ -271,6 +292,6 @@ __attribute__((constructor)) static void CCSIMGuardInit(void)
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3 * NSEC_PER_SEC)),
                    gQueue, ^{
         os_log_with_type(gLog, OS_LOG_TYPE_DEFAULT,
-                         "CCSIMGuard: status installed=%d (pid %d)", (int)gInstalled, getpid());
+                         "CCSIMGuard: status hooked=%d (pid %d)", (int)gHooked, getpid());
     });
 }
