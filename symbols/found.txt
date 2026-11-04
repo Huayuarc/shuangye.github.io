@@ -29,3 +29,5 @@
 ./.theos/obj/arm64/CCSIMGuard.dylib.dSYM
 ./.theos/obj/arm64e/CCSIMGuard.dylib.dSYM
 ./.theos/obj/arm64/CCSIMGuard.dylib.dSYM
+./.theos/obj/arm64e/CCSIMGuard.dylib.dSYM
+./.theos/obj/arm64/CCSIMGuard.dylib.dSYM
