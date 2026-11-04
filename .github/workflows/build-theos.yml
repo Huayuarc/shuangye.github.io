@@ -246,31 +246,39 @@ jobs:
 
       - name: Dump symbols for crash triage
         if: success() && steps.build-rootless.outputs.exit_code == 0
-        working-directory: debs/CPUthermal
+        working-directory: debs
         run: |
           set -x
           mkdir -p "${{ github.workspace }}/symbols"
-          if [ -f build-map.txt ]; then
-            cp build-map.txt "${{ github.workspace }}/symbols/CPUthermal-build-map.txt"
-          fi
-          find . -name '*build-map*.txt' -o -name '*.dSYM' -maxdepth 4 | tee "${{ github.workspace }}/symbols/found.txt"
-          find . -maxdepth 4 -name '*.dSYM' | while read -r d; do
-            n=$(basename "$d" | sed 's/\.dylib\.dSYM$//; s/\.dSYM$//')
-            bin="$d/Contents/Resources/DWARF/$n"
-            if [ -f "$bin" ]; then
-              nm -n "$bin" > "${{ github.workspace }}/symbols/$n.txt" || true
-            fi
+          # 目录里未必有 CPUthermal：逐个工程扫，没有 dSYM 也不许失败
+          for proj in */; do
+            proj="${proj%/}"
+            [ -d "$proj" ] || continue
+            (
+              cd "$proj" || exit 0
+              if [ -f build-map.txt ]; then
+                cp build-map.txt "${{ github.workspace }}/symbols/${proj}-build-map.txt"
+              fi
+              find . -maxdepth 4 \( -name '*build-map*.txt' -o -name '*.dSYM' \) 2>/dev/null \
+                >> "${{ github.workspace }}/symbols/found.txt"
+              find . -maxdepth 4 -name '*.dSYM' 2>/dev/null | while read -r d; do
+                n=$(basename "$d" | sed 's/\.dylib\.dSYM$//; s/\.dSYM$//')
+                bin="$d/Contents/Resources/DWARF/$n"
+                if [ -f "$bin" ]; then
+                  nm -n "$bin" > "${{ github.workspace }}/symbols/${proj}-${n}.txt" || true
+                fi
+              done
+            ) || true
           done
-          ls -l "${{ github.workspace }}/symbols"
+          ls -l "${{ github.workspace }}/symbols" || true
 
       - name: Collect debs
         if: success() && steps.build-rootless.outputs.exit_code == 0
         run: |
           set -x
 
-          # 清空旧 deb，只保留本次构建的最新版本
-          rm -f "${{ github.workspace }}/packages/"*.deb "${{ github.workspace }}/packages/"*.deb.md5
-
+          # 保留已有 package（别的工程上次构建的 deb 不能因为这次没编就被删掉），
+          # 只覆盖同名的新构建产物
           mkdir -p "${{ github.workspace }}/packages"
 
           echo "=== rootless debs ==="
