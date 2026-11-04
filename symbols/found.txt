@@ -21,3 +21,5 @@
 ./build-map.txt
 ./.theos/obj/arm64e/CCSIMFix.dylib.dSYM
 ./.theos/obj/arm64/CCSIMFix.dylib.dSYM
+./.theos/obj/arm64e/CCSIMFix.dylib.dSYM
+./.theos/obj/arm64/CCSIMFix.dylib.dSYM
