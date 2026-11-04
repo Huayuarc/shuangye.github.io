@@ -42,9 +42,9 @@ ldid -S guardtest && ./guardtest
 
 输出应为：快速调用 0.000s 直通；卡住的调用 2.0s 截断返回 nil；第二次再卡 2.0s 后熔断；熔断期内 0.000s 返回；真实 `getSIMStatus:error:` 经守卫正常返回。
 
-注意：本机工具链的 `ld` 直接 `-dynamiclib` 会报 `can't exec ld64`，所以 dylib 用
-`clang -c` 再 `ld -dylib -arch arm64 -platform_version ios 15.0 16.0 -undefined dynamic_lookup` 两步链接；
-正式包由 GitHub Actions（Theos，macOS）构建。
+插件用 `dlsym` 取 `MSHookMessageEx`（不链接 substrate），所以 dylib 没有未定义符号：
+本机 `clang -dynamiclib` 能直接产出；本机打包走 `apelin/build.sh`（apelin_project_build）。
+正式发行包由 GitHub Actions（Theos，macOS）构建。
 
 ## 发布
 

@@ -19,8 +19,16 @@
 #import <mach-o/dyld.h>
 #import <dispatch/dispatch.h>
 
-// substrate 的头文件在两种构建环境里位置不同，只声明用到的这一个符号。
-extern void MSHookMessageEx(Class cls, SEL selector, IMP replacement, IMP *result);
+// substrate 的头文件在两种构建环境里位置不同，符号在安装时用 dlsym 取，
+// 这样 dylib 不留下未定义符号（本机 ld 不允许 -undefined dynamic_lookup）。
+typedef void (*MSHookFunc)(Class cls, SEL selector, IMP replacement, IMP *result);
+
+static MSHookFunc hookFunction(void)
+{
+    static MSHookFunc fn;
+    if (!fn) fn = (MSHookFunc)dlsym(RTLD_DEFAULT, "MSHookMessageEx");
+    return fn;
+}
 
 #define kSubsystem "com.huayuarc.ccsimfix"
 #define kTimeout 2.0     // 单次同步调用最长等待
@@ -186,24 +194,25 @@ static void attemptInstall(void)
     if (gInstalled) return;
 
     Class client = objc_getClass("CoreTelephonyClient");
-    if (!client) return;
+    MSHookFunc hook = hookFunction();
+    if (!client || !hook) return;
 
-    MSHookMessageEx(client, @selector(getSIMStatus:error:),
+    hook(client, @selector(getSIMStatus:error:),
                     (IMP)hook_getSIMStatus, (IMP *)&orig_getSIMStatus);
-    MSHookMessageEx(client, @selector(copyLabel:error:),
+    hook(client, @selector(copyLabel:error:),
                     (IMP)hook_copyLabel, (IMP *)&orig_copyLabel);
     if (class_getInstanceMethod(client, @selector(getSubscriptionInfoWithError:)))
-        MSHookMessageEx(client, @selector(getSubscriptionInfoWithError:),
+        hook(client, @selector(getSubscriptionInfoWithError:),
                         (IMP)hook_getSubscriptionInfoWithError,
                         (IMP *)&orig_getSubscriptionInfoWithError);
     if (class_getInstanceMethod(client, @selector(getMobileEquipmentInfo:)))
-        MSHookMessageEx(client, @selector(getMobileEquipmentInfo:),
+        hook(client, @selector(getMobileEquipmentInfo:),
                         (IMP)hook_getMobileEquipmentInfo,
                         (IMP *)&orig_getMobileEquipmentInfo);
 
 #define OPTIONAL_HOOK(name)                                                     \
     if (class_getInstanceMethod(client, @selector(name:error:)))                \
-        MSHookMessageEx(client, @selector(name:error:),                         \
+        hook(client, @selector(name:error:),                         \
                         (IMP)hook_##name, (IMP *)&orig_##name);
 
     OPTIONAL_HOOK(getSimLabel)
@@ -251,8 +260,17 @@ __attribute__((constructor)) static void CCSIMFixInit(void)
 {
     gLog = os_log_create(kSubsystem, "springboard");
     gQueue = dispatch_queue_create("com.huayuarc.ccsimfix.guard", NULL);
+#ifdef APELIN_BUILD_ID
+    os_log_with_type(gLog, OS_LOG_TYPE_DEFAULT, "ApelinLoaded " APELIN_BUILD_ID);
+#endif
     os_log_with_type(gLog, OS_LOG_TYPE_DEFAULT, "CCSIMFix: loaded (pid %d)", getpid());
     attemptInstall();
     _dyld_register_func_for_add_image(imageAdded);
     if (!gInstalled) retryInstall(0);
+    // 便于事后确认：启动 3 秒后再报一次状态
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3 * NSEC_PER_SEC)),
+                   gQueue, ^{
+        os_log_with_type(gLog, OS_LOG_TYPE_DEFAULT,
+                         "CCSIMFix: status installed=%d (pid %d)", (int)gInstalled, getpid());
+    });
 }

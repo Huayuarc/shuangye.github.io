@@ -1,6 +1,6 @@
 Package: com.huayuarc.ccsimfix
 Name: CCSIMFix
-Version: 1.0-1
+Version: 1.0-2
 Architecture: iphoneos-arm
 Description: 修复 CCSIM 控制中心模块在 iOS 17 上卡死的问题。CCSIM 在控制中心里同步调用 CoreTelephony 的 getSIMStatus:error: / copyLabel:error:，iOS 17 上 CommCenter 不回复时该调用永不返回，会把 SpringBoard 主线程锁死（只能强重启）。本插件为这两个调用加上超时保护，超时即返回安全值，界面不再冻结。
 Maintainer: Huayuarc
