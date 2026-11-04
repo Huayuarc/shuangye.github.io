@@ -398,12 +398,6 @@ static BOOL shouldApplyFullCPUProtection(void) {
 return runtimeProtectionEnabled() && isFullPowerMode();
 }
 
-static BOOL shouldRequestMaximumFloors(void) {
-// 解除温控模式明确请求 100% 性能下限：切换到该模式后不再因残留的
-// lowPower/CLPC 请求立即降频。百分比接口只能写 0~100，不能照搬旧版的 65000mW。
-return shouldApplyFullCPUProtection();
-}
-
 static BOOL shouldRestoreNativePerformance(void) {
 return shouldApplyFullCPUProtection();
 }

@@ -68,6 +68,9 @@ class RemovedGuessesStayRemoved(unittest.TestCase):
                           'applyCurrentModeToApplePPMCPU'):
             self.assertNotIn(forbidden, TWEAK)
 
+    def test_no_orphaned_maximum_floor_helper(self):
+        self.assertNotIn('shouldRequestMaximumFloors', TWEAK)
+
 
 class PackageContracts(unittest.TestCase):
     def test_version(self):

@@ -54,8 +54,6 @@ class ModeIsolationRegression(unittest.TestCase):
         self.assertNotIn('- (void)setCPUMitigationLevel:', mitigation)
 
     def test_full_power_requests_maximum_floor_without_mw_unit_mixup(self):
-        policy = S.split('static BOOL shouldRequestMaximumFloors(void) {', 1)[1].split('\n}', 1)[0]
-        self.assertIn('return shouldApplyFullCPUProtection();', policy)
         full = S.split('static void applyFullPowerBudgetsOnController(id controller) {', 1)[1].split(
             'static void applyLowPowerLimitsToTrackedControllers', 1)[0]
         self.assertIn('@selector(setCPUPowerFloor:fromDecisionSource:), kUnrestrictedPerformancePercent', full)
