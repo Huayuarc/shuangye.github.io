@@ -33,8 +33,15 @@
   合并成一个包：`layout/` 里是原版 bundle/工具，`Tweak.m` 是注入 SpringBoard 的
   `CCSIMGuard.dylib`。细节与自测方法见该目录 `README.md`。
 
+## roothide 上的路径补丁标记
+
+原版 CCSIM.bundle 里写死了 `/var/jb/...` 路径，roothide 真实没有 `/var/jb`，靠二进制旁边的
+`<binary>.roothidepatch` 软链（指向 `/usr/lib/DynamicPatches/AutoPatches.dylib`）让 roothide 在载入时
+做路径补丁。dpkg 升级会把这类标记删掉，所以 `tweaks/CCSIM/layout/DEBIAN/postinst` 负责补回，
+`prerm` 负责删除。以后凡是打包“非本工程编译的上游二进制”，都要检查这个标记。
+
 ## 验证习惯
 
 - 改动后先跑 `tweaks/CCSIM/test/` 里的离线自测（`clang ... Tweak.m test/TestGuard.m`）。
 - 装上设备后看 `apelin_log_read`（subsystem `com.netskao.ccsim`）里的
-  `status installed=1`，再看控制中心里磁贴是否还在。
+  `status hooked=1`（iOS 17+ 守卫已装）或 `iOS x.y < 17, CoreTelephony left untouched`（低版本不干预），再看控制中心里磁贴是否还在。
