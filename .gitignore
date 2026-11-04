@@ -26,3 +26,10 @@ debs/*/packages/
 .DS_Store
 Thumbs.db
 packages/
+
+# Python 缓存
+__pycache__/
+*.pyc
+
+# 本地编译产物
+*.dylib
