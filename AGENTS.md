@@ -55,6 +55,28 @@
    别在上面耗时间；CLPC + PPM 的 IORegistry 键已经够用。
 4. 回归：`cd debs/CPUthermal/tests && python3 -m unittest discover -p 'test_*.py'`（当前 184 项）。
 
+## 防温控暗屏（isolation.57）
+
+用户要求“系统触发暗屏时人眼不能发现”，实现为三层，缺一层就会看到掉亮度：
+
+1. **事前拦截（写入路径）** `debs/CPUthermal/CPUthermalDisplayShield.xm`
+   注入 backboardd/brightnessd/displaypolicyd/SpringBoard，命中“满档断崖”即丢弃写入并返回 `KERN_SUCCESS`：
+   当前 `IOMFBBrightnessLevel` ≥ `BLNitsCap` 的 90%、新值 < 90%、面板温度 ≥ 36°C。
+   零值/关屏指令一律放行，判定只用本地 IORegistry 读取（在 backboardd 里做跨进程调用会自锁黑屏，isolation.45 教训）。
+2. **秒级恢复** `debs/CPUthermal/Tools/CPUthermalDisplayTool.m`（LaunchDaemon `com.huayuarc.cputhermal.display`）
+   每 0.5s 巡检、0.5s 冷却、0.35s 判定；未学到样本但面板级跌到请求一半以下时按请求 85% 抬回；
+   每 5s 记录 `panel-limited` 日志（主机侧已抬满、`NitsPhysical` 仍低＝面板/DCP 层压暗）。
+3. **核心兜底** `Tweak.x` 的 `CPUthermalFastCapTick`（0.5s，只读 `AppleCLCD2`/`AppleCLCD` 的 `BLNitsCap`、`brightness-nits`）
+   与 `CPUthermalBacklightAuditTick`（5s 全树兜底）。核心绝不写 `IOMFBBrightnessLevel`（契约测试强制）。
+
+**面板温补这一层关不掉**（2026-11 实测，iPhone 14,2 / 16.1.2 / roothide）：
+`AppleCLCD2` 上 `DisableTempComp=0`、`IOMFBTemperatureCompensationEnable=1`、`enable2DTemperatureCorrection=1`，
+即使 uid 0 写入也返回 `kIOReturnNotPrivileged`（0xE00002C2）——补偿在 DCP 固件里，主机侧无法关闭。
+`APTPDCTemperature` 是面板自报温度（39–41°C 常态），`Brightness_Scale` 随它变化。
+
+诊断工具（未跟踪，不入库）：`diag/BrightWatch`（采样）、`diag/CBDump`（CoreBrightness 属性）、
+`diag/TempComp`（温补键读取/写入测试）、`diag/SetKey`（任意 IORegistry 写测试，`mobile` 即可写 `IOMFBBrightnessLevel`）。
+
 ## 验证习惯
 
 - 改动后先跑 `tweaks/CCSIM/test/` 里的离线自测（`clang ... Tweak.m test/TestGuard.m`）。

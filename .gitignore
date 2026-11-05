@@ -36,3 +36,8 @@ __pycache__/
 
 # 本地诊断二进制
 diag/CTProbe
+
+# 本地诊断产物（不入库）
+diag/*.m
+diag/*.log
+.tmp-insul/
