@@ -1,0 +1,9 @@
+Package: com.zaka.swipedeckunlock
+Name: SwipeDeck Unlock (Runtime)
+Version: 1.0.0
+Architecture: iphoneos-arm64
+Description: Runtime unlock for SwipeDeck — patches the isActivated predicate in memory, no binary modification.
+Maintainer: zaka
+Author: zaka
+Section: Tweaks
+Depends: mobilesubstrate, firmware (>= 15.0)

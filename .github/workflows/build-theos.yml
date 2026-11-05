@@ -1,0 +1,357 @@
+name: Build Theos Projects
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "debs/**"
+      - ".github/workflows/build-theos.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: build-theos-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-14
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Theos (roothide fork)
+        run: |
+          set -e
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+          swift --version
+
+          brew install ldid dpkg 2>/dev/null || true
+
+          echo "=== 克隆 roothide Theos ==="
+          rm -rf "$HOME/theos"
+          git clone --recursive --branch master https://github.com/roothide/theos.git "$HOME/theos"
+          echo "THEOS=$HOME/theos" >> $GITHUB_ENV
+          cd "$HOME/theos"
+          git submodule update --init --recursive 2>&1
+          echo "=== 验证 roothide vendor ==="
+          ls -la vendor/include/roothide.h || echo "MISSING roothide.h"
+          ls -la vendor/mod/roothide/ || echo "MISSING roothide mod"
+          ls -la vendor/lib/libroothide.tbd || echo "MISSING libroothide.tbd"
+          cd "$OLDPWD"
+
+          # SDK
+          mkdir -p "$HOME/theos/sdks"
+          curl -fsSL -o /tmp/sdk.tar.xz \
+            "https://github.com/theos/sdks/releases/download/master-146e41f/iPhoneOS16.5.sdk.tar.xz"
+          tar -xf /tmp/sdk.tar.xz -C "$HOME/theos/sdks/"
+          rm -f /tmp/sdk.tar.xz
+          ls -la "$HOME/theos/sdks/"
+
+      - name: Build rootless (arm64)
+        id: build-rootless
+        working-directory: debs
+        run: |
+          set -x
+          export ARCHS="arm64"
+          ERRLOG="${{ github.workspace }}/build-errors.txt"
+
+          echo "=== THEOS ==="
+          echo "THEOS=$THEOS"
+          echo "=== SDK ==="
+          ls -la "$THEOS/sdks/" 2>/dev/null
+
+          {
+            echo "=== Build Info ==="
+            echo "Timestamp: $(date -u)"
+            echo "THEOS: $THEOS"
+            echo "SDK: $(ls -la $THEOS/sdks/ 2>/dev/null)"
+          } > "$ERRLOG"
+
+          mkdir -p "${{ github.workspace }}/debs-rootless"
+          RC=0
+
+          shopt -s nullglob
+          for proj in */; do
+            proj="${proj%/}"
+            mf="${proj}/Makefile"
+            [ -f "$mf" ] || continue
+            grep -qE "(TWEAK_NAME|TOOL_NAME|APPLICATION_NAME)" "$mf" 2>/dev/null || continue
+
+            echo ""
+            echo "=== 编译 [$proj] rootless (arm64) ==="
+            pushd "$proj" >/dev/null
+            make clean 2>/dev/null || true
+
+            LOGFILE="/tmp/build-rootless-${proj}.log"
+            make THEOS_PACKAGE_SCHEME=rootless FINALPACKAGE=1 VERBOSE=1 2>&1 | tee "$LOGFILE"
+            proj_rc=${PIPESTATUS[0]}
+
+            if [ "$proj_rc" -ne 0 ]; then
+              RC=$proj_rc
+              echo ""
+              echo "=== [$proj] 编译失败！最后 30 行错误日志 ==="
+              tail -30 "$LOGFILE"
+              grep -ni "error:" "$LOGFILE" | head -10 | while IFS=: read -r line rest; do
+                echo "::error file=${proj},line=${line}::${rest:0:200}"
+              done
+            else
+              echo "=== [$proj] 编译成功，开始打包 ==="
+              make THEOS_PACKAGE_SCHEME=rootless package FINALPACKAGE=1 2>&1 | tee /tmp/build-rootless-pkg-${proj}.log
+              pkg_rc=${PIPESTATUS[0]}
+              cat /tmp/build-rootless-pkg-${proj}.log >> "$ERRLOG"
+              if [ "$pkg_rc" -eq 0 ]; then
+                cp packages/*.deb "${{ github.workspace }}/debs-rootless/" 2>/dev/null || true
+              else
+                RC=$pkg_rc
+                echo "=== [$proj] 打包失败 ===" >> "$ERRLOG"
+              fi
+            fi
+
+            {
+              echo ""
+              echo "=== Project: $proj ==="
+              echo "Exit code: $proj_rc"
+              cat "$LOGFILE"
+            } >> "$ERRLOG"
+
+            popd >/dev/null
+          done
+
+          rootless_count=$(ls "${{ github.workspace }}/debs-rootless/"*.deb 2>/dev/null | wc -l)
+          echo "rootless deb 数量: $rootless_count"
+
+          if [ "$RC" -ne 0 ]; then
+            echo "exit_code=$RC" >> $GITHUB_OUTPUT
+            echo ""
+            echo "=== 有项目编译失败，完整日志 ==="
+            tail -60 "$ERRLOG"
+            exit "$RC"
+          fi
+
+          echo "exit_code=0" >> $GITHUB_OUTPUT
+          echo "=== 全部 rootless 编译成功 ==="
+          ls -la "${{ github.workspace }}/debs-rootless/"
+
+      - name: Upload build logs (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: build-errors.txt
+
+      # 将错误日志提交到仓库以便阅读
+      - name: Commit error log for debugging
+        if: failure()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if [ ! -f "build-errors.txt" ]; then
+            echo "build-errors.txt 不存在，跳过提交"
+            exit 0
+          fi
+
+          # 在切换分支前保存错误日志
+          cp build-errors.txt /tmp/build-errors.txt
+
+          git fetch origin build-logs 2>/dev/null || true
+          if git show-ref --verify --quiet refs/heads/build-logs; then
+            git checkout build-logs
+          elif git show-ref --verify --quiet refs/remotes/origin/build-logs; then
+            git checkout -b build-logs origin/build-logs
+          else
+            git checkout --orphan build-logs
+            rm -f .git/index
+            git clean -fd
+          fi
+
+          mkdir -p errors
+          cp /tmp/build-errors.txt "errors/build-run-${{ github.run_id }}.txt"
+
+          if git diff --quiet && git diff --cached --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]; then
+            echo "无新变更，跳过提交"
+            exit 0
+          fi
+
+          git add errors/
+          git commit -m "ci: save build error log for run #${{ github.run_id }}"
+          git push origin build-logs --force 2>&1 || echo "推送失败（可能权限不足）"
+
+      - name: Build roothide (arm64e)
+        if: success() && steps.build-rootless.outputs.exit_code == 0
+        working-directory: debs
+        run: |
+          set -x
+          export ARCHS="arm64 arm64e"
+
+          echo "=== 检查 roothide vendor ==="
+          ls -la "$THEOS/vendor/include/roothide.h" 2>/dev/null && echo "roothide.h 存在"
+          ls -la "$THEOS/vendor/mod/roothide/" 2>/dev/null && echo "roothide mod 存在"
+          ls -la "$THEOS/vendor/lib/libroothide.tbd" 2>/dev/null && echo "libroothide.tbd 存在"
+
+          mkdir -p "${{ github.workspace }}/debs-roothide"
+
+          shopt -s nullglob
+          ANY=0
+          for proj in */; do
+            proj="${proj%/}"
+            mf="${proj}/Makefile"
+            [ -f "$mf" ] || continue
+            grep -qE "(TWEAK_NAME|TOOL_NAME|APPLICATION_NAME)" "$mf" 2>/dev/null || continue
+            ANY=1
+
+            echo ""
+            echo "=== 编译 [$proj] roothide (arm64e) ==="
+            pushd "$proj" >/dev/null
+            make clean 2>/dev/null || true
+            LOGFILE="/tmp/build-roothide-${proj}.log"
+            make THEOS_PACKAGE_SCHEME=roothide FINALPACKAGE=1 2>&1 | tee "$LOGFILE"
+            build_rc=${PIPESTATUS[0]}
+            cat "$LOGFILE" >> "${{ github.workspace }}/build-errors.txt"
+            [ "$build_rc" -eq 0 ] || exit "$build_rc"
+            make THEOS_PACKAGE_SCHEME=roothide package FINALPACKAGE=1 2>&1 | tee -a "${{ github.workspace }}/build-errors.txt"
+            pkg_rc=${PIPESTATUS[0]}
+            [ "$pkg_rc" -eq 0 ] || exit "$pkg_rc"
+            mkdir -p "${{ github.workspace }}/debs-roothide/$proj"
+            cp packages/*.deb "${{ github.workspace }}/debs-roothide/$proj/" 2>/dev/null || true
+            popd >/dev/null
+          done
+
+          roothide_count=$(find "${{ github.workspace }}/debs-roothide" -name "*.deb" 2>/dev/null | wc -l)
+          echo "roothide deb 数量: $roothide_count"
+          [ "$ANY" -eq 0 ] && echo "未找到 Theos 项目"
+          if [ "$roothide_count" -eq 0 ]; then
+            echo "RootHide 未产出 deb" | tee -a "${{ github.workspace }}/build-errors.txt"
+            exit 2
+          fi
+
+      - name: Commit roothide error log
+        if: failure()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          cp build-errors.txt /tmp/build-errors.txt 2>/dev/null || true
+          git fetch origin build-logs 2>/dev/null || true
+          git checkout -B build-logs origin/build-logs 2>/dev/null || git checkout --orphan build-logs
+          mkdir -p errors
+          cp /tmp/build-errors.txt "errors/build-run-${{ github.run_id }}.txt"
+          git add errors/
+          git commit -m "ci: save roothide error log for run #${{ github.run_id }}" || true
+          git push origin build-logs --force
+
+      - name: Dump symbols for crash triage
+        if: success() && steps.build-rootless.outputs.exit_code == 0
+        working-directory: debs
+        run: |
+          set -x
+          mkdir -p "${{ github.workspace }}/symbols"
+          # 目录里未必有 CPUthermal：逐个工程扫，没有 dSYM 也不许失败
+          for proj in */; do
+            proj="${proj%/}"
+            [ -d "$proj" ] || continue
+            (
+              cd "$proj" || exit 0
+              if [ -f build-map.txt ]; then
+                cp build-map.txt "${{ github.workspace }}/symbols/${proj}-build-map.txt"
+              fi
+              find . -maxdepth 4 \( -name '*build-map*.txt' -o -name '*.dSYM' \) 2>/dev/null \
+                >> "${{ github.workspace }}/symbols/found.txt"
+              find . -maxdepth 4 -name '*.dSYM' 2>/dev/null | while read -r d; do
+                n=$(basename "$d" | sed 's/\.dylib\.dSYM$//; s/\.dSYM$//')
+                bin="$d/Contents/Resources/DWARF/$n"
+                if [ -f "$bin" ]; then
+                  nm -n "$bin" > "${{ github.workspace }}/symbols/${proj}-${n}.txt" || true
+                fi
+              done
+            ) || true
+          done
+          ls -l "${{ github.workspace }}/symbols" || true
+
+      - name: Collect debs
+        if: success() && steps.build-rootless.outputs.exit_code == 0
+        run: |
+          set -x
+
+          # 保留已有 package（别的工程上次构建的 deb 不能因为这次没编就被删掉），
+          # 只覆盖同名的新构建产物
+          mkdir -p "${{ github.workspace }}/packages"
+
+          echo "=== rootless debs ==="
+          if [ -d "${{ github.workspace }}/debs-rootless" ]; then
+            cp "${{ github.workspace }}"/debs-rootless/*.deb "${{ github.workspace }}/packages/" 2>/dev/null || echo "无 rootless debs"
+          fi
+
+          echo "=== roothide debs ==="
+          if [ -d "${{ github.workspace }}/debs-roothide" ]; then
+            find "${{ github.workspace }}/debs-roothide" -name "*.deb" -exec cp {} "${{ github.workspace }}/packages/" \; 2>/dev/null || echo "无 roothide debs"
+          fi
+
+          echo "=== 汇总 ==="
+          ls -la "${{ github.workspace }}/packages/" || echo "packages 为空"
+
+      - name: Commit and push debs
+        if: success() && steps.build-rootless.outputs.exit_code == 0
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if [ -z "$(ls packages/*.deb 2>/dev/null)" ]; then
+            echo "无新 deb，跳过提交"
+            exit 0
+          fi
+
+          # 清除旧 deb 跟踪，只保留本次构建的最新版本
+          git ls-files 'packages/*.deb' | xargs -r git rm --cached
+          # 强制添加新 deb
+          git add -f packages/*.deb
+          git add -f symbols/*.txt 2>/dev/null || true
+          if git diff --quiet --cached; then
+            echo "无变更，跳过提交"
+          else
+            deb_list=$(ls packages/*.deb 2>/dev/null | xargs -I{} basename {} | tr '\n' ' ')
+            echo "提交 debs: $deb_list"
+            git commit -m "chore: 自动构建 deb 包 [ci skip]"
+            git push
+          fi
+
+      - name: Clean build artifacts (keep source)
+        if: success() && steps.build-rootless.outputs.exit_code == 0
+        run: |
+          set -x
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # 源码（debs/<工程>/）永久保留，只清理构建产物；.gitignore 里忽略的
+          # .theos/、obj/、packages/、.dSYM 等本来就不会进入仓库。
+          #
+          # 曾经的做法是构建后 `git rm -r debs/<工程>/`，下一次构建再靠提交历史
+          # 恢复源码。那条路一旦失败会丢一行源码、且没有任何提示，已废弃：
+          # 现在只删产物，不删源码，也不改写已跟踪的源文件。
+          find debs -maxdepth 3 -type d \
+            \( -name '.theos' -o -name 'obj' -o -name 'packages' \) \
+            -prune -exec rm -rf {} + 2>/dev/null || true
+          find debs -maxdepth 4 -name '*.dSYM' -prune -exec rm -rf {} + 2>/dev/null || true
+
+          # 守卫：清理后已跟踪的源文件必须一个都不少，否则直接失败而不是静默提交。
+          missing=0
+          while IFS= read -r f; do
+            [ -e "$f" ] || { echo "::error::源码在清理步骤中丢失: $f"; missing=1; }
+          done < <(git ls-files 'debs/**')
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+          touch debs/.gitkeep
+          git add -f debs/.gitkeep 2>/dev/null || true
+
+          if git diff --quiet --cached; then
+            echo "无变更，跳过提交"
+          else
+            git commit -m "chore: 清理构建产物（保留源码） [ci skip]"
+            git push
+          fi

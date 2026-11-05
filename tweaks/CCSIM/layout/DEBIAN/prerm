@@ -1,0 +1,10 @@
+#!/bin/sh
+# 移除本包自己加的 roothide 补丁标记，别把软链留在系统里。
+set -e
+
+for f in "/Library/ControlCenter/Bundles/CCSIM.bundle/CCSIM.roothidepatch" \
+         "/usr/local/bin/CCSIMTool.roothidepatch"; do
+    [ -L "$f" ] && rm -f "$f" 2>/dev/null || true
+done
+
+exit 0

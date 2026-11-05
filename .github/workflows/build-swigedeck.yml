@@ -1,0 +1,67 @@
+name: Build SwipeDeck Unlocked deb
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'tools/swipedeck-src/*.deb'
+      - 'tools/patch_swipedeck.py'
+      - '.github/workflows/build-swigedeck.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    # 防止机器人自己 push 回来的产物再次触发构建
+    if: github.actor != 'github-actions[bot]'
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 环境信息
+        run: |
+          sw_vers
+          python3 -V
+          ls -la debs || true
+
+      - name: 定位原始包（排除已解锁的）
+        run: |
+          SRC=$(ls -1 tools/swipedeck-src/*.deb 2>/dev/null | head -1)
+          if [ -z "$SRC" ]; then echo "tools/swipedeck-src/ 里没有原始 deb"; exit 1; fi
+          echo "SRC=$SRC" >> $GITHUB_ENV
+          echo "使用源包: $SRC"
+
+      - name: 打补丁并重新打包
+        run: |
+          mkdir -p dist
+          OUT="dist/$(basename "$SRC" .deb)_unlocked.deb"
+          python3 tools/patch_swipedeck.py "$SRC" -o "$OUT"
+          echo "OUT=$OUT" >> $GITHUB_ENV
+
+      - name: 校验产物（签名页必须 0 处不匹配）
+        run: |
+          ls -la dist
+          python3 tools/patch_swipedeck.py --verify "$OUT"
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: swipedeck-unlocked-deb
+          path: dist/*.deb
+
+      - name: 提交到 packages（Pages 可直接下载，不触发 Theos 构建）
+        run: |
+          mkdir -p packages
+          cp dist/*.deb packages/
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f packages/*.deb
+          git commit -m "build: SwipeDeck unlocked deb [ci skip]" || echo "nothing to commit"
+          git push
