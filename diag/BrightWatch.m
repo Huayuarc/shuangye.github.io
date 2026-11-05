@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
                 phys = numberFrom(display[@"NitsPhysical"]);
                 brightness = numberFrom(display[@"Brightness"]);
             }
-            double level = -1, cap = -1, ambient = -1, temp = -1, tempComp = -1;
+            double level = -1, cap = -1, ambient = -1, temp = -1, tempComp = -1, apt = -1;
             io_registry_entry_t fb = IOServiceGetMatchingService(kIOMasterPortDefault, IOServiceMatching("AppleCLCD2"));
             if (fb) {
                 level = registryNumber(fb, "IOMFBBrightnessLevel");
@@ -81,10 +81,11 @@ int main(int argc, char **argv) {
                 ambient = registryNumber(fb, "AmbientBrightness");
                 temp = registryNumber(fb, "APTPDCTemperature");
                 tempComp = registryNumber(fb, "IOMFBTemperatureCompensationEnable");
+                apt = registryNumber(fb, "APTPDCBrightness");
                 IOObjectRelease(fb);
             }
-            printf("%4d  %8.2f  %8.2f  %9.2f  %9.2f  %7.0f  %8.2f  %10.4f  %8.0f\n",
-                   i, req, phys, level, cap, ambient, temp, brightness, tempComp);
+            printf("%4d  %8.2f  %8.2f  %9.2f  %9.2f  %7.0f  %8.2f  %10.4f  %8.0f  %9.2f\n",
+                   i, req, phys, level, cap, ambient, temp, brightness, tempComp, apt);
             fflush(stdout);
             usleep((useconds_t)intervalMs * 1000);
         }
