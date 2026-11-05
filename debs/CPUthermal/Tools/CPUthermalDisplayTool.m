@@ -223,6 +223,90 @@ static double ReadCapNits(void) {
     return raw / scale;
 }
 
+// —— 参考 Battman（Torrekie）的机型/版本无关实现 ——
+// Battman 通过 CoreBrightness 的 VirtualBrightnessLimits 取每台机型、每个 iOS 版本
+// 真正可用的最高亮度（硬件可达 / 用户可达），并用 IOMobileFramebuffer 的 block 0
+// （温度补偿状态）读取面板硬件温度。这里沿用同样两条通道：
+//   * 上限不再靠“学到的最大值”猜，直接取机型自报的 UserAccessibleMaxNits，
+//     并用 HardwareAccessibleMaxNits 做硬保护，任何写入都不超过它；
+//   * 面板温度取 IOMFB block 0 的 Q16.16 温度（v3 第 92 项 / v1 第 84 项），
+//     只用于判定与日志，不写任何温度属性。
+// 面板温度回退来源：AppleCLCD2 / AppleCLCD / AppleDCP 的 APTPDCTemperature（Q16.16）。
+// 本机（iPhone 14,2 / iOS 16.1.2）实测可用，IOMFB block 0 不可用，所以两条都留着。
+static double CPUthermalRegistryPanelTemperature(void) {
+    static const char * const kClasses[] = {"AppleCLCD2", "AppleCLCD", "AppleDCP", NULL};
+    for (int c = 0; kClasses[c]; c++) {
+        io_service_t service = IOServiceGetMatchingService(kIOMasterPortDefault, IOServiceMatching(kClasses[c]));
+        if (!service) continue;
+        CFTypeRef value = IORegistryEntryCreateCFProperty(service, CFSTR("APTPDCTemperature"), kCFAllocatorDefault, 0);
+        double temp = -1.0;
+        if (value && (CFGetTypeID(value) == CFNumberGetTypeID() || CFGetTypeID(value) == CFStringGetTypeID())) {
+            double raw = [(__bridge id)value doubleValue];
+            if (raw > 0.0) temp = raw > 65536.0 ? raw / 65536.0 : raw;
+        }
+        if (value) CFRelease(value);
+        IOObjectRelease(service);
+        if (temp > 0.0) return temp;
+    }
+    return -1.0;
+}
+
+typedef struct {
+    BOOL digitalDimming;
+    BOOL edr;
+    int hardwareMax;
+    int hardwareMin;
+    int minDimmingNits;
+    int userMax;
+    BOOL valid;
+} CPUthermalBrightnessLimits;
+
+static CPUthermalBrightnessLimits BrightnessLimits(void) {
+    CPUthermalBrightnessLimits limits = {NO, NO, 0, 0, 0, 0, NO};
+    id client = CoreBrightnessClient();
+    if (!client) return limits;
+    id dict = nil;
+    @try { dict = ((id(*)(id, SEL, id))objc_msgSend)(client, sel_registerName("copyPropertyForKey:"), @"VirtualBrightnessLimits"); }
+    @catch (__unused NSException *e) { dict = nil; }
+    if (![dict isKindOfClass:[NSDictionary class]]) return limits;
+    NSDictionary *d = dict;
+    limits.digitalDimming = [d[@"DigitalDimmingSupported"] boolValue];
+    limits.edr = [d[@"ExtrabrightEDRSupported"] boolValue];
+    limits.hardwareMax = [d[@"HardwareAccessibleMaxNits"] intValue];
+    limits.hardwareMin = [d[@"HardwareAccessibleMinNits"] intValue];
+    limits.minDimmingNits = [d[@"MinNitsAccessibleWithDigitalDimming"] intValue];
+    limits.userMax = [d[@"UserAccessibleMaxNits"] intValue];
+    limits.valid = (limits.hardwareMax > 0 || limits.userMax > 0);
+    return limits;
+}
+
+// 面板硬件温度（摄氏度）。IOMobileFramebuffer block 0 = 温度补偿状态，
+// 96 个 uint32 的 Q16.16 结构；v3 用 [92]，v1 用 [84]。取不到返回 -1。
+static double PanelHardwareTemperatureC(void) {
+    static void *framework = NULL;
+    static BOOL tried = NO;
+    static IOReturn (*getMainDisplay)(void **) = NULL;
+    static IOReturn (*getBlock)(void *, int, void *, ssize_t, void *, ssize_t) = NULL;
+    if (!tried) {
+        tried = YES;
+        framework = dlopen("/System/Library/PrivateFrameworks/IOMobileFramebuffer.framework/IOMobileFramebuffer", RTLD_LAZY);
+        if (framework) {
+            getMainDisplay = (IOReturn (*)(void **))dlsym(framework, "IOMobileFramebufferGetMainDisplay");
+            getBlock = (IOReturn (*)(void *, int, void *, ssize_t, void *, ssize_t))dlsym(framework, "IOMobileFramebufferGetBlock");
+        }
+    }
+    if (!getMainDisplay || !getBlock) return CPUthermalRegistryPanelTemperature();
+    void *fb = NULL;
+    if (getMainDisplay(&fb) != KERN_SUCCESS || !fb) return CPUthermalRegistryPanelTemperature();
+    uint32_t block[96] = {0};
+    // iOS 16.1.2 / iPhone 14,2 实测：block 0 返回 kIOReturnUnsupported(0xE00002C7)，
+    // 只有使用 DCP 亮度且支持该 block 的机型才有值，所以必须回退 IORegistry。
+    if (getBlock(fb, 0, block, sizeof(block), NULL, 0) != KERN_SUCCESS) return CPUthermalRegistryPanelTemperature();
+    if (block[0] == 3) return (double)(int32_t)block[92] / 65536.0;
+    if (block[0] == 1) return (double)(int32_t)block[84] / 65536.0;
+    return CPUthermalRegistryPanelTemperature();
+}
+
 static void ReleaseBackend(void) {
     if (gBackend.levelKey) { CFRelease(gBackend.levelKey); gBackend.levelKey = NULL; }
     if (gBackend.capKey) { CFRelease(gBackend.capKey); gBackend.capKey = NULL; }
@@ -387,6 +471,21 @@ static void GuardOnce(void) {
     gIdleTicks = 0;
     double cap = ReadCapNits();
 
+    // 机型自报上限（Battman 方案）：UserAccessibleMaxNits 是守护目标，
+    // HardwareAccessibleMaxNits 是硬顶，任何写入都不会越过它。
+    CPUthermalBrightnessLimits limits = BrightnessLimits();
+    double panelTemperature = PanelHardwareTemperatureC();
+    double deviceCeiling = 0.0;
+    if (limits.userMax > 0) deviceCeiling = limits.userMax;
+    else if (limits.hardwareMax > 0) deviceCeiling = limits.hardwareMax;
+    else if (cap > 0.0) deviceCeiling = cap;
+
+    // 守护目标：用户请求，但不越过机型能力，也不越过面板上限。
+    double guardTarget = requested;
+    if (deviceCeiling > 0.0 && guardTarget > deviceCeiling) guardTarget = deviceCeiling;
+    if (limits.hardwareMax > 0 && guardTarget > limits.hardwareMax) guardTarget = limits.hardwareMax;
+    if (cap > 0.0 && guardTarget > cap) guardTarget = cap;
+
     if (fabs(requested - gState.req) > 2.0) { gState.req = requested; gState.reqSince = now; }
     if (gState.reqSince <= 0.0) gState.reqSince = now;
     BOOL stable = (now - gState.reqSince) >= kDisplayStableSeconds;
@@ -428,6 +527,19 @@ static void GuardOnce(void) {
         gState.lastCapCorrection = now;
     }
 
+    // 2.5) 机型守护（Battman 方案，优先于学习式纠正）：
+    //      面板级只要明显低于“用户请求且不超过机型能力”的目标，就立刻抬回；
+    //      与温度无关地执行——温控压低正是要挡的对象，温度只用于日志与诊断。
+    BOOL deviceGuarded = (deviceCeiling > 0.0 && guardTarget > kDisplayFloorNits &&
+                          level + kDisplayDeadbandNits < guardTarget * kDisplayTopRegionRatio);
+    if (deviceGuarded && (now - gState.lastCorrection) > kDisplayCorrectionCooldown) {
+        RaiseLevel(level, guardTarget, requested);
+        gState.lastCorrection = Now();
+        os_log(DisplayLevelLog(),
+               "displayLevel device guard req=%{public}.1f level=%{public}.1f target=%{public}.1f userMax=%{public}d hwMax=%{public}d panelTemp=%{public}.2f",
+               requested, level, guardTarget, limits.userMax, limits.hardwareMax, panelTemperature);
+    }
+
     // 3) 纠正被压暗的面板亮度级。
     //    满亮度区：目标就是请求本身（面板应当到上限），阈值 95%；
     //    其余区间：目标 = 请求 × 已学系统映射比例，且必须是“邻近健康样本 + 比例塌陷”才动手。
@@ -455,8 +567,8 @@ static void GuardOnce(void) {
         double physical = PhysicalNits();
         if (physical > 0.0 && level > 0.0 && physical < level * 0.75) {
             os_log(DisplayLevelLog(),
-                   "displayLevel panel-limited req=%{public}.1f level=%{public}.1f physical=%{public}.1f",
-                   requested, level, physical);
+                   "displayLevel panel-limited req=%{public}.1f level=%{public}.1f physical=%{public}.1f userMax=%{public}d hwMax=%{public}d panelTemp=%{public}.2f",
+                   requested, level, physical, limits.userMax, limits.hardwareMax, panelTemperature);
         }
     }
 
