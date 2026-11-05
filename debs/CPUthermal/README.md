@@ -432,3 +432,7 @@ iOS 16.2 的「关于本机 → 部件和服务历史记录 → 电池 未知部
 
 - **电池提示深度屏蔽**：新增独立 `CPUthermalBatteryComponent` 模块（仅注入 `Preferences`/`SpringBoard`），在 `CPUthermalBatteryHealth` 基础上补充对“设置顶部红字角标”和“关于本机 → 部件和服务历史记录 → 未知部件”的深度拦截。Hook 目标限于实证类 `BatteryUIResourceClass`、`BatteryUIController`、`SBIconController`；面板新增默认关闭的“隐藏部件与服务历史未知部件”开关（`suppressComponentWarning`），开启时同时抑制部件提示，关闭时完整透传。
 - **智能停充三合一**：面板将 `使用 SmartBatteryAPI`、`智能停充`、`停充时自动禁流` 三个开关合并为单一总开关 `smartChargeEnabled`（“SmartBatteryAPI 智能停充”）。总开关开启时默认启用 SmartBattery 优先 + 停充自动禁流，等同旧三开关同时为 YES；旧键若仍显式存在于偏好中按旧意图继续生效，功能不变。
+
+## isolation.57
+
+防温控暗屏：写入路径事前拦截（DisplayShield）+ 0.5s 巡检恢复（DisplayTool）+ 0.5s 上限巡检（核心）。面板温补在 DCP 固件内，主机侧不可写。
