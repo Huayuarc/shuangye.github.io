@@ -55,10 +55,10 @@
 00000001000075a0 s _objc_msgSend$stringByResolvingSymlinksInPath
 00000001000075c0 s _objc_msgSend$stringWithUTF8String:
 00000001000075e0 s _objc_msgSend$writeToFile:atomically:
-00000001000076c0 s _kDisplayScaleCandidates
-00000001000076d8 s _BucketForRequest.upper
-0000000100007700 s GCC_except_table0
-0000000100007988 s GCC_except_table15
+00000001000076c8 s _kDisplayScaleCandidates
+00000001000076e0 s _BucketForRequest.upper
+0000000100007708 s GCC_except_table0
+0000000100007990 s GCC_except_table15
 0000000100010188 s ___block_descriptor_32_e5_v8?0l
 00000001000101a8 s ___block_literal_global
 00000001000101c8 s ___block_literal_global.30
