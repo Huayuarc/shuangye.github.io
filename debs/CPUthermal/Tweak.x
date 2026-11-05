@@ -1083,8 +1083,6 @@ static const double kCPUthermalMinimumPlausibleBacklightLimit = 400.0;
 // 部分显示键（如 AppleCLCD2 的 BLNitsCap）使用 16.16 定点 nits，
 // 直接写 nits 会把上限写成 0.x nits 级别，必须按同一空间换算。
 static const double kCPUthermalFixedPointScale = 65536.0;
-// 任何面板原生上限都不可能高于此值（nits），更高的读数一律视为非 nits 空间。
-static const double kCPUthermalMaximumPlausibleBacklightLimit = 3000.0;
 
 // 键值原始读数 -> nits。部分键（BLNitsCap / IOMFBBrightnessLevel 等）用 16.16 定点，
 // 其余键直接是 nits；亮度滑块类的 0~1 值不会被误判为定点，也不会被当上限采信。
