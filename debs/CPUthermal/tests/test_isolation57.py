@@ -58,34 +58,33 @@ class CoreFastCapTick(unittest.TestCase):
         self.assertIn('CPUthermalFastCapTick();', starter[:400])
 
 
-class ShieldSuppressesDrop(unittest.TestCase):
-    def test_shield_has_drop_suppressor(self):
-        self.assertIn('CPUthermalShouldSuppressLevelDrop', SHIELD)
-        self.assertIn('kShieldSuppressTopRatio', SHIELD)
-        self.assertIn('kShieldSuppressTemperatureC', SHIELD)
+class ShieldNeverBlocksUserDims(unittest.TestCase):
+    """isolation.60：显示守卫不得吞掉面板亮度级写入。
 
-    def test_shield_hooks_discard_the_write(self):
+    真机实测（172/isolation.59）：用户把亮度滑块拖到 54%，IOMFBBrightnessLevel 仍被顶在
+    1060 nits，屏幕亮度完全不变——正是 isolation.57 的“满档断崖”拦截把用户自己的调暗
+    写入丢掉了。亮度级的事只交给 CPUthermalDisplayTool（它读 CoreBrightness 的请求值，
+    能区分用户意图与系统压暗），守卫只保留上限（cap）保护。
+    """
+
+    def test_shield_has_no_level_drop_suppressor(self):
+        self.assertNotIn('CPUthermalShouldSuppressLevelDrop', SHIELD)
+        self.assertNotIn('suppressed thermal panel level drop', SHIELD)
+
+    def test_shield_still_protects_the_cap(self):
+        self.assertIn('CPUthermalDisplayCapKey(key)', SHIELD)
+        self.assertIn('CPUthermalProtectedDisplayCapValue', SHIELD)
+
+    def test_shield_passes_writes_through(self):
         for hook in ('CPUthermalHookedRegistrySet', 'CPUthermalHookedServiceSet'):
             body = SHIELD.split('static kern_return_t %s(' % hook, 1)[1].split('\n}', 1)[0]
-            self.assertIn('CPUthermalShouldSuppressLevelDrop(', body)
-            self.assertIn('return KERN_SUCCESS;', body)
-
-    def test_shield_never_passes_zero_and_never_writes_values(self):
-        body = SHIELD.split('static BOOL CPUthermalShouldSuppressLevelDrop(', 1)[1].split('\n}', 1)[0]
-        self.assertIn('if (next <= 0.0) return NO;', body)
-        self.assertIn('if (current < threshold) return NO;', body)
-        # 只读取属性，不写任何属性
-        self.assertNotIn('SetCFProperty', body)
-
-    def test_shield_uses_local_registry_only(self):
-        body = SHIELD.split('static BOOL CPUthermalShouldSuppressLevelDrop(', 1)[1].split('\n}', 1)[0]
-        self.assertNotIn('objc_msgSend', body)
-        self.assertNotIn('BrightnessSystemClient', body)
+            self.assertIn('replacement ? (__bridge CFTypeRef)replacement : value', body)
+            self.assertNotIn('return KERN_SUCCESS;', body)
 
 
 class Version(unittest.TestCase):
     def test_version(self):
-        self.assertIn('Version: 1.6.2-172+isolation.59', CONTROL)
+        self.assertIn('Version: 1.6.2-173+isolation.60', CONTROL)
 
 
 if __name__ == '__main__':

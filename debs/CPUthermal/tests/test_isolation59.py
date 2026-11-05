@@ -44,7 +44,7 @@ class PlausibleCeiling(unittest.TestCase):
 
 class Version(unittest.TestCase):
     def test_version(self):
-        self.assertIn('Version: 1.6.2-172+isolation.59', CONTROL)
+        self.assertIn('Version: 1.6.2-173+isolation.60', CONTROL)
 
 
 if __name__ == '__main__':
