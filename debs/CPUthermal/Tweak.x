@@ -1191,8 +1191,8 @@ static NSUInteger CPUthermalRaiseExistingBacklightLimits(void) {
                     // 1060 nits 的普通读数误当定点；isolation.56 改为按该键自己的
                     // 表示判断：整数且不超上限＝nits，其余（小数或超大读数）＝16.16 定点。
                     BOOL fixedPoint = (current > kCPUthermalFixedPointScale);
-                    double currentNits = CPUthermalNitsFromRawValue(current);
                     double scaled = fixedPoint ? target * kCPUthermalFixedPointScale : target;
+                    // 同一空间比较：定点键比定点值，nits 键比 nits，避免单位混算造成误判。
                     if (current + 0.5 < scaled) {
                         id writeValue = fixedPoint ? @((long long)(scaled + 0.5)) : @((long long)(target + 0.5));
                         CPUthermalIORegistryEntrySetCFProperty(entry, key, (__bridge CFTypeRef)writeValue);
