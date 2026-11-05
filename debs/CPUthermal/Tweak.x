@@ -1230,7 +1230,7 @@ static void CPUthermalBacklightAuditTick(void) {
             CPUthermalRecommitUserBrightnessSoon();
         }
     }
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 20ull*NSEC_PER_SEC), dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{CPUthermalBacklightAuditTick();});
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 5ull*NSEC_PER_SEC), dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{CPUthermalBacklightAuditTick();});
 }
 
 static void CPUthermalStartBacklightAuditTimer(void) {

@@ -72,7 +72,7 @@ class CoreBacklightContract(unittest.TestCase):
         tick = body('static void CPUthermalBacklightAuditTick(void) {')
         self.assertIn('CPUthermalCaptureExistingBacklightMaximum();', tick)
         self.assertIn('CPUthermalRaiseExistingBacklightLimits();', tick)
-        self.assertIn('20ull*NSEC_PER_SEC', tick)
+        self.assertIn('5ull*NSEC_PER_SEC', tick)
         self.assertEqual(TWEAK.count('CPUthermalStartBacklightAuditTimer'), 2)  # 定义 + 调用
         # 屏幕点亮/解锁复用模式应用中的统一恢复事务，不再叠加三轮 IORegistry 全树扫描。
         wake = body('static void restoreUserModeAfterWake(const char *source) {')
@@ -115,8 +115,8 @@ class CoreBacklightContract(unittest.TestCase):
         for chunk in (tick, schedule):
             self.assertNotIn('NSEC_PER_MSEC', chunk)
             self.assertNotIn('dispatch_source', chunk)
-        self.assertEqual(tick.count('20ull*NSEC_PER_SEC'), 1)
-        self.assertEqual(TWEAK.count('20ull*NSEC_PER_SEC'), 1)
+        self.assertEqual(tick.count('5ull*NSEC_PER_SEC'), 1)
+        self.assertEqual(TWEAK.count('5ull*NSEC_PER_SEC'), 1)
 
     def test_readme_documents_weaker_scope_and_gate(self):
         for phrase in ('只能事后纠正', '无法拦截其它进程', '比被移除模块弱', '用户明确取舍'):

@@ -45,23 +45,23 @@ static os_log_t DisplayLevelLog(void) {
 
 // —— 行为判据 ——
 static const double kDisplayFloorNits = 40.0;          // 低于此亮度完全不管（暗环境/待机）
-static const double kDisplayDeadbandNits = 8.0;        // 小于此差值不值得写
+static const double kDisplayDeadbandNits = 5.0;        // 小于此差值不值得写
 static const double kDisplayAbsoluteCeilingNits = 2000.0;
-static const double kDisplayStableSeconds = 2.0;       // 请求必须稳定这么久才判定
+static const double kDisplayStableSeconds = 0.35;      // isolation.57：缩短到 0.35s，被压后几乎立刻判定
 static const double kDisplayClampRatioFactor = 0.80;   // 比例跌到已学值的 80% 以下 = 被压
 static const double kDisplaySampleProximity = 0.20;    // 当前请求离学习样本不超过 20% 才判定
 static const double kDisplayPlausibleRatioMin = 0.50;
 static const double kDisplayPlausibleRatioMax = 1.05;
-static const double kDisplayCorrectionCooldown = 20.0;
-static const double kDisplayLearnMuteAfterCorrection = 3.0;
+static const double kDisplayCorrectionCooldown = 1.0;  // isolation.57：1s 内可再次纠正，不再等 20s
+static const double kDisplayLearnMuteAfterCorrection = 0.5;
 static const double kDisplayRampThreshold = 0.25;      // 落差超过目标的 25% 时分两段
 static const useconds_t kDisplayRampDelayMicroseconds = 120000;
 static const double kDisplayHighRequestNits = 700.0;   // 满亮度区起点
-static const double kDisplayTopRegionRatio = 0.95;     // 满亮度区应有 ≥95% 的输出
+static const double kDisplayTopRegionRatio = 0.90;     // 满亮度区应有 ≥90% 的输出
 static const double kDisplayTopRegionCapRatio = 0.95;  // 上限不低于请求的 95% 才按满亮度区处理
 static const double kDisplayCapFloorNits = 400.0;      // 低于此值的上限读数不可信
-static const double kDisplayCapCooldown = 30.0;
-static const useconds_t kDisplayTickMicroseconds = 500000;
+static const double kDisplayCapCooldown = 2.0;
+static const useconds_t kDisplayTickMicroseconds = 250000;  // isolation.57：每 0.25s 巡检一次
 static const double kDisplayHeartbeatSeconds = 300.0;
 static const double kDisplayRediscoverSeconds = 30.0;  // 没有可用节点时的重试间隔
 static const int kDisplayIdleTicksBeforeRediscover = 20;
@@ -129,15 +129,21 @@ static void EnsureCoreBrightness(void) {
 }
 
 // 用户当前请求的面板亮度（nits）。滑块 100% 时是面板峰值，随滑块与自动亮度变化。
-static double RequestedNits(void) {
-    static id client = nil;
+static id gCBClient = nil;
+
+static id CoreBrightnessClient(void) {
     static dispatch_once_t once;
     dispatch_once(&once, ^{
         EnsureCoreBrightness();
         Class cls = objc_getClass("BrightnessSystemClient");
         if (!cls) return;
-        @try { client = [[cls alloc] init]; } @catch (__unused NSException *e) { client = nil; }
+        @try { gCBClient = [[cls alloc] init]; } @catch (__unused NSException *e) { gCBClient = nil; }
     });
+    return gCBClient;
+}
+
+static double RequestedNits(void) {
+    id client = CoreBrightnessClient();
     if (!client) return 0.0;
     id display = nil;
     @try { display = ((id(*)(id, SEL, id))objc_msgSend)(client, sel_registerName("copyPropertyForKey:"), @"DisplayBrightness"); }
@@ -147,6 +153,20 @@ static double RequestedNits(void) {
     if (![nits respondsToSelector:@selector(doubleValue)]) return 0.0;
     double value = [nits doubleValue];
     return (value > 0.0 && value <= 10000.0) ? value : 0.0;
+}
+
+// 面板实际输出亮度（CoreBrightness 上报的 NitsPhysical）。只用于判断“主机侧已满、面板仍低”的硬件温补。
+static double PhysicalNits(void) {
+    id client = CoreBrightnessClient();
+    if (!client) return 0.0;
+    id display = nil;
+    @try { display = ((id(*)(id, SEL, id))objc_msgSend)(client, sel_registerName("copyPropertyForKey:"), @"DisplayBrightness"); }
+    @catch (__unused NSException *e) { display = nil; }
+    if (![display isKindOfClass:[NSDictionary class]]) return 0.0;
+    id nits = ((NSDictionary *)display)[@"NitsPhysical"];
+    if (![nits respondsToSelector:@selector(doubleValue)]) return 0.0;
+    double value = [nits doubleValue];
+    return (value > 0.0 && value <= 5000.0) ? value : 0.0;
 }
 
 static CFTypeRef CopyRegistryValue(io_registry_entry_t service, CFStringRef key) {
@@ -400,15 +420,31 @@ static void GuardOnce(void) {
     //    满亮度区：目标就是请求本身（面板应当到上限），阈值 95%；
     //    其余区间：目标 = 请求 × 已学系统映射比例，且必须是“邻近健康样本 + 比例塌陷”才动手。
     double expected = topRegion ? 1.0 : known;
+    // isolation.57：还没有学到健康样本时，只要面板级跌到请求的一半以下也算被压，
+    // 立刻按请求的 85% 抬回，不再等“先学样本、再判塌陷”。
+    BOOL hardCollapse = (known <= 0.0 && requested >= kDisplayFloorNits && ratio < 0.5);
     BOOL clamped = topRegion ? (ratio < kDisplayTopRegionRatio)
-                             : ((nearby && ratioCollapsed) ||
+                             : (hardCollapse || (nearby && ratioCollapsed) ||
                                 (known <= 0.0 && expected > 0.0 && ratio < expected * kDisplayClampRatioFactor));
     if (stable && clamped && (now - gState.lastCorrection) > kDisplayCorrectionCooldown) {
-        double target = requested * expected;
+        double target = requested * (hardCollapse ? 0.85 : expected);
         if (cap > 0.0 && target > cap) target = cap;
         if (target - level > kDisplayDeadbandNits) {
             RaiseLevel(level, target, requested);
             gState.lastCorrection = Now();
+        }
+    }
+
+    // isolation.57 取证：主机侧已经把面板级抬到请求值、但 CoreBrightness 上报的物理亮度
+    // 仍明显低于面板级时，说明压暗发生在面板/DCP 固件（温度补偿），主机侧写不动，只记日志。
+    static double lastPhysicalLog = 0.0;
+    if ((now - lastPhysicalLog) >= 5.0) {
+        lastPhysicalLog = now;
+        double physical = PhysicalNits();
+        if (physical > 0.0 && level > 0.0 && physical < level * 0.75) {
+            os_log(DisplayLevelLog(),
+                   "displayLevel panel-limited req=%{public}.1f level=%{public}.1f physical=%{public}.1f",
+                   requested, level, physical);
         }
     }
 

@@ -64,7 +64,7 @@ class CorrectionIsRatioBased(unittest.TestCase):
         self.assertIn('nearby && ratioCollapsed', TOOL)
 
     def test_target_is_request_times_learned_ratio(self):
-        self.assertIn('double target = requested * expected;', TOOL)
+        self.assertIn("double target = requested * (hardCollapse ? 0.85 : expected);", TOOL)
 
     def test_peak_region_targets_the_request_itself(self):
         self.assertIn('BOOL topRegion', TOOL)
