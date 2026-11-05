@@ -24,8 +24,7 @@ static BOOL CPUthermalIsSensitiveThermalName(const char *name) {
     if (!name) return NO;
     return strcmp(name, "com.apple.system.thermalpressurelevel") == 0 ||
            strcmp(name, "com.apple.system.thermalnotification") == 0 ||
-           strcmp(name, "com.apple.system.maxthermalsensorvalue") == 0 ||
-           strcmp(name, "com.apple.system.thermalsunlightstate") == 0;
+           strcmp(name, "com.apple.system.maxthermalsensorvalue") == 0;
 }
 
 static void CPUthermalRememberThermalToken(int token) {

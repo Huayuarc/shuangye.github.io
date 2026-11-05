@@ -21,7 +21,7 @@ WARN = (P / 'CPUthermalSpringBoard.xm').read_text()
 TOOL = (P / 'Tools/CPUthermalChargeTool.m').read_text()
 FACEDOWN = (P / 'CPUthermalSpringBoard.xm').read_text()
 
-SWITCH_KEYS = ('lockWhenFaceDown', 'sunlightLockedEnabled', 'blockThermalPopup',
+SWITCH_KEYS = ('lockWhenFaceDown', 'blockThermalPopup',
                'suppressBatteryServiceWarnings',
                'smartChargeEnabled')
 

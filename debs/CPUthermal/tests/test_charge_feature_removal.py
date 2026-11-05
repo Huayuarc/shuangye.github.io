@@ -82,11 +82,11 @@ class ChargeFeatureRemoval(unittest.TestCase):
         for token in ('IORegistryEntrySetCF', 'notify_', 'scheduledTimer', 'CPUthermalWritePrefs'):
             self.assertNotIn(token, COMPAT)
 
-    def test_panel_has_five_remaining_default_off_switches(self):
+    def test_panel_has_four_remaining_default_off_switches(self):
         keys = re.findall(r'ITEM\("[^"]+", "([^"]+)", PSSwitchCell, \[NSNumber numberWithBool:NO\]', PANEL)
-        self.assertEqual(keys, ['lockWhenFaceDown', 'sunlightLockedEnabled', 'blockThermalPopup',
+        self.assertEqual(keys, ['lockWhenFaceDown', 'blockThermalPopup',
                                 'suppressBatteryServiceWarnings', 'smartChargeEnabled'])
-        self.assertEqual(len(re.findall(r'^\s*GROUP\(', PANEL, re.M)), 8)
+        self.assertEqual(len(re.findall(r'^\s*GROUP\(', PANEL, re.M)), 7)
 
 
 if __name__ == '__main__':

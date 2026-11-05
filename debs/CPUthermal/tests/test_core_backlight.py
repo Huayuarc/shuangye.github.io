@@ -44,13 +44,14 @@ class CoreBacklightContract(unittest.TestCase):
 
     def test_replacement_is_only_raise(self):
         replacement = body('static id backlightReplacementMatchingValue(NSString *key, id originalValue) {')
+        raise_body = body('static NSUInteger CPUthermalRaiseExistingBacklightLimits(void) {')
         self.assertIn('if (original + 0.5 >= candidate) return nil;', replacement)
         self.assertIn('if (v <= 0.0) return nil;', replacement)
-        self.assertIn('kCPUthermalFixedPointScale', replacement)
+        self.assertIn('kCPUthermalFixedPointScale', raise_body)
         # 面板上限学习：写入前先记住原值
         self.assertIn('CPUthermalRememberBacklightMaximum(originalValue);', replacement)
-        # 只有真正低于候选上限时才替换，绝不把更高的原值压回上限
-        self.assertEqual(replacement.count('return nil;'), 5)
+        # 只有真正低于候选上限时才替换，绝不把更高的原值压回上限（6 处 return nil）
+        self.assertEqual(replacement.count('return nil;'), 6)
 
     def test_raise_path_uses_only_raise_comparison(self):
         raise_body = body('static NSUInteger CPUthermalRaiseExistingBacklightLimits(void) {')
@@ -62,7 +63,7 @@ class CoreBacklightContract(unittest.TestCase):
     def test_panel_max_learning_bounds(self):
         remember = body('static void CPUthermalRememberBacklightMaximum(id value) {')
         self.assertIn('kCPUthermalMinimumPlausibleBacklightLimit', remember)
-        self.assertIn('v>10000.0', remember)
+        self.assertIn('nits>10000.0', remember)
         self.assertIn('CPUthermalRememberCoreBrightnessMaximum', TWEAK)
         self.assertIn('"BrightnessSystemClient"', TWEAK)
 
@@ -115,7 +116,7 @@ class CoreBacklightContract(unittest.TestCase):
             self.assertNotIn('NSEC_PER_MSEC', chunk)
             self.assertNotIn('dispatch_source', chunk)
         self.assertEqual(tick.count('20ull*NSEC_PER_SEC'), 1)
-        self.assertEqual(TWEAK.count('20ull*NSEC_PER_SEC'), 2)
+        self.assertEqual(TWEAK.count('20ull*NSEC_PER_SEC'), 1)
 
     def test_readme_documents_weaker_scope_and_gate(self):
         for phrase in ('只能事后纠正', '无法拦截其它进程', '比被移除模块弱', '用户明确取舍'):

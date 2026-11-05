@@ -41,6 +41,20 @@
 做路径补丁。dpkg 升级会把这类标记删掉，所以 `tweaks/CCSIM/layout/DEBIAN/postinst` 负责补回，
 `prerm` 负责删除。以后凡是打包“非本工程编译的上游二进制”，都要检查这个标记。
 
+## CPUthermal 的 CPU 降频取证（isolation.54）
+
+用户报告“解除温控下用着变卡、频率极低、几分钟自恢复”时的排查顺序：
+
+1. `diag/ThermalProbe`（源码 `diag/ThermalProbe.m`，`clang -arch arm64e -fobjc-arc -framework Foundation` 后 `ldid -Sdiag/Tool.entitlements`）读 IORegistry：
+   - `AppleCLPC` 的 `` `pkg-avg-therm-power-target `` / `` `pkg-low-power-target `` 应为 `-16777216`（Q24 的 -1.0，即不限）。是负一说明**解除温控的写入生效且未被回滚**。
+   - `ApplePPM` 看 `UseOverrideSystemCapability`、`UseOverrideClientPowerBudgets`，都为 0 说明 PPM 未叠加限频。
+2. 两处都不限而仍然掉频 → 问题在 thermalmonitord 的 `MitigationController` / `CommonProduct` 钩子，不在硬件预算层。
+   已知坑（isolation.54 修）：`setCPMSMitigationsEnabled:` 旧实现只在 enabled=NO 时转发 NO，等效于把系统自己发起的 CPMS 缓解一并吞掉；契约固化为
+   `debs/CPUthermal/tests/test_isolation54.py`——低功耗强制 YES、解除温控强制 NO、其余原样 `%orig(enabled)`。
+3. IOReport（`CPU Stats` 通道）这条路在 iOS 16.1.2 / arm64e 上 `IOReportCreateSubscription` 会撞 PAC（SIGBUS/SIGSEGV），
+   别在上面耗时间；CLPC + PPM 的 IORegistry 键已经够用。
+4. 回归：`cd debs/CPUthermal/tests && python3 -m unittest discover -p 'test_*.py'`（当前 184 项）。
+
 ## 验证习惯
 
 - 改动后先跑 `tweaks/CCSIM/test/` 里的离线自测（`clang ... Tweak.m test/TestGuard.m`）。

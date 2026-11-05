@@ -29,11 +29,11 @@ class DynamicSpecifierContracts(unittest.TestCase):
         body = SOURCE.split('- (NSArray *)specifiers {', 1)[1]
         groups = [x for x in re.findall(r'^\s*GROUP\(', body, re.M)]
         items = re.findall(r'\bITEM\("', body)
-        self.assertEqual((len(groups), len(items), len(groups)+len(items)+4), (8, 5, 17))
-        for key in ('powerMode','lockWhenFaceDown','sunlightLockedEnabled','blockThermalPopup',
+        self.assertEqual((len(groups), len(items), len(groups)+len(items)+4), (7, 4, 15))
+        for key in ('powerMode','lockWhenFaceDown','blockThermalPopup',
                     'smartChargeEnabled','suppressBatteryServiceWarnings','smartChargeStopLevel'):
             self.assertIn('"'+key+'"', body)
-        for label in ('温度保护','运行方式','设备朝下自动锁屏','阳光暴晒','锁定阳光暴晒模式',
+        for label in ('温度保护','运行方式','设备朝下自动锁屏',
                       '高温警告','屏蔽高温温度计警告','电池状态显示','隐藏电池维修提示',
                       'SmartBatteryAPI 智能停充','停充电量',
                       '开源','GitHub be-huge/insulation'):
@@ -45,7 +45,7 @@ class DynamicSpecifierContracts(unittest.TestCase):
     def test_dynamic_defaults_and_segment_values(self):
         # 保留的六个开关全部"首次默认关闭"。
         for key in ('blockThermalPopup',
-                    'lockWhenFaceDown','sunlightLockedEnabled','smartChargeEnabled',
+                    'lockWhenFaceDown','smartChargeEnabled',
                     'suppressBatteryServiceWarnings'):
             self.assertRegex(SOURCE, rf'ITEM\([^\n]+"{key}"[^\n]+numberWithBool:NO')
         # 保留的开关全部首次默认关闭。
@@ -126,9 +126,9 @@ class DynamicSpecifierContracts(unittest.TestCase):
         self.assertNotIn('cell:PSSegmentCell', SOURCE)
         self.assertNotIn('cell:PSButtonCell', SOURCE)
         self.assertNotIn('CPUthermalCellType(S("PSSwitchCell")', SOURCE)
-        # 五个保留开关保持 PSSwitchCell 常量（不改动其渲染路径）
-        self.assertEqual(SOURCE.count('PSSwitchCell'), 5)
-        self.assertEqual(len(re.findall(r'ITEM\("[^"]+", "[^"]+", PSSwitchCell,', SOURCE)), 5)
+        # 四个保留开关保持 PSSwitchCell 常量（不改动其渲染路径）
+        self.assertEqual(SOURCE.count('PSSwitchCell'), 4)
+        self.assertEqual(len(re.findall(r'ITEM\("[^"]+", "[^"]+", PSSwitchCell,', SOURCE)), 4)
         # 面板顺序/读写在 setPreferenceValue: 中保持联动
         method = SOURCE.split('- (void)setPreferenceValue:', 1)[1].split('\n}', 1)[0]
         self.assertIn('isEqualToString:S("powerMode")', method)

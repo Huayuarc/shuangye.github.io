@@ -109,10 +109,6 @@
     NSMutableDictionary *prefs = [self prefs];
 
     prefs[key] = value;
-    if ([key isEqualToString:S("sunlightLockedEnabled")]) {
-        [prefs removeObjectForKey:S("sunlightAutomatic")];
-        [prefs removeObjectForKey:S("sunlightOverride")];
-    }
 
     // isolation.15：面板级写校验——写后立即读回比对（此前写入静默失败/被其它写者覆盖
     // 都无从发现）；不一致 → 再写一次并复核；仍不一致 → 直接写规范路径
@@ -227,7 +223,6 @@ static void CPUthermalApplySegmentValues(PSSpecifier *spec, NSArray *values, NSA
         CPUthermalApplySegmentValues(mode, @[S("lowPower"), S("fullPower")], @[S("低功耗"), S("解除温控")]);
         [specifiers addObject:mode];
         GROUP("", "开启后，SpringBoard 检测到设备屏幕朝下时模拟按下锁屏键。仅注入 SpringBoard，默认关闭。"); ITEM("设备朝下自动锁屏", "lockWhenFaceDown", PSSwitchCell, [NSNumber numberWithBool:NO]);
-        GROUP("阳光暴晒", "强制锁定阳光暴晒 (Sunlight) 模式：屏幕亮度上限与对比度按强光环境提升，不再等待环境光判断；关闭即恢复系统自动检测。"); ITEM("锁定阳光暴晒模式", "sunlightLockedEnabled", PSSwitchCell, [NSNumber numberWithBool:NO]);
         GROUP("高温警告", "开启后仅处理 SpringBoard 的进程内热状态读取；为优先稳定性，不再全局拦截系统通知注册、取消或读值，部分高温警告路径仍可能由系统显示。默认关闭，关闭后保留原始热状态；不改变真实温度及硬件保护。"); ITEM("屏蔽高温温度计警告", "blockThermalPopup", PSSwitchCell, [NSNumber numberWithBool:NO]);
         GROUP("电池状态显示", "开启后隐藏设置 App 中的全部电池维修/服务提示：电池页未知部件说明、关于本机「部件和服务历史记录」、设置首页 Important Battery Message 提醒及设置图标角标。不修改真实电池健康数据、最大容量、充电策略或硬件保护。默认关闭。"); ITEM("隐藏电池维修提示", "suppressBatteryServiceWarnings", PSSwitchCell, [NSNumber numberWithBool:NO]);
         GROUP("SmartBatteryAPI 智能停充", "通过 AppleSmartBattery 达到阈值后，由 PredictiveChargingInhibit 自动停充并禁流；电量下降 5% 后恢复输入再恢复充电。不修改系统充电算法本身，默认关闭。"); ITEM("智能停充", "smartChargeEnabled", PSSwitchCell, [NSNumber numberWithBool:NO]);

@@ -65,14 +65,6 @@ static int SetThermalPreference(NSString *key, id value, NSString *persistentKey
     return ok ? 0 : 2;
 }
 
-static int SetSunlightAutomatic(void) {
-    return SetThermalPreference(S("sunlightOverride"), nil, S("sunlightOverridePersistentlyEnabled"), NO);
-}
-
-static int SetSunlightOverride(BOOL enabled) {
-    return SetThermalPreference(S("sunlightOverride"), @(enabled), S("sunlightOverridePersistentlyEnabled"), YES);
-}
-
 static int ResetThermalLevels(void) {
     int pressure = CPUthermalForceNominalPressure();
     CPUthermalForceNormalNotifLevel();
@@ -86,8 +78,6 @@ int main(int argc, char *argv[]) {
             if ([command isEqualToString:S("userspace-reboot")]) return rebootUserspace();
             if ([command isEqualToString:S("restore-fullpower")]) return restoreFullPower();
             if ([command isEqualToString:S("thermal-reset")]) return ResetThermalLevels();
-            if ([command isEqualToString:S("sunlight-auto")]) return SetSunlightAutomatic();
-            if ([command isEqualToString:S("sunlight-override")] && argc > 2) return SetSunlightOverride(atoi(argv[2]) != 0);
             return 64;
         }
         printf("CPUthermalTool commands:\n");

@@ -74,8 +74,8 @@ class RemovedGuessesStayRemoved(unittest.TestCase):
 
 class PackageContracts(unittest.TestCase):
     def test_version(self):
-        self.assertIn('Version: 1.6.2-168+isolation.54', CONTROL)
-        self.assertIn('#define APELIN_BUILD_ID "isolation.54"', TWEAK)
+        self.assertIn('Version: 1.6.2-169+isolation.56', CONTROL)
+        self.assertIn('#define APELIN_BUILD_ID "isolation.56"', TWEAK)
 
     def test_core_injects_only_thermalmonitord(self):
         executables = re.search(r'Executables\s*=\s*\((.*?)\)', PLIST, re.S)
@@ -84,9 +84,10 @@ class PackageContracts(unittest.TestCase):
         self.assertEqual(names, ['thermalmonitord'])
 
     def test_display_level_write_stays_out_of_core(self):
+        code = '\n'.join(line.split('//', 1)[0] for line in TWEAK.splitlines())
         for forbidden in ('IOMFBBrightnessLevel', 'CPUthermalStartDisplayLevelTimer',
                           'CPUthermalAssertDisplayBrightnessLevel'):
-            self.assertNotIn(forbidden, TWEAK)
+            self.assertNotIn(forbidden, code)
 
 
 if __name__ == '__main__':

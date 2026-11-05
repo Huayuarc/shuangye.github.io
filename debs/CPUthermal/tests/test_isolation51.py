@@ -154,9 +154,11 @@ class SettingsStayMinimal(unittest.TestCase):
 
 class CoreStaysOut(unittest.TestCase):
     def test_core_never_writes_the_panel_level(self):
+        # 代码行（去掉 // 注释后）不得直接写面板级亮度；注释里允许解释这条约束。
+        code = '\n'.join(line.split('//', 1)[0] for line in TWEAK.splitlines())
         for forbidden in ('IOMFBBrightnessLevel', 'CPUthermalStartDisplayLevelTimer',
                           'CPUthermalAssertDisplayBrightnessLevel'):
-            self.assertNotIn(forbidden, TWEAK)
+            self.assertNotIn(forbidden, code)
 
 
 class DisplayShieldStaysSafe(unittest.TestCase):

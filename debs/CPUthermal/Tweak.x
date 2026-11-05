@@ -23,7 +23,7 @@
 // 本仓库的 GitHub CI 不定义 APELIN_BUILD_ID（该宏由 Apelin 构建注入），
 // 这里给出可直接编译的默认标记，避免 CI 因未定义标识符失败。
 #ifndef APELIN_BUILD_ID
-#define APELIN_BUILD_ID "isolation.54"
+#define APELIN_BUILD_ID "isolation.56"
 #endif
 
 // The public SDK marks these private iOS IOKit entry points unavailable even though
@@ -310,6 +310,7 @@ static void CPUthermalCaptureExistingBacklightMaximum(void);
 static NSUInteger CPUthermalRaiseExistingBacklightLimits(void);
 static void CPUthermalScheduleBacklightRecovery(void);
 static void applyFullPowerToCommonProduct(void);
+static void CPUthermalFastDimmingRepair(NSString *reason);
 
 static void runtimeConfigSnapshot(BOOL *enabled, BOOL *cpuProtection, BOOL *blockNetwork, BOOL *blockPopup) {
 os_unfair_lock_lock(&g_stateLock);
@@ -471,7 +472,11 @@ else switchToLowPowerForSleep("screen-off");
 
 static void handleThermalLevelNotification(int token) {
     uint64_t state = 0;
-    if (token <= 0 || notify_get_state(token, &state) != NOTIFY_STATUS_OK || state == 0 || !shouldForceNominalThermalPressure()) return;
+    if (token <= 0 || notify_get_state(token, &state) != NOTIFY_STATUS_OK) return;
+    // isolation.56：热压力一升高（state>0）就先做一次秒级亮度修复——不等 5 秒 CPU 侧
+    // 节流窗口，也不管当前运行方式，因为暗屏与 CPU 预算无关。
+    if (state > 0) CPUthermalFastDimmingRepair(@"thermalLevelNotification");
+    if (state == 0 || !shouldForceNominalThermalPressure()) return;
     CFAbsoluteTime now=CFAbsoluteTimeGetCurrent();
     os_unfair_lock_lock(&g_thermalResetLock);
     BOOL allowed=(now-g_lastThermalReset)>=5.0;
@@ -1078,6 +1083,15 @@ static const double kCPUthermalMinimumPlausibleBacklightLimit = 400.0;
 // 部分显示键（如 AppleCLCD2 的 BLNitsCap）使用 16.16 定点 nits，
 // 直接写 nits 会把上限写成 0.x nits 级别，必须按同一空间换算。
 static const double kCPUthermalFixedPointScale = 65536.0;
+// 任何面板原生上限都不可能高于此值（nits），更高的读数一律视为非 nits 空间。
+static const double kCPUthermalMaximumPlausibleBacklightLimit = 3000.0;
+
+// 键值原始读数 -> nits。部分键（BLNitsCap / IOMFBBrightnessLevel 等）用 16.16 定点，
+// 其余键直接是 nits；亮度滑块类的 0~1 值不会被误判为定点，也不会被当上限采信。
+static double CPUthermalNitsFromRawValue(double raw) {
+    if (raw <= 0.0) return 0.0;
+    return raw > kCPUthermalFixedPointScale ? raw / kCPUthermalFixedPointScale : raw;
+}
 static const char * const kCPUthermalBacklightLimitKeys[] = {
     "IOMFB_brightness_limit","IOMFB_max_brightness","IOMFB_brightness_max",
     "brightness-limit","brightness_limit","brightness-max","brightness-cap",
@@ -1090,10 +1104,16 @@ static double CPUthermalMaximumNumericInValue(id value);
 static void CPUthermalRememberBacklightMaximum(id value) {
     if(![value respondsToSelector:@selector(doubleValue)])return;
     double v=[value doubleValue];
+    // isolation.55：BLNitsCap 等键是 16.16 定点（1060 nits = 69468160），
+    // 定点读数必须先换算成 nits 再比较，否则 69468160 会被当成“原生上限”，
+    // 随后写回时又按定点放大一次，上限被抬到天文数字/被误判已满足而放弃修复，
+    // 表现为温控一压就暗、系统回弹又亮（用户可见的一亮一暗）。
+    double nits = CPUthermalNitsFromRawValue(v);
     // 低于 400 nits 的一律不采信为原生上限，避免把被温控压低的值学成“上限”。
-    if(v<kCPUthermalMinimumPlausibleBacklightLimit||v>10000.0)return;
-    if(!g_maxBacklightBrightnessValue||v>[g_maxBacklightBrightnessValue doubleValue]){
-        g_maxBacklightBrightnessValue=[NSNumber numberWithDouble:v];
+    // 高于 10000.0 的读数一定不是 nits（定点或毫 nit 未换算），同样丢弃。
+    if(nits<kCPUthermalMinimumPlausibleBacklightLimit||nits>10000.0)return;
+    if(!g_maxBacklightBrightnessValue||nits>[g_maxBacklightBrightnessValue doubleValue]){
+        g_maxBacklightBrightnessValue=[NSNumber numberWithDouble:nits];
 
     }
 }
@@ -1124,7 +1144,7 @@ static void CPUthermalRememberCoreBrightnessMaximum(void) {
         @catch (__unused NSException *e) { value = nil; }
         if (!value) continue;
         double v = CPUthermalMaximumNumericInValue(value);
-        if (v > 0.0) CPUthermalRememberBacklightMaximum(@(v));
+        if (v > 0.0) CPUthermalRememberBacklightMaximum(@(CPUthermalNitsFromRawValue(v)));
     }
 }
 
@@ -1167,11 +1187,14 @@ static NSUInteger CPUthermalRaiseExistingBacklightLimits(void) {
                 if (CFGetTypeID(existing)==CFNumberGetTypeID()) { current=[(__bridge NSNumber *)existing doubleValue]; numeric=YES; }
                 else if (CFGetTypeID(existing)==CFStringGetTypeID()) { current=[(__bridge NSString *)existing doubleValue]; numeric=YES; }
                 if (numeric && current > 0.0 && target > 0.0) {
+                    // isolation.55：不再用“数值是否大于 65536”猜单位——那会把
+                    // 1060 nits 的普通读数误当定点；isolation.56 改为按该键自己的
+                    // 表示判断：整数且不超上限＝nits，其余（小数或超大读数）＝16.16 定点。
                     BOOL fixedPoint = (current > kCPUthermalFixedPointScale);
+                    double currentNits = CPUthermalNitsFromRawValue(current);
                     double scaled = fixedPoint ? target * kCPUthermalFixedPointScale : target;
-                    // 只抬不压：定点键按 16.16 换算后比较，避免误写 0.x nits
                     if (current + 0.5 < scaled) {
-                        id writeValue = fixedPoint ? @((long long)(scaled + 0.5)) : g_maxBacklightBrightnessValue;
+                        id writeValue = fixedPoint ? @((long long)(scaled + 0.5)) : @((long long)(target + 0.5));
                         CPUthermalIORegistryEntrySetCFProperty(entry, key, (__bridge CFTypeRef)writeValue);
                         raised++;
                     }
@@ -1193,21 +1216,47 @@ static void CPUthermalRestoreExistingBacklightLimit(void) {
     CPUthermalRecommitUserBrightness();
 }
 
-// 周期自检（仅抬高限制，不动用户滑块，避免与自动亮度打架）：
-// 覆盖“限制被别的进程写入 / 注销 SpringBoard 后无人复位”的场景。
+// 周期自检：20 秒一次，低开销且屏熄时提前返回，覆盖“限制被别的进程写入 /
+// 注销 SpringBoard 后无人复位”的场景。真正落到毫秒级的修复由写入 hook
+// （setBrightnessKey:value:、setServiceProperty:…、IORegistryEntrySetCFProperty）
+// 触发 CPUthermalFastDimmingRepair 完成，本节拍只兜底。
+static double g_lastFastRepairTime = 0.0;
+static void CPUthermalFastDimmingRepair(NSString *reason);
+
 static void CPUthermalBacklightAuditTick(void) {
-    if (thermalDimmingPreventionEnabled()) {
+    if (thermalDimmingPreventionEnabled() && !CPUthermalScreenIsBlanked()) {
         CPUthermalCaptureExistingBacklightMaximum();
-        CPUthermalRaiseExistingBacklightLimits();
+        NSUInteger raised = CPUthermalRaiseExistingBacklightLimits();
+        if (raised > 0) {
+            os_log(CPUthermalRuntimeLog(), "backlight limits restored count=%lu", (unsigned long)raised);
+            CPUthermalRecommitUserBrightnessSoon();
+        }
     }
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW,20ull*NSEC_PER_SEC),dispatch_get_global_queue(QOS_CLASS_UTILITY,0),^{CPUthermalBacklightAuditTick();});
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 20ull*NSEC_PER_SEC), dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{CPUthermalBacklightAuditTick();});
 }
 
 static void CPUthermalStartBacklightAuditTimer(void) {
     static BOOL started = NO;
     if (started) return;
     started = YES;
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW,20ull*NSEC_PER_SEC),dispatch_get_global_queue(QOS_CLASS_UTILITY,0),^{CPUthermalBacklightAuditTick();});
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{CPUthermalBacklightAuditTick();});
+}
+
+// 秒修复：节流 0.15s 合并同一轮热路径的连写，避免修复风暴；
+// 在一次同步扫描里先学上限再抬回，随后立即重推用户亮度。
+static void CPUthermalFastDimmingRepair(NSString *reason) {
+    if (!thermalDimmingPreventionEnabled() || CPUthermalScreenIsBlanked()) return;
+    CFAbsoluteTime now = CFAbsoluteTimeGetCurrent();
+    os_unfair_lock_lock(&g_brightnessRecommitLock);
+    BOOL allowed = (now - g_lastFastRepairTime) >= 0.15;
+    if (allowed) g_lastFastRepairTime = now;
+    os_unfair_lock_unlock(&g_brightnessRecommitLock);
+    if (!allowed) return;
+    CPUthermalCaptureExistingBacklightMaximum();
+    NSUInteger raised = CPUthermalRaiseExistingBacklightLimits();
+    CPUthermalRecommitUserBrightnessSoon();
+    os_log(CPUthermalRuntimeLog(), "fast dim repair reason=%{public}s raised=%lu",
+           reason.UTF8String ?: "?", (unsigned long)raised);
 }
 
 static void CPUthermalScheduleBacklightRecovery(void) {
@@ -1219,7 +1268,7 @@ static void CPUthermalScheduleBacklightRecovery(void) {
     g_backlightRecoveryScheduled = YES;
     os_unfair_lock_unlock(&g_brightnessRecommitLock);
     CPUthermalStartBacklightAuditTimer();
-    // 只保留两次低优先级确认；写入 hook 已处理实时限制，避免七轮全树扫描拖慢前台交互。
+    // 只保留两次低优先级确认；写入 hook 已处理实时限制，避免多轮全树扫描拖慢前台交互。
     const double delays[] = {0.50, 3.00};
     for (NSUInteger i=0;i<sizeof(delays)/sizeof(delays[0]);i++) {
         BOOL finalAttempt=(i+1==sizeof(delays)/sizeof(delays[0]));
@@ -1289,27 +1338,22 @@ if (!maximum) return nil;
 // isolation.9 只升不降：先算出候选上限，再与原值比较；只有原值确实低于候选时才替换。
 // 核心无法拦截其它进程写入，因此绝不能把别人写入的更高值压回上限（那等于自己制造降亮度）。
 double candidate = 0.0;
-id replacement = nil;
 if ([originalValue isKindOfClass:[NSString class]]) {
     double v = [(NSString *)originalValue doubleValue];
     if (v <= 0.0) return nil;                  // 0 = 关机/关闭指令，绝不替换
-    candidate = (v > kCPUthermalFixedPointScale)
-        ? [(NSNumber *)maximum doubleValue] * kCPUthermalFixedPointScale
-        : [(NSNumber *)maximum doubleValue];
-    replacement = (v > kCPUthermalFixedPointScale)
-        ? [NSString stringWithFormat:@"%.0f", candidate]
-        : [(NSNumber *)maximum stringValue];
+    // isolation.56：候选上限固定取 nits（面板原生上限），原值也换算成 nits 比较；
+    // 旧实现按原值猜测单位再乘 65536，1060 nits 的普通整数读数会被当成定点放大。
+    candidate = [(NSNumber *)maximum doubleValue];
 } else if ([originalValue isKindOfClass:[NSNumber class]]) {
     double v = [(NSNumber *)originalValue doubleValue];
     if (v <= 0.0) return nil;
-    candidate = (v > kCPUthermalFixedPointScale)
-        ? [(NSNumber *)maximum doubleValue] * kCPUthermalFixedPointScale
-        : [(NSNumber *)maximum doubleValue];
-    replacement = @(candidate);
+    candidate = [(NSNumber *)maximum doubleValue];
 } else return nil;                              // 其它类型（CFData 等）不做替换
 double original = [originalValue doubleValue];
+if (candidate < kCPUthermalMinimumPlausibleBacklightLimit) return nil;
 if (original + 0.5 >= candidate) return nil;    // 已不低于上限：不写，避免反向压暗
-return replacement;
+// 整数投影：上限取整到 nits，绝不用浮点尾数写 IO。
+return [NSNumber numberWithLongLong:(long long)(candidate + 0.5)];
 }
 
 // ---------------------------------------------------------------------------
@@ -2246,6 +2290,8 @@ if (thermalDimmingPreventionEnabled()) {
 NSString *keyString = CPUthermalKeyDescription(key);
 if (CPUthermalKeyIsBacklightCap(keyString)) {
 int raised = CPUthermalRaiseBacklightCapValue(keyString, value);
+// isolation.56：这是温控往内核写亮度上限的真实落点，写入后立刻秒修复。
+dispatch_async(CPUthermalEngineQueue(), ^{ CPUthermalFastDimmingRepair(keyString ?: @"serviceProperty"); });
 if (raised != value) {
 os_log(CPUthermalRuntimeLog(), "service backlight cap raised key=%{public}s %d -> %d", keyString.UTF8String ?: "?", value, raised);
 return %orig(service, key, raised, scale);
@@ -2707,9 +2753,16 @@ if (!thermalDimmingPreventionEnabled()) { %orig(key, value); return; }
 NSString *keyString = CPUthermalKeyDescription(key);
 if (!CPUthermalKeyIsBacklightCap(keyString)) { %orig(key, value); return; }
 int raised = CPUthermalRaiseBacklightCapValue(keyString, value);
-if (raised == value) { %orig(key, value); return; }
+if (raised == value) {
+    %orig(key, value);
+    // isolation.56：即使值本身不低于已见上限，只要它落在 cap 键上（温控正在压亮度），
+    // 立刻复核 IORegistry 里的真实上限并把用户亮度推回去——秒级修复，不等轮询。
+    if (value > 0) dispatch_async(CPUthermalEngineQueue(), ^{ CPUthermalFastDimmingRepair(keyString ?: @"brightnessKey"); });
+    return;
+}
 os_log(CPUthermalRuntimeLog(), "backlight cap raised key=%{public}s %d -> %d", keyString.UTF8String ?: "?", value, raised);
 %orig(key, raised);
+dispatch_async(CPUthermalEngineQueue(), ^{ CPUthermalFastDimmingRepair(keyString ?: @"brightnessKey"); });
 }
 
 %end

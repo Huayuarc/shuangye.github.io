@@ -180,26 +180,6 @@ static inline float CPUthermalGetMaxTriggerTemperature(void) {
 }
 
 // ============================================================================
-// 读取阳光暴露状态
-// 移植自 Battman thermal.c -> thermal_solar_state()
-// 返回值: 0=无暴露, 1=车窗暴露, 2=直接阳光暴露
-// ============================================================================
-static inline int CPUthermalGetSolarState(void) {
-    int token;
-    uint64_t level;
-
-    if (notify_register_check("com.apple.system.thermalsunlightstate", &token))
-        return 0;
-    if (notify_get_state(token, &level)) {
-        notify_cancel(token);
-        return 0;
-    }
-    notify_cancel(token);
-
-    return (int)level;
-}
-
-// ============================================================================
 // 热通知级别控制（通过 dlopen 调用私有 SPI）
 // 移植自 Battman thermal.c
 // ============================================================================
