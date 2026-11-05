@@ -1,0 +1,11 @@
+#!/bin/sh
+case "$1" in
+upgrade)
+    # Stop the old service before asking the still-installed old helper to restore owned settings.
+    launchctl bootout system/com.huayuarc.cputhermal.charge >/dev/null 2>&1 || true
+    if [ -x "/var/jb/usr/local/bin/CPUthermalChargeTool" ]; then
+        "/var/jb/usr/local/bin/CPUthermalChargeTool" reset >/dev/null 2>&1 || true
+    fi
+    ;;
+esac
+exit 0

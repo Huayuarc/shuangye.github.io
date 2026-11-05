@@ -10,8 +10,9 @@
    `.github/workflows/build-theos.yml` 监听 `debs/**` 的推送：对 `debs/` 下每个带
    `Makefile` 且含 `TWEAK_NAME|TOOL_NAME|APPLICATION_NAME` 的工程，依次用
    `THEOS_PACKAGE_SCHEME=rootless`（arm64）和 `roothide`（arm64e）编译打包，把
-   `packages/*.deb` 提交回 `main`，然后删除 `debs/<工程>/` 源码（保留 `.gitkeep`）。
-   - 所以：**源码正本放 `tweaks/<工程>/`，发布时复制到 `debs/<工程>/` 再推送。**
+   `packages/*.deb` 提交回 `main`，然后清理源码目录里的构建产物（`.theos/`、`obj/`、
+   `packages/`、`*.dSYM`），**源码永久保留在 `debs/<工程>/`**（2026-11 起不再编译后删源码）。
+   - 所以：`debs/<工程>/` 就是源码正本，直接在原地改；`tweaks/<工程>/` 是 CCSIM 的历史位置。
    - `packages/` 里的旧包会被保留，只覆盖同名产物（改过这一步，别再改成清空）。
    - 失败日志在 `build-logs` 分支的 `errors/build-run-<run_id>.txt`。
 2. **本机（设备上，iOS 16 环境）**

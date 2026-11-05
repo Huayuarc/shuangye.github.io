@@ -319,29 +319,39 @@ jobs:
             git push
           fi
 
-      - name: Clean up source code after build
+      - name: Clean build artifacts (keep source)
         if: success() && steps.build-rootless.outputs.exit_code == 0
         run: |
           set -x
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # 删除 debs 目录中的所有源码（保留 .gitkeep）
-          for dir in debs/*/; do
-            dir="${dir%/}"
-            [ "$(basename "$dir")" = ".gitkeep" ] && continue
-            echo "删除源码: $dir"
-            git rm -rf "$dir" 2>/dev/null || true
-          done
+          # 源码（debs/<工程>/）永久保留，只清理构建产物；.gitignore 里忽略的
+          # .theos/、obj/、packages/、.dSYM 等本来就不会进入仓库。
+          #
+          # 曾经的做法是构建后 `git rm -r debs/<工程>/`，下一次构建再靠提交历史
+          # 恢复源码。那条路一旦失败会丢一行源码、且没有任何提示，已废弃：
+          # 现在只删产物，不删源码，也不改写已跟踪的源文件。
+          find debs -maxdepth 3 -type d \
+            \( -name '.theos' -o -name 'obj' -o -name 'packages' \) \
+            -prune -exec rm -rf {} + 2>/dev/null || true
+          find debs -maxdepth 4 -name '*.dSYM' -prune -exec rm -rf {} + 2>/dev/null || true
 
-          # 确保 debs/.gitkeep 存在
+          # 守卫：清理后已跟踪的源文件必须一个都不少，否则直接失败而不是静默提交。
+          missing=0
+          while IFS= read -r f; do
+            [ -e "$f" ] || { echo "::error::源码在清理步骤中丢失: $f"; missing=1; }
+          done < <(git ls-files 'debs/**')
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
           touch debs/.gitkeep
           git add -f debs/.gitkeep 2>/dev/null || true
 
           if git diff --quiet --cached; then
             echo "无变更，跳过提交"
           else
-            git commit -m "chore: 编译完成，清除源码 [ci skip]"
+            git commit -m "chore: 清理构建产物（保留源码） [ci skip]"
             git push
-            echo "源码已清除并推送"
           fi
