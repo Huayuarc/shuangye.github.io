@@ -39,32 +39,6 @@ static int restoreFullPower(void) {
     return notify_post(kCPUthermalSettingsChangedNotifC) == NOTIFY_STATUS_OK ? 0 : 1;
 }
 
-static int SetThermalPreference(NSString *key, id value, NSString *persistentKey, BOOL persist) {
-    typedef CFTypeRef (*CreateFn)(CFAllocatorRef, CFStringRef, CFStringRef);
-    typedef Boolean (*SetFn)(CFTypeRef, CFStringRef, CFPropertyListRef);
-    typedef Boolean (*RemoveFn)(CFTypeRef, CFStringRef);
-    typedef Boolean (*ApplyFn)(CFTypeRef);
-    void *framework = dlopen("/System/Library/Frameworks/SystemConfiguration.framework/SystemConfiguration", RTLD_NOW | RTLD_LOCAL);
-    if (!framework) return 1;
-    CreateFn create = (CreateFn)dlsym(framework, "SCPreferencesCreate");
-    SetFn setValue = (SetFn)dlsym(framework, "SCPreferencesSetValue");
-    RemoveFn removeValue = (RemoveFn)dlsym(framework, "SCPreferencesRemoveValue");
-    ApplyFn commit = (ApplyFn)dlsym(framework, "SCPreferencesCommitChanges");
-    ApplyFn apply = (ApplyFn)dlsym(framework, "SCPreferencesApplyChanges");
-    if (!create || !setValue || !removeValue || !commit || !apply) { dlclose(framework); return 1; }
-    CFTypeRef preferences = create(kCFAllocatorDefault, CFSTR("CPUthermal"), CFSTR("OSThermalStatus.plist"));
-    if (!preferences) { dlclose(framework); return 1; }
-    if (value) setValue(preferences, (__bridge CFStringRef)key, (__bridge CFPropertyListRef)value);
-    else removeValue(preferences, (__bridge CFStringRef)key);
-    if (persistentKey) {
-        if (value) setValue(preferences, (__bridge CFStringRef)persistentKey, persist ? kCFBooleanTrue : kCFBooleanFalse);
-        else removeValue(preferences, (__bridge CFStringRef)persistentKey);
-    }
-    BOOL ok = commit(preferences) && apply(preferences);
-    CFRelease(preferences); dlclose(framework);
-    return ok ? 0 : 2;
-}
-
 static int ResetThermalLevels(void) {
     int pressure = CPUthermalForceNominalPressure();
     CPUthermalForceNormalNotifLevel();
