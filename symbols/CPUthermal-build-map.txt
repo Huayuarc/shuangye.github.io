@@ -376,7 +376,7 @@
 0x00010480	0x00000008	[  9] anon
 0x00010488	0x00000008	[  9] anon
 0x00010490	0x00000010	[  9] anon
-0x000104A0	0x0000000D	[  9] literal string: "isolation.51"
+0x000104A0	0x0000000D	[  9] literal string: "isolation.53"
 0x000104AD	0x00000009	[  9] literal string: "lowPower"
 0x000104B6	0x0000000A	[  9] literal string: "fullPower"
 0x000104C0	0x00000031	[  9] literal string: "/System/Library/Frameworks/IOKit.framework/IOKit"
