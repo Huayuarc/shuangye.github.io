@@ -59,7 +59,7 @@ static const useconds_t kDisplayRampDelayMicroseconds = 120000;
 static const double kDisplayHighRequestNits = 700.0;   // 满亮度区起点
 static const double kDisplayTopRegionRatio = 0.90;     // 满亮度区应有 ≥90% 的输出
 static const double kDisplayTopRegionCapRatio = 0.95;  // 上限不低于请求的 95% 才按满亮度区处理
-static const double kDisplayCapFloorNits = 400.0;      // 低于此值的上限读数不可信
+static const double kDisplayCapFloorNits = 600.0;      // isolation.59：400 太低，会把被压低的上限学成原生值
 static const double kDisplayCapCooldown = 2.0;
 static const useconds_t kDisplayTickMicroseconds = 500000;  // isolation.57：每 0.5s 巡检一次
 static const double kDisplayHeartbeatSeconds = 300.0;
@@ -518,7 +518,7 @@ static void GuardOnce(void) {
 
     // 2) 上限被压低时抬回已见最大值（只升不降）。
     if (cap > 0.0 && gBackend.capKey && gState.maxCapNits >= kDisplayCapFloorNits &&
-        cap < gState.maxCapNits * 0.95 && requested >= 200.0 &&
+        cap < gState.maxCapNits * 0.95 && requested >= 50.0 &&
         (now - gState.lastCapCorrection) > kDisplayCapCooldown) {
         WriteCapNits(gState.maxCapNits);
         double readback = ReadCapNits();

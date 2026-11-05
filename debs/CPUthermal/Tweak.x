@@ -1079,7 +1079,7 @@ static void CPUthermalRecommitUserBrightnessSoon(void) {
 
 // 任何 iPhone 面板亮度上限都远高于 400 nits；低于该值的观测一律视为
 // “已被温控压低的值”，不作为原生上限采信，也绝不写回 DCP。
-static const double kCPUthermalMinimumPlausibleBacklightLimit = 400.0;
+static const double kCPUthermalMinimumPlausibleBacklightLimit = 600.0;
 // 部分显示键（如 AppleCLCD2 的 BLNitsCap）使用 16.16 定点 nits，
 // 直接写 nits 会把上限写成 0.x nits 级别，必须按同一空间换算。
 static const double kCPUthermalFixedPointScale = 65536.0;
@@ -2870,6 +2870,13 @@ NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 
 registerThermalLevelResetObservers();
 registerScreenWakeObservers();
+
+// isolation.59：0.5 秒上限巡检必须在进程启动后就跑起来。实测（iPhone 14,2 / 16.1.2）
+// thermalmonitord 可能一直不调用 getConfigurationFor: 的背光分支，导致巡检根本没启动，
+// 上限被写低后永远不恢复。这里无条件启动，屏熄时 tick 内部自行提前返回。
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 3ull*NSEC_PER_SEC), dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+    CPUthermalStartBacklightAuditTimer();
+});
 applyCurrentPowerModeToRuntime();
 
 }

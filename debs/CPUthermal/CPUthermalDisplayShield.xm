@@ -21,7 +21,7 @@
 static BOOL gCPUthermalDisplayShieldEnabled = NO;
 static os_unfair_lock gCPUthermalDisplayCapLock = OS_UNFAIR_LOCK_INIT;
 static double gCPUthermalDisplayCapNits = 0.0;
-static const double kCPUthermalDisplayMinimumCapNits = 400.0;
+static const double kCPUthermalDisplayMinimumCapNits = 600.0;
 static const double kCPUthermalDisplayFixedPointScale = 65536.0;
 // 面板上限的上限：任何高于此值的读数都不可能是真实面板上限，直接丢弃。
 static const double kCPUthermalDisplayMaximumPlausibleCapNits = 10000.0;

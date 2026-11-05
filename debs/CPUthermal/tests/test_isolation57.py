@@ -85,7 +85,7 @@ class ShieldSuppressesDrop(unittest.TestCase):
 
 class Version(unittest.TestCase):
     def test_version(self):
-        self.assertIn('Version: 1.6.2-171+isolation.58', CONTROL)
+        self.assertIn('Version: 1.6.2-172+isolation.59', CONTROL)
 
 
 if __name__ == '__main__':

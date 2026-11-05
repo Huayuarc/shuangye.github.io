@@ -73,7 +73,7 @@ class CoreBacklightContract(unittest.TestCase):
         self.assertIn('CPUthermalCaptureExistingBacklightMaximum();', tick)
         self.assertIn('CPUthermalRaiseExistingBacklightLimits();', tick)
         self.assertIn('5ull*NSEC_PER_SEC', tick)
-        self.assertEqual(TWEAK.count('CPUthermalStartBacklightAuditTimer'), 2)  # 定义 + 调用
+        self.assertEqual(TWEAK.count('CPUthermalStartBacklightAuditTimer'), 3)  # 定义 + 两处调用（配置补丁 + %ctor 自启动）
         # 屏幕点亮/解锁复用模式应用中的统一恢复事务，不再叠加三轮 IORegistry 全树扫描。
         wake = body('static void restoreUserModeAfterWake(const char *source) {')
         self.assertNotIn('for (int i = 0; i < 3; i++)', wake)

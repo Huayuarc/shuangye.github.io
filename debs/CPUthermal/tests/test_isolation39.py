@@ -25,7 +25,7 @@ class Isolation39ThermalVisibilityAndDisplay(unittest.TestCase):
     def test_display_shield_is_only_raise_and_zero_passes(self):
         self.assertIn('if (raw <= 0.0) return nil;', DISPLAY)
         self.assertIn('nits + 0.5 >= learned', DISPLAY)
-        self.assertIn('kCPUthermalDisplayMinimumCapNits = 400.0', DISPLAY)
+        self.assertIn('kCPUthermalDisplayMinimumCapNits = 600.0', DISPLAY)
         self.assertIn('kCPUthermalDisplayFixedPointScale = 65536.0', DISPLAY)
         self.assertNotIn('setBrightness', DISPLAY)
         self.assertNotIn('DisplayBrightness', DISPLAY)
