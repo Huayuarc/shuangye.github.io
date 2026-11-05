@@ -52,7 +52,7 @@ static const double kDisplayClampRatioFactor = 0.80;   // 比例跌到已学值�
 static const double kDisplaySampleProximity = 0.20;    // 当前请求离学习样本不超过 20% 才判定
 static const double kDisplayPlausibleRatioMin = 0.50;
 static const double kDisplayPlausibleRatioMax = 1.05;
-static const double kDisplayCorrectionCooldown = 1.0;  // isolation.57：1s 内可再次纠正，不再等 20s
+static const double kDisplayCorrectionCooldown = 0.5;  // isolation.57：每 0.5s 可再次纠正，不再等 20s
 static const double kDisplayLearnMuteAfterCorrection = 0.5;
 static const double kDisplayRampThreshold = 0.25;      // 落差超过目标的 25% 时分两段
 static const useconds_t kDisplayRampDelayMicroseconds = 120000;
@@ -61,7 +61,7 @@ static const double kDisplayTopRegionRatio = 0.90;     // 满亮度区应有 ≥
 static const double kDisplayTopRegionCapRatio = 0.95;  // 上限不低于请求的 95% 才按满亮度区处理
 static const double kDisplayCapFloorNits = 400.0;      // 低于此值的上限读数不可信
 static const double kDisplayCapCooldown = 2.0;
-static const useconds_t kDisplayTickMicroseconds = 250000;  // isolation.57：每 0.25s 巡检一次
+static const useconds_t kDisplayTickMicroseconds = 500000;  // isolation.57：每 0.5s 巡检一次
 static const double kDisplayHeartbeatSeconds = 300.0;
 static const double kDisplayRediscoverSeconds = 30.0;  // 没有可用节点时的重试间隔
 static const int kDisplayIdleTicksBeforeRediscover = 20;
@@ -353,8 +353,20 @@ static void RaiseLevel(double current, double target, double requested) {
            requested, current, target, readback);
 }
 
+// isolation.57：巡检已到 0.5s 一次，偏好 plist 不再每一拍都读盘/解析，2 秒缓存一次。
+static NSDictionary *CachedPrefs(void) {
+    static NSDictionary *cached = nil;
+    static double lastRead = 0.0;
+    double now = Now();
+    if (!cached || (now - lastRead) > 2.0) {
+        cached = CPUthermalReadPrefs() ?: @{};
+        lastRead = now;
+    }
+    return cached;
+}
+
 static void GuardOnce(void) {
-    NSDictionary *prefs = CPUthermalReadPrefs() ?: @{};
+    NSDictionary *prefs = CachedPrefs();
     if (!LevelGuardEnabled(prefs) || !FullPowerMode(prefs)) return;
 
     double requested = RequestedNits();

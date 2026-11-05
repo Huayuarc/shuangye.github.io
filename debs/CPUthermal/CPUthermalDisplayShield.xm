@@ -11,6 +11,7 @@
 #import <substrate.h>
 #import <dlfcn.h>
 #import <os/lock.h>
+#import <os/log.h>
 #import <CPUthermalPaths.h>
 
 // iOS 上没有可用的 kIOMasterPortDefault 常量（被标记为 unavailable），
@@ -123,7 +124,68 @@ static id CPUthermalProtectedDisplayCapValue(CFTypeRef rawValue) {
     return fixed ? @((long long)(replacement + 0.5)) : @(replacement);
 }
 
+// isolation.57：热压暗的“事前拦截”。
+// 系统（thermalmonitord / CoreBrightness 的温度缓解）压暗面板时，写进来的是面板亮度级
+// 从满档直接跌到 90% 以下的断崖；用户自己拖滑块是连续小步，不会这样跳。
+// 判据全部用本地 IORegistry 读取（不做任何跨进程调用，backboardd 内安全）：
+//   - 面板上限 cap >= 400 nits；
+//   - 节点当前值 >= cap 的 90%（原本满档）；
+//   - 新值 < cap 的 90%；
+//   - 面板温度 >= 36°C（温控压暗的必要条件）。
+// 命中就丢弃这次写入（返回 KERN_SUCCESS，一个值都不写），屏幕不会暗下去。
+static const double kShieldSuppressTemperatureC = 36.0;
+static const double kShieldSuppressTopRatio = 0.90;
+
+static double CPUthermalNitsFromRaw(CFTypeRef value) {
+    if (!value) return 0.0;
+    if (CFGetTypeID(value) != CFNumberGetTypeID() && CFGetTypeID(value) != CFStringGetTypeID()) return 0.0;
+    double raw = [(__bridge id)value doubleValue];
+    if (raw <= 0.0) return 0.0;
+    return raw > kCPUthermalDisplayFixedPointScale ? raw / kCPUthermalDisplayFixedPointScale : raw;
+}
+
+static double CPUthermalPanelTemperatureC(void) {
+    static const char * const kClasses[] = {"AppleCLCD2", "AppleCLCD", "AppleDCP", NULL};
+    for (int c = 0; kClasses[c]; c++) {
+        io_service_t service = IOServiceGetMatchingService(kIOMasterPortDefault, IOServiceMatching(kClasses[c]));
+        if (!service) continue;
+        CFTypeRef value = IORegistryEntryCreateCFProperty(service, CFSTR("APTPDCTemperature"), kCFAllocatorDefault, 0);
+        double temp = CPUthermalNitsFromRaw(value);
+        if (value) CFRelease(value);
+        IOObjectRelease(service);
+        if (temp > 0.0) return temp;
+    }
+    return -1.0;
+}
+
+static BOOL CPUthermalIsPanelLevelKey(CFStringRef rawKey) {
+    if (!rawKey || CFGetTypeID(rawKey) != CFStringGetTypeID()) return NO;
+    return [[(__bridge NSString *)rawKey lowercaseString] isEqualToString:@"iomfbbrightnesslevel"];
+}
+
+static BOOL CPUthermalShouldSuppressLevelDrop(io_registry_entry_t entry, CFStringRef key, CFTypeRef value) {
+    if (!gCPUthermalDisplayShieldEnabled || !CPUthermalIsPanelLevelKey(key)) return NO;
+    double next = CPUthermalNitsFromRaw(value);
+    if (next <= 0.0) return NO;   // 关机/关屏/关闭指令一律放行
+    CFTypeRef capRaw = IORegistryEntryCreateCFProperty(entry, CFSTR("BLNitsCap"), kCFAllocatorDefault, 0);
+    double cap = CPUthermalNitsFromRaw(capRaw);
+    if (capRaw) CFRelease(capRaw);
+    if (cap < kCPUthermalDisplayMinimumCapNits) return NO;
+    double threshold = cap * kShieldSuppressTopRatio;
+    if (next >= threshold) return NO;                             // 新值仍在满档区，不算压暗
+    CFTypeRef currentRaw = IORegistryEntryCreateCFProperty(entry, key, kCFAllocatorDefault, 0);
+    double current = CPUthermalNitsFromRaw(currentRaw);
+    if (currentRaw) CFRelease(currentRaw);
+    if (current < threshold) return NO;                           // 本来就不在满档区，是用户在调暗
+    return CPUthermalPanelTemperatureC() >= kShieldSuppressTemperatureC;
+}
+
 static kern_return_t CPUthermalHookedRegistrySet(io_registry_entry_t entry, CFStringRef key, CFTypeRef value) {
+    if (CPUthermalShouldSuppressLevelDrop(entry, key, value)) {
+        os_log_error(os_log_create("com.huayuarc.cputhermal", "display-shield"),
+                     "suppressed thermal panel level drop");
+        return KERN_SUCCESS;
+    }
     id replacement = nil;
     if (gCPUthermalDisplayShieldEnabled && CPUthermalDisplayCapKey(key)) {
         @try { replacement = CPUthermalProtectedDisplayCapValue(value); } @catch (__unused NSException *e) { replacement = nil; }
@@ -132,6 +194,7 @@ static kern_return_t CPUthermalHookedRegistrySet(io_registry_entry_t entry, CFSt
 }
 
 static kern_return_t CPUthermalHookedServiceSet(io_service_t service, CFStringRef key, CFTypeRef value) {
+    if (CPUthermalShouldSuppressLevelDrop(service, key, value)) return KERN_SUCCESS;
     id replacement = nil;
     if (gCPUthermalDisplayShieldEnabled && CPUthermalDisplayCapKey(key)) {
         @try { replacement = CPUthermalProtectedDisplayCapValue(value); } @catch (__unused NSException *e) { replacement = nil; }

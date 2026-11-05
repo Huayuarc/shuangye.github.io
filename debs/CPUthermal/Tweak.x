@@ -1221,6 +1221,44 @@ static void CPUthermalRestoreExistingBacklightLimit(void) {
 static double g_lastFastRepairTime = 0.0;
 static void CPUthermalFastDimmingRepair(NSString *reason);
 
+// isolation.57：0.5 秒级的轻量巡检。只读面板节点的上限键（BLNitsCap / brightness-nits），
+// 不做 IORegistry 全树扫描，也不碰任何亮度级属性；上限被别的进程写低时立刻抬回。
+static void CPUthermalFastCapTick(void) {
+    if (thermalDimmingPreventionEnabled() && !CPUthermalScreenIsBlanked()) {
+        if (!g_maxBacklightBrightnessValue) CPUthermalCaptureExistingBacklightMaximum();
+        double target = g_maxBacklightBrightnessValue ? [g_maxBacklightBrightnessValue doubleValue] : 0.0;
+        if (target >= kCPUthermalMinimumPlausibleBacklightLimit) {
+            static const char * const kFastKeys[] = {"BLNitsCap", "brightness-nits", NULL};
+            io_registry_entry_t entry = IOServiceGetMatchingService(kIOMasterPortDefault, IOServiceMatching("AppleCLCD2"));
+            if (!entry) entry = IOServiceGetMatchingService(kIOMasterPortDefault, IOServiceMatching("AppleCLCD"));
+            if (entry) {
+                for (int i = 0; kFastKeys[i]; i++) {
+                    CFStringRef key = CFStringCreateWithCString(kCFAllocatorDefault, kFastKeys[i], kCFStringEncodingUTF8);
+                    if (!key) continue;
+                    CFTypeRef existing = IORegistryEntryCreateCFProperty(entry, key, kCFAllocatorDefault, 0);
+                    if (existing) {
+                        BOOL numeric = NO; double current = 0.0;
+                        if (CFGetTypeID(existing) == CFNumberGetTypeID()) { current = [(__bridge NSNumber *)existing doubleValue]; numeric = YES; }
+                        else if (CFGetTypeID(existing) == CFStringGetTypeID()) { current = [(__bridge NSString *)existing doubleValue]; numeric = YES; }
+                        if (numeric && current > 0.0) {
+                            BOOL fixedPoint = (current > kCPUthermalFixedPointScale);
+                            double scaled = fixedPoint ? target * kCPUthermalFixedPointScale : target;
+                            if (current + 0.5 < scaled) {
+                                id writeValue = fixedPoint ? @((long long)(scaled + 0.5)) : @((long long)(target + 0.5));
+                                CPUthermalIORegistryEntrySetCFProperty(entry, key, (__bridge CFTypeRef)writeValue);
+                            }
+                        }
+                        CFRelease(existing);
+                    }
+                    CFRelease(key);
+                }
+                IOObjectRelease(entry);
+            }
+        }
+    }
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 500000000ull), dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{ CPUthermalFastCapTick(); });
+}
+
 static void CPUthermalBacklightAuditTick(void) {
     if (thermalDimmingPreventionEnabled() && !CPUthermalScreenIsBlanked()) {
         CPUthermalCaptureExistingBacklightMaximum();
@@ -1237,7 +1275,10 @@ static void CPUthermalStartBacklightAuditTimer(void) {
     static BOOL started = NO;
     if (started) return;
     started = YES;
-    dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{CPUthermalBacklightAuditTick();});
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+        CPUthermalFastCapTick();
+        CPUthermalBacklightAuditTick();
+    });
 }
 
 // 秒修复：节流 0.15s 合并同一轮热路径的连写，避免修复风暴；
