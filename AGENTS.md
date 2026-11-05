@@ -21,6 +21,19 @@
    `apelin_package_install` 装、`apelin_package_confirm_loaded` 确认注入
    （脚本会带 `-DAPELIN_BUILD_ID`，构造函数打印 `ApelinLoaded <id>`）。
 
+## CI 打包：正常 3–5 分钟，超时先看运行器
+
+- `runs-on` 必须是 `macos-latest`。2026-11 实测：写 `macos-14` 时作业会在 1–2 秒内被判
+  `cancelled`（`runner_id=0`、`steps` 为空、`runner_name` 空），看起来像额度或并发问题，
+  其实是没有可用的运行器镜像；换 `macos-latest` 后 3–4 分钟正常出包。
+  `cancel-in-progress` 与此无关，已设为 `false`，避免连续推送互相取消。
+- 判定口径：推送后 **3–5 分钟内** `packages/` 应出现两个新 deb（rootless arm64 + roothide arm64e）；
+  超过 5 分钟没有产物就要查运行器，而不是继续等。
+- 轮询方式：`git fetch origin main` 后看 `git log --oneline -1`，产物提交信息是
+  `chore: 自动构建 deb 包 [ci skip]`。`shell_run` 的 `sleep` 超过约 300 秒会被杀（exit 137），分段等待。
+- 产物一出现立刻回传：把两个架构的 `.deb` 与 `SHA256SUMS` 复制到 `Attachments/<项目>-<版本>/`，
+  用 `file_show` 交给用户，并用 `irisin-cli install --yes <本地 deb>`（root）升级设备上的版本。
+
 ## 本机工具链的坑
 
 - 本机 `ld` 不接受 `-undefined dynamic_lookup`（会报 `can't exec ld64`）。dylib 里不要留
