@@ -74,8 +74,8 @@ class RemovedGuessesStayRemoved(unittest.TestCase):
 
 class PackageContracts(unittest.TestCase):
     def test_version(self):
-        self.assertIn('Version: 1.6.2-167+isolation.52', CONTROL)
-        self.assertIn('#define APELIN_BUILD_ID "isolation.52"', TWEAK)
+        self.assertIn('Version: 1.6.2-167+isolation.53', CONTROL)
+        self.assertIn('#define APELIN_BUILD_ID "isolation.53"', TWEAK)
 
     def test_core_injects_only_thermalmonitord(self):
         executables = re.search(r'Executables\s*=\s*\((.*?)\)', PLIST, re.S)

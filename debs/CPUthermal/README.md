@@ -1,4 +1,21 @@
-# CPUthermal 1.6.2-167+isolation.52
+# CPUthermal 1.6.2-167+isolation.53
+
+## isolation.53：跨机型适配（iPhone 8 – 15，iOS 15 – 18）
+
+亮度守护不再写死 `AppleCLCD2` + `IOMFBBrightnessLevel`（16.16 定点 nits），改为运行时发现节点与单位：
+
+| 机型段 | 面板 | IORegistry 服务 | 亮度属性 | 单位 |
+| --- | --- | --- | --- | --- |
+| iPhone 12 – 15 | OLED / DCP | `AppleCLCD2` / `AppleCLCD` / `AppleDCP` / `IOMobileFramebuffer` | `IOMFBBrightnessLevel` | 16.16 定点 nits |
+| iPhone 8 / X / XR / 11 | LCD 背光 | `AppleARMBacklight` / `AppleBacklightDisplay` | `CurrentNits`，或 `IODisplayParameters` 里的 `BrightnessMilliNits.value` | nits / 毫 nit |
+| 上限 | — | 同上 | `BLNitsCap`（存在时才用） | 16.16 定点 nits |
+
+- **单位不写死**：候选比例 `65536 / 1000 / 1` 逐个比对「读数值 ÷ CoreBrightness 请求」，落在 5–3000 nits 且与请求同量级（0.2–1.3）的第一个即采用。iOS 版本换单位、不同面板换量纲都能自适应。
+- **写入方式随节点变化**：DCP 直接写属性；LCD 参数字典则读出 `IODisplayParameters`、只改 `BrightnessMilliNits.value` 再整体回写，不动其它键。
+- **找不到可用节点就不写**：外接屏、熄屏、机型不支持时只记一条 `displayLevel backend unavailable`；连续 20 次读不到值会重新发现节点（每 30 秒最多一次），绝不写未知节点。
+- **行为判据不变**：仍按亮度桶学习系统自身映射、只补回落差、只升不降、请求稳定 2 秒后判定、20 秒冷却、落差分两段渐变；满亮度区目标直接取请求且禁止学习被压样本。
+
+**真机待验**：iPhone 12–15（本机）户外满亮度不掉；iPhone 8–11 的 LCD 机型需确认日志出现对应的 `backend AppleARMBacklight ...`，且滑块拖动无跳变、暗环境不干预。
 
 ## isolation.52：满亮度区直接顶到请求值（修复 0.80 比例被学成“正常”）
 

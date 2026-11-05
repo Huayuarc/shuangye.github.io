@@ -23,7 +23,7 @@
 // 本仓库的 GitHub CI 不定义 APELIN_BUILD_ID（该宏由 Apelin 构建注入），
 // 这里给出可直接编译的默认标记，避免 CI 因未定义标识符失败。
 #ifndef APELIN_BUILD_ID
-#define APELIN_BUILD_ID "isolation.52"
+#define APELIN_BUILD_ID "isolation.53"
 #endif
 
 // The public SDK marks these private iOS IOKit entry points unavailable even though
