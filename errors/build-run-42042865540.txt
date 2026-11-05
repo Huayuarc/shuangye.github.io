@@ -1,0 +1,167 @@
+=== Build Info ===
+Timestamp: Thu Nov  5 14:13:51 UTC 2026
+THEOS: /Users/runner/theos
+SDK: total 0
+drwxr-xr-x   4 runner  staff  128 Nov  5 14:13 .
+drwxr-xr-x  22 runner  staff  704 Nov  5 14:13 ..
+-rw-r--r--   1 runner  staff    0 Nov  5 14:13 .keep
+drwxr-xr-x   8 runner  staff  256 Nov 23  2023 iPhoneOS16.5.sdk
+
+=== Project: CPUthermal ===
+Exit code: 2
+[0;36m==> [1;36mNotice:[m Build may be slow as Theos isn’t using all available CPU cores on this computer. Consider upgrading GNU Make: https://theos.dev/docs/parallel-building
+[1;31m> [1;3;39mMaking all for tweak CPUthermal…[m
+[0;31m==> [1;39mPreprocessing Tweak.x…[m
+[0;32m==> [1;39mCompiling Tweak.x (arm64)…[m
+[0;33m==> [1;39mLinking tweak CPUthermal (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermal…[m
+[0;34m==> [1;39mStripping CPUthermal (arm64)…[m
+[0;31m==> [1;39mPreprocessing Tweak.x…[m
+[0;32m==> [1;39mCompiling Tweak.x (arm64e)…[m
+[0;33m==> [1;39mLinking tweak CPUthermal (arm64e)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermal…[m
+[0;34m==> [1;39mStripping CPUthermal (arm64e)…[m
+[0;34m==> [1;39mMerging tweak CPUthermal…[m
+[0;34m==> [1;39mSigning CPUthermal…[m
+[1;31m> [1;3;39mMaking all for tweak CPUthermalSpringBoard…[m
+[0;31m==> [1;39mPreprocessing CPUthermalSpringBoard.xm…[m
+[0;32m==> [1;39mCompiling CPUthermalSpringBoard.xm (arm64)…[m
+[0;33m==> [1;39mLinking tweak CPUthermalSpringBoard (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalSpringBoard…[m
+[0;34m==> [1;39mStripping CPUthermalSpringBoard (arm64)…[m
+[0;31m==> [1;39mPreprocessing CPUthermalSpringBoard.xm…[m
+[0;32m==> [1;39mCompiling CPUthermalSpringBoard.xm (arm64e)…[m
+[0;33m==> [1;39mLinking tweak CPUthermalSpringBoard (arm64e)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalSpringBoard…[m
+[0;34m==> [1;39mStripping CPUthermalSpringBoard (arm64e)…[m
+[0;34m==> [1;39mMerging tweak CPUthermalSpringBoard…[m
+[0;34m==> [1;39mSigning CPUthermalSpringBoard…[m
+[1;31m> [1;3;39mMaking all for tweak CPUthermalBatteryHealth…[m
+[0;31m==> [1;39mPreprocessing CPUthermalBatteryHealth.xm…[m
+[0;32m==> [1;39mCompiling CPUthermalBatteryHealth.xm (arm64)…[m
+[0;33m==> [1;39mLinking tweak CPUthermalBatteryHealth (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalBatteryHealth…[m
+[0;34m==> [1;39mStripping CPUthermalBatteryHealth (arm64)…[m
+[0;31m==> [1;39mPreprocessing CPUthermalBatteryHealth.xm…[m
+[0;32m==> [1;39mCompiling CPUthermalBatteryHealth.xm (arm64e)…[m
+[0;33m==> [1;39mLinking tweak CPUthermalBatteryHealth (arm64e)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalBatteryHealth…[m
+[0;34m==> [1;39mStripping CPUthermalBatteryHealth (arm64e)…[m
+[0;34m==> [1;39mMerging tweak CPUthermalBatteryHealth…[m
+[0;34m==> [1;39mSigning CPUthermalBatteryHealth…[m
+[1;31m> [1;3;39mMaking all for tweak CPUthermalBatteryComponent…[m
+[0;31m==> [1;39mPreprocessing CPUthermalBatteryComponent.xm…[m
+[0;32m==> [1;39mCompiling CPUthermalBatteryComponent.xm (arm64)…[m
+[0;33m==> [1;39mLinking tweak CPUthermalBatteryComponent (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalBatteryComponent…[m
+[0;34m==> [1;39mStripping CPUthermalBatteryComponent (arm64)…[m
+[0;31m==> [1;39mPreprocessing CPUthermalBatteryComponent.xm…[m
+[0;32m==> [1;39mCompiling CPUthermalBatteryComponent.xm (arm64e)…[m
+[0;33m==> [1;39mLinking tweak CPUthermalBatteryComponent (arm64e)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalBatteryComponent…[m
+[0;34m==> [1;39mStripping CPUthermalBatteryComponent (arm64e)…[m
+[0;34m==> [1;39mMerging tweak CPUthermalBatteryComponent…[m
+[0;34m==> [1;39mSigning CPUthermalBatteryComponent…[m
+[1;31m> [1;3;39mMaking all for tweak CPUthermalAppShield…[m
+[0;31m==> [1;39mPreprocessing CPUthermalAppShield.xm…[m
+[0;32m==> [1;39mCompiling CPUthermalAppShield.xm (arm64)…[m
+[0;33m==> [1;39mLinking tweak CPUthermalAppShield (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalAppShield…[m
+[0;34m==> [1;39mStripping CPUthermalAppShield (arm64)…[m
+[0;31m==> [1;39mPreprocessing CPUthermalAppShield.xm…[m
+[0;32m==> [1;39mCompiling CPUthermalAppShield.xm (arm64e)…[m
+[0;33m==> [1;39mLinking tweak CPUthermalAppShield (arm64e)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalAppShield…[m
+[0;34m==> [1;39mStripping CPUthermalAppShield (arm64e)…[m
+[0;34m==> [1;39mMerging tweak CPUthermalAppShield…[m
+[0;34m==> [1;39mSigning CPUthermalAppShield…[m
+[1;31m> [1;3;39mMaking all for tweak CPUthermalDisplayShield…[m
+[0;31m==> [1;39mPreprocessing CPUthermalDisplayShield.xm…[m
+[0;32m==> [1;39mCompiling CPUthermalDisplayShield.xm (arm64)…[m
+[0;33m==> [1;39mLinking tweak CPUthermalDisplayShield (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalDisplayShield…[m
+[0;34m==> [1;39mStripping CPUthermalDisplayShield (arm64)…[m
+[0;31m==> [1;39mPreprocessing CPUthermalDisplayShield.xm…[m
+[0;32m==> [1;39mCompiling CPUthermalDisplayShield.xm (arm64e)…[m
+[0;33m==> [1;39mLinking tweak CPUthermalDisplayShield (arm64e)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalDisplayShield…[m
+[0;34m==> [1;39mStripping CPUthermalDisplayShield (arm64e)…[m
+[0;34m==> [1;39mMerging tweak CPUthermalDisplayShield…[m
+[0;34m==> [1;39mSigning CPUthermalDisplayShield…[m
+[1;31m> [1;3;39mMaking all for tweak 0hello120hz…[m
+[0;32m==> [1;39mCompiling Hello120Hz/Core/H120Hooks.mm (arm64)…[m
+[0;32m==> [1;39mCompiling Hello120Hz/Core/H120Recording.mm (arm64)…[m
+[0;32m==> [1;39mCompiling Hello120Hz/Core/H120Policy.c (arm64)…[m
+[0;32m==> [1;39mCompiling Hello120Hz/Core/H120RangeTrampolines.S (arm64)…[m
+[0;32m==> [1;39mCompiling Hello120Hz/Shared/H120Preferences.mm (arm64)…[m
+[0;33m==> [1;39mLinking tweak 0hello120hz (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for 0hello120hz…[m
+[0;34m==> [1;39mStripping 0hello120hz (arm64)…[m
+[0;32m==> [1;39mCompiling Hello120Hz/Core/H120Hooks.mm (arm64e)…[m
+[0;32m==> [1;39mCompiling Hello120Hz/Core/H120Recording.mm (arm64e)…[m
+[0;32m==> [1;39mCompiling Hello120Hz/Core/H120Policy.c (arm64e)…[m
+[0;32m==> [1;39mCompiling Hello120Hz/Core/H120RangeTrampolines.S (arm64e)…[m
+[0;32m==> [1;39mCompiling Hello120Hz/Shared/H120Preferences.mm (arm64e)…[m
+[0;33m==> [1;39mLinking tweak 0hello120hz (arm64e)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for 0hello120hz…[m
+[0;34m==> [1;39mStripping 0hello120hz (arm64e)…[m
+[0;34m==> [1;39mMerging tweak 0hello120hz…[m
+[0;34m==> [1;39mSigning 0hello120hz…[m
+[1;31m> [1;3;39mMaking all for bundle CPUthermalSettings…[m
+[0;32m==> [1;39mCompiling Settings/FRootListController.m (arm64)…[m
+[0;32m==> [1;39mCompiling Hello120Hz/Preferences/Hello120HzPreferences.mm (arm64)…[m
+[0;32m==> [1;39mCompiling Hello120Hz/Preferences/H120SettingsController.mm (arm64)…[m
+[0;32m==> [1;39mCompiling Hello120Hz/Shared/H120Preferences.mm (arm64)…[m
+[0;33m==> [1;39mLinking bundle CPUthermalSettings (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalSettings…[m
+[0;34m==> [1;39mStripping CPUthermalSettings (arm64)…[m
+[0;32m==> [1;39mCompiling Settings/FRootListController.m (arm64e)…[m
+[0;32m==> [1;39mCompiling Hello120Hz/Preferences/Hello120HzPreferences.mm (arm64e)…[m
+[0;32m==> [1;39mCompiling Hello120Hz/Preferences/H120SettingsController.mm (arm64e)…[m
+[0;32m==> [1;39mCompiling Hello120Hz/Shared/H120Preferences.mm (arm64e)…[m
+[0;33m==> [1;39mLinking bundle CPUthermalSettings (arm64e)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalSettings…[m
+[0;34m==> [1;39mStripping CPUthermalSettings (arm64e)…[m
+[0;34m==> [1;39mMerging bundle CPUthermalSettings…[m
+[0;34m==> [1;39mSigning CPUthermalSettings…[m
+[1;31m> [1;3;39mMaking all for bundle CPUthermalCC…[m
+[0;32m==> [1;39mCompiling ControlCenter/CPUthermalCCModule.m (arm64)…[m
+[0;32m==> [1;39mCompiling ControlCenter/CPUthermalCCModuleViewController.m (arm64)…[m
+[0;33m==> [1;39mLinking bundle CPUthermalCC (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalCC…[m
+[0;34m==> [1;39mStripping CPUthermalCC (arm64)…[m
+[0;32m==> [1;39mCompiling ControlCenter/CPUthermalCCModule.m (arm64e)…[m
+[0;32m==> [1;39mCompiling ControlCenter/CPUthermalCCModuleViewController.m (arm64e)…[m
+[0;33m==> [1;39mLinking bundle CPUthermalCC (arm64e)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for CPUthermalCC…[m
+[0;34m==> [1;39mStripping CPUthermalCC (arm64e)…[m
+[0;34m==> [1;39mMerging bundle CPUthermalCC…[m
+[0;34m==> [1;39mSigning CPUthermalCC…[m
+[1;31m> [1;3;39mMaking all for tool CPUthermalTool…[m
+[0;32m==> [1;39mCompiling Tools/CPUthermalTool.m (arm64)…[m
+[1mTools/CPUthermalTool.m:42:12: [0m[0;1;31merror: [0m[1munused function 'SetThermalPreference' [-Werror,-Wunused-function][0m
+static int SetThermalPreference(NSString *key, id value, NSString *persistentKey, BOOL persist) {
+[0;1;32m           ^
+[0m1 error generated.
+make[3]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/CPUthermal/.theos/obj/arm64/Tools/CPUthermalTool.m.4ccea275.o] Error 1
+make[2]: *** [/Users/runner/work/shuangye.github.io/shuangye.github.io/debs/CPUthermal/.theos/obj/arm64/CPUthermalTool] Error 2
+make[1]: *** [internal-tool-all_] Error 2
+make: *** [CPUthermalTool.all.tool.variables] Error 2
