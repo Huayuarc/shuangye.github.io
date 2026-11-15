@@ -44,7 +44,8 @@ bash deps/build_rclone_ios.sh
 common=(-project src/ios/Minis.xcodeproj -configuration Debug
     -destination "platform=iOS Simulator,id=$udid"
     -derivedDataPath "${RUNNER_TEMP:?}/openminis-host-derived"
-    -clonedSourcePackagesDirPath "${RUNNER_TEMP:?}/openminis-host-packages")
+    # MinisTests resolves transitive C modules relative to BUILD_DIR.
+    -clonedSourcePackagesDirPath "${RUNNER_TEMP:?}/openminis-host-derived/SourcePackages")
 # The test bundle embeds Minis.debug.dylib, but Minis.app is never launched.
 xcodebuild build -scheme Minis "${common[@]}" CODE_SIGNING_ALLOWED=NO \
     IPHONEOS_DEPLOYMENT_TARGET=16.0 2>&1 | tee "$out/build-app.log"

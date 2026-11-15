@@ -66,7 +66,13 @@ Debug-only `DebugJSONRPC.handleISHMemStats` exceeded Swift type-check time.
 The CI patch extracts three explicitly typed Double subexpressions and types the
 response dictionary without changing fields or calculations. Host XCTest remains
 unverified until a subsequent run executes all six expected methods, with no
-skips. Successful concurrent connection lifecycles remain outside these tests.
+skips. Run `43705690886` passed Debug app compilation but stopped in test-bundle
+compilation: the CI script cloned Swift packages outside DerivedData while the
+existing MinisTests header paths resolve under DerivedData/SourcePackages. The
+CI script now uses that expected package checkout location for all three Xcode
+invocations; this does not change project sources or dependencies. Real XCTest
+execution remains unverified pending the next run.
+Successful concurrent connection lifecycles remain outside these tests.
 
 The CI scripts preserve manifest-pinned dependency checks rather than attempting
 root gitlink checkout in the imported archive, keep ERR diagnostics and app
