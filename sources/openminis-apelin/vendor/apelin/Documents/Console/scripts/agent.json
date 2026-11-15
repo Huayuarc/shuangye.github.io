@@ -1,0 +1,47 @@
+{
+  "name": "agent: needs the tweak extension (makes the Hello project if missing) and, for the prompt to get an answer, a Copilot credential in console/inbox/credentials/; opens a Confirm session, prompts, steers, aborts, compacts and closes it, and checks the app may neither approve an unknown request nor run code itself",
+  "steps": [
+    {"op": "hello"},
+    {"op": "agentCredentialImport", "label": "credentials"},
+    {"op": "agentSkillList", "label": "skills"},
+    {"op": "agentList", "label": "before"},
+    {"op": "projectCreate", "label": "project", "allowError": true,
+     "request": {"templateID": "wiki.qaq.apelin.dev.tweak/objc-hook", "name": "Hello", "values": {}}},
+
+    {"op": "agentOpen", "label": "agent", "follow": false,
+     "request": {"projectName": "Hello", "provider": "githubCopilot", "approvalMode": "confirm"}},
+    {"op": "expect", "request": {"step": "agent", "path": "response.task.kind", "equals": "agent"}},
+    {"op": "agentAttach", "label": "opened", "follow": false,
+     "request": {"taskID": "${agent.response.task.taskID}", "afterSeq": 0, "waitMilliseconds": 2000}},
+
+    {"op": "agentPrompt", "request": {"sessionID": "${agent.response.sessionID}", "text": "List the files in this project. Do nothing else."}},
+    {"op": "wait", "request": {"seconds": 5}},
+    {"op": "agentSteer", "request": {"sessionID": "${agent.response.sessionID}", "text": "Only the top level, please."}},
+    {"op": "wait", "request": {"seconds": 5}},
+    {"op": "agentAbort", "request": {"sessionID": "${agent.response.sessionID}"}},
+    {"op": "wait", "request": {"seconds": 2}},
+    {"op": "agentCompact", "label": "compact", "allowError": true,
+     "request": {"sessionID": "${agent.response.sessionID}"}},
+
+    {"op": "agentApprove", "label": "unknown-approval", "allowError": true,
+     "request": {"sessionID": "${agent.response.sessionID}", "approvalID": "no-such-approval", "decision": "deny"}},
+    {"op": "expect", "request": {"step": "unknown-approval", "ok": false}},
+
+    {"op": "agentRunCode", "label": "run-code", "allowError": true, "request": {
+      "sessionID": "${agent.response.sessionID}", "spec": {"argv": {"_0": ["true"]}},
+      "workingDirectory": ".", "timeoutSeconds": 10, "approval": {"relaxed": {}}
+    }},
+    {"op": "expect", "request": {"step": "run-code", "errorCode": "denied"}},
+
+    {"op": "agentRunCode", "label": "run-root", "allowError": true, "request": {
+      "sessionID": "${agent.response.sessionID}", "spec": {"argv": {"_0": ["true"]}},
+      "workingDirectory": ".", "timeoutSeconds": 10, "approval": {"relaxed": {}}, "asRoot": true
+    }},
+    {"op": "expect", "request": {"step": "run-root", "errorCode": "denied"}},
+
+    {"op": "agentList", "label": "listed"},
+    {"op": "agentAttach", "label": "events", "follow": false,
+     "request": {"taskID": "${agent.response.task.taskID}", "afterSeq": 0, "waitMilliseconds": 1000}},
+    {"op": "agentClose", "request": {"sessionID": "${agent.response.sessionID}"}}
+  ]
+}

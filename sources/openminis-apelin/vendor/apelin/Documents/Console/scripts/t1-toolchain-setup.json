@@ -1,0 +1,32 @@
+{
+  "name": "t1-toolchain-setup",
+  "steps": [
+    {"op": "hello"},
+    {"op": "sdkList", "label": "sdks"},
+    {"op": "expect", "request": {"step": "sdks", "path": "response.sdks.0.id", "exists": true}},
+    {"op": "toolchainStatus", "label": "before"},
+    {"op": "expect", "request": {"step": "before", "path": "response.toolchains", "equals": []}},
+    {"op": "toolchainCatalog", "label": "catalog"},
+    {"op": "expect", "request": {"step": "catalog", "path": "response.products.0.productID", "exists": true}},
+    {"op": "expect", "request": {"step": "catalog", "path": "response.products.0.version", "equals": "27.2"}},
+    {"op": "expect", "request": {"step": "catalog", "path": "response.products.5.version", "equals": "14.2"}},
+    {"op": "expect", "request": {"step": "catalog", "path": "response.products.6", "exists": false}},
+    {"op": "toolchainSetup", "request": {"source": {"appleCatalog": {}}, "components": ["c"]}, "label": "setup", "timeoutSeconds": 3600},
+    {"op": "expect", "request": {"step": "setup", "state": "succeeded"}},
+    {"op": "toolchainStatus", "label": "after"},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.0.installationID", "exists": true}},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.0.packageID", "exists": true}},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.0.contentDigest", "exists": true}},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.0.components.0.kind", "equals": "c"}},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.0.components.0.selfCheckPassed", "equals": true}},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.0.components.0.problem", "exists": false}},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.0.selfTests.0.passed", "equals": true}},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.0.selfTests.1.passed", "equals": true}},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.0.selfTests.2.passed", "equals": true}},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.0.selfTests.3.passed", "equals": true}},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.0.selfTests.4.passed", "equals": true}},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.0.selfTests.5.passed", "equals": true}},
+    {"op": "expect", "request": {"step": "after", "path": "response.defaultID", "equals": "${after.response.toolchains.0.id}"}},
+    {"op": "expect", "request": {"step": "after", "path": "response.activeTasks", "equals": []}}
+  ]
+}

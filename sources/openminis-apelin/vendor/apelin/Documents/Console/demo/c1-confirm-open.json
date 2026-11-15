@@ -1,0 +1,17 @@
+{
+  "name": "c1-confirm-open: a Confirm DeepSeek session on Agent Confirm CLI asked to run a command that is not a preset; reads its events until the approval request",
+  "steps": [
+    {"op": "hello"},
+    {"op": "agentOpen", "label": "agent", "follow": false, "request": {
+      "projectName": "Agent Confirm CLI",
+      "provider": "openAICompatible",
+      "model": "deepseek-chat",
+      "approvalMode": "confirm",
+      "prompt": "Use the shell_run tool to run exactly this argv in the project folder: [\"uname\", \"-a\"]. Then tell me the kernel version it printed in one sentence. Do nothing else.",
+      "closeWhenFinished": true
+    }},
+    {"op": "wait", "request": {"seconds": 45}},
+    {"op": "agentAttach", "label": "pending", "follow": false, "request": {"taskID": "${agent.response.task.taskID}", "afterSeq": 0, "waitMilliseconds": 5000}},
+    {"op": "agentList", "label": "listed"}
+  ]
+}

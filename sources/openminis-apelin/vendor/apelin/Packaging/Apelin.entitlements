@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+	The app's entitlements. Apelin ships as a deb only, roothide and rootless;
+	Scripts/package-deb.sh signs with this file and reads every key below back
+	out of the signed binary.
+
+	`wiki.qaq.apelin.client` is the private key the daemon's authenticator
+	looks for on a peer. It is Apelin's alone; never grant it to anything you
+	would not hand a root descriptor to.
+
+	Mach-lookup of `wiki.qaq.apelin.service` is not optional: without it the app
+	cannot find the daemon.
+
+	`com.apple.security.application-groups` names the one App Group the
+	widget extension shares (`group.wiki.qaq.apelin`): the app writes the
+	widgets' snapshot there, because the sandboxed extension cannot read
+	mobile's Documents (Packaging/ApelinWidgets.entitlements). Nothing else
+	goes in it.
+
+	`platform-application` attests "signed as platform", not "this client".
+	The app carries it and the authenticator requires it; drop it from both
+	together or from neither.
+
+	The two storage entitlements let the app read other apps' bundles and data
+	containers: a tweak is written against an app, and its bundle (Info.plist,
+	binary, frameworks) is what the editor and the agent read to target it.
+	`no-sandbox` alone does not open them on every platform. The daemon carries
+	the same pair.
+
+	`usernotifications.bundle-identifiers` is what lets the app ask for
+	notifications at all. A platform binary is not taken at its bundle's
+	word: usernotificationsd refuses every call — authorization, the
+	delivered list, their removal — unless its own bundle id is listed here,
+	and Settings has no Notifications page to turn on. The Info.plist's
+	`SBAppUsesLocalNotifications` is the other half; the daemon, which posts
+	as the app, names the same id.
+
+	iCloud Drive (`~/Library/Mobile Documents`, `~/Library/CloudStorage`) is
+	a separate vault and is deliberately not opened here. An app that goes
+	there adds the storage classes `CloudDocsDB`, `CloudKit`,
+	`MobileDocuments`, `ciconia` and `iCloudDrive`, on the app and the daemon
+	both; SKILL.md says why the `exception.files.*` path keys are not part of
+	that set.
+
+	`com.apple.CommCenter.fine-grained` (`spi`, `data-allowed-write`) lets
+	the app read and open its own Wi-Fi and cellular data policy at launch
+	(`NetworkAccess`), which no prompt ever asks about for an app a package
+	manager installed; held denied, every request the app makes is
+	"offline". Irisin carries the same for the same reason, and icli the
+	same two values, with which it reads and repairs another app's.
+
+	`com.apple.security.iokit-user-client-class` names the GPU and what sits
+	beside it. Every app carries it, whether or not it draws with Metal
+	itself: a bootstrap withholds these IOKit classes from an ad-hoc signed
+	binary until they are named, and system frameworks reach for them inside
+	the app's process. IconServices composites an app icon through Core
+	Image; without the list an app crashed at launch on an A12 iPhone on
+	iOS 18 RootHide with a null call in `CI::GLContext::GLContext`, under
+	`_applicationIconImageForBundleIdentifier:`. Bold Text does the same
+	through UIKit, and so does the share sheet. A Metal view of the app's
+	own fails without a crash: a blank rectangle that never reports a
+	viewport.
+
+	The list: AGX and the older IOAccel names, IOSurface, the
+	framebuffer, JPEG decode, HID, `IOGPUDeviceUserClient` and
+	`IOAccelerator` from the Bold Text report, the neural engine Vision asks
+	for, and vphone's paravirtual names (`AppleParavirt…`,
+	`…ParavirtClient`, `AppleVirtIO…`). Both spellings of the key carry the
+	same list: the kernel's denial names the plain one, and the Bold Text
+	fix was the `exception.` one.
+-->
+<plist version="1.0">
+<dict>
+	<key>application-identifier</key>
+	<string>wiki.qaq.apelin</string>
+	<key>com.apple.CommCenter.fine-grained</key>
+	<array>
+		<string>spi</string>
+		<string>data-allowed-write</string>
+	</array>
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.wiki.qaq.apelin</string>
+	</array>
+	<key>com.apple.security.iokit-user-client-class</key>
+	<array>
+		<string>AGXCommandQueue</string>
+		<string>AGXDevice</string>
+		<string>AGXDeviceUserClient</string>
+		<string>AGXSharedUserClient</string>
+		<string>AGXGLContext</string>
+		<string>AppleParavirtDeviceUserClient</string>
+		<string>IOAccelerator</string>
+		<string>IOAccelContext</string>
+		<string>IOAccelContext2</string>
+		<string>IOAccelDevice</string>
+		<string>IOAccelDevice2</string>
+		<string>IOAccelSharedUserClient</string>
+		<string>IOAccelSharedUserClient2</string>
+		<string>IOAccelSubmitter2</string>
+		<string>IOGPUDeviceUserClient</string>
+		<string>IOSurfaceRootUserClient</string>
+		<string>IOSurfaceAcceleratorClient</string>
+		<string>IOSurfaceAcceleratorParavirtClient</string>
+		<string>IOMobileFramebufferUserClient</string>
+		<string>AppleJPEGDriverUserClient</string>
+		<string>H11ANEInDirectPathClient</string>
+		<string>AppleVirtIONeuralEngineDeviceUserClient</string>
+		<string>IOHIDLibUserClient</string>
+		<string>IOHIDEventServiceFastPathUserClient</string>
+	</array>
+	<key>com.apple.security.exception.iokit-user-client-class</key>
+	<array>
+		<string>AGXCommandQueue</string>
+		<string>AGXDevice</string>
+		<string>AGXDeviceUserClient</string>
+		<string>AGXSharedUserClient</string>
+		<string>AGXGLContext</string>
+		<string>AppleParavirtDeviceUserClient</string>
+		<string>IOAccelerator</string>
+		<string>IOAccelContext</string>
+		<string>IOAccelContext2</string>
+		<string>IOAccelDevice</string>
+		<string>IOAccelDevice2</string>
+		<string>IOAccelSharedUserClient</string>
+		<string>IOAccelSharedUserClient2</string>
+		<string>IOAccelSubmitter2</string>
+		<string>IOGPUDeviceUserClient</string>
+		<string>IOSurfaceRootUserClient</string>
+		<string>IOSurfaceAcceleratorClient</string>
+		<string>IOSurfaceAcceleratorParavirtClient</string>
+		<string>IOMobileFramebufferUserClient</string>
+		<string>AppleJPEGDriverUserClient</string>
+		<string>H11ANEInDirectPathClient</string>
+		<string>AppleVirtIONeuralEngineDeviceUserClient</string>
+		<string>IOHIDLibUserClient</string>
+		<string>IOHIDEventServiceFastPathUserClient</string>
+	</array>
+	<key>wiki.qaq.apelin.client</key>
+	<true/>
+	<key>com.apple.security.exception.mach-lookup.global-name</key>
+	<array>
+		<string>wiki.qaq.apelin.service</string>
+	</array>
+	<key>com.apple.private.security.no-sandbox</key>
+	<true/>
+	<key>com.apple.private.security.storage.AppBundles</key>
+	<true/>
+	<key>com.apple.private.security.storage.AppDataContainers</key>
+	<true/>
+	<key>com.apple.private.usernotifications.bundle-identifiers</key>
+	<array>
+		<string>wiki.qaq.apelin</string>
+	</array>
+	<key>platform-application</key>
+	<true/>
+</dict>
+</plist>

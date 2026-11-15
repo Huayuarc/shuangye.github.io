@@ -1,0 +1,16 @@
+.DS_Store
+xcuserdata/
+DerivedData/
+build/
+.build/
+.swiftpm/
+Configuration/Developer*.xcconfig
+!Configuration/Developer.xcconfig.example
+__pycache__/
+# Agent worktrees and settings
+.claude/
+# SwiftPM scratch inside each standalone package and extension
+Packages/*/.build/
+Extensions/**/.build/
+# The banner tool's pnpm dependencies
+Documents/Banner/Tool/node_modules/

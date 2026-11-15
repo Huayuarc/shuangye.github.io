@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "id": "wiki.qaq.apelin.dev.app",
+  "version": "0.1.1",
+  "kind": "app",
+  "displayName": "App Development",
+  "summary": "Build UIKit apps in Objective-C or Swift and install them in /Applications. Swift requires the Swift toolchain component.",
+  "apelinCompatibility": {
+    "minimumAppVersion": "0.1.0",
+    "projectSchemaVersions": [1],
+    "manifestSchemaVersion": 1
+  },
+  "requirements": {
+    "toolchainComponents": ["c-family"],
+    "languages": ["objc", "swift"],
+    "sdkFrameworks": ["Foundation", "UIKit"],
+    "bootstraps": ["rootless", "roothide"],
+    "architectures": {
+      "rootless": ["arm64", "arm64e"],
+      "roothide": ["arm64e"]
+    },
+    "runtimeDependencies": {
+      "rootless": ["uikittools"],
+      "roothide": ["uikittools"]
+    }
+  },
+  "templates": [
+    {
+      "id": "uikit-objc",
+      "directory": "templates/uikit-objc",
+      "displayName": "UIKit App (Objective-C)",
+      "summary": "A single-screen UIKit app with scene support, saved-state cleanup and entitlements for running outside a container.",
+      "language": "objc",
+      "toolchainComponents": ["c-family"],
+      "project": "apelin-project.json",
+      "parameters": [
+        { "name": "productName", "type": "identifier", "label": "Product Name", "help": "The executable and bundle name.", "required": true, "default": "ApelinApp" },
+        { "name": "displayName", "type": "string", "label": "Display Name", "default": "Apelin App", "maxLength": 64 },
+        { "name": "summary", "type": "string", "label": "Description", "default": "Built on this device with Apelin.", "maxLength": 200 },
+        { "name": "author", "type": "string", "label": "Author", "default": "Apelin User", "maxLength": 64 }
+      ],
+      "files": [
+        { "path": "apelin-project.json", "format": "json" },
+        { "path": "Sources/main.m", "format": "objc" },
+        { "path": "Sources/AppDelegate.h", "format": "objc" },
+        { "path": "Sources/AppDelegate.m", "format": "objc" },
+        { "path": "Sources/SceneDelegate.h", "format": "objc" },
+        { "path": "Sources/SceneDelegate.m", "format": "objc" },
+        { "path": "Sources/RootViewController.h", "format": "objc" },
+        { "path": "Sources/RootViewController.m", "format": "objc" },
+        { "path": "Resources/Info.plist", "format": "plist-xml" },
+        { "path": "Packaging/App.entitlements", "format": "plist-xml" }
+      ],
+      "digest": "sha256:e9addbec114a1e796527c0d5734b42100a5ea286af32be617ee8da406e718c1b"
+    },
+    {
+      "id": "uikit-swift",
+      "directory": "templates/uikit-swift",
+      "displayName": "UIKit App (Swift)",
+      "summary": "A single-screen UIKit app in Swift. Requires an installed, verified Swift toolchain component.",
+      "language": "swift",
+      "toolchainComponents": ["c-family", "swift"],
+      "project": "apelin-project.json",
+      "parameters": [
+        { "name": "productName", "type": "identifier", "label": "Product Name", "help": "The executable and bundle name.", "required": true, "default": "ApelinApp" },
+        { "name": "displayName", "type": "string", "label": "Display Name", "default": "Apelin App", "maxLength": 64 },
+        { "name": "summary", "type": "string", "label": "Description", "default": "Built on this device with Apelin.", "maxLength": 200 },
+        { "name": "author", "type": "string", "label": "Author", "default": "Apelin User", "maxLength": 64 }
+      ],
+      "files": [
+        { "path": "apelin-project.json", "format": "json" },
+        { "path": "Sources/main.swift", "format": "swift" },
+        { "path": "Sources/AppDelegate.swift", "format": "swift" },
+        { "path": "Sources/RootViewController.swift", "format": "swift" },
+        { "path": "Resources/Info.plist", "format": "plist-xml" },
+        { "path": "Packaging/App.entitlements", "format": "plist-xml" }
+      ],
+      "digest": "sha256:4a6ab18a6b50d9454b760db8fd82631b11b6eef2761b881517378d5b9d00cb6f"
+    }
+  ],
+  "provenance": [
+    {
+      "scope": "template:uikit-swift",
+      "origin": "imported",
+      "repository": "https://github.com/owngoal-dev/platformize-app-ios",
+      "commit": "0aac1f88779f86e4288cd99fd6e330ce4df56d3f",
+      "paths": ["template/App/main.swift", "template/App/SceneRestorationReset.swift", "template/App/RootViewController.swift", "template/Packaging/APP.entitlements", "template/Packaging/DEBIAN/control", "template/APP.xcodeproj/project.pbxproj"],
+      "adaptations": [
+        "Kept: the manual main that deletes this bundle's .savedState before UIApplicationMain, the first screen's layout, the GPU IOKit user-client list with its reason, platform-application and no-sandbox, and the uikittools dependency whose triggers register the app.",
+        "Changed: SceneRestorationReset is folded into main.swift; the Info.plist keys the Xcode project generated (INFOPLIST_KEY_*) are written out in Resources/Info.plist; the scene delegate gets a fixed Objective-C name because there is no Xcode module prefix.",
+        "Added: package.icon, this extension's icon on Apelin's Pages, written as the control's Icon so a package manager shows it beside the package; it is not the app's own icon.",
+        "Dropped: the daemon, the XPC client and its entitlements, the App Group, the storage entitlements, ExecutableWatch, QuietExit, the string catalogue and the Xcode project (apelin-build has no Xcode)."
+      ]
+    },
+    {
+      "scope": "template:uikit-objc",
+      "origin": "imported",
+      "repository": "https://github.com/owngoal-dev/platformize-app-ios",
+      "commit": "0aac1f88779f86e4288cd99fd6e330ce4df56d3f",
+      "paths": ["template/App/main.swift", "template/App/SceneRestorationReset.swift", "template/App/RootViewController.swift", "template/Packaging/APP.entitlements", "template/Packaging/DEBIAN/control"],
+      "adaptations": [
+        "The uikit-swift adaptation, translated to Objective-C: main.m clears saved scene state before UIApplicationMain; the first screen also shows APELIN_VERSION and APELIN_BUILD_ID, which the build defines."
+      ]
+    }
+  ],
+  "licenses": [
+    { "path": "LICENSE", "spdx": "MIT", "covers": ["template:uikit-objc", "template:uikit-swift", "manifest"] }
+  ]
+}

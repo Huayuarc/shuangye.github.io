@@ -1,0 +1,44 @@
+{
+  "captureSyslog": {
+    "entries": [
+      {"process": "SpringBoard", "pid": 800, "message": "ApelinHello: loaded into SpringBoard", "subsystem": "", "category": "", "level": "notice", "date": "2026-10-17T02:15:00Z"},
+      {"process": "SpringBoard", "pid": 800, "message": "scene update", "subsystem": "com.apple.FrontBoard", "category": "Scene", "level": "info", "date": "2026-10-17T02:15:00Z"},
+      {"process": "SpringBoard", "pid": 800, "message": "ApelinHello: alert shown", "subsystem": "wiki.qaq.apelin.hello", "category": "ui", "level": "notice", "date": "2026-10-17T02:15:03Z"},
+      {"process": "SpringBoardHelper", "pid": 801, "message": "ApelinHello: loaded into SpringBoardHelper", "subsystem": "", "category": "", "level": "notice", "date": "2026-10-17T02:15:01Z"},
+      {"process": "backboardd", "pid": 70, "message": "display on", "subsystem": "com.apple.backboard", "category": "", "level": "error", "date": "2026-10-17T02:15:02Z"},
+      {"process": "SpringBoard", "pid": 800, "message": "ApelinHello: second line", "subsystem": "wiki.qaq.apelin.hello.sub", "category": "ui", "level": "fault", "date": "2026-10-17T02:15:04Z"}
+    ],
+    "count": 6,
+    "truncated": false,
+    "source": "unified_log",
+    "seconds": 3
+  },
+  "uiElements": {
+    "source": "ax",
+    "pid": 800,
+    "elements": [
+      {"label": "Hello World", "identifier": "", "value": "", "role": "StaticText", "traits": 64, "enabled": true, "clickable": false, "visible": true, "frame": {"x": 40, "y": 300, "width": 300, "height": 22}, "x": 190, "y": 311},
+      {"label": "OK", "identifier": "hello.ok", "value": "", "role": "Button", "traits": 1, "enabled": true, "clickable": true, "visible": true, "frame": {"x": 40, "y": 360, "width": 300, "height": 44}, "x": 190, "y": 382},
+      {"label": "Volume", "identifier": "", "value": 0.5, "role": "Slider", "traits": 4096, "enabled": true, "clickable": true, "visible": true, "frame": {"x": 0, "y": 0, "width": 10, "height": 10}, "x": 5, "y": 5}
+    ],
+    "count": 3,
+    "truncated": true
+  },
+  "frontmostApp": {"bundle_id": "com.apple.springboard", "verified": true, "source": "runningboard"},
+  "runningApps": {
+    "apps": [{"bundle_id": "wiki.qaq.apelin", "name": "Apelin", "pid": 900, "executable": "/var/jb/Applications/Apelin.app/Apelin"}],
+    "count": 1,
+    "source": "runningboard"
+  },
+  "respring": {"restarted": true, "method": "frontboard_relaunch", "previous_pid": 800, "pid": 1200},
+  "crashLogs": {
+    "crashes": [
+      "/var/mobile/Library/Logs/CrashReporter/SpringBoard-2026-10-17-101500.ips",
+      "/var/mobile/Library/Logs/CrashReporter/Apelin-2026-10-16-090000.ips",
+      "/var/mobile/Library/Logs/CrashReporter/SpringBoard-2026-10-16-080000.ips"
+    ],
+    "count": 3
+  },
+  "lockState": {"locked": false, "screen_off": false},
+  "tapElement": {"tapped": true, "element": {"label": "OK", "identifier": "hello.ok", "value": "", "role": "Button", "enabled": true, "clickable": true, "visible": true, "frame": {"x": 40, "y": 360, "width": 300, "height": 44}, "x": 190, "y": 382}}
+}

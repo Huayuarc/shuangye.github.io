@@ -1,0 +1,6 @@
+{
+  "name": "LLVM libc++ headers (in libghostty)",
+  "url": "https://github.com/llvm/llvm-project",
+  "version": "as shipped in Zig 0.16.0",
+  "note": "Compiled into libghostty.a (ghostty 1e9e14af5df1 as built into libghostty-spm 2.2.2026101502 (GhosttyKit.xcframework upstream.1e9e14af5df1-3)), a prebuilt static library with no license file of its own. Fetched from https://codeberg.org/ziglang/zig/raw/tag/0.16.0/lib/libcxx/LICENSE.TXT. Header templates instantiated in libghostty's C++ objects; the LLVM exception waives attribution for compiled code, and the notice ships anyway."
+}

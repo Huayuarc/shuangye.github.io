@@ -1,0 +1,5 @@
+{
+  "name": "TreeSitterLanguages (in Runestone)",
+  "url": "https://github.com/simonbs/TreeSitterLanguages",
+  "note": "The highlight and injection queries and indentation rules RunestoneLanguageSupport takes from simonbs/TreeSitterLanguages, as Lakr233/Runestone.xcframework 2688e46 carried them; this LICENSE is beside them in Packages/Runestone/Sources/RunestoneLanguageSupport."
+}

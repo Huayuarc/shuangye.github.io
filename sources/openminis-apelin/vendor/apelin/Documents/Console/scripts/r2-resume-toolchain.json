@@ -1,0 +1,23 @@
+{
+  "name": "r2-resume-toolchain",
+  "steps": [
+    {"op": "hello", "label": "hello"},
+    {"op": "sdkList", "label": "sdks"},
+    {"op": "expect", "request": {"step": "sdks", "path": "response.sdks.0.id", "exists": true}},
+    {"op": "toolchainStatus", "label": "before"},
+    {"op": "expect", "request": {"step": "before", "path": "response.toolchains", "equals": []}},
+    {"op": "toolchainSetup", "label": "setup", "follow": false, "request": {"source": {"appleCatalog": {}}, "components": ["c"]}},
+    {"op": "wait", "request": {"seconds": 15}},
+    {"op": "environmentAttach", "label": "after-kill", "follow": true, "timeoutSeconds": 3600, "request": {
+      "taskID": "${setup.response.taskID}",
+      "afterSeq": 0,
+      "waitMilliseconds": 0
+    }},
+    {"op": "expect", "request": {"step": "after-kill", "path": "response.state", "equals": "running"}},
+    {"op": "expect", "request": {"step": "after-kill", "state": "succeeded"}},
+    {"op": "toolchainStatus", "label": "after"},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.0.installationID", "exists": true}},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.0.components.0.selfCheckPassed", "equals": true}},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.1", "exists": false}}
+  ]
+}

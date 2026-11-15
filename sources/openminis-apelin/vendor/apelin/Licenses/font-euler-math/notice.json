@@ -1,0 +1,6 @@
+{
+  "name": "Euler Math (font, in SwiftMath)",
+  "url": "https://github.com/aliftype/euler-otf",
+  "version": "0.61",
+  "note": "SwiftMath 1.7.3 ships Euler-Math.otf in mathFonts.bundle, copied into the app as a resource. The copyright is the font's own name-table notice; the licence is the SIL Open Font License 1.1 (mathFonts.bundle/OFL.txt's licence text). SwiftMath's collector-walked mathFonts.bundle/LICENSE is MathChat's MIT notice for the plists, not the fonts."
+}

@@ -1,0 +1,485 @@
+{
+  "binaryRevisions": {
+    "libarchive.xcframework": "82687c75e530917b7fbeb15cd5f9369524637155",
+    "libgit2.xcframework": "983a47947dae35495cf367cf0bf7811ae59699e2",
+    "libghostty-spm": "42bacd1339f323a693ddbca779295f4f77e5a697"
+  },
+  "excludedPaths": {
+    "libpng": [
+      "libpng/ci",
+      "libpng/contrib"
+    ],
+    "zlib": [
+      "zlib/contrib"
+    ]
+  },
+  "statedVersions": {
+    "kwwk": {
+      "file": "Sources/KWWKCli/Theme.swift",
+      "pattern": "static let version = \"([0-9]+(?:\\.[0-9]+)+)\""
+    }
+  },
+  "notices": {
+    "app/Apelin": {
+      "sha256": "79b8af7a9877c42384ecc70ee213d554ec4ba0c65a029ff3e6af2fe045595523",
+      "license": "MIT"
+    },
+    "vendored/BoringSSL": {
+      "sha256": "756a61a8300d105ae68e7f2993e27d41a765c946f3400422e2403b01e7ded527",
+      "license": "OpenSSL / SSLeay / ISC (BoringSSL), with MIT for fiat"
+    },
+    "vendored/IrisinExternalClient": {
+      "sha256": "79b8af7a9877c42384ecc70ee213d554ec4ba0c65a029ff3e6af2fe045595523",
+      "license": "MIT"
+    },
+    "vendored/ios-mcp": {
+      "sha256": "8c0071d4e3af0f3ded6d6401004e2da4d5610f8fa0d9849ab57db8fd7b3d1133",
+      "license": "MIT"
+    },
+    "vendored/libgit2": {
+      "sha256": "e0938121c0554985fe17196ac38fc590d149268e9c46e0c0e7a2eae1354fae71",
+      "license": "GPL-2.0 WITH linking exception; bundled xdiff LGPL-2.1-or-later; zlib, ISC, BSD and MIT for the rest of COPYING"
+    },
+    "cstb/LICENSE": {
+      "sha256": "bebfe904b14301657e4e5d655c811d51fd31b97c455b9cc2d8600d6bac6cff63",
+      "license": "MIT or Public Domain (stb)"
+    },
+    "cstb/data/herringbone/license.txt": {
+      "sha256": "f4f9cd2dcab0f513d4e47ab0f2026675a762b8d66a845cc8e9f8e8b13ff5366f",
+      "license": "Public Domain"
+    },
+    "icli/LICENSE": {
+      "sha256": "79b8af7a9877c42384ecc70ee213d554ec4ba0c65a029ff3e6af2fe045595523",
+      "license": "MIT"
+    },
+    "kwwk/LICENSE": {
+      "sha256": "098150027b47d36d061a24da24d35caebe0a23aaeb0f23e2cf3cf1a1c0393796",
+      "license": "MIT"
+    },
+    "libarchive.xcframework/LICENSE": {
+      "sha256": "d026cb2ca04b2eae819639f5e64a09549badefbd2eb2c410ef0f92b1048e2e1b",
+      "license": "MIT (packaging); libarchive BSD-2-Clause; xz 0BSD; zstd BSD-3-Clause; lz4 BSD-2-Clause"
+    },
+    "libgit2.xcframework/LICENSE": {
+      "sha256": "c95277a8b217de956fc77fba9553b33e04b292c568303f50f0a7207cd8863a38",
+      "license": "MIT (packaging); libgit2 GPL-2.0 WITH linking exception; xdiff LGPL-2.1-or-later; llhttp and sha1dc MIT"
+    },
+    "libpng/LICENSE": {
+      "sha256": "7317e078e2d3b5d7ba5a6159e650945153262b44b76f6700f8e9edb261c5143e",
+      "license": "libpng (PNG Reference Library License v2)"
+    },
+    "libpng/libpng/LICENSE": {
+      "sha256": "7317e078e2d3b5d7ba5a6159e650945153262b44b76f6700f8e9edb261c5143e",
+      "license": "libpng (PNG Reference Library License v2)"
+    },
+    "libwebp/LICENSE": {
+      "sha256": "e293d1dddc9785200b1f58a4f5293543cf8566d9e0b8a3c02fad955035b19f42",
+      "license": "BSD-3-Clause"
+    },
+    "libwebp/libwebp/COPYING": {
+      "sha256": "e293d1dddc9785200b1f58a4f5293543cf8566d9e0b8a3c02fad955035b19f42",
+      "license": "BSD-3-Clause"
+    },
+    "swift-argument-parser/LICENSE.txt": {
+      "sha256": "770af8291f708538d8ff885a0bbc4e045cd700531741c4f99528d435c14d7f55",
+      "license": "Apache-2.0 with Runtime Library Exception"
+    },
+    "swift-asn1/LICENSE.txt": {
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "license": "Apache-2.0"
+    },
+    "swift-asn1/NOTICE.txt": {
+      "sha256": "d8fb11cde5405a9b58b7a84e23f8d6eb81287cb840d5b275f47c02139adb163a",
+      "license": "Apache-2.0 (NOTICE)"
+    },
+    "swift-atomics/LICENSE.txt": {
+      "sha256": "770af8291f708538d8ff885a0bbc4e045cd700531741c4f99528d435c14d7f55",
+      "license": "Apache-2.0 with Runtime Library Exception"
+    },
+    "swift-collections/LICENSE.txt": {
+      "sha256": "770af8291f708538d8ff885a0bbc4e045cd700531741c4f99528d435c14d7f55",
+      "license": "Apache-2.0 with Runtime Library Exception"
+    },
+    "swift-crypto/LICENSE.txt": {
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "license": "Apache-2.0"
+    },
+    "swift-crypto/NOTICE.txt": {
+      "sha256": "b3ddc2ae068e76b3beb71be03c0400f90090f9469aa491bf7b1ac42320af37b8",
+      "license": "Apache-2.0 (NOTICE)"
+    },
+    "swift-nio/LICENSE.txt": {
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "license": "Apache-2.0"
+    },
+    "swift-nio/NOTICE.txt": {
+      "sha256": "63811e598b0c8b60c81a3b8fc13e8f3f572804e2acbff6448b4810ad91f578af",
+      "license": "Apache-2.0 (NOTICE)"
+    },
+    "swift-nio/Sources/CNIOLLHTTP/LICENSE": {
+      "sha256": "ebca854e0134cd256d673627c20499f42577eb74bacf08b9f25b626a73c91277",
+      "license": "MIT (llhttp)"
+    },
+    "swift-nio-http2/LICENSE.txt": {
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "license": "Apache-2.0"
+    },
+    "swift-nio-http2/NOTICE.txt": {
+      "sha256": "64540818beffb50493f388363c03d98fc230cf1d7e35972fef2f80b43f6d2860",
+      "license": "Apache-2.0 (NOTICE)"
+    },
+    "swift-nio-ssl/LICENSE.txt": {
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "license": "Apache-2.0"
+    },
+    "swift-nio-ssl/NOTICE.txt": {
+      "sha256": "326e45484b4dc9b2db84580cb52e4d33f35d6b0c1991deb7ae545adc55843dd3",
+      "license": "Apache-2.0 (NOTICE)"
+    },
+    "swift-system/LICENSE.txt": {
+      "sha256": "770af8291f708538d8ff885a0bbc4e045cd700531741c4f99528d435c14d7f55",
+      "license": "Apache-2.0 with Runtime Library Exception"
+    },
+    "zlib/LICENSE": {
+      "sha256": "0f854f426019c475697e17f1b0fa638270f6e700bc756d9bfe50d17268bd3281",
+      "license": "Zlib"
+    },
+    "zlib/zlib/LICENSE": {
+      "sha256": "0f854f426019c475697e17f1b0fa638270f6e700bc756d9bfe50d17268bd3281",
+      "license": "Zlib"
+    },
+    "vendored/IrisinCodeSign": {
+      "sha256": "79b8af7a9877c42384ecc70ee213d554ec4ba0c65a029ff3e6af2fe045595523",
+      "license": "MIT"
+    },
+    "vendored/Runestone": {
+      "sha256": "b34c869efe68c5082708d220ec01e7a4531a92b4ab96bf50b7b1e323bdea53c2",
+      "license": "MIT"
+    },
+    "vendored/TreeSitterLanguages": {
+      "sha256": "b34c869efe68c5082708d220ec01e7a4531a92b4ab96bf50b7b1e323bdea53c2",
+      "license": "MIT"
+    },
+    "vendored/font-asana-math": {
+      "sha256": "76de319e911f93b7f7620fa4ab81f28735961dd5543824050cd8e59821938828",
+      "license": "OFL-1.1"
+    },
+    "vendored/font-euler-math": {
+      "sha256": "aed98f438b6d4124c4ec7b47cf538e1ca764014b9ee8c37f158a2404b1c5cdba",
+      "license": "OFL-1.1"
+    },
+    "vendored/font-fira-math": {
+      "sha256": "5c32dafde3683bd20214ff713c003a439d93740f8d228c0d8d93e2765c3a3adb",
+      "license": "OFL-1.1"
+    },
+    "vendored/font-garamond-math": {
+      "sha256": "163171ec881e241e288f5e15380319e72a18fae36e087a26513c43fc3b386722",
+      "license": "OFL-1.1"
+    },
+    "vendored/font-kpmath-light": {
+      "sha256": "db86d72761b93cdf19fc1317e8ef55e677bdf4874efca67b5284f7bf00d81e21",
+      "license": "OFL-1.1"
+    },
+    "vendored/font-kpmath-sans": {
+      "sha256": "d78d417c19de341fc51278c9563f9cb9e6de79cf3197170ffd663cf1fcdac530",
+      "license": "OFL-1.1"
+    },
+    "vendored/font-latin-modern-math": {
+      "sha256": "29b114c11896757d64cfdabd4266a50b1f065f1ed4e07d12a7e31e3963a9d5c4",
+      "license": "GUST Font License (LPPL-1.3c)"
+    },
+    "vendored/font-lete-sans-math": {
+      "sha256": "3841d149011f17f9b36d9dc956e63b7dbb5005cff11099c64595006efcff3fd2",
+      "license": "OFL-1.1"
+    },
+    "vendored/font-libertinus-math": {
+      "sha256": "d51488aefb68f006de8acd0fef856f0ac92b6b963bf756785623852c9ee6f186",
+      "license": "OFL-1.1"
+    },
+    "vendored/font-noto-sans-math": {
+      "sha256": "31d98637abada1f4556d312a9f85a0b94f6bfc0b6070263d6079597ad5e57b08",
+      "license": "OFL-1.1"
+    },
+    "vendored/font-tex-gyre-termes-math": {
+      "sha256": "7dc064e8bdece52997df06122f135ea17ef802c9e9563f4127221458f27ce948",
+      "license": "GUST Font License (LPPL-1.3c)"
+    },
+    "vendored/font-xits-math": {
+      "sha256": "744e75ec344585669d35dff4082f2bbb072503289f8587512bbb2db60128f76e",
+      "license": "OFL-1.1"
+    },
+    "vendored/ghostty": {
+      "sha256": "386211873e5b7a02f663ae4d7adf96285999f91608f8f9f31fecfd0f4095e6f1",
+      "license": "MIT"
+    },
+    "vendored/ghostty-freetype": {
+      "sha256": "09e0f833782e21ad2e387c6ed1fb4cc0520443be9f77194065f36bc37b567945",
+      "license": "FTL (FreeType License, elected from FTL OR GPL-2.0-or-later); BDF and PCF drivers MIT-style"
+    },
+    "vendored/ghostty-highway": {
+      "sha256": "cbb4e1cb881f9f5e092cf2aa47b464800d586f95a8447bd626ac543aacf9a3ff",
+      "license": "Apache-2.0 OR BSD-3-Clause"
+    },
+    "vendored/ghostty-jetbrains-mono": {
+      "sha256": "30f0c136e3c88e422d0791acd97238870f9054a9729bc34cf2ff0d4ed8cac4ad",
+      "license": "OFL-1.1"
+    },
+    "vendored/ghostty-libcxx-headers": {
+      "sha256": "539dd7aed86e8a4f12cbdd0e6c50c189c7d74847e4fecc64ce2c6ee3a01da38b",
+      "license": "Apache-2.0 WITH LLVM-exception"
+    },
+    "vendored/ghostty-libpng": {
+      "sha256": "7317e078e2d3b5d7ba5a6159e650945153262b44b76f6700f8e9edb261c5143e",
+      "license": "libpng (PNG Reference Library License v2)"
+    },
+    "vendored/ghostty-libxev": {
+      "sha256": "fcd26bcead569a910dd778cb864e027683498ca414e15db1694a5893eee1b835",
+      "license": "MIT"
+    },
+    "vendored/ghostty-nerd-fonts-symbols": {
+      "sha256": "84a7a98c82140fb12c37fe42b93805baa16024cb3e5acc599b7ffe612c55d847",
+      "license": "MIT"
+    },
+    "vendored/ghostty-oniguruma": {
+      "sha256": "70ba5469ea0bab6e18a32d7009068f996503168d27be57747e08da34337ff26f",
+      "license": "BSD-2-Clause"
+    },
+    "vendored/ghostty-simdutf": {
+      "sha256": "a06fa0219d4a377e047c0efaeaac654e637fac8a65a0a337b685d5263c528b4b",
+      "license": "Apache-2.0 OR MIT"
+    },
+    "vendored/ghostty-stb": {
+      "sha256": "39a8fa4d59a4e6ef2b39ded0ac186e9d6a357468b252fe24c548a85792ac64ed",
+      "license": "MIT OR Unlicense"
+    },
+    "vendored/ghostty-uucode": {
+      "sha256": "3d1e88808c35dfd8d76a1848605df2dacb2af8ba0dabb511bd852fb642b8525b",
+      "license": "MIT; Unicode-3.0 for the data"
+    },
+    "vendored/ghostty-wuffs": {
+      "sha256": "9ba17fb0fe19353adfde50f67a288ebb8e70ecbbc320dfddcd31af1733ed27dd",
+      "license": "Apache-2.0 OR MIT"
+    },
+    "vendored/ghostty-z2d": {
+      "sha256": "917b6d821ab1ea02678c5b504e325c3eee244c8d7fdf2fc892ec65039dfb164d",
+      "license": "MPL-2.0"
+    },
+    "vendored/ghostty-zig-objc": {
+      "sha256": "fcd26bcead569a910dd778cb864e027683498ca414e15db1694a5893eee1b835",
+      "license": "MIT"
+    },
+    "vendored/ghostty-zig-runtime": {
+      "sha256": "5c537d6853e005298a285d508cff9ac7192cea23576c840d485b2b586a7ff177",
+      "license": "MIT"
+    },
+    "vendored/ghostty-zlib": {
+      "sha256": "845efc77857d485d91fb3e0b884aaa929368c717ae8186b66fe1ed2495753243",
+      "license": "Zlib"
+    },
+    "vendored/tree-sitter": {
+      "sha256": "bca4b8873669046e4e2bace0abca9883e8077ed7c79bedc753735f08c964e14f",
+      "license": "MIT"
+    },
+    "vendored/tree-sitter-bash": {
+      "sha256": "49bf33cf78ef5897e4e161ce1517df7de1ae5042a65b6bcfd44401e0fc606559",
+      "license": "MIT"
+    },
+    "vendored/tree-sitter-c": {
+      "sha256": "2e0110e07abef7c2548b26ec9d6969775617ca539a0dc8dbeeb14d6452c711d1",
+      "license": "MIT"
+    },
+    "vendored/tree-sitter-cpp": {
+      "sha256": "2e0110e07abef7c2548b26ec9d6969775617ca539a0dc8dbeeb14d6452c711d1",
+      "license": "MIT"
+    },
+    "vendored/tree-sitter-json": {
+      "sha256": "2e0110e07abef7c2548b26ec9d6969775617ca539a0dc8dbeeb14d6452c711d1",
+      "license": "MIT"
+    },
+    "vendored/tree-sitter-make": {
+      "sha256": "28eecdb75b6de2d9020603531461444bf54db827ee2fb345a8fcf4dbee7c2ad1",
+      "license": "MIT"
+    },
+    "vendored/tree-sitter-markdown": {
+      "sha256": "52ec8a1bf8256511e2a92613e0bb41ffefba3897f16fa958d7bb28c466dd4804",
+      "license": "MIT"
+    },
+    "vendored/tree-sitter-objc": {
+      "sha256": "099c44248f8cf353123211318680e93465587c005a4b3730ce8cb5334de043d6",
+      "license": "MIT"
+    },
+    "vendored/tree-sitter-python": {
+      "sha256": "d724405ce238a22c0d35769c5a36b386ad5958192efe8bbb304fb2896254575f",
+      "license": "MIT"
+    },
+    "vendored/tree-sitter-ruby": {
+      "sha256": "9c99b99e93d3c6461bef9f6bac45d17b8bf014172625c24f76319bbd235a7b80",
+      "license": "MIT"
+    },
+    "vendored/tree-sitter-swift": {
+      "sha256": "3533cec129bb4bba015c0d61d86dd7c3b7e82110e4d2ff7837a01eff5bad5ccc",
+      "license": "MIT"
+    },
+    "vendored/tree-sitter-xml": {
+      "sha256": "3297073719030b7261afd78b7267931ccc03a27f7a65ca6fc644316180f71bf6",
+      "license": "MIT"
+    },
+    "vendored/tree-sitter-yaml": {
+      "sha256": "b727eee929bee836e8102cecf749a795b199f291b58c885bcd81cae727ac5a46",
+      "license": "MIT"
+    },
+    "displaylink/LICENSE": {
+      "sha256": "5dffb6c45faaa71f6c393255b135145cc17f0b07e968a705ef58f9c68aeb112d",
+      "license": "MIT"
+    },
+    "libghostty-spm/LICENSE": {
+      "sha256": "1f4b38df6a142e678a85d84c3a7ec4d1db328a556483241df714156134e81615",
+      "license": "MIT (packaging)"
+    },
+    "libghostty-spm/Sources/GhosttyTerminal/Resources/Ghostty/shell-integration/bash/LICENSE-bash-preexec.md": {
+      "sha256": "7d36c9d9c0ae6e92e7e7000e3aab7715ab6463997f995e100848740fde29c7cf",
+      "license": "MIT (bash-preexec)"
+    },
+    "libghostty-spm/Sources/GhosttyTheme/LICENSE": {
+      "sha256": "ec86fb473b04f6ed4ed9a820f6366355ddbbe69a1673a0d776410971dd0b227c",
+      "license": "MIT (iTerm2-Color-Schemes)"
+    },
+    "listviewkit/LICENSE": {
+      "sha256": "9c04c6104c56ef2c231c1ca7790a8146d96b880b5c0b04bfc69a3148113458fb",
+      "license": "MIT"
+    },
+    "litext/LICENSE": {
+      "sha256": "a8069924c2b66187e95773647c8984f2d3f5de5c9f00a9008e8d0457c67d3bbf",
+      "license": "MIT"
+    },
+    "lrucache/LICENSE.md": {
+      "sha256": "cc59ff976bc639612b7f2e92c6ecfad42e93b70099c7b950acd1b3651def10ab",
+      "license": "MIT"
+    },
+    "markdownview/LICENSE": {
+      "sha256": "7daf1f9f7da3de2efdcc68e9df14598387faa0f1df63c48ff88e2780e8efc227",
+      "license": "MIT (MarkdownView), with MIT for swift-markdown-ui"
+    },
+    "swift-cmark/COPYING": {
+      "sha256": "c22e885f33b821bddb24cf007145e5540655b6c0f403e49e6c76a93c28e6d9a9",
+      "license": "BSD-2-Clause (cmark); MIT (houdini, buffer, the utf8proc-derived utf8.c, markdowntest); the CC-BY-SA-4.0 spec and the BSD-2-Clause tests are not shipped"
+    },
+    "swiftmath/LICENSE": {
+      "sha256": "75c39d3db0d038a4966dfb86e4703748ee56434e188959e4423cfc91a54a93af",
+      "license": "MIT"
+    },
+    "swiftmath/Sources/SwiftMath/mathFonts.bundle/LICENSE": {
+      "sha256": "431b2cb82b8a55977323598231f1baa44f32accac1231b4781a9a393d0bc29ed",
+      "license": "MIT (MathChat, the font metric plists)"
+    },
+    "alertcontroller/LICENSE": {
+      "sha256": "e91b8513dddab41bf4bd0e2deca3f8c40a6ca1723160d2117347b82d03def531",
+      "license": "MIT"
+    },
+    "dog/LICENSE": {
+      "sha256": "7c71ac00a6e081d11d70477cba1ad43530bf1cfcfa9710acafdc560422403f39",
+      "license": "MIT"
+    },
+    "snapkit/LICENSE": {
+      "sha256": "7c0d21cf5314759fd35a22e42a52099d9cad2570db55a78e4eda26c82493b96b",
+      "license": "MIT"
+    },
+    "spindicator/LICENSE": {
+      "sha256": "29df5eadbd6642e4a3867321f11744150f76e9d578a966930c4d361cbfdccf28",
+      "license": "MIT"
+    },
+    "swifterswift/LICENSE": {
+      "sha256": "c9e14db4d20e601307b37236f6bbb400d8519682af6c11c4836359fc67723c99",
+      "license": "MIT"
+    },
+    "then/LICENSE": {
+      "sha256": "8f0c1cefba435c63f9ce74a03934fa66187a8400a6b1c4f2adbd7742c28a0e16",
+      "license": "MIT"
+    },
+    "vendored/ghostty-nerd-fonts-codicons": {
+      "sha256": "8cac3110f43c87bc5eb79e78667780e2ef91a135c9f2ec024e454e1a01279986",
+      "license": "CC-BY-4.0"
+    },
+    "vendored/ghostty-nerd-fonts-devicons": {
+      "sha256": "121194741d4a915b9f5890fdd6dd95121f9b1f816517c792358d72d7c838d664",
+      "license": "MIT"
+    },
+    "vendored/ghostty-nerd-fonts-font-awesome": {
+      "sha256": "de784a808496d49f5f80dd9d1d6e9a51cff712cfbc339e7c25155631ae3cdb5d",
+      "license": "OFL-1.1 (the font files; CC-BY-4.0 icons, MIT code)"
+    },
+    "vendored/ghostty-nerd-fonts-font-awesome-extension": {
+      "sha256": "b47b15d771c4507a75ff65beca3a78168d6af4cca9b45177a1aa817139c64ba5",
+      "license": "MIT"
+    },
+    "vendored/ghostty-nerd-fonts-font-logos": {
+      "sha256": "88d9b4eb60579c191ec391ca04c16130572d7eedc4a86daa58bf28c6e14c9bcd",
+      "license": "Unlicense"
+    },
+    "vendored/ghostty-nerd-fonts-iec-power-symbols": {
+      "sha256": "11aef1cdf2d58d822e6857e2574870ccc59d4900052bf5c098e319d750e7ac3d",
+      "license": "MIT"
+    },
+    "vendored/ghostty-nerd-fonts-material-design-icons": {
+      "sha256": "40110261169384f46563b2e58535415cb00a30435fbf96f16866e046101333f4",
+      "license": "Apache-2.0 (Pictogrammers Free License)"
+    },
+    "vendored/ghostty-nerd-fonts-seti-ui": {
+      "sha256": "d4d2d888c6a0a220a7b0e2d6013cf37539b0e05ef937002b3b33bdb364575b88",
+      "license": "MIT"
+    },
+    "vendored/ghostty-nerd-fonts-octicons": {
+      "sha256": "4f886642f9e8d99eeadd484acdac011c3fde8a338faf52f5ca1408c13b9a9b63",
+      "license": "MIT"
+    },
+    "vendored/ghostty-nerd-fonts-pomicons": {
+      "sha256": "cb4797a9745683f287c28833db596e9d68ec43082d59359b3a49c504f0f610ce",
+      "license": "OFL-1.1"
+    },
+    "vendored/ghostty-nerd-fonts-powerline-extra-symbols": {
+      "sha256": "544307a58e6826c24145b2af1c3578b53e2e21ae0e6c67ab4c6abd544304d26a",
+      "license": "MIT"
+    },
+    "vendored/ghostty-nerd-fonts-powerline-symbols": {
+      "sha256": "46d5355e4734468135d8e4a30d0916292cc4df2b3ec30aa68c866f82497933be",
+      "license": "MIT"
+    },
+    "vendored/ghostty-nerd-fonts-weather-icons": {
+      "sha256": "fc65d66a13a915237c765cfe89d9c1aeb80d170ff7f80921db1dd76bd135b542",
+      "license": "OFL-1.1"
+    },
+    "scrubberkit/LICENSE": {
+      "sha256": "e91b8513dddab41bf4bd0e2deca3f8c40a6ca1723160d2117347b82d03def531",
+      "license": "MIT"
+    },
+    "swiftsoup/LICENSE": {
+      "sha256": "6d9f121428f5571c4e20362fa91186c552f82648c0161dacc12e239b1544d49d",
+      "license": "MIT"
+    },
+    "vendored/turndown": {
+      "sha256": "a055e3a15db4b4cbb5af381230eba085603126d7d5d8c4dae45ee85b877a9729",
+      "license": "MIT"
+    }
+  },
+  "gplExceptions": {
+    "vendored/libgit2": {
+      "sha256": "e0938121c0554985fe17196ac38fc590d149268e9c46e0c0e7a2eae1354fae71",
+      "accepted": "owner, 2026-10-17",
+      "reason": "libgit2 is GPLv2 with the linking exception, which permits linking the unmodified library into a program under its own terms; its bundled xdiff (LGPL-2.1-or-later) is recorded as a known, accepted item. Linked only into the mobile apelin-environment worker, never into the app or apelind. See Licenses/Compatibility.md."
+    },
+    "libgit2.xcframework/LICENSE": {
+      "sha256": "c95277a8b217de956fc77fba9553b33e04b292c568303f50f0a7207cd8863a38",
+      "package": "libgit2.xcframework",
+      "revision": "983a47947dae35495cf367cf0bf7811ae59699e2",
+      "accepted": "owner, 2026-10-17",
+      "reason": "The same libgit2 notice as vendored/libgit2, carried by the package's own LICENSE beside its MIT packaging, llhttp and sha1dc notices."
+    },
+    "vendored/ghostty-z2d": {
+      "sha256": "917b6d821ab1ea02678c5b504e325c3eee244c8d7fdf2fc892ec65039dfb164d",
+      "package": "libghostty-spm",
+      "revision": "42bacd1339f323a693ddbca779295f4f77e5a697",
+      "accepted": "owner, 2026-10-17",
+      "reason": "z2d (0.12.1, 7dbae85c8178) is MPL-2.0, unmodified, and statically linked into the app only, inside libghostty.a. The GPL-family wording in its text is only MPL-2.0 section 1.12's definition of Secondary License, not a licence it is offered under. The notice names the upstream repository and commit, which is where the Source Code Form is, as MPL-2.0 section 3.2 requires. See Licenses/Compatibility.md."
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "FreeType (in libghostty)",
+  "url": "https://freetype.org",
+  "version": "2.13.2",
+  "note": "Compiled into libghostty.a (ghostty 1e9e14af5df1 as built into libghostty-spm 2.2.2026101502 (GhosttyKit.xcframework upstream.1e9e14af5df1-3)), a prebuilt static library with no license file of its own. Fetched from https://deps.files.ghostty.org/freetype-1220b81f6ecfb3fd222f76cf9106fecfa6554ab07ec7fdc4124b9bb063ae2adf969d.tar.gz -> docs/FTL.TXT, src/bdf/README, src/pcf/README. FreeType is dual-licensed FTL OR GPL-2.0-or-later; Apelin distributes it under the FTL, whose binary-redistribution credit is the first line here. FTL.TXT and the BDF and PCF drivers' notices (src/bdf/README, src/pcf/README) from the release tarball ghostty pins; LICENSE.TXT, the chooser between the two, is not shipped."
+}

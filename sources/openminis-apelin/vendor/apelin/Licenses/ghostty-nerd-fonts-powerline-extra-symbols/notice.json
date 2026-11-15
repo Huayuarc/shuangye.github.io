@@ -1,0 +1,6 @@
+{
+  "name": "Powerline Extra Symbols (glyphs in Symbols Nerd Font, in libghostty)",
+  "url": "https://github.com/ryanoasis/powerline-extra-symbols",
+  "version": "1.000",
+  "note": "One of the glyph sets Nerd Fonts 3.4.0 assembles into Symbols Nerd Font, which libghostty.a embeds; listed in that release's license-audit.md. Text from ryanoasis/nerd-fonts v3.4.0 (fa7b859994228a9c8759f99c55a8d31ee92a1b5e), src/glyphs/powerline-extra/LICENSE."
+}

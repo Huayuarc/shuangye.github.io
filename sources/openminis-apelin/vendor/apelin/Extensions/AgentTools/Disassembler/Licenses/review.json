@@ -1,0 +1,79 @@
+{
+  "note": "Every notice the two agent-tool packages ship: the text hash a person reviewed, and where package-agent-tool.sh finds the same file in a SwiftPM checkout. A changed notice or a moved pin fails packaging until this file is updated after reading the new text.",
+  "components": {
+    "Apelin": {
+      "license": "MIT",
+      "covers": "ApelinToolHost, MachOReader and the extensions' own code",
+      "files": {
+        "LICENSE": {
+          "sha256": "79b8af7a9877c42384ecc70ee213d554ec4ba0c65a029ff3e6af2fe045595523",
+          "repository": "LICENSE"
+        }
+      }
+    },
+    "Capstone": {
+      "license": "BSD-3-Clause AND NCSA",
+      "source": "https://github.com/capstone-engine/capstone",
+      "revision": "905d2d29514a97e18516871ec36bc4143549905d",
+      "covers": "apelin-disassembler only",
+      "files": {
+        "LICENSE.TXT": {
+          "sha256": "65e9ed46a59976eda8f5bd1ea79a680dea38dd299c760bc9a8d87a764ef5029b",
+          "checkout": "libcapstone-spm/Vendor/capstone/LICENSES/LICENSE.TXT"
+        },
+        "LICENSE_BSD_3_CLAUSE.txt": {
+          "sha256": "5a93d5831e1297ab10fe643e1a631e83be392896da14ee2951285a79012df69d",
+          "checkout": "libcapstone-spm/Vendor/capstone/LICENSES/LICENSE_BSD_3_CLAUSE.txt"
+        },
+        "LICENSE_LLVM.TXT": {
+          "sha256": "dfdca2d7fdbabfd937f9dc41b7f61647b0e6cb1f9ee767ecb4520f979ebe91da",
+          "checkout": "libcapstone-spm/Vendor/capstone/LICENSES/LICENSE_LLVM.TXT"
+        }
+      }
+    },
+    "libcapstone-spm": {
+      "license": "BSD-3-Clause",
+      "source": "https://github.com/Lakr233/libcapstone-spm",
+      "revision": "5d3f53a59fada26884ffc9ab32129288ce1ee48f",
+      "covers": "apelin-disassembler only",
+      "files": {
+        "LICENSE": {
+          "sha256": "2a0b9715b2bb0676df91e3c8f24d14fbaa6f4e4f90c3be4b0cfa6142825c80b9",
+          "checkout": "libcapstone-spm/LICENSE"
+        }
+      }
+    },
+    "Keystone": {
+      "license": "GPL-2.0-only AND NCSA",
+      "source": "https://github.com/keystone-engine/keystone",
+      "revision": "vendored in libkeystone-spm at 3ff184008e1ba49577b944579cd32d32c78451b5",
+      "covers": "apelin-assembler only",
+      "files": {
+        "COPYING": {
+          "sha256": "ab15fd526bd8dd18a9e77ebc139656bf4d33e97fc7238cd11bf60e2b9b8666c6",
+          "checkout": "libkeystone-spm/Vendor/keystone/COPYING"
+        },
+        "EXCEPTIONS-CLIENT": {
+          "sha256": "2e3ba49ed5363ecbdf4bc8b6d2b886c772cdc0b321fb1e6e137098fc2dd5968e",
+          "checkout": "libkeystone-spm/Vendor/keystone/EXCEPTIONS-CLIENT"
+        },
+        "LLVM-LICENSE.TXT": {
+          "sha256": "721cb11de618fcf9bbb7d25a389207bf2227357e6694bc326ab32a6699f9b951",
+          "checkout": "libkeystone-spm/Vendor/keystone/llvm/LICENSE.TXT"
+        }
+      }
+    },
+    "libkeystone-spm": {
+      "license": "GPL-2.0-only",
+      "source": "https://github.com/Lakr233/libkeystone-spm",
+      "revision": "3ff184008e1ba49577b944579cd32d32c78451b5",
+      "covers": "apelin-assembler only",
+      "files": {
+        "LICENSE": {
+          "sha256": "92bc75fed85cf9a74f85362adde4846b83973d9d772c4a6729bb1039294e4da5",
+          "checkout": "libkeystone-spm/LICENSE"
+        }
+      }
+    }
+  }
+}

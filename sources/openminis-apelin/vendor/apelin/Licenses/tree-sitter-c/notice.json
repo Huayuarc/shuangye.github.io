@@ -1,0 +1,5 @@
+{
+  "name": "tree-sitter-c (in Runestone)",
+  "url": "https://github.com/tree-sitter/tree-sitter-c",
+  "note": "The C grammar, vendored in Packages/Runestone/Sources/TreeSitterC as Lakr233/Runestone.xcframework 2688e46 carried it (from simonbs/TreeSitterLanguages, with no license file of its own); the same text is the LICENSE beside it. This is the upstream LICENSE at b780e47fc780ddc8da13afa35a3f4ed5c157823d; its license has not changed over the repository's history."
+}

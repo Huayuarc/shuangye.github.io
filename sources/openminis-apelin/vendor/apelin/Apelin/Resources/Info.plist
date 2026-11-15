@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSCameraUsageDescription</key>
+	<string>Take photos to attach to your chat.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Save cards you make to Photos.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Confirm it is you before the agent runs a command as root.</string>
+	<!--
+	Merged with the keys Xcode generates (GENERATE_INFOPLIST_FILE). Only what
+	the INFOPLIST_KEY_ settings cannot say lives here: the three transfer file
+	types Apelin owns, and that it opens them in place (security-scoped)
+	rather than taking a copy into a container it does not have. No document
+	icon is declared: the system draws the type's own from the app's icon.
+	-->
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
+	<!--
+	`apelin://conversation/<id>` and `apelin://project/<id>` open a
+	conversation or a project (Widgets/Shared/ApelinLink.swift): the widgets,
+	the Live Activity and links the agent writes use them. Live Activities are
+	requested by the app itself while a conversation works or waits.
+	-->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLName</key>
+			<string>wiki.qaq.apelin.link</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>apelin</string>
+			</array>
+		</dict>
+	</array>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
+	<!--
+	A system app gets no data provider from SpringBoard, and so no
+	Notifications page in Settings and no authorization — Allow is tapped
+	and the answer is still no — unless it says it posts local
+	notifications. The session host posts the conversations' banners as the
+	app; the entitlements name the bundle for both (Packaging/*.entitlements).
+	-->
+	<key>SBAppUsesLocalNotifications</key>
+	<true/>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Apelin Toolchain</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>wiki.qaq.apelin.toolchain-package</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Apelin SDK</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>wiki.qaq.apelin.sdk-package</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Apelin Project</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>wiki.qaq.apelin.project-package</string>
+			</array>
+		</dict>
+	</array>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>wiki.qaq.apelin.toolchain-package</string>
+			<key>UTTypeDescription</key>
+			<string>Apelin Toolchain</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+				<string>public.archive</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>apetc</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>wiki.qaq.apelin.sdk-package</string>
+			<key>UTTypeDescription</key>
+			<string>Apelin SDK</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+				<string>public.archive</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>apesdk</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>wiki.qaq.apelin.project-package</string>
+			<key>UTTypeDescription</key>
+			<string>Apelin Project</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+				<string>public.archive</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>apeproj</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
+</dict>
+</plist>

@@ -1,0 +1,6 @@
+{
+  "name": "Seti-UI and Nerd Fonts original icons (glyphs in Symbols Nerd Font, in libghostty)",
+  "url": "https://github.com/jesseweed/seti-ui",
+  "version": "Nerd Fonts 3.4.0",
+  "note": "One of the glyph sets Nerd Fonts 3.4.0 assembles into Symbols Nerd Font, which libghostty.a embeds; listed in that release's license-audit.md. Text from jesseweed/seti-ui (2d6c5e68b4de), LICENSE.md; Nerd Fonts' own modifications and original icons are MIT (ghostty-nerd-fonts-symbols)."
+}

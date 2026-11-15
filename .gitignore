@@ -41,3 +41,10 @@ diag/CTProbe
 diag/*.m
 diag/*.log
 .tmp-insul/
+
+# Keep the reviewed Apelin source; nested ignore rules still exclude caches.
+!sources/openminis-apelin/vendor/
+!sources/openminis-apelin/vendor/apelin/
+!sources/openminis-apelin/**/profile.d/
+!sources/openminis-apelin/**/profile.d/**
+!sources/openminis-apelin/vendor/apelin/**/Fixtures/**/*.dylib

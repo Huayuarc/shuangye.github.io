@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "projectID": "{{projectID}}",
+  "kind": "cli",
+  "template": {
+    "extensionID": "{{templateExtensionID}}",
+    "templateID": "{{templateID}}",
+    "version": "{{templateVersion}}",
+    "digest": "{{templateDigest}}"
+  },
+  "environment": {
+    "toolchain": { "id": "{{toolchainID}}", "digest": "{{toolchainDigest}}" },
+    "sdk": { "id": "{{sdkID}}", "digest": "{{sdkDigest}}" }
+  },
+  "language": "objc",
+  "deploymentTarget": "{{deploymentTarget}}",
+  "architectures": {{architectures}},
+  "configurations": {
+    "Debug": { "optimization": "0", "debugInfo": true, "defines": { "DEBUG": "1" } },
+    "Release": { "optimization": "2", "debugInfo": true }
+  },
+  "products": [
+    {
+      "id": "tool",
+      "type": "executable",
+      "name": "{{productName}}",
+      "sources": ["Sources/*.m"],
+      "headerSearchPaths": ["Sources"],
+      "entitlements": "Packaging/Tool.entitlements",
+      "objcARC": true,
+      "frameworks": ["Foundation"]
+    }
+  ],
+  "build": {
+    "steps": [
+      { "type": "compile", "product": "tool" },
+      { "type": "link", "product": "tool" },
+      { "type": "lipo", "product": "tool" },
+      { "type": "dsym", "product": "tool" },
+      { "type": "strip", "product": "tool", "style": "non-global" },
+      { "type": "sign", "product": "tool", "identity": "adhoc" }
+    ]
+  },
+  "package": {
+    "id": "{{packageID}}",
+    "name": "{{displayName}}",
+    "version": "0.0.1",
+    "description": "{{summary}}",
+    "icon": "https://owngoal-dev.github.io/Apelin/icons/wiki.qaq.apelin.dev.cli.png",
+    "author": "{{author}}",
+    "section": "Utilities",
+    "layout": [
+      { "path": "/usr/bin/{{productName}}", "product": "tool", "mode": "0755" }
+    ]
+  }
+}

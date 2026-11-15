@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "id": "wiki.qaq.apelin.agent-tools.assembler",
+  "name": "Assembler",
+  "version": "1.0.0",
+  "license": "GPL-2.0-only AND MIT AND NCSA",
+  "licenseFiles": [
+    "licenses/Apelin/LICENSE",
+    "licenses/Keystone/COPYING",
+    "licenses/Keystone/EXCEPTIONS-CLIENT",
+    "licenses/Keystone/LLVM-LICENSE.TXT",
+    "licenses/libkeystone-spm/LICENSE",
+    "licenses/SOURCE.md"
+  ],
+  "executable": "usr/libexec/apelin/agent-tools/apelin-assembler",
+  "protocolVersions": [
+    1
+  ],
+  "tools": [
+    {
+      "description": "Assemble instructions to machine code with Keystone. Statements are separated by newlines or semicolons. Keystone's ARM64 predates ARMv8.3, so pointer-authentication instructions (pacibsp, retab, …) are not accepted.",
+      "name": "assemble",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "description": "Address the code will run at, in hex (0x…) or decimal, for PC-relative operands. Default 0.",
+            "type": "string"
+          },
+          "arch": {
+            "description": "Target architecture.",
+            "enum": [
+              "arm64",
+              "x86_64",
+              "x86",
+              "arm",
+              "thumb"
+            ],
+            "type": "string"
+          },
+          "source": {
+            "description": "Assembly source.",
+            "maxLength": 65536,
+            "minLength": 1,
+            "type": "string"
+          },
+          "syntax": {
+            "description": "x86 syntax. Default intel.",
+            "enum": [
+              "intel",
+              "att"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "arch",
+          "source"
+        ],
+        "type": "object"
+      },
+      "risk": "readOnly",
+      "timeoutSeconds": 30
+    }
+  ]
+}

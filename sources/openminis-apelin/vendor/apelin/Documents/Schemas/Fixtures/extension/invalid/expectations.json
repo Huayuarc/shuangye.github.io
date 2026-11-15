@@ -1,0 +1,13 @@
+{
+  "unknown-schema-version.json": "must be 1",
+  "unknown-kind.json": "is not one of",
+  "template-directory-escape.json": "does not match",
+  "template-file-escape.json": "does not match",
+  "imported-without-commit.json": "missing commit",
+  "gpl-license.json": "is not one of",
+  "unlicensed-template.json": "nothing covers template:hello",
+  "executable-path.json": "unknown member",
+  "builtin-parameter-redeclared.json": "is a built-in parameter",
+  "enum-without-values.json": "missing values",
+  "project-not-listed.json": "apelin-project.json is not listed"
+}

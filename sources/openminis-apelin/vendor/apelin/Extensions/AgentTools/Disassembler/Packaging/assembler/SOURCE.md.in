@@ -1,0 +1,28 @@
+# Corresponding source: wiki.qaq.apelin.agent-tools.assembler @VERSION@
+
+The `apelin-assembler` executable in this package contains Keystone, which
+is licensed under the GNU General Public License version 2 only (`COPYING`
+beside this file; LLVM-derived parts also under `LLVM-LICENSE.TXT`). You may
+copy, modify and redistribute it under that license. Apelin's own code in it
+is MIT (`../Apelin/LICENSE`).
+
+The complete corresponding source of this executable, with the scripts used
+to build and package it, is:
+
+- `@SOURCE_ARCHIVE@` (SHA-256 `@SOURCE_SHA256@`), published beside this
+  package wherever this package is published;
+- and, equivalently, these public repositories at these revisions:
+  - Apelin, https://github.com/owngoal-dev/Apelin at commit `@APELIN_COMMIT@`:
+    `Packages/ApelinToolHost` and `Extensions/AgentTools/Disassembler`;
+  - libkeystone-spm (Keystone as a Swift package),
+    https://github.com/Lakr233/libkeystone-spm at commit `@KEYSTONE_REVISION@`.
+
+To rebuild: install Xcode and run
+`Extensions/AgentTools/Disassembler/Scripts/build-agent-tools.sh` in an
+Apelin checkout. The archive holds that tree under `Apelin/`, and the two
+Swift packages it depends on under `Dependencies/` (libkeystone-spm, and
+libcapstone-spm, which the same package graph names); to build from the
+archive without the network, first run, in
+`Apelin/Extensions/AgentTools/Disassembler`,
+`swift package edit libkeystone-spm --path ../../../../Dependencies/libkeystone-spm`
+and the same for libcapstone-spm.

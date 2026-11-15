@@ -1,0 +1,135 @@
+{
+  "name": "distribution",
+  "steps": [
+    {
+      "op": "hello"
+    },
+    {
+      "op": "distributionRepositoryList",
+      "request": {
+        "repositories": false
+      },
+      "label": "list"
+    },
+    {
+      "op": "distributionRepositoryCreate",
+      "request": {
+        "name": "not a name!"
+      },
+      "label": "bad-name",
+      "allowError": true
+    },
+    {
+      "op": "expect",
+      "request": {
+        "step": "bad-name",
+        "errorCode": "badRequest"
+      }
+    },
+    {
+      "op": "distributionRepositoryLink",
+      "request": {
+        "fullName": "no-owner"
+      },
+      "label": "bad-link",
+      "allowError": true
+    },
+    {
+      "op": "expect",
+      "request": {
+        "step": "bad-link",
+        "errorCode": "badRequest"
+      }
+    },
+    {
+      "op": "distributionPublish",
+      "request": {
+        "files": [
+          "/etc/hosts"
+        ]
+      },
+      "label": "outside",
+      "allowError": true
+    },
+    {
+      "op": "expect",
+      "request": {
+        "step": "outside",
+        "errorCode": "badRequest"
+      }
+    },
+    {
+      "op": "feedbackSend",
+      "request": {
+        "title": "",
+        "body": "Refused before any sign-in is read: nothing reaches GitHub."
+      },
+      "label": "empty-feedback",
+      "allowError": true
+    },
+    {
+      "op": "expect",
+      "request": {
+        "step": "empty-feedback",
+        "errorCode": "badRequest"
+      }
+    },
+    {
+      "op": "feedbackRead",
+      "request": {
+        "number": 0
+      },
+      "label": "no-issue",
+      "allowError": true
+    },
+    {
+      "op": "expect",
+      "request": {
+        "step": "no-issue",
+        "errorCode": "badRequest"
+      }
+    },
+    {
+      "op": "feedbackEdit",
+      "request": {
+        "number": 1,
+        "title": "",
+        "expectedTitle": "Refused before any sign-in is read",
+        "expectedBody": "Nothing reaches GitHub."
+      },
+      "label": "empty-edit",
+      "allowError": true
+    },
+    {
+      "op": "expect",
+      "request": {
+        "step": "empty-edit",
+        "errorCode": "badRequest"
+      }
+    },
+    {
+      "op": "feedbackStarState",
+      "label": "star-state",
+      "allowError": true
+    },
+    {
+      "op": "distributionRepositoryUnlink",
+      "label": "unlink"
+    },
+    {
+      "op": "distributionRepositoryList",
+      "request": {
+        "repositories": false
+      },
+      "label": "unlinked"
+    },
+    {
+      "op": "expect",
+      "request": {
+        "step": "unlinked",
+        "path": "response.linked",
+        "equals": null
+      }
+    }
+  ]
+}

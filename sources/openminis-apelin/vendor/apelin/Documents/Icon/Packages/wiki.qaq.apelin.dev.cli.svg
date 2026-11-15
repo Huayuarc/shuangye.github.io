@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+ <defs>
+  <linearGradient id="plate" x1="0" y1="0" x2="0" y2="1">
+   <stop offset="0" stop-color="#FFFFFF"/>
+   <stop offset="1" stop-color="#E9ECF1"/>
+  </linearGradient>
+  <linearGradient id="green" gradientUnits="userSpaceOnUse" x1="0" y1="360" x2="0" y2="664">
+   <stop offset="0" stop-color="#5BE6A2"/>
+   <stop offset="1" stop-color="#22C474"/>
+  </linearGradient>
+  <filter id="plateShadow" x="-10%" y="-10%" width="120%" height="120%">
+   <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#1F242E" flood-opacity="0.12"/>
+  </filter>
+  <filter id="lift" x="-20%" y="-20%" width="140%" height="140%">
+   <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#1F242E" flood-opacity="0.18"/>
+  </filter>
+ </defs>
+ <rect width="1024" height="1024" fill="#FFFFFF"/>
+ <rect x="14" y="14" width="996" height="996" rx="222" fill="url(#plate)" stroke="#D9DDE4" stroke-width="2" filter="url(#plateShadow)"/>
+ <g fill="none" stroke="#1F242E" stroke-width="56" stroke-linecap="round" stroke-linejoin="round" filter="url(#lift)">
+  <path d="M 326 300 C 272 300 262 330 262 380 L 262 456 C 262 494 248 512 210 512 C 248 512 262 530 262 568 L 262 644 C 262 694 272 724 326 724"/>
+  <path d="M 698 300 C 752 300 762 330 762 380 L 762 456 C 762 494 776 512 814 512 C 776 512 762 530 762 568 L 762 644 C 762 694 752 724 698 724"/>
+ </g>
+ <g filter="url(#lift)">
+  <g fill="none" stroke="url(#green)" stroke-width="48" stroke-linecap="round" stroke-linejoin="round">
+   <path d="M 392 418 L 482 512 L 392 606"/>
+   <path d="M 528 606 L 636 606"/>
+  </g>
+ </g>
+</svg>

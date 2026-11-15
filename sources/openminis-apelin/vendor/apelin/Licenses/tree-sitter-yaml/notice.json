@@ -1,0 +1,5 @@
+{
+  "name": "tree-sitter-yaml (in Runestone)",
+  "url": "https://github.com/ikatyang/tree-sitter-yaml",
+  "note": "The YAML grammar, vendored in Packages/Runestone/Sources/TreeSitterYAML as Lakr233/Runestone.xcframework 2688e46 carried it (from simonbs/TreeSitterLanguages, with no license file of its own); the same text is the LICENSE beside it. This is the upstream LICENSE at 0e36bed171768908f331ff7dff9d956bae016efb; its license has not changed over the repository's history."
+}

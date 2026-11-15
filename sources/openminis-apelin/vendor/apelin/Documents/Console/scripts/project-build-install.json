@@ -1,0 +1,67 @@
+{
+  "name": "project-build-install: needs the tweak extension, a registered toolchain and SDK, Irisin 4.7.3 or later, and no Projects/Console Build Check yet; creates and checks a project, reads its approval digests, starts and cancels a build, builds it, installs the deb, finds it in the installation list and removes it again",
+  "steps": [
+    {"op": "hello"},
+    {"op": "extensionList", "label": "extensions"},
+    {"op": "expect", "request": {"step": "extensions", "path": "response.extensions.0.id", "exists": true}},
+
+    {"op": "projectCreate", "label": "project", "request": {
+      "templateID": "wiki.qaq.apelin.dev.tweak/objc-hook",
+      "name": "Console Build Check",
+      "values": {"packageID": "local.apelin.console-build-check", "displayName": "Console Build Check"}
+    }},
+    {"op": "projectCheck", "label": "check", "request": {"projectID": "${project.response.projectID}"}},
+    {"op": "expect", "request": {"step": "check", "path": "response.passed", "equals": true}},
+
+    {"op": "approvalDigestState", "label": "build-digest", "request": {
+      "projectID": "${project.response.projectID}", "kind": "build",
+      "digest": "${check.response.descriptionDigests.build}"
+    }},
+    {"op": "expect", "request": {"step": "build-digest", "path": "response.baseline", "equals": "matchesTemplate"}},
+    {"op": "approvalDigestState", "label": "packaging-digest", "request": {
+      "projectID": "${project.response.projectID}", "kind": "packaging",
+      "digest": "${check.response.descriptionDigests.packaging}"
+    }},
+    {"op": "expect", "request": {"step": "packaging-digest", "path": "response.baseline", "equals": "matchesTemplate"}},
+    {"op": "approvalDigestState", "label": "changed-digest", "request": {
+      "projectID": "${project.response.projectID}", "kind": "build",
+      "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    }},
+    {"op": "expect", "request": {"step": "changed-digest", "path": "response.baseline", "equals": "changed"}},
+
+    {"op": "buildStart", "label": "cancelled-build", "follow": false,
+     "request": {"projectID": "${project.response.projectID}", "configuration": "debug"}},
+    {"op": "buildCancel", "request": {"taskID": "${cancelled-build.response.taskID}"}},
+    {"op": "wait", "request": {"seconds": 3}},
+    {"op": "buildAttach", "label": "cancelled-read", "allowError": true,
+     "request": {"taskID": "${cancelled-build.response.taskID}", "afterSeq": 0, "waitMilliseconds": 20000}},
+    {"op": "expect", "request": {"step": "cancelled-read", "state": "cancelled"}},
+
+    {"op": "buildStart", "label": "build", "timeoutSeconds": 900,
+     "request": {"projectID": "${project.response.projectID}", "configuration": "debug"}},
+    {"op": "expect", "request": {"step": "build", "state": "succeeded"}},
+    {"op": "expect", "request": {"step": "build", "path": "lastEvent.payload.artifactID", "exists": true}},
+
+    {"op": "installPackage", "label": "install", "timeoutSeconds": 300, "request": {
+      "artifactID": "${build.lastEvent.payload.artifactID}",
+      "digest": "${build.lastEvent.payload.digest}"
+    }},
+    {"op": "expect", "request": {"step": "install", "state": "succeeded"}},
+    {"op": "buildAttach", "label": "install-replay",
+     "request": {"taskID": "${install.response.taskID}", "afterSeq": 0, "waitMilliseconds": 1000}},
+    {"op": "expect", "request": {"step": "install-replay", "state": "succeeded"}},
+    {"op": "installationList", "label": "installed",
+     "request": {"packageID": "local.apelin.console-build-check"}},
+    {"op": "expect", "request": {"step": "installed", "path": "response.installations.0.installationID",
+     "equals": "${install.lastEvent.payload.result.installationID}"}},
+    {"op": "expect", "request": {"step": "installed", "path": "response.installations.0.removable", "equals": true}},
+    {"op": "expect", "request": {"step": "installed", "path": "response.installations.1", "exists": false}},
+
+    {"op": "removePackage", "label": "remove", "timeoutSeconds": 300,
+     "request": {"installationID": "${install.lastEvent.payload.result.installationID}"}},
+    {"op": "expect", "request": {"step": "remove", "state": "succeeded"}},
+    {"op": "installationList", "label": "removed",
+     "request": {"packageID": "local.apelin.console-build-check"}},
+    {"op": "expect", "request": {"step": "removed", "path": "response.installations.0", "exists": false}}
+  ]
+}

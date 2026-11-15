@@ -1,0 +1,6 @@
+{
+  "name": "uucode and its Unicode data (in libghostty)",
+  "url": "https://github.com/jacobsandlund/uucode",
+  "version": "0.2.0 (9d5552455141)",
+  "note": "Compiled into libghostty.a (ghostty 1e9e14af5df1 as built into libghostty-spm 2.2.2026101502 (GhosttyKit.xcframework upstream.1e9e14af5df1-3)), a prebuilt static library with no license file of its own. Fetched from https://codeload.github.com/jacobsandlund/uucode/tar.gz/9d55524551411b493cca41ca06363625d90aff1e -> LICENSE.md, licenses/LICENSE_unicode, licenses/LICENSE_Bjoern_Hoehrmann."
+}

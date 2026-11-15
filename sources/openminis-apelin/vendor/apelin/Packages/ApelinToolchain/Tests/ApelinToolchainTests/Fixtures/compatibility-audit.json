@@ -1,0 +1,158 @@
+{
+  "date": "2026-10-19",
+  "decoder": "Xcode 27.0 LLVM C API",
+  "products": {
+    "012-92431": {
+      "baseLibcxxSymbols": [],
+      "hostImages": 14,
+      "instructionWords": 39455361,
+      "selectedFeatureInstructions": {
+        "LRCPC:ldapr": 6224,
+        "LRCPC:ldaprb": 5764
+      },
+      "sourceSHA256": "81c4ed35ac9a2dcce106c9d26696653ceb9337b949206802886e25d13f9b3f1a",
+      "unclassifiedWords": 0,
+      "unsupportedInstructions": {
+        "apple-a10": {
+          "casal": 77,
+          "casl": 4,
+          "ldadd": 17108,
+          "ldaddal": 21226,
+          "ldapr": 6224,
+          "ldaprb": 5764,
+          "ldclralb": 2,
+          "swpal": 43
+        },
+        "apple-a11": {
+          "ldapr": 6224,
+          "ldaprb": 5764
+        },
+        "apple-a12": {},
+        "apple-a13": {},
+        "apple-a9": {
+          "casal": 77,
+          "casl": 4,
+          "ldadd": 17108,
+          "ldaddal": 21226,
+          "ldapr": 6224,
+          "ldaprb": 5764,
+          "ldclralb": 2,
+          "swpal": 43
+        }
+      },
+      "version": "14.2"
+    },
+    "042-32697": {
+      "baseLibcxxSymbols": [],
+      "hostImages": 29,
+      "instructionWords": 54977673,
+      "selectedFeatureInstructions": {
+        "LRCPC:ldapr": 7248,
+        "LRCPC:ldaprb": 13176,
+        "LRCPC:ldaprh": 22,
+        "SHA3:eor3": 112
+      },
+      "sourceSHA256": "a5ec585bf89ce2e43aca1583b8a315b88725d53bc66dd0f2ba3fcf4580ec7b8f",
+      "unclassifiedWords": 4036,
+      "unsupportedInstructions": {
+        "apple-a12": {
+          "eor3": 112
+        },
+        "apple-a13": {}
+      },
+      "version": "15.0"
+    },
+    "052-59890": {
+      "baseLibcxxSymbols": [],
+      "hostImages": 29,
+      "instructionWords": 56195182,
+      "selectedFeatureInstructions": {
+        "LRCPC:ldapr": 7978,
+        "LRCPC:ldaprb": 13942,
+        "SHA3:eor3": 112
+      },
+      "sourceSHA256": "3812e6cce85d90f2a142440628a56ececd90d7fcb2ebfb35cc2faee3d81bd6ab",
+      "unclassifiedWords": 5705,
+      "unsupportedInstructions": {
+        "apple-a12": {
+          "eor3": 112
+        },
+        "apple-a13": {}
+      },
+      "version": "15.3"
+    },
+    "082-41241": {
+      "baseLibcxxSymbols": [
+        "_ZNSt3__122__libcpp_verbose_abortEPKcz"
+      ],
+      "hostImages": 48,
+      "instructionWords": 62673011,
+      "selectedFeatureInstructions": {
+        "DotProd:udot": 3772,
+        "LRCPC:ldapr": 7150,
+        "LRCPC:ldaprb": 13611,
+        "SHA3:eor3": 86
+      },
+      "sourceSHA256": "43c15c1f952c7a4c1a8f67c6b46350b83e217c610d7d3c14aa09e88bb251a4b6",
+      "unclassifiedWords": 9130,
+      "unsupportedInstructions": {
+        "apple-a12": {
+          "eor3": 86,
+          "udot": 3772
+        },
+        "apple-a13": {}
+      },
+      "version": "16.4"
+    },
+    "082-83364": {
+      "baseLibcxxSymbols": [
+        "_ZNSt3__122__libcpp_verbose_abortEPKcz"
+      ],
+      "hostImages": 51,
+      "instructionWords": 59187704,
+      "selectedFeatureInstructions": {
+        "DotProd:udot": 3760,
+        "LRCPC:ldapr": 3983,
+        "LRCPC:ldaprb": 7931,
+        "SHA3:eor3": 98
+      },
+      "sourceSHA256": "d1a517e663d7ba169296683255bcf5b498802b843603cee40ec4b6fb7c991bea",
+      "unclassifiedWords": 4680,
+      "unsupportedInstructions": {
+        "apple-a12": {
+          "eor3": 98,
+          "udot": 3760
+        },
+        "apple-a13": {}
+      },
+      "version": "27.0"
+    },
+    "142-50405": {
+      "baseLibcxxSymbols": [
+        "_ZNSt3__122__libcpp_verbose_abortEPKcz"
+      ],
+      "hostImages": 51,
+      "instructionWords": 58968683,
+      "selectedFeatureInstructions": {
+        "DotProd:sdot": 5,
+        "DotProd:udot": 4729,
+        "LRCPC:ldapr": 3986,
+        "LRCPC:ldaprb": 7896,
+        "SHA3:eor3": 97
+      },
+      "sourceSHA256": "fd76ca5e74717a4640c38422199216a1b6c60f7bf740c19254afdf793d3f4a47",
+      "unclassifiedWords": 0,
+      "unsupportedInstructions": {
+        "apple-a12": {
+          "eor3": 97,
+          "sdot": 5,
+          "udot": 4729
+        },
+        "apple-a13": {}
+      },
+      "version": "27.2"
+    }
+  },
+  "schemaVersion": 1,
+  "scope": "Selected host-image closure; no inspected image was executed. Unclassified words include inline jump-table data and are not a CPU compatibility pass."
+}

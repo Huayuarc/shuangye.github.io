@@ -1,0 +1,7 @@
+{
+  "name": "ios-mcp (in icli)",
+  "url": "https://github.com/witchan/ios-mcp",
+  "sha256": "8c0071d4e3af0f3ded6d6401004e2da4d5610f8fa0d9849ab57db8fd7b3d1133",
+  "version": "8f46b68ae6d9cb783cfa55d7a38e6b0afeccf5dd",
+  "note": "icli's AX attribute mapping, HID protocol references and unified-log integration were informed by ios-mcp; icli keeps its notice as Resources/Licenses/ios-mcp.txt (THIRD_PARTY_NOTICES.md), a name the collector does not walk, so it is kept here."
+}

@@ -1,0 +1,56 @@
+[
+  {
+    "name": "members sorted, no whitespace",
+    "input": {
+      "b": 1,
+      "a": [
+        true,
+        false,
+        null
+      ],
+      "": "x",
+      "nested": {
+        "z": 0,
+        "y": -7
+      }
+    },
+    "canonical": "{\"\":\"x\",\"a\":[true,false,null],\"b\":1,\"nested\":{\"y\":-7,\"z\":0}}"
+  },
+  {
+    "name": "member order is UTF-16 code units, not code points",
+    "input": {
+      "\uff61": 1,
+      "\ud83d\ude00": 2,
+      "\u20ac": 3,
+      "\u0080": 4,
+      "a": 5,
+      "B": 6
+    },
+    "canonical": "{\"B\":6,\"a\":5,\"\u0080\":4,\"\u20ac\":3,\"\ud83d\ude00\":2,\"\uff61\":1}"
+  },
+  {
+    "name": "string escapes: only quote, backslash and C0 controls",
+    "input": {
+      "s": "line\nfeed\t\"q\" \\ \u0001 \u001f \u007f \u00e9 / \u2028"
+    },
+    "canonical": "{\"s\":\"line\\nfeed\\t\\\"q\\\" \\\\ \\u0001 \\u001f \u007f \u00e9 / \u2028\"}"
+  },
+  {
+    "name": "integers at the safe limit",
+    "input": {
+      "max": 9007199254740991,
+      "min": -9007199254740991,
+      "zero": 0
+    },
+    "canonical": "{\"max\":9007199254740991,\"min\":-9007199254740991,\"zero\":0}"
+  },
+  {
+    "name": "array order is kept",
+    "input": [
+      "sign",
+      "compile",
+      "link"
+    ],
+    "canonical": "[\"sign\",\"compile\",\"link\"]"
+  }
+]

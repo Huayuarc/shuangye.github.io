@@ -1,0 +1,6 @@
+{
+  "name": "Zig runtime (in libghostty)",
+  "url": "https://codeberg.org/ziglang/zig",
+  "version": "0.16.0",
+  "note": "Compiled into libghostty.a (ghostty 1e9e14af5df1 as built into libghostty-spm 2.2.2026101502 (GhosttyKit.xcframework upstream.1e9e14af5df1-3)), a prebuilt static library with no license file of its own. Fetched from https://codeberg.org/ziglang/zig/raw/tag/0.16.0/LICENSE. compiler_rt and the standard library code Zig compiles into libghostty."
+}

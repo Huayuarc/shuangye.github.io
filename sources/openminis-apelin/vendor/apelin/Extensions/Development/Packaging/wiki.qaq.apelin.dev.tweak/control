@@ -1,0 +1,18 @@
+Package: wiki.qaq.apelin.dev.tweak
+Name: Apelin Tweak Development
+Version: @VERSION@
+Architecture: @ARCHITECTURE@
+Description: Tweak templates and hooking headers for Apelin, for @FLAVOR@ jailbreaks
+ Lets Apelin create, build and package Objective-C tweaks on the device: a
+ template that hooks SpringBoard through the substrate-compatible API, the
+ headers and link stubs for that API, and the process filter. Needs an
+ injection framework, which your preferred package manager installs with it.
+Icon: https://owngoal-dev.github.io/Apelin/icons/wiki.qaq.apelin.dev.tweak.png
+Depiction: https://owngoal-dev.github.io/Apelin/
+Maintainer: OwnGoal Studio <not-gonna-reply@owngoal.dev>
+Author: OwnGoal Studio <not-gonna-reply@owngoal.dev>
+Section: Development
+Priority: optional
+Depends: @DEPENDS@
+Enhances: wiki.qaq.apelin
+Installed-Size: @INSTALLED_SIZE@

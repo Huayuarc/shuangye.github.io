@@ -1,0 +1,9 @@
+Package: wiki.qaq.apelin.hello
+Name: Apelin Hello
+Version: 0.0.1
+Architecture: iphoneos-arm64e
+Description: Says Hello World when SpringBoard finishes launching. Built on the device.
+Maintainer: OwnGoal Studio
+Author: OwnGoal Studio
+Section: Tweaks
+Depends: mobilesubstrate

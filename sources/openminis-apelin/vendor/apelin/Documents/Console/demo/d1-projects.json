@@ -1,0 +1,39 @@
+{
+  "name": "d1-projects: demo data for UI testing; makes Demo Tweak, Demo App, Demo CLI, Demo Broken CLI, Agent Relaxed Tweak and Agent Confirm CLI from the templates, builds the first three, installs Demo Tweak, opens and closes a terminal, streams 5 s of the log, then confirms Demo Tweak loaded with a respring",
+  "steps": [
+    {"op": "hello"},
+    {"op": "extensionList", "label": "extensions"},
+    {"op": "toolchainStatus", "label": "toolchain"},
+    {"op": "sdkList", "label": "sdks"},
+
+    {"op": "projectCreate", "label": "tweak", "request": {"templateID": "wiki.qaq.apelin.dev.tweak/objc-hook", "name": "Demo Tweak", "values": {"packageID": "local.apelin.demo-tweak", "displayName": "Demo Tweak"}}},
+    {"op": "projectCreate", "label": "app", "allowError": true, "request": {"templateID": "wiki.qaq.apelin.dev.app/uikit-objc", "name": "Demo App", "values": {"productName": "DemoApp", "displayName": "Demo App"}}},
+    {"op": "projectCreate", "label": "cli", "allowError": true, "request": {"templateID": "wiki.qaq.apelin.dev.cli/c", "name": "Demo CLI", "values": {}}},
+    {"op": "projectCreate", "label": "broken", "allowError": true, "request": {"templateID": "wiki.qaq.apelin.dev.cli/c", "name": "Demo Broken CLI", "values": {}}},
+    {"op": "projectCreate", "label": "agent-tweak", "allowError": true, "request": {"templateID": "wiki.qaq.apelin.dev.tweak/objc-hook", "name": "Agent Relaxed Tweak", "values": {"packageID": "local.apelin.agent-relaxed-tweak", "displayName": "Agent Relaxed Tweak"}}},
+    {"op": "projectCreate", "label": "agent-cli", "allowError": true, "request": {"templateID": "wiki.qaq.apelin.dev.cli/c", "name": "Agent Confirm CLI", "values": {}}},
+
+    {"op": "projectCheck", "label": "tweak-check", "request": {"projectID": "${tweak.response.projectID}"}},
+    {"op": "projectCheck", "label": "app-check", "allowError": true, "request": {"projectID": "${app.response.projectID}"}},
+    {"op": "projectCheck", "label": "cli-check", "allowError": true, "request": {"projectID": "${cli.response.projectID}"}},
+
+    {"op": "buildStart", "label": "tweak-build", "timeoutSeconds": 900, "request": {"projectID": "${tweak.response.projectID}", "configuration": "debug"}},
+    {"op": "buildStart", "label": "app-build", "allowError": true, "timeoutSeconds": 900, "request": {"projectID": "${app.response.projectID}", "configuration": "debug"}},
+    {"op": "buildStart", "label": "cli-build", "allowError": true, "timeoutSeconds": 900, "request": {"projectID": "${cli.response.projectID}", "configuration": "release"}},
+
+    {"op": "installPackage", "label": "install", "timeoutSeconds": 300, "request": {"artifactID": "${tweak-build.lastEvent.payload.artifactID}", "digest": "${tweak-build.lastEvent.payload.digest}"}},
+    {"op": "expect", "request": {"step": "install", "state": "succeeded"}},
+
+    {"op": "ptyOpen", "label": "pty", "follow": false, "request": {"columns": 80, "rows": 24, "initialInput": "cd ~/Documents/wiki.qaq.apelin/Projects && ls -la && uname -a && sw_vers 2>/dev/null; echo demo-terminal-done\n"}},
+    {"op": "wait", "request": {"seconds": 3}},
+    {"op": "ptyAttach", "label": "pty-read", "follow": false, "request": {"taskID": "${pty.response.task.taskID}", "afterSeq": 0, "waitMilliseconds": 2000, "wantsDescriptor": false}},
+    {"op": "ptyClose", "request": {"sessionID": "${pty.response.sessionID}"}},
+
+    {"op": "logStream", "label": "logs", "request": {"filter": {"windowSeconds": 5, "limit": 200, "level": "default"}, "afterSeq": 0, "waitMilliseconds": 1000}},
+
+    {"op": "confirmLoaded", "label": "loaded", "timeoutSeconds": 180, "request": {
+      "buildID": "${tweak-build.lastEvent.payload.buildID}", "targetID": "com.apple.springboard",
+      "projectID": "${tweak.response.projectID}", "trigger": "respring", "logWindowSeconds": 45}},
+    {"op": "expect", "request": {"step": "loaded", "path": "lastEvent.payload.result.loaded", "equals": true}}
+  ]
+}

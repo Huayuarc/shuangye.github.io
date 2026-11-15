@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+	The daemon's entitlements. Keep this list at exactly what the daemon needs
+	to do its job as root. Scripts/package-deb.sh re-reads it out of the
+	*signed* binary: a lost entitlement does not break the build, it makes the
+	daemon refuse the app at runtime, which looks like a bug anywhere but
+	where it is.
+
+	`platform-application` is what lets an ad-hoc signed binary run as a
+	platform binary at all. The two storage entitlements match the app's: what
+	the app reads of another app's bundle or container, the daemon may be asked
+	to open for it.
+
+	Root and `no-sandbox` do not open a data vault. A process that writes
+	under `/var/mobile/Library/Photos` (and friends) needs
+	`com.apple.private.security.storage.<Class>` on *this* process. A sampler
+	or a thin proxy does not.
+
+	`wiki.qaq.irisin.client` is what irisind (Irisin 4.7 and later) asks of a
+	client, beside `platform-application` and `no-sandbox`: the session host,
+	which is this executable started with `--session`, installs, removes
+	and resprings through it. It is eligibility, not identity — any
+	installed package can carry it (Irisin's Documentation/ExternalClients.md).
+	The app never carries it: installing is the host's alone.
+
+	`usernotifications.bundle-identifiers` lets the session host post as
+	the app — a conversation's turn ended, or it waits for approval — while
+	the app is in the background or not running. Without it
+	`usernotificationsd` refuses the center and says so only in the device
+	log. It names the app's bundle and nothing else.
+-->
+<plist version="1.0">
+<dict>
+	<key>com.apple.private.security.no-sandbox</key>
+	<true/>
+	<key>com.apple.private.security.storage.AppBundles</key>
+	<true/>
+	<key>com.apple.private.security.storage.AppDataContainers</key>
+	<true/>
+	<key>com.apple.private.usernotifications.bundle-identifiers</key>
+	<array>
+		<string>wiki.qaq.apelin</string>
+	</array>
+	<key>platform-application</key>
+	<true/>
+	<key>wiki.qaq.irisin.client</key>
+	<true/>
+</dict>
+</plist>

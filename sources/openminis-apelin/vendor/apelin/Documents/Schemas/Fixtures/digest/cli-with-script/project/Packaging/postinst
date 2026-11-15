@@ -1,0 +1,3 @@
+#!/bin/sh
+echo installed into @PREFIX@
+exit 0

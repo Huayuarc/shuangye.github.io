@@ -1,0 +1,7 @@
+{
+  "name": "BoringSSL (in swift-nio-ssl)",
+  "url": "https://boringssl.googlesource.com/boringssl",
+  "sha256": "756a61a8300d105ae68e7f2993e27d41a765c946f3400422e2403b01e7ded527",
+  "version_file": "swift-nio-ssl/Sources/CNIOBoringSSL/hash.txt",
+  "note": "swift-nio-ssl compiles BoringSSL from its CNIOBoringSSL folder, which carries no license file; this is BoringSSL's LICENSE at the revision hash.txt names. swift-crypto's own BoringSSL copy is not built on Apple platforms."
+}

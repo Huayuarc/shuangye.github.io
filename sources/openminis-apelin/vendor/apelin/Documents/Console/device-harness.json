@@ -1,0 +1,193 @@
+{
+  "about": [
+    "How Scripts/device.py runs each script in scripts/ on a vphone or a device, and the suites it runs them in. Documents/Console.md ▸ From the Mac says what each key means.",
+    "Every script in scripts/ has an entry; one that cannot run unattended says why under manual, and every other one is in regression."
+  ],
+  "scripts": {
+    "hello": {},
+    "terminal": {},
+    "logs": {},
+    "diagnostics": {},
+    "i3-image-check-refused": {},
+    "i5-log-continuity": {"timeout": 300},
+    "files": {
+      "needs": ["package:wiki.qaq.apelin.dev.tweak", "toolchain", "sdk"],
+      "note": "makes the Hello project when it is missing, which takes a registered toolchain and SDK",
+      "after": [{"removeProject": "Hello"}]
+    },
+    "i1-smoke": {
+      "needs": ["package:wiki.qaq.irisin>=4.7.3", "!package:com.example.apelin-smoke"],
+      "before": [
+        {"root": "printf 'apelin smoke original\\n' > \"$JB/etc/apelin-smoke.conf\" && chown 0:0 \"$JB/etc/apelin-smoke.conf\" && chmod 644 \"$JB/etc/apelin-smoke.conf\""},
+        {"push": "Documents/Console/fixtures/apelin-smoke_1.0_all.deb", "to": "console/apelin-smoke_1.0_all.deb"}
+      ],
+      "verify": [
+        {"root": "grep -qx 'apelin smoke edited' \"$JB/etc/apelin-smoke.conf\""},
+        {"root": "test ! -e \"$JB/usr/share/apelin-smoke\""}
+      ],
+      "after": [
+        {"root": "rm -f \"$JB/etc/apelin-smoke.conf\""},
+        {"mobile": "rm -f \"$DATA/console/apelin-smoke_1.0_all.deb\""}
+      ]
+    },
+    "tool-host": {
+      "needs": ["package:wiki.qaq.apelin.agent-tools.disassembler"]
+    },
+    "i6-tool-attachments": {
+      "needs": ["package:wiki.qaq.apelin.agent-tools.disassembler>=1.1.0"],
+      "verify": [
+        {"root": "test -z \"$(ls -A \"$JB/var/lib/apelin/attachments\" 2>/dev/null)\""},
+        {"root": "! killall -0 apelin-disassembler 2>/dev/null"}
+      ]
+    },
+    "i2-git": {
+      "before": [{"removeProject": "I2GitCheck"}]
+    },
+    "i2-git-remote": {
+      "before": [
+        {"removeProject": "I2GitImport"},
+        {"mobile": "cp \"$DATA/Settings/git.json\" \"$DATA/Settings/git.json.harness\" 2>/dev/null || true"}
+      ],
+      "after": [
+        {"removeProject": "I2GitImport"},
+        {"mobile": "if [ -f \"$DATA/Settings/git.json.harness\" ]; then mv \"$DATA/Settings/git.json.harness\" \"$DATA/Settings/git.json\"; else rm -f \"$DATA/Settings/git.json\"; fi"}
+      ]
+    },
+    "distribution": {
+      "before": [{"mobile": "cp \"$DATA/Settings/distribution.json\" \"$DATA/Settings/distribution.json.harness\" 2>/dev/null || true"}],
+      "after": [{"mobile": "if [ -f \"$DATA/Settings/distribution.json.harness\" ]; then mv \"$DATA/Settings/distribution.json.harness\" \"$DATA/Settings/distribution.json\"; fi"}]
+    },
+    "i2-git-commit": {
+      "needs": ["project:I2GitCheck"],
+      "before": [{"mobile": "echo 'a note from the device harness' > \"$DATA/Projects/I2GitCheck/i2-note.txt\""}],
+      "after": [{"removeProject": "I2GitCheck"}]
+    },
+    "environment": {
+      "needs": ["sdk"],
+      "note": "needs the network: the setup it starts and cancels downloads from Apple; a compatible registered SDK avoids an additional SDK download"
+    },
+    "i2-sdk-import": {
+      "needs": ["sdk-source"],
+      "before": [{"stageSDK": "iPhoneOS.sdk"}]
+    },
+    "t1-toolchain-setup": {
+      "needs": ["sdk", "!toolchain", "package:wiki.qaq.irisin>=4.7.3"],
+      "timeout": 1800
+    },
+    "i3-chain": {
+      "needs": ["toolchain", "sdk", "package:wiki.qaq.apelin.dev.tweak", "package:wiki.qaq.irisin>=4.7.3"],
+      "before": [{"removeProject": "I3 Chain Tweak"}],
+      "expectOutput": [{"line": "run.resumed", "min": 1}],
+      "after": [{"removeProject": "I3 Chain Tweak"}]
+    },
+    "project-build-install": {
+      "needs": ["toolchain", "sdk", "package:wiki.qaq.apelin.dev.tweak", "package:wiki.qaq.irisin>=4.7.3"],
+      "before": [{"removeProject": "Console Build Check"}],
+      "after": [{"removeProject": "Console Build Check"}]
+    },
+    "r1-resume-build": {
+      "needs": ["toolchain", "sdk", "package:wiki.qaq.apelin.dev.tweak"],
+      "before": [{"removeProject": "R1 Resume Tweak"}],
+      "during": [{"when": {"result": "build"}, "do": "killSessionHost"}],
+      "expectOutput": [{"step": "after-kill", "event": "resumed"}],
+      "after": [{"removeProject": "R1 Resume Tweak"}]
+    },
+    "r1-resume-sdk-import": {
+      "needs": ["sdk-source"],
+      "before": [{"stageSDK": "iPhoneOS.sdk"}],
+      "during": [{"when": {"result": "import"}, "delay": 1, "do": "killSessionHost"}],
+      "expectOutput": [{"step": "after-kill", "event": "resumed"}]
+    },
+    "resume": {
+      "during": [{"when": {"task": "pty"}, "delay": 5, "do": "killApp"}],
+      "expectOutput": [{"line": "run.resumed", "min": 2}]
+    },
+    "t2-toolchain-remove": {
+      "needs": ["installed-toolchain"],
+      "before": [
+        {"removeProject": "Hello"},
+        {"removeProject": "I3 Chain Tweak"},
+        {"removeProject": "Console Build Check"},
+        {"removeProject": "R1 Resume Tweak"}
+      ]
+    },
+    "r2-resume-toolchain": {
+      "needs": ["sdk", "!toolchain", "package:wiki.qaq.irisin>=4.7.3"],
+      "during": [{"when": {"result": "setup"}, "delay": 5, "do": "killSessionHost"}],
+      "expectOutput": [{"step": "after-kill", "event": "resumed"}],
+      "timeout": 1800
+    },
+    "agent": {
+      "manual": "agentOpen is denied without a Copilot credential: put github-copilot.json in console/inbox/credentials/ first, then run it by name"
+    },
+    "i4-agent": {
+      "manual": "needs a Copilot credential in console/inbox/credentials/ and spends a model run"
+    },
+    "accounts": {
+      "note": "needs the network: the GitHub Copilot sign-in it starts and cancels asks github.com for a device code, and the Cursor sign-in polls api2.cursor.sh until it is cancelled"
+    },
+    "a2-api-key-sign-in": {
+      "manual": "replaces and then removes the device's openai-compatible sign-in; run it by name on a device whose credential that may lose"
+    },
+    "a3-endpoint-beside": {
+      "note": "signs in to and out of OpenAI-compatible endpoint 99 with a placeholder key; the device's own sign-ins stay as they are"
+    },
+    "t5-toolchain-auto-sdk": {
+      "needs": ["package:wiki.qaq.irisin>=4.7.3"],
+      "timeout": 3600,
+      "manual": "requires no registered SDK at or below 17.4 and an enabled SDK source to exercise download; installs CLT 15.3 and imports SDK 17.4, leaving both for inspection"
+    },
+    "t4-toolchain-swift": {
+      "needs": ["installed-toolchain", "sdk", "package:wiki.qaq.apelin.dev.app", "package:wiki.qaq.irisin>=4.7.3"],
+      "before": [{"removeProject": "T4 Swift App"}],
+      "after": [{"removeProject": "T4 Swift App"}],
+      "timeout": 3600,
+      "manual": "sets up 27.2, with Swift, beside the registered toolchain (about 480 MB installed); remove it with toolchainRemove afterwards"
+    },
+    "t6-toolchain-beside": {
+      "needs": ["installed-toolchain", "package:wiki.qaq.irisin>=4.7.3"],
+      "timeout": 1800,
+      "note": "a whole setup on a device that already has a toolchain, which t1 skips: download, extract, retarget, package, install, self-test and removal of CLT 14.2, and its SDK fetched when none fits"
+    },
+    "t3-toolchain-side-by-side": {
+      "needs": ["installed-toolchain", "package:wiki.qaq.irisin>=4.7.3"],
+      "timeout": 3600,
+      "manual": "needs an iPhoneOS 18.5 SDK (or older) as console's inbox/iPhoneOS18.5.sdk, which no registered SDK can stand in for, and the 27.0 toolchain registered first"
+    },
+    "transfer": {
+      "needs": ["sdk"],
+      "after": [{"mobile": "rm -rf \"${DATA:?}/Exports\""}]
+    },
+    "transfer-project": {
+      "needs": ["project:I3 Chain Tweak"],
+      "before": [{"removeProject": "Transfer Copy"}],
+      "after": [{"removeProject": "Transfer Copy"}, {"mobile": "rm -rf \"${DATA:?}/Exports\""}]
+    },
+    "transfer-toolchain": {
+      "needs": ["installed-toolchain"],
+      "after": [{"mobile": "rm -rf \"${DATA:?}/Exports\""}],
+      "timeout": 3600,
+      "manual": "writes an .apetc of the whole toolchain, a GB or more, which takes minutes and that much free space in the data folder; run it by name on a device that has it"
+    }
+  },
+  "suites": {
+    "smoke": [
+      "hello", "terminal", "files", "logs", "diagnostics", "i3-image-check-refused", "i1-smoke"
+    ],
+    "tools": ["tool-host", "i6-tool-attachments"],
+    "accounts": ["accounts", "a3-endpoint-beside"],
+    "git": ["i2-git", "i2-git-commit", "i2-git-remote", "distribution"],
+    "environment": ["i2-sdk-import", "environment", "r1-resume-sdk-import"],
+    "chain": ["t1-toolchain-setup", "i3-chain", "project-build-install"],
+    "resume": ["resume", "r1-resume-build", "r1-resume-sdk-import"],
+    "toolchain": ["t6-toolchain-beside", "t2-toolchain-remove", "r2-resume-toolchain"],
+    "transfer": ["transfer", "transfer-project"],
+    "regression": [
+      "hello", "terminal", "logs", "diagnostics", "i3-image-check-refused", "i1-smoke",
+      "i5-log-continuity", "tool-host", "i6-tool-attachments", "i2-git", "i2-git-commit", "i2-git-remote",
+      "distribution", "i2-sdk-import", "environment", "transfer", "t1-toolchain-setup", "files", "i3-chain", "project-build-install",
+      "transfer-project", "resume", "r1-resume-build", "r1-resume-sdk-import", "t6-toolchain-beside", "t2-toolchain-remove", "r2-resume-toolchain",
+      "accounts", "a3-endpoint-beside"
+    ]
+  }
+}

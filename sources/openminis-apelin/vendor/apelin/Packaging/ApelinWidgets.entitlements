@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+	The widget extension: a standard sandboxed extension, as iGhostVT's is.
+	It draws what it is given and opens nothing else: the Live Activity's
+	state comes from ActivityKit, and the home screen widget reads the one
+	snapshot the app writes into the App Group container both carry
+	(`group.wiki.qaq.apelin`, Widgets/Shared/ChatWidgetSnapshot.swift), the
+	way Fila's save action shares Fila's. The sandbox keeps it out of
+	mobile's Documents, where the app keeps everything else, and the app has
+	no container of its own to share.
+
+	Nothing that widens it: no `no-sandbox`, `platform-application`,
+	container or storage keys, no mach lookup and above all no
+	`wiki.qaq.apelin.client` — apelind must never accept a connection from
+	anything but the app. Scripts/package-deb.sh reads the signed
+	entitlements back and fails on any of them.
+-->
+<plist version="1.0">
+<dict>
+	<key>application-identifier</key>
+	<string>wiki.qaq.apelin.widgets</string>
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.wiki.qaq.apelin</string>
+	</array>
+</dict>
+</plist>

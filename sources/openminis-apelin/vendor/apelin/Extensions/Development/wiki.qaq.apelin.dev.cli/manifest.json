@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "id": "wiki.qaq.apelin.dev.cli",
+  "version": "0.1.2",
+  "kind": "cli",
+  "displayName": "Command-Line Tool Development",
+  "summary": "C and Objective-C command-line tools installed into the bootstrap's /usr/bin.",
+  "apelinCompatibility": {
+    "minimumAppVersion": "0.1.0",
+    "projectSchemaVersions": [1],
+    "manifestSchemaVersion": 1
+  },
+  "requirements": {
+    "toolchainComponents": ["c-family"],
+    "languages": ["c", "objc"],
+    "sdkFrameworks": ["Foundation"],
+    "bootstraps": ["rootless", "roothide"],
+    "architectures": {
+      "rootless": ["arm64", "arm64e"],
+      "roothide": ["arm64e"]
+    },
+    "runtimeDependencies": {
+      "rootless": [],
+      "roothide": []
+    }
+  },
+  "templates": [
+    {
+      "id": "c",
+      "directory": "templates/c",
+      "displayName": "Command-Line Tool (C)",
+      "summary": "A C program with --version and --help that greets its argument and exits with sysexits codes.",
+      "language": "c",
+      "toolchainComponents": ["c-family"],
+      "project": "apelin-project.json",
+      "parameters": [
+        { "name": "productName", "type": "identifier", "label": "Command Name", "help": "The executable installed into /usr/bin.", "required": true, "default": "apelinhello" },
+        { "name": "displayName", "type": "string", "label": "Package Name", "default": "Apelin Hello", "maxLength": 64 },
+        { "name": "summary", "type": "string", "label": "Description", "default": "Built on this device with Apelin.", "maxLength": 200 },
+        { "name": "author", "type": "string", "label": "Author", "default": "Apelin User", "maxLength": 64 }
+      ],
+      "files": [
+        { "path": "apelin-project.json", "format": "json" },
+        { "path": "Sources/main.c", "format": "c" },
+        { "path": "Packaging/Tool.entitlements", "format": "plist-xml" }
+      ],
+      "digest": "sha256:ba1812f5d18b75f193dde0277db553e147c1f01e2f0e7f14fe1eb43907dc59ff"
+    },
+    {
+      "id": "objc",
+      "directory": "templates/objc",
+      "displayName": "Command-Line Tool (Objective-C)",
+      "summary": "A Foundation command-line tool with a greeting, --version, --help, standard sysexits exit codes and iOS version output.",
+      "language": "objc",
+      "toolchainComponents": ["c-family"],
+      "project": "apelin-project.json",
+      "parameters": [
+        { "name": "productName", "type": "identifier", "label": "Command Name", "help": "The executable installed into /usr/bin.", "required": true, "default": "apelinhello" },
+        { "name": "displayName", "type": "string", "label": "Package Name", "default": "Apelin Hello", "maxLength": 64 },
+        { "name": "summary", "type": "string", "label": "Description", "default": "Built on this device with Apelin.", "maxLength": 200 },
+        { "name": "author", "type": "string", "label": "Author", "default": "Apelin User", "maxLength": 64 }
+      ],
+      "files": [
+        { "path": "apelin-project.json", "format": "json" },
+        { "path": "Sources/main.m", "format": "objc" },
+        { "path": "Packaging/Tool.entitlements", "format": "plist-xml" }
+      ],
+      "digest": "sha256:6f3ee8abb74d536f41721a33ed94fe83a973acb92a3d2b287ae203f023c20b24"
+    }
+  ],
+  "provenance": [
+    {
+      "scope": "template:c",
+      "origin": "imported",
+      "repository": "https://github.com/owngoal-dev/platformize-bin-ios",
+      "commit": "ffb7085a6cfb53eb89512da15a9cb3ba209ecbc9",
+      "paths": ["template/packaging/PROGRAM.entitlements", "template/packaging/DEBIAN/control", "template/scripts/package-deb.sh"],
+      "adaptations": [
+        "Kept: the four entitlements with their reasons (platform-application, no-sandbox, the two storage classes roothide needs, container-required explicitly false), the /usr/bin install path and a control file without extra dependencies.",
+        "Added: the IOKit user-client list of the uikit-objc and uikit-swift templates (from platformize-app-ios) under both spellings of the key, so a tool that calls VideoToolbox, Core Video, Core Image or Metal can allocate IOSurfaces and reach the GPU.",
+        "Added: package.icon, this extension's icon on Apelin's Pages, written as the control's Icon so a package manager shows it beside the package.",
+        "Changed: platformize-bin-ios ports an upstream program; here the program itself is new, a small C tool written for Apelin with sysexits exit codes so the acceptance check can test output and exit status.",
+        "Dropped: the libroot launcher in /usr/bin that re-execs the real binary from /usr/libexec (a ported tool needs the bootstrap PATH and certificate paths; this one does not), the upstream follow/patch machinery and the Mac build scripts."
+      ]
+    },
+    {
+      "scope": "template:objc",
+      "origin": "imported",
+      "repository": "https://github.com/owngoal-dev/platformize-bin-ios",
+      "commit": "ffb7085a6cfb53eb89512da15a9cb3ba209ecbc9",
+      "paths": ["template/packaging/PROGRAM.entitlements", "template/packaging/DEBIAN/control"],
+      "adaptations": [
+        "As template:c, with the program in Objective-C on Foundation."
+      ]
+    }
+  ],
+  "licenses": [
+    { "path": "LICENSE", "spdx": "MIT", "covers": ["template:c", "template:objc", "manifest"] }
+  ]
+}

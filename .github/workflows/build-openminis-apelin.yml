@@ -1,0 +1,78 @@
+name: Build OpenMinis Apelin
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'sources/openminis-apelin/**'
+      - '.github/workflows/build-openminis-apelin.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: openminis-apelin-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Select Xcode and record environment
+        run: |
+          set -euo pipefail
+          mkdir -p "${RUNNER_TEMP:?}/openminis-diagnostics"
+          test -d /Applications/Xcode_26.2.app/Contents/Developer
+          echo 'DEVELOPER_DIR=/Applications/Xcode_26.2.app/Contents/Developer' >> "$GITHUB_ENV"
+          export DEVELOPER_DIR=/Applications/Xcode_26.2.app/Contents/Developer
+          {
+            uname -a
+            xcodebuild -version
+            xcrun swiftc --version
+            xcrun --sdk iphoneos --show-sdk-version
+          } 2>&1 | tee "${RUNNER_TEMP:?}/openminis-diagnostics/environment.log"
+      - name: Install build dependencies
+        run: |
+          set -euo pipefail
+          brew install ninja llvm libarchive pkg-config meson go 2>&1 | tee "${RUNNER_TEMP:?}/openminis-diagnostics/brew.log"
+      - name: Fetch exact dependency commits
+        working-directory: sources/openminis-apelin
+        run: |
+          set -euo pipefail
+          python3 scripts/ci_fetch_dependencies.py 2>&1 | tee "${RUNNER_TEMP:?}/openminis-diagnostics/dependencies.log"
+      - name: Compile complete unsigned host
+        working-directory: sources/openminis-apelin
+        run: |
+          set -euo pipefail
+          bash scripts/ci_build_openminis.sh 2>&1 | tee "${RUNNER_TEMP:?}/openminis-diagnostics/build.log"
+      - name: Collect dependency diagnostics
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import os, pathlib, shutil
+          root = pathlib.Path('sources/openminis-apelin')
+          out = pathlib.Path(os.environ['RUNNER_TEMP']) / 'openminis-diagnostics' / 'dependencies'
+          for name in ('meson-log.txt', 'config.log'):
+              for source in (root / 'deps').rglob(name):
+                  target = out / source.relative_to(root)
+                  target.parent.mkdir(parents=True, exist_ok=True)
+                  shutil.copy2(source, target)
+          PY
+      - name: Upload diagnostics (not a release)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openminis-apelin-diagnostics-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/openminis-diagnostics/
+            ${{ runner.temp }}/openminis-build.xcresult/
+          if-no-files-found: warn
+          retention-days: 14

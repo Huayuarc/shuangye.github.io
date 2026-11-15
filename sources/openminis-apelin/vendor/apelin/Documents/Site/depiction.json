@@ -1,0 +1,39 @@
+{
+  "class": "DepictionTabView",
+  "minVersion": "0.4",
+  "headerImage": "https://raw.githubusercontent.com/owngoal-dev/Apelin/main/Documents/screenshots.jpg",
+  "tabs": [
+    {
+      "class": "DepictionStackView",
+      "tabname": "Details",
+      "views": [
+        {
+          "class": "DepictionHeaderView",
+          "title": "Description"
+        },
+        {
+          "class": "DepictionMarkdownView",
+          "markdown": "Apelin is an on-device IDE for jailbroken iOS, with a code editor, terminal and agent for building, installing and debugging tweaks.\n\n**Status:** Early release. Every step, from toolchain setup to building, installing and checking that a tweak loads, runs on the device.\n\n- Requires iOS 16.0 or later.\n- Supports RootHide (`iphoneos-arm64e`) and rootless (`iphoneos-arm64`) jailbreaks. Choose the package for your jailbreak.\n- A background service handles privileged operations. The app itself runs without root privileges.",
+          "useSpacing": true
+        },
+        {
+          "class": "DepictionHeaderView",
+          "title": "Information"
+        },
+        {
+          "class": "DepictionSeparatorView"
+        },
+        {
+          "class": "DepictionTableTextView",
+          "title": "iOS Versions",
+          "text": "16.0 or later"
+        },
+        {
+          "class": "DepictionTableTextView",
+          "title": "Developer",
+          "text": "OwnGoal Studio"
+        }
+      ]
+    }
+  ]
+}

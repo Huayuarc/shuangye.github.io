@@ -1,0 +1,3 @@
+// Standalone package floor; macOS is used only by host tests and the validation probe.
+IPHONEOS_DEPLOYMENT_TARGET = 16.0
+MACOSX_DEPLOYMENT_TARGET = 13.0

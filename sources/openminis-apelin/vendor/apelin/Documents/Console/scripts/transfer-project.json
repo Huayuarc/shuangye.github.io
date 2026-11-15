@@ -1,0 +1,30 @@
+{
+  "name": "transfer-project: needs the I3 Chain Tweak project; exports it as an .apeproj, imports it back as Transfer Copy under a new project ID, and is refused a name already taken",
+  "steps": [
+    {"op": "hello"},
+    {"op": "transferExport", "label": "export", "timeoutSeconds": 600,
+     "request": {"kind": "project", "id": "I3 Chain Tweak", "createdBy": "Apelin console"}},
+    {"op": "expect", "request": {"step": "export", "state": "succeeded"}},
+    {"op": "expect", "request": {"step": "export", "path": "lastEvent.payload.result.export.fileName", "equals": "I3 Chain Tweak.apeproj"}},
+
+    {"op": "transferInspect", "label": "inspect",
+     "request": {"source": {"exported": {"path": "${export.lastEvent.payload.result.export.exportedPath}"}}}},
+    {"op": "expect", "request": {"step": "inspect", "path": "response.summary.kind", "equals": "project"}},
+    {"op": "expect", "request": {"step": "inspect", "path": "response.importable", "equals": true}},
+    {"op": "expect", "request": {"step": "inspect", "path": "response.suggestedName", "equals": "I3 Chain Tweak 2"}},
+
+    {"op": "transferImport", "label": "taken", "allowError": true,
+     "request": {"source": {"exported": {"path": "${export.lastEvent.payload.result.export.exportedPath}"}}, "kind": "project", "projectName": "I3 Chain Tweak"}},
+    {"op": "expect", "request": {"step": "taken", "errorCode": "conflict"}},
+
+    {"op": "transferImport", "label": "copy", "timeoutSeconds": 600,
+     "request": {"source": {"exported": {"path": "${export.lastEvent.payload.result.export.exportedPath}"}}, "kind": "project", "projectName": "Transfer Copy"}},
+    {"op": "expect", "request": {"step": "copy", "state": "succeeded"}},
+    {"op": "expect", "request": {"step": "copy", "path": "lastEvent.payload.result.project.name", "equals": "Transfer Copy"}},
+    {"op": "expect", "request": {"step": "copy", "path": "lastEvent.payload.result.project.previousProjectID", "equals": "${inspect.response.summary.id}"}},
+
+    {"op": "projectCheck", "label": "check", "allowError": true,
+     "request": {"projectID": "${copy.lastEvent.payload.result.project.projectID}"}},
+    {"op": "expect", "request": {"step": "check", "ok": true}}
+  ]
+}

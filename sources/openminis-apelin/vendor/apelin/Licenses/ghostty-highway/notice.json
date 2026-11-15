@@ -1,0 +1,6 @@
+{
+  "name": "Highway (in libghostty)",
+  "url": "https://github.com/google/highway",
+  "version": "1.2.0 (66486a10623f)",
+  "note": "Compiled into libghostty.a (ghostty 1e9e14af5df1 as built into libghostty-spm 2.2.2026101502 (GhosttyKit.xcframework upstream.1e9e14af5df1-3)), a prebuilt static library with no license file of its own. Fetched from https://deps.files.ghostty.org/highway-66486a10623fa0d72fe91260f96c892e41aceb06.tar.gz -> LICENSE, LICENSE-BSD3."
+}

@@ -1,0 +1,14 @@
+Package: wiki.qaq.apelin.agent-tools.assembler
+Name: Apelin Assembler
+Version: @VERSION@
+Architecture: @ARCHITECTURE@
+Description: An assembler tool for Apelin's agent, built on Keystone (GPLv2), for @FLAVOR@ jailbreaks
+ An agent tool extension for Apelin. It gives the agent one tool, assemble, which turns ARM64, ARM, Thumb or x86 assembly into machine code with Keystone. Keystone is licensed under the GNU GPL version 2, so this package ships separately from Apelin. The license, and where to get the corresponding source, are installed in usr/share/apelin/agent-tools/wiki.qaq.apelin.agent-tools.assembler/licenses under the jailbreak root.
+Icon: https://owngoal-dev.github.io/Apelin/icons/wiki.qaq.apelin.agent-tools.assembler.png
+Maintainer: OwnGoal Studio <not-gonna-reply@owngoal.dev>
+Author: OwnGoal Studio <not-gonna-reply@owngoal.dev>
+Section: Development
+Priority: optional
+Depends: firmware (>= 16.0)
+Enhances: wiki.qaq.apelin
+Installed-Size: @INSTALLED_SIZE@

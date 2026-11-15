@@ -1,0 +1,6 @@
+{
+  "name": "simdutf (in libghostty)",
+  "url": "https://github.com/simdutf/simdutf",
+  "version": "9.0.0",
+  "note": "Compiled into libghostty.a (ghostty 1e9e14af5df1 as built into libghostty-spm 2.2.2026101502 (GhosttyKit.xcframework upstream.1e9e14af5df1-3)), a prebuilt static library with no license file of its own. Fetched from https://raw.githubusercontent.com/simdutf/simdutf/v9.0.0/LICENSE-MIT and LICENSE-APACHE."
+}

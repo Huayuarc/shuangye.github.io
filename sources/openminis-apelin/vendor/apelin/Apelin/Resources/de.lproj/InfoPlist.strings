@@ -1,0 +1,6 @@
+"NSFaceIDUsageDescription" = "Bestätige deine Identität, bevor der Agent einen Befehl als root ausführt.";
+"NSCameraUsageDescription" = "Nimm Fotos auf, um sie an deinen Chat anzuhängen.";
+"NSPhotoLibraryAddUsageDescription" = "Erstellte Karten in Fotos sichern.";
+"Apelin Toolchain" = "Apelin-Toolchain";
+"Apelin SDK" = "Apelin-SDK";
+"Apelin Project" = "Apelin-Projekt";

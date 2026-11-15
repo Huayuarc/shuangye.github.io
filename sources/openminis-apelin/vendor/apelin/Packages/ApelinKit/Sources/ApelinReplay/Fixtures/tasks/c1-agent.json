@@ -1,0 +1,24 @@
+{
+"kind":"agent",
+"name":"c1-agent",
+"source":"c1-confirm-open.json step 1",
+"start":{"operation":"agentOpen","request":{"approvalMode":"confirm","closeWhenFinished":true,"model":"deepseek-chat","projectName":"Agent Confirm CLI","prompt":"Use the run_code tool to run exactly this argv in the project folder: [\"uname\", \"-a\"]. Then tell me the kernel version it printed in one sentence. Do nothing else.","provider":"openAICompatible"},"response":{"sessionID":"4953dab6-ac68-4dcd-98d8-7baa025f9a90","task":{"kind":"agent","taskID":"58f72048-25d6-4159-b91e-72e57a795993"}}},
+"state":"succeeded",
+"taskID":"58f72048-25d6-4159-b91e-72e57a795993",
+"events":[
+{"kind":"prompt","payload":{"text":"Use the run_code tool to run exactly this argv in the project folder: [\"uname\", \"-a\"]. Then tell me the kernel version it printed in one sentence. Do nothing else."},"seq":1,"time":"2026-10-17T11:39:21Z"},
+{"kind":"messageStarted","seq":2,"time":"2026-10-17T11:39:22Z"},
+{"kind":"message","payload":{"text":""},"seq":3,"time":"2026-10-17T11:39:22Z"},
+{"kind":"toolCall","payload":{"arguments":"{\"argv\":[\"uname\",\"-a\"]}","id":"call_00_3gLaScBHKAX10jfxaLoV8342","tool":"run_code"},"seq":4,"time":"2026-10-17T11:39:22Z"},
+{"kind":"approvalRequested","payload":{"allowsSessionScope":true,"approvalID":"9CC486C5-80F9-4EAE-8FE7-F5227EDFD2AB","arguments":"{\"argv\":[\"uname\",\"-a\"]}","detail":{"command":{"argv":{"_0":["uname","-a"]}}},"fingerprint":"6645b5ed2d7a805280c932b0d6bf29c1133c37e3881ebc96f26a158e15fd1715","projectID":"bf816b14-4523-46dc-be20-5b147fac678d","reason":"no command preset covers this command","tool":"run_code","toolCallID":"call_00_3gLaScBHKAX10jfxaLoV8342","workingDirectory":"."},"seq":5,"time":"2026-10-17T11:39:22Z"},
+{"kind":"state","payload":{"state":"waitingForApproval"},"seq":6,"time":"2026-10-17T11:39:22Z"},
+{"kind":"approvalResolved","payload":{"approvalID":"9CC486C5-80F9-4EAE-8FE7-F5227EDFD2AB","decision":"approve"},"seq":7,"time":"2026-10-17T11:40:49Z"},
+{"kind":"state","payload":{"state":"running"},"seq":8,"time":"2026-10-17T11:40:49Z"},
+{"kind":"toolResult","payload":{"id":"call_00_3gLaScBHKAX10jfxaLoV8342","isError":false,"output":"{\n  \"durationMilliseconds\" : 18,\n  \"exitCode\" : 0,\n  \"stderr\" : \"\",\n  \"stdout\" : \"Darwin device 25.4.0 Darwin Kernel Version 25.4.0: Thu Jan  1 00:00:00 UTC 2026; root:xnu-00000.000.000~0/RELEASE_ARM64_DEVICE iPhone0,0 arm Darwin\\n\",\n  \"truncated\" : false\n}","tool":"run_code"},"seq":9,"time":"2026-10-17T11:40:49Z"},
+{"kind":"messageStarted","seq":10,"time":"2026-10-17T11:40:50Z"},
+{"kind":"text","payload":{"text":"The kernel is Darwin 25.4.0 (xnu-00000.000.000~0, RELEASE_ARM64_DEVICE), built Thu Jan 1 00:00:00 UTC 2026."},"seq":11,"time":"2026-10-17T11:40:50Z"},
+{"kind":"message","payload":{"text":"The kernel is Darwin 25.4.0 (xnu-00000.000.000~0, RELEASE_ARM64_DEVICE), built Thu Jan 1 00:00:00 UTC 2026."},"seq":12,"time":"2026-10-17T11:40:50Z"},
+{"kind":"finished","payload":{"reason":"completed"},"seq":13,"time":"2026-10-17T11:40:50Z"},
+{"kind":"state","payload":{"message":"the run completed","state":"succeeded"},"seq":14,"time":"2026-10-17T11:40:50Z"}
+]
+}

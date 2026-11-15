@@ -1,0 +1,5 @@
+{
+  "name": "tree-sitter-bash (in Runestone)",
+  "url": "https://github.com/tree-sitter/tree-sitter-bash",
+  "note": "The Bash grammar, vendored in Packages/Runestone/Sources/TreeSitterBash as Lakr233/Runestone.xcframework 2688e46 carried it (from simonbs/TreeSitterLanguages, with no license file of its own); the same text is the LICENSE beside it. This is the upstream LICENSE at a06c2e4415e9bc0346c6b86d401879ffb44058f7; its license has not changed over the repository's history."
+}

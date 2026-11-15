@@ -1,0 +1,14 @@
+{
+  "name": "resume: needs nothing; kill the app from the app switcher during the first step (it runs 20 s) and open it again: the run attaches to the same terminal and reads it to the end. It then resprings; open the app again afterwards and the run finishes",
+  "steps": [
+    {"op": "hello", "label": "hello"},
+    {"op": "ptyOpen", "label": "pty", "follow": true, "timeoutSeconds": 120,
+     "request": {"initialInput": "sleep 20; echo apelin-resume-$((6*7)); exit 0\n"}},
+    {"op": "expect", "request": {"step": "pty", "state": "succeeded"}},
+    {"op": "expect", "request": {"step": "pty", "path": "events.0.kind", "equals": "started"}},
+    {"op": "respring", "label": "respring"},
+    {"op": "wait", "request": {"seconds": 5}},
+    {"op": "hello", "label": "after"},
+    {"op": "expect", "request": {"step": "after", "path": "response.installRoot", "equals": "${hello.response.installRoot}"}}
+  ]
+}

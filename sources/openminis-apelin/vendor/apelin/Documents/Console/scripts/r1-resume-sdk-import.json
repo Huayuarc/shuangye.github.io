@@ -1,0 +1,14 @@
+{
+  "name": "r1-resume-sdk-import",
+  "steps": [
+    {"op": "hello", "label": "hello"},
+    {"op": "sdkImport", "label": "import", "follow": false, "request": {"source": {"inbox": {"path": "iPhoneOS.sdk"}}}},
+    {"op": "wait", "request": {"seconds": 20}},
+    {"op": "environmentAttach", "label": "after-kill", "follow": true, "timeoutSeconds": 1800, "request": {
+      "taskID": "${import.response.taskID}",
+      "afterSeq": 0,
+      "waitMilliseconds": 0
+    }},
+    {"op": "expect", "request": {"step": "after-kill", "state": "succeeded"}}
+  ]
+}

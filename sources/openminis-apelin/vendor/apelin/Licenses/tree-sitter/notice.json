@@ -1,0 +1,5 @@
+{
+  "name": "Tree-sitter (in Runestone)",
+  "url": "https://github.com/tree-sitter/tree-sitter",
+  "note": "The Tree-sitter runtime, vendored in Packages/Runestone/Sources/TreeSitter as Lakr233/Runestone.xcframework 2688e46 carried it, with this LICENSE beside it."
+}

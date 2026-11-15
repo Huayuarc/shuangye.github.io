@@ -1,0 +1,54 @@
+#include "Version.xcconfig"
+
+// Single source of truth for the minimum OS across every product target.
+// `make check` fails if this lands in project.pbxproj instead: a target-level
+// IPHONEOS_DEPLOYMENT_TARGET silently shadows this file, and the first sign of
+// it is a user on the old OS whose app will not open.
+//
+// Whatever number is here is a promise, and only a device on this version
+// proves it: the SDK raises the floor without asking (see SKILL.md, "The
+// deployment floor is not what you set — it is what the linker believes").
+// `make check` keeps its SF Symbol and XPC macro gates, and the packager its
+// rpath check; none of them shows that the app launches on the floor.
+IPHONEOS_DEPLOYMENT_TARGET = 16.0
+MACOSX_DEPLOYMENT_TARGET = 13.0
+
+// The asset catalogue's icon set, named here rather than in the pbxproj.
+// Without it the catalogue still compiles and the app still builds — it just
+// ships with no icon key in its Info.plist, which is the kind of silent loss a
+// packaging verifier has to fail on.
+ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon
+
+// `#file` in Swift 5 mode is the absolute path of the source, so every
+// `fatalError` and `precondition` would otherwise ship the build machine's
+// home directory; SE-0274 makes it `Module/File.swift` instead. The prefix
+// maps cover debug info and C's `__FILE__`. The packager greps every binary
+// for the repository root and fails on a path that slipped through anyway —
+// a dependency spelling `#file` in a default argument leaks the caller's.
+SWIFT_UPCOMING_FEATURE_CONCISE_MAGIC_FILE = YES
+OTHER_SWIFT_FLAGS = $(inherited) -file-prefix-map $(SRCROOT)=. -file-prefix-map $(OBJROOT)/../..=DerivedData
+OTHER_CFLAGS = $(inherited) -ffile-prefix-map=$(SRCROOT)=. -ffile-prefix-map=$(OBJROOT)/../..=DerivedData
+
+// libarchive and libgit2 come from their packages as static frameworks: the
+// linker takes their code into the worker, and there is nothing to embed.
+// Xcode 26's build system copies a package's framework into a command-line
+// tool anyway, to `$(TARGET_BUILD_DIR)/Frameworks`, one directory every tool
+// shares, so two workers linking libarchive (apelin-environment and, through
+// icli, apelin-diagnostics) fail with "Multiple commands produce". Xcode 27
+// no longer does this for tools; this keeps the older one from trying.
+PACKAGE_SKIP_AUTO_EMBEDDING_STATIC_BINARY_FRAMEWORKS = YES
+
+// C module maps that Swift needs on the include path — the XPC constant shim
+// among them. A directory named here is not a compile-sources group; it is a
+// header the importer finds.
+SWIFT_INCLUDE_PATHS = $(inherited) $(SRCROOT)/Shared/XPCShim
+
+// The string catalogue's settings, for every target rather than the app's
+// alone: this file is the project's only one, and the daemon and the workers
+// have no user-facing text, so for them it costs a few empty .stringsdata
+// files and changes nothing they ship. Swift extracts `String(localized:)`
+// and `LocalizationValue` keys into .stringsdata, which Xcode merges into
+// Apelin/Resources/Localizable.xcstrings (the manual discipline, AGENTS.md
+// ▸ Strings).
+SWIFT_EMIT_LOC_STRINGS = YES
+LOCALIZATION_PREFERS_STRING_CATALOGS = YES

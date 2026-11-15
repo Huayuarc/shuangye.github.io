@@ -1,0 +1,7 @@
+{
+  "name": "libgit2 (with its bundled xdiff, llhttp, sha1dc and the rest of COPYING)",
+  "url": "https://github.com/libgit2/libgit2",
+  "version": "1.9.7",
+  "source": "COPYING at libgit2 49e408b3208bc3093757a1c2db938d3590f3f412, the commit Lakr233/libgit2.xcframework 1.0.0 builds",
+  "sha256": "e0938121c0554985fe17196ac38fc590d149268e9c46e0c0e7a2eae1354fae71"
+}

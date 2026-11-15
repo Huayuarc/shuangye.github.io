@@ -1,0 +1,6 @@
+"NSFaceIDUsageDescription" = "在智能体以 root 身份运行命令前确认是你本人。";
+"NSCameraUsageDescription" = "拍摄照片并添加到聊天中。";
+"NSPhotoLibraryAddUsageDescription" = "将你制作的卡片保存到照片。";
+"Apelin Toolchain" = "Apelin 工具链";
+"Apelin SDK" = "Apelin SDK";
+"Apelin Project" = "Apelin 项目";

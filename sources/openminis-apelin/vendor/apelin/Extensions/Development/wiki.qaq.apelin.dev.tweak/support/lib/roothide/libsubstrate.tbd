@@ -1,0 +1,16 @@
+--- !tapi-tbd
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 OwnGoal Studio
+# Link stub for the roothide `mobilesubstrate` provider. ElleKit installs
+# <jbroot>/usr/lib/libsubstrate.dylib; roothide resolves @loader_path/.jbroot
+# from an image inside the jbroot, the convention its own stubs use.
+tbd-version:     4
+targets:         [ arm64-ios, arm64e-ios ]
+install-name:    '@loader_path/.jbroot/usr/lib/libsubstrate.dylib'
+current-version: 0
+compatibility-version: 0
+exports:
+  - targets:         [ arm64-ios, arm64e-ios ]
+    symbols:         [ _MSFindSymbol, _MSGetImageByName, _MSHookFunction,
+                       _MSHookMessageEx ]
+...

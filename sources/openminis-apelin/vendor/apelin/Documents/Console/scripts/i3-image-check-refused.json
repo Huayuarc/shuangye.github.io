@@ -1,0 +1,13 @@
+{
+  "name": "i3-image-check-refused",
+  "steps": [
+    {"op": "hello", "label": "hello"},
+    {"op": "confirmLoaded", "label": "images", "allowError": true, "request": {
+      "buildID": "image-check-refused",
+      "targetID": "SpringBoard",
+      "logWindowSeconds": 1,
+      "imageCheck": "regionPaths"
+    }},
+    {"op": "expect", "request": {"step": "images", "errorCode": "badRequest"}}
+  ]
+}

@@ -1,0 +1,1518 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		AA0000000000000000000103 /* ApelinCore in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000102 /* ApelinCore */; };
+		AA0000000000000000000105 /* ApelinProtocol in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000104 /* ApelinProtocol */; };
+		AA0000000000000000000107 /* ApelinProject in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000106 /* ApelinProject */; };
+		AA0000000000000000000502 /* ApelinConsole in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000501 /* ApelinConsole */; };
+		AA0000000000000000000109 /* ApelinCore in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000108 /* ApelinCore */; };
+		AA000000000000000000010B /* ApelinProtocol in Frameworks */ = {isa = PBXBuildFile; productRef = AA000000000000000000010A /* ApelinProtocol */; };
+		A10000000000000000000003 /* ApelinToolHost in Frameworks */ = {isa = PBXBuildFile; productRef = A10000000000000000000002 /* ApelinToolHost */; };
+		A10000000000000000000005 /* ApelinToolCore in Frameworks */ = {isa = PBXBuildFile; productRef = A10000000000000000000004 /* ApelinToolCore */; };
+		AA0000000000000000000117 /* ApelinCore in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000116 /* ApelinCore */; };
+		AA0000000000000000000119 /* ApelinProtocol in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000118 /* ApelinProtocol */; };
+		AA000000000000000000011B /* ApelinEnvironment in Frameworks */ = {isa = PBXBuildFile; productRef = AA000000000000000000011A /* ApelinEnvironment */; };
+		AA000000000000000000011D /* ApelinGit in Frameworks */ = {isa = PBXBuildFile; productRef = AA000000000000000000011C /* ApelinGit */; };
+		AA0000000000000000000129 /* ApelinCore in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000128 /* ApelinCore */; };
+		AA000000000000000000012B /* ApelinProtocol in Frameworks */ = {isa = PBXBuildFile; productRef = AA000000000000000000012A /* ApelinProtocol */; };
+		AA000000000000000000012D /* ApelinProject in Frameworks */ = {isa = PBXBuildFile; productRef = AA000000000000000000012C /* ApelinProject */; };
+		AA000000000000000000012F /* ApelinBuild in Frameworks */ = {isa = PBXBuildFile; productRef = AA000000000000000000012E /* ApelinBuild */; };
+		AA000000000000000000013B /* ApelinCore in Frameworks */ = {isa = PBXBuildFile; productRef = AA000000000000000000013A /* ApelinCore */; };
+		AA000000000000000000013D /* ApelinProtocol in Frameworks */ = {isa = PBXBuildFile; productRef = AA000000000000000000013C /* ApelinProtocol */; };
+		AA000000000000000000013F /* ApelinProject in Frameworks */ = {isa = PBXBuildFile; productRef = AA000000000000000000013E /* ApelinProject */; };
+		AA000000000000000000014B /* ApelinCore in Frameworks */ = {isa = PBXBuildFile; productRef = AA000000000000000000014A /* ApelinCore */; };
+		AA000000000000000000014D /* ApelinProtocol in Frameworks */ = {isa = PBXBuildFile; productRef = AA000000000000000000014C /* ApelinProtocol */; };
+		AA0000000000000000000159 /* ApelinCore in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000158 /* ApelinCore */; };
+		AA000000000000000000015B /* ApelinProtocol in Frameworks */ = {isa = PBXBuildFile; productRef = AA000000000000000000015A /* ApelinProtocol */; };
+		AA0000000000000000000404 /* ApelinAgentWorker in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000403 /* ApelinAgentWorker */; };
+		AA0000000000000000000406 /* ApelinDiagnosticsWorker in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000405 /* ApelinDiagnosticsWorker */; };
+		AA0000000000000000000408 /* ApelinLogReaderWorker in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000407 /* ApelinLogReaderWorker */; };
+		A20000000000000000000111 /* DisplayLink in Frameworks */ = {isa = PBXBuildFile; productRef = A20000000000000000000110 /* DisplayLink */; };
+		A20000000000000000000121 /* ListViewKit in Frameworks */ = {isa = PBXBuildFile; productRef = A20000000000000000000120 /* ListViewKit */; };
+		A20000000000000000000131 /* Litext in Frameworks */ = {isa = PBXBuildFile; productRef = A20000000000000000000130 /* Litext */; };
+		A20000000000000000000141 /* LitextAnimation in Frameworks */ = {isa = PBXBuildFile; productRef = A20000000000000000000140 /* LitextAnimation */; };
+		A20000000000000000000151 /* MarkdownView in Frameworks */ = {isa = PBXBuildFile; productRef = A20000000000000000000150 /* MarkdownView */; };
+		A20000000000000000000161 /* MarkdownParser in Frameworks */ = {isa = PBXBuildFile; productRef = A20000000000000000000160 /* MarkdownParser */; };
+		A20000000000000000000171 /* Runestone in Frameworks */ = {isa = PBXBuildFile; productRef = A20000000000000000000170 /* Runestone */; };
+		A20000000000000000000173 /* RunestoneLanguageSupport in Frameworks */ = {isa = PBXBuildFile; productRef = A20000000000000000000172 /* RunestoneLanguageSupport */; };
+		A20000000000000000000175 /* RunestoneThemeSupport in Frameworks */ = {isa = PBXBuildFile; productRef = A20000000000000000000174 /* RunestoneThemeSupport */; };
+		A20000000000000000000181 /* GhosttyTerminal in Frameworks */ = {isa = PBXBuildFile; productRef = A20000000000000000000180 /* GhosttyTerminal */; };
+		A20000000000000000000191 /* GhosttyTheme in Frameworks */ = {isa = PBXBuildFile; productRef = A20000000000000000000190 /* GhosttyTheme */; };
+		A30000000000000000000111 /* SPIndicator in Frameworks */ = {isa = PBXBuildFile; productRef = A30000000000000000000110 /* SPIndicator */; };
+		A30000000000000000000121 /* AlertController in Frameworks */ = {isa = PBXBuildFile; productRef = A30000000000000000000120 /* AlertController */; };
+		A30000000000000000000131 /* Then in Frameworks */ = {isa = PBXBuildFile; productRef = A30000000000000000000130 /* Then */; };
+		A30000000000000000000141 /* SnapKit in Frameworks */ = {isa = PBXBuildFile; productRef = A30000000000000000000140 /* SnapKit */; };
+		A30000000000000000000151 /* SwifterSwift in Frameworks */ = {isa = PBXBuildFile; productRef = A30000000000000000000150 /* SwifterSwift */; };
+		A30000000000000000000161 /* Dog in Frameworks */ = {isa = PBXBuildFile; productRef = A30000000000000000000160 /* Dog */; };
+		A40000000000000000000101 /* ScrubberKit in Frameworks */ = {isa = PBXBuildFile; productRef = A40000000000000000000102 /* ScrubberKit */; };
+		A50000000000000000000101 /* ApelinWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A50000000000000000000102 /* ApelinWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		AA0000000000000000000020 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AA0000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AA0000000000000000000040;
+			remoteInfo = Apelind;
+		};
+		AA0000000000000000000114 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AA0000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AA000000000000000000010C;
+			remoteInfo = WorkerEnvironment;
+		};
+		AA0000000000000000000126 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AA0000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AA000000000000000000011E;
+			remoteInfo = WorkerBuild;
+		};
+		AA0000000000000000000138 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AA0000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AA0000000000000000000130;
+			remoteInfo = WorkerAgent;
+		};
+		AA0000000000000000000148 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AA0000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AA0000000000000000000140;
+			remoteInfo = WorkerDiagnostics;
+		};
+		AA0000000000000000000156 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AA0000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AA000000000000000000014E;
+			remoteInfo = WorkerLogReader;
+		};
+		A50000000000000000000103 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AA0000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A50000000000000000000110;
+			remoteInfo = ApelinWidgets;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A50000000000000000000104 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A50000000000000000000101 /* ApelinWidgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		AA0000000000000000000031 /* Apelin.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Apelin.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA0000000000000000000041 /* apelind */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = apelind; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA000000000000000000010D /* apelin-environment */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "apelin-environment"; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA000000000000000000011F /* apelin-build */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "apelin-build"; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA0000000000000000000131 /* apelin-agent */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "apelin-agent"; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA0000000000000000000141 /* apelin-diagnostics */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "apelin-diagnostics"; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA000000000000000000014F /* apelin-log-reader */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "apelin-log-reader"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A50000000000000000000102 /* ApelinWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ApelinWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		AA0000000000000000000018 /* Exceptions for "Apelin" folder in "Apelin" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Resources/Info.plist,
+			);
+			target = AA0000000000000000000030 /* Apelin */;
+		};
+		AA0000000000000000000016 /* Exceptions for "Shared" folder in "Apelin" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				XPCShim/module.modulemap,
+				XPCShim/shim.h,
+			);
+			target = AA0000000000000000000030 /* Apelin */;
+		};
+		AA0000000000000000000017 /* Exceptions for "Shared" folder in "Apelind" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				XPCShim/module.modulemap,
+				XPCShim/shim.h,
+			);
+			target = AA0000000000000000000040 /* Apelind */;
+		};
+		A10000000000000000000006 /* Exceptions for "Apelind" folder in "Apelind" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Vendor/IrisinExternalClient/CIrisinExternalXPC/module.modulemap,
+				Vendor/IrisinExternalClient/CIrisinExternalXPC/shim.h,
+				Vendor/IrisinExternalClient/LICENSE,
+			);
+			target = AA0000000000000000000040 /* Apelind */;
+		};
+		A50000000000000000000105 /* Exceptions for "Widgets/Extension" folder in "ApelinWidgets" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Resources/Info.plist,
+			);
+			target = A50000000000000000000110 /* ApelinWidgets */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		AA0000000000000000000011 /* Configuration */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Configuration;
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000012 /* Apelin */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				AA0000000000000000000018 /* Exceptions for "Apelin" folder in "Apelin" target */,
+			);
+			path = Apelin;
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000013 /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				AA0000000000000000000016 /* Exceptions for "Shared" folder in "Apelin" target */,
+				AA0000000000000000000017 /* Exceptions for "Shared" folder in "Apelind" target */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000014 /* Apelind */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A10000000000000000000006 /* Exceptions for "Apelind" folder in "Apelind" target */,
+			);
+			path = Apelind;
+			sourceTree = "<group>";
+		};
+		AA000000000000000000010E /* Workers/Environment */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Workers/Environment;
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000120 /* Workers/Build */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Workers/Build;
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000132 /* Workers/Agent */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Workers/Agent;
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000142 /* Workers/Diagnostics */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Workers/Diagnostics;
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000150 /* Workers/LogReader */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Workers/LogReader;
+			sourceTree = "<group>";
+		};
+		A50000000000000000000106 /* Widgets/Extension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A50000000000000000000105 /* Exceptions for "Widgets/Extension" folder in "ApelinWidgets" target */,
+			);
+			path = Widgets/Extension;
+			sourceTree = "<group>";
+		};
+		A50000000000000000000107 /* Widgets/Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Widgets/Shared;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		AA0000000000000000000033 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+				AA0000000000000000000103 /* ApelinCore in Frameworks */,
+				AA0000000000000000000105 /* ApelinProtocol in Frameworks */,
+				AA0000000000000000000107 /* ApelinProject in Frameworks */,
+				AA0000000000000000000502 /* ApelinConsole in Frameworks */,
+				A20000000000000000000111 /* DisplayLink in Frameworks */,
+				A20000000000000000000121 /* ListViewKit in Frameworks */,
+				A20000000000000000000131 /* Litext in Frameworks */,
+				A20000000000000000000141 /* LitextAnimation in Frameworks */,
+				A20000000000000000000151 /* MarkdownView in Frameworks */,
+				A20000000000000000000161 /* MarkdownParser in Frameworks */,
+				A20000000000000000000171 /* Runestone in Frameworks */,
+				A20000000000000000000173 /* RunestoneLanguageSupport in Frameworks */,
+				A20000000000000000000175 /* RunestoneThemeSupport in Frameworks */,
+				A20000000000000000000181 /* GhosttyTerminal in Frameworks */,
+				A20000000000000000000191 /* GhosttyTheme in Frameworks */,
+				A30000000000000000000111 /* SPIndicator in Frameworks */,
+				A30000000000000000000121 /* AlertController in Frameworks */,
+				A30000000000000000000131 /* Then in Frameworks */,
+				A30000000000000000000141 /* SnapKit in Frameworks */,
+				A30000000000000000000151 /* SwifterSwift in Frameworks */,
+				A30000000000000000000161 /* Dog in Frameworks */,
+				A40000000000000000000101 /* ScrubberKit in Frameworks */,
+			);
+		};
+		AA0000000000000000000043 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+				AA0000000000000000000109 /* ApelinCore in Frameworks */,
+				AA000000000000000000010B /* ApelinProtocol in Frameworks */,
+				A10000000000000000000003 /* ApelinToolHost in Frameworks */,
+				A10000000000000000000005 /* ApelinToolCore in Frameworks */,
+			);
+		};
+		AA0000000000000000000110 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+				AA0000000000000000000117 /* ApelinCore in Frameworks */,
+				AA0000000000000000000119 /* ApelinProtocol in Frameworks */,
+				AA000000000000000000011B /* ApelinEnvironment in Frameworks */,
+				AA000000000000000000011D /* ApelinGit in Frameworks */,
+			);
+		};
+		AA0000000000000000000122 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+				AA0000000000000000000129 /* ApelinCore in Frameworks */,
+				AA000000000000000000012B /* ApelinProtocol in Frameworks */,
+				AA000000000000000000012D /* ApelinProject in Frameworks */,
+				AA000000000000000000012F /* ApelinBuild in Frameworks */,
+			);
+		};
+		AA0000000000000000000134 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+				AA000000000000000000013B /* ApelinCore in Frameworks */,
+				AA000000000000000000013D /* ApelinProtocol in Frameworks */,
+				AA000000000000000000013F /* ApelinProject in Frameworks */,
+				AA0000000000000000000404 /* ApelinAgentWorker in Frameworks */,
+			);
+		};
+		AA0000000000000000000144 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+				AA000000000000000000014B /* ApelinCore in Frameworks */,
+				AA000000000000000000014D /* ApelinProtocol in Frameworks */,
+				AA0000000000000000000406 /* ApelinDiagnosticsWorker in Frameworks */,
+			);
+		};
+		AA0000000000000000000152 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+				AA0000000000000000000159 /* ApelinCore in Frameworks */,
+				AA000000000000000000015B /* ApelinProtocol in Frameworks */,
+				AA0000000000000000000408 /* ApelinLogReaderWorker in Frameworks */,
+			);
+		};
+		A50000000000000000000113 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		AA0000000000000000000010 = {
+			isa = PBXGroup;
+			children = (
+				AA0000000000000000000011 /* Configuration */,
+				AA0000000000000000000012 /* Apelin */,
+				AA0000000000000000000013 /* Shared */,
+				AA0000000000000000000014 /* Apelind */,
+				AA000000000000000000010E /* Workers/Environment */,
+				AA0000000000000000000120 /* Workers/Build */,
+				AA0000000000000000000132 /* Workers/Agent */,
+				AA0000000000000000000142 /* Workers/Diagnostics */,
+				AA0000000000000000000150 /* Workers/LogReader */,
+				A50000000000000000000106 /* Widgets/Extension */,
+				A50000000000000000000107 /* Widgets/Shared */,
+				AA0000000000000000000015 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000015 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				AA0000000000000000000031 /* Apelin.app */,
+				AA0000000000000000000041 /* apelind */,
+				AA000000000000000000010D /* apelin-environment */,
+				AA000000000000000000011F /* apelin-build */,
+				AA0000000000000000000131 /* apelin-agent */,
+				AA0000000000000000000141 /* apelin-diagnostics */,
+				AA000000000000000000014F /* apelin-log-reader */,
+				A50000000000000000000102 /* ApelinWidgets.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		AA0000000000000000000030 /* Apelin */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA0000000000000000000060 /* Build configuration list for PBXNativeTarget "Apelin" */;
+			buildPhases = (
+				AA0000000000000000000032 /* Sources */,
+				AA0000000000000000000033 /* Frameworks */,
+				AA0000000000000000000034 /* Resources */,
+				AA0000000000000000000035 /* Collect Licenses */,
+				A50000000000000000000104 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				AA0000000000000000000021 /* PBXTargetDependency */,
+				AA0000000000000000000115 /* PBXTargetDependency */,
+				AA0000000000000000000127 /* PBXTargetDependency */,
+				AA0000000000000000000139 /* PBXTargetDependency */,
+				AA0000000000000000000149 /* PBXTargetDependency */,
+				AA0000000000000000000157 /* PBXTargetDependency */,
+				A50000000000000000000108 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				AA0000000000000000000012 /* Apelin */,
+				AA0000000000000000000013 /* Shared */,
+				A50000000000000000000107 /* Widgets/Shared */,
+			);
+			name = Apelin;
+			packageProductDependencies = (
+				AA0000000000000000000102 /* ApelinCore */,
+				AA0000000000000000000104 /* ApelinProtocol */,
+				AA0000000000000000000106 /* ApelinProject */,
+				AA0000000000000000000501 /* ApelinConsole */,
+				A20000000000000000000110 /* DisplayLink */,
+				A20000000000000000000120 /* ListViewKit */,
+				A20000000000000000000130 /* Litext */,
+				A20000000000000000000140 /* LitextAnimation */,
+				A20000000000000000000150 /* MarkdownView */,
+				A20000000000000000000160 /* MarkdownParser */,
+				A20000000000000000000170 /* Runestone */,
+				A20000000000000000000172 /* RunestoneLanguageSupport */,
+				A20000000000000000000174 /* RunestoneThemeSupport */,
+				A20000000000000000000180 /* GhosttyTerminal */,
+				A20000000000000000000190 /* GhosttyTheme */,
+				A30000000000000000000110 /* SPIndicator */,
+				A30000000000000000000120 /* AlertController */,
+				A30000000000000000000130 /* Then */,
+				A30000000000000000000140 /* SnapKit */,
+				A30000000000000000000150 /* SwifterSwift */,
+				A30000000000000000000160 /* Dog */,
+				A40000000000000000000102 /* ScrubberKit */,
+			);
+			productName = Apelin;
+			productReference = AA0000000000000000000031 /* Apelin.app */;
+			productType = "com.apple.product-type.application";
+		};
+		AA0000000000000000000040 /* Apelind */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA0000000000000000000070 /* Build configuration list for PBXNativeTarget "Apelind" */;
+			buildPhases = (
+				AA0000000000000000000042 /* Sources */,
+				AA0000000000000000000043 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			fileSystemSynchronizedGroups = (
+				AA0000000000000000000013 /* Shared */,
+				AA0000000000000000000014 /* Apelind */,
+			);
+			name = Apelind;
+			packageProductDependencies = (
+				AA0000000000000000000108 /* ApelinCore */,
+				AA000000000000000000010A /* ApelinProtocol */,
+				A10000000000000000000002 /* ApelinToolHost */,
+				A10000000000000000000004 /* ApelinToolCore */,
+			);
+			productName = apelind;
+			productReference = AA0000000000000000000041 /* apelind */;
+			productType = "com.apple.product-type.tool";
+		};
+		AA000000000000000000010C /* WorkerEnvironment */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA0000000000000000000111 /* Build configuration list for PBXNativeTarget "WorkerEnvironment" */;
+			buildPhases = (
+				AA000000000000000000010F /* Sources */,
+				AA0000000000000000000110 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				AA000000000000000000010E /* Workers/Environment */,
+			);
+			name = WorkerEnvironment;
+			packageProductDependencies = (
+				AA0000000000000000000116 /* ApelinCore */,
+				AA0000000000000000000118 /* ApelinProtocol */,
+				AA000000000000000000011A /* ApelinEnvironment */,
+				AA000000000000000000011C /* ApelinGit */,
+			);
+			productName = "apelin-environment";
+			productReference = AA000000000000000000010D /* apelin-environment */;
+			productType = "com.apple.product-type.tool";
+		};
+		AA000000000000000000011E /* WorkerBuild */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA0000000000000000000123 /* Build configuration list for PBXNativeTarget "WorkerBuild" */;
+			buildPhases = (
+				AA0000000000000000000121 /* Sources */,
+				AA0000000000000000000122 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				AA0000000000000000000120 /* Workers/Build */,
+			);
+			name = WorkerBuild;
+			packageProductDependencies = (
+				AA0000000000000000000128 /* ApelinCore */,
+				AA000000000000000000012A /* ApelinProtocol */,
+				AA000000000000000000012C /* ApelinProject */,
+				AA000000000000000000012E /* ApelinBuild */,
+			);
+			productName = "apelin-build";
+			productReference = AA000000000000000000011F /* apelin-build */;
+			productType = "com.apple.product-type.tool";
+		};
+		AA0000000000000000000130 /* WorkerAgent */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA0000000000000000000135 /* Build configuration list for PBXNativeTarget "WorkerAgent" */;
+			buildPhases = (
+				AA0000000000000000000133 /* Sources */,
+				AA0000000000000000000134 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				AA0000000000000000000132 /* Workers/Agent */,
+			);
+			name = WorkerAgent;
+			packageProductDependencies = (
+				AA000000000000000000013A /* ApelinCore */,
+				AA000000000000000000013C /* ApelinProtocol */,
+				AA000000000000000000013E /* ApelinProject */,
+				AA0000000000000000000403 /* ApelinAgentWorker */,
+			);
+			productName = "apelin-agent";
+			productReference = AA0000000000000000000131 /* apelin-agent */;
+			productType = "com.apple.product-type.tool";
+		};
+		AA0000000000000000000140 /* WorkerDiagnostics */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA0000000000000000000145 /* Build configuration list for PBXNativeTarget "WorkerDiagnostics" */;
+			buildPhases = (
+				AA0000000000000000000143 /* Sources */,
+				AA0000000000000000000144 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				AA0000000000000000000142 /* Workers/Diagnostics */,
+			);
+			name = WorkerDiagnostics;
+			packageProductDependencies = (
+				AA000000000000000000014A /* ApelinCore */,
+				AA000000000000000000014C /* ApelinProtocol */,
+				AA0000000000000000000405 /* ApelinDiagnosticsWorker */,
+			);
+			productName = "apelin-diagnostics";
+			productReference = AA0000000000000000000141 /* apelin-diagnostics */;
+			productType = "com.apple.product-type.tool";
+		};
+		AA000000000000000000014E /* WorkerLogReader */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA0000000000000000000153 /* Build configuration list for PBXNativeTarget "WorkerLogReader" */;
+			buildPhases = (
+				AA0000000000000000000151 /* Sources */,
+				AA0000000000000000000152 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				AA0000000000000000000150 /* Workers/LogReader */,
+			);
+			name = WorkerLogReader;
+			packageProductDependencies = (
+				AA0000000000000000000158 /* ApelinCore */,
+				AA000000000000000000015A /* ApelinProtocol */,
+				AA0000000000000000000407 /* ApelinLogReaderWorker */,
+			);
+			productName = "apelin-log-reader";
+			productReference = AA000000000000000000014F /* apelin-log-reader */;
+			productType = "com.apple.product-type.tool";
+		};
+		A50000000000000000000110 /* ApelinWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A50000000000000000000111 /* Build configuration list for PBXNativeTarget "ApelinWidgets" */;
+			buildPhases = (
+				A50000000000000000000112 /* Sources */,
+				A50000000000000000000113 /* Frameworks */,
+				A50000000000000000000114 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				A50000000000000000000106 /* Widgets/Extension */,
+				A50000000000000000000107 /* Widgets/Shared */,
+			);
+			name = ApelinWidgets;
+			packageProductDependencies = (
+			);
+			productName = ApelinWidgets;
+			productReference = A50000000000000000000102 /* ApelinWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		AA0000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2700;
+				LastUpgradeCheck = 2700;
+			};
+			buildConfigurationList = AA0000000000000000000050 /* Build configuration list for PBXProject "Apelin" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+				ar,
+				de,
+				es,
+				fr,
+				it,
+				ja,
+				ko,
+				"pt-BR",
+				ru,
+				vi,
+				"zh-Hans",
+				"zh-Hant",
+			);
+			mainGroup = AA0000000000000000000010;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				AA0000000000000000000101 /* XCLocalSwiftPackageReference "Packages/ApelinKit" */,
+				AA0000000000000000000401 /* XCLocalSwiftPackageReference "Packages/ApelinDiagnostics" */,
+				AA0000000000000000000402 /* XCLocalSwiftPackageReference "Packages/ApelinAgent" */,
+				A10000000000000000000001 /* XCLocalSwiftPackageReference "Packages/ApelinToolHost" */,
+				A20000000000000000000007 /* XCLocalSwiftPackageReference "Packages/Runestone" */,
+				A20000000000000000000001 /* XCRemoteSwiftPackageReference "DisplayLink" */,
+				A20000000000000000000002 /* XCRemoteSwiftPackageReference "ListViewKit" */,
+				A20000000000000000000003 /* XCRemoteSwiftPackageReference "Litext" */,
+				A20000000000000000000004 /* XCRemoteSwiftPackageReference "MarkdownView" */,
+				A20000000000000000000006 /* XCRemoteSwiftPackageReference "libghostty-spm" */,
+				A30000000000000000000001 /* XCRemoteSwiftPackageReference "SPIndicator" */,
+				A30000000000000000000002 /* XCRemoteSwiftPackageReference "AlertController" */,
+				A30000000000000000000003 /* XCRemoteSwiftPackageReference "Then" */,
+				A30000000000000000000004 /* XCRemoteSwiftPackageReference "SnapKit" */,
+				A30000000000000000000005 /* XCRemoteSwiftPackageReference "SwifterSwift" */,
+				A30000000000000000000006 /* XCRemoteSwiftPackageReference "Dog" */,
+				A40000000000000000000103 /* XCRemoteSwiftPackageReference "ScrubberKit" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = AA0000000000000000000015 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				AA0000000000000000000030 /* Apelin */,
+				AA0000000000000000000040 /* Apelind */,
+				AA000000000000000000010C /* WorkerEnvironment */,
+				AA000000000000000000011E /* WorkerBuild */,
+				AA0000000000000000000130 /* WorkerAgent */,
+				AA0000000000000000000140 /* WorkerDiagnostics */,
+				AA000000000000000000014E /* WorkerLogReader */,
+				A50000000000000000000110 /* ApelinWidgets */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		AA0000000000000000000034 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		A50000000000000000000114 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		AA0000000000000000000035 /* Collect Licenses */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Collect Licenses";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/Licenses.json",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "exec \"$SRCROOT/Scripts/collect-licenses.py\" --project \"$SRCROOT\" --build-dir \"$BUILD_DIR\" --output \"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/Licenses.json\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		AA0000000000000000000032 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		AA0000000000000000000042 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		AA000000000000000000010F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		AA0000000000000000000121 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		AA0000000000000000000133 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		AA0000000000000000000143 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		AA0000000000000000000151 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		A50000000000000000000112 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		AA0000000000000000000021 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AA0000000000000000000040 /* Apelind */;
+			targetProxy = AA0000000000000000000020 /* PBXContainerItemProxy */;
+		};
+		AA0000000000000000000115 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AA000000000000000000010C /* WorkerEnvironment */;
+			targetProxy = AA0000000000000000000114 /* PBXContainerItemProxy */;
+		};
+		AA0000000000000000000127 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AA000000000000000000011E /* WorkerBuild */;
+			targetProxy = AA0000000000000000000126 /* PBXContainerItemProxy */;
+		};
+		AA0000000000000000000139 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AA0000000000000000000130 /* WorkerAgent */;
+			targetProxy = AA0000000000000000000138 /* PBXContainerItemProxy */;
+		};
+		AA0000000000000000000149 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AA0000000000000000000140 /* WorkerDiagnostics */;
+			targetProxy = AA0000000000000000000148 /* PBXContainerItemProxy */;
+		};
+		AA0000000000000000000157 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AA000000000000000000014E /* WorkerLogReader */;
+			targetProxy = AA0000000000000000000156 /* PBXContainerItemProxy */;
+		};
+		A50000000000000000000108 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A50000000000000000000110 /* ApelinWidgets */;
+			targetProxy = A50000000000000000000103 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		AA0000000000000000000051 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = AA0000000000000000000011 /* Configuration */;
+			baseConfigurationReferenceRelativePath = Development.xcconfig;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		AA0000000000000000000052 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = AA0000000000000000000011 /* Configuration */;
+			baseConfigurationReferenceRelativePath = Release.xcconfig;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		AA0000000000000000000061 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Apelin/Resources/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Apelin;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				"OTHER_LDFLAGS[sdk=iphone*]" = (
+					"$(inherited)",
+					"-weak_framework",
+					ActivityKit,
+				);
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				PRODUCT_BUNDLE_IDENTIFIER = wiki.qaq.apelin;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		AA0000000000000000000062 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Apelin/Resources/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Apelin;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				"OTHER_LDFLAGS[sdk=iphone*]" = (
+					"$(inherited)",
+					"-weak_framework",
+					ActivityKit,
+				);
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				PRODUCT_BUNDLE_IDENTIFIER = wiki.qaq.apelin;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		AA0000000000000000000071 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				SWIFT_INCLUDE_PATHS = "$(inherited) $(SRCROOT)/Apelind/Vendor/IrisinExternalClient/CIrisinExternalXPC";
+				PRODUCT_BUNDLE_IDENTIFIER = wiki.qaq.apelind;
+				PRODUCT_NAME = apelind;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		AA0000000000000000000072 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				SWIFT_INCLUDE_PATHS = "$(inherited) $(SRCROOT)/Apelind/Vendor/IrisinExternalClient/CIrisinExternalXPC";
+				PRODUCT_BUNDLE_IDENTIFIER = wiki.qaq.apelind;
+				PRODUCT_NAME = apelind;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		AA0000000000000000000112 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				PRODUCT_BUNDLE_IDENTIFIER = "wiki.qaq.apelin-environment";
+				PRODUCT_NAME = "apelin-environment";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path",
+				);
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		AA0000000000000000000113 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				PRODUCT_BUNDLE_IDENTIFIER = "wiki.qaq.apelin-environment";
+				PRODUCT_NAME = "apelin-environment";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path",
+				);
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		AA0000000000000000000124 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				PRODUCT_BUNDLE_IDENTIFIER = "wiki.qaq.apelin-build";
+				PRODUCT_NAME = "apelin-build";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path",
+				);
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		AA0000000000000000000125 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				PRODUCT_BUNDLE_IDENTIFIER = "wiki.qaq.apelin-build";
+				PRODUCT_NAME = "apelin-build";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path",
+				);
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		AA0000000000000000000136 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				PRODUCT_BUNDLE_IDENTIFIER = "wiki.qaq.apelin-agent";
+				PRODUCT_NAME = "apelin-agent";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path",
+				);
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		AA0000000000000000000137 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				PRODUCT_BUNDLE_IDENTIFIER = "wiki.qaq.apelin-agent";
+				PRODUCT_NAME = "apelin-agent";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path",
+				);
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		AA0000000000000000000146 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				PRODUCT_BUNDLE_IDENTIFIER = "wiki.qaq.apelin-diagnostics";
+				PRODUCT_NAME = "apelin-diagnostics";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path",
+				);
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		AA0000000000000000000147 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				PRODUCT_BUNDLE_IDENTIFIER = "wiki.qaq.apelin-diagnostics";
+				PRODUCT_NAME = "apelin-diagnostics";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path",
+				);
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		AA0000000000000000000154 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				PRODUCT_BUNDLE_IDENTIFIER = "wiki.qaq.apelin-log-reader";
+				PRODUCT_NAME = "apelin-log-reader";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path",
+				);
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		AA0000000000000000000155 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				PRODUCT_BUNDLE_IDENTIFIER = "wiki.qaq.apelin-log-reader";
+				PRODUCT_NAME = "apelin-log-reader";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path",
+				);
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		A50000000000000000000115 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Widgets/Extension/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				"OTHER_LDFLAGS[sdk=iphone*]" = (
+					"$(inherited)",
+					"-weak_framework",
+					ActivityKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = wiki.qaq.apelin.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A50000000000000000000116 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Widgets/Extension/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				"OTHER_LDFLAGS[sdk=iphone*]" = (
+					"$(inherited)",
+					"-weak_framework",
+					ActivityKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = wiki.qaq.apelin.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		AA0000000000000000000050 /* Build configuration list for PBXProject "Apelin" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA0000000000000000000051 /* Debug */,
+				AA0000000000000000000052 /* Release */,
+			);
+			defaultConfigurationName = Release;
+		};
+		AA0000000000000000000060 /* Build configuration list for PBXNativeTarget "Apelin" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA0000000000000000000061 /* Debug */,
+				AA0000000000000000000062 /* Release */,
+			);
+			defaultConfigurationName = Release;
+		};
+		AA0000000000000000000070 /* Build configuration list for PBXNativeTarget "Apelind" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA0000000000000000000071 /* Debug */,
+				AA0000000000000000000072 /* Release */,
+			);
+			defaultConfigurationName = Release;
+		};
+		AA0000000000000000000111 /* Build configuration list for PBXNativeTarget "WorkerEnvironment" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA0000000000000000000112 /* Debug */,
+				AA0000000000000000000113 /* Release */,
+			);
+			defaultConfigurationName = Release;
+		};
+		AA0000000000000000000123 /* Build configuration list for PBXNativeTarget "WorkerBuild" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA0000000000000000000124 /* Debug */,
+				AA0000000000000000000125 /* Release */,
+			);
+			defaultConfigurationName = Release;
+		};
+		AA0000000000000000000135 /* Build configuration list for PBXNativeTarget "WorkerAgent" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA0000000000000000000136 /* Debug */,
+				AA0000000000000000000137 /* Release */,
+			);
+			defaultConfigurationName = Release;
+		};
+		AA0000000000000000000145 /* Build configuration list for PBXNativeTarget "WorkerDiagnostics" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA0000000000000000000146 /* Debug */,
+				AA0000000000000000000147 /* Release */,
+			);
+			defaultConfigurationName = Release;
+		};
+		AA0000000000000000000153 /* Build configuration list for PBXNativeTarget "WorkerLogReader" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA0000000000000000000154 /* Debug */,
+				AA0000000000000000000155 /* Release */,
+			);
+			defaultConfigurationName = Release;
+		};
+		A50000000000000000000111 /* Build configuration list for PBXNativeTarget "ApelinWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A50000000000000000000115 /* Debug */,
+				A50000000000000000000116 /* Release */,
+			);
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		AA0000000000000000000101 /* XCLocalSwiftPackageReference "Packages/ApelinKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/ApelinKit;
+		};
+		AA0000000000000000000401 /* XCLocalSwiftPackageReference "Packages/ApelinDiagnostics" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/ApelinDiagnostics;
+		};
+		AA0000000000000000000402 /* XCLocalSwiftPackageReference "Packages/ApelinAgent" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/ApelinAgent;
+		};
+		A10000000000000000000001 /* XCLocalSwiftPackageReference "Packages/ApelinToolHost" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/ApelinToolHost;
+		};
+		A20000000000000000000007 /* XCLocalSwiftPackageReference "Packages/Runestone" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/Runestone;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		A20000000000000000000001 /* XCRemoteSwiftPackageReference "DisplayLink" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Lakr233/DisplayLink";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.0.1;
+			};
+		};
+		A20000000000000000000002 /* XCRemoteSwiftPackageReference "ListViewKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Lakr233/ListViewKit";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.6.1;
+			};
+		};
+		A20000000000000000000003 /* XCRemoteSwiftPackageReference "Litext" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Lakr233/Litext";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.6.5;
+			};
+		};
+		A20000000000000000000004 /* XCRemoteSwiftPackageReference "MarkdownView" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Lakr233/MarkdownView";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.8.5;
+			};
+		};
+		A20000000000000000000006 /* XCRemoteSwiftPackageReference "libghostty-spm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Lakr233/libghostty-spm";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.2.2026101502;
+			};
+		};
+		A30000000000000000000001 /* XCRemoteSwiftPackageReference "SPIndicator" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ivanvorobei/SPIndicator";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.6.5;
+			};
+		};
+		A30000000000000000000002 /* XCRemoteSwiftPackageReference "AlertController" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Lakr233/AlertController";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.0.0;
+			};
+		};
+		A30000000000000000000003 /* XCRemoteSwiftPackageReference "Then" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/devxoul/Then";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.0.0;
+			};
+		};
+		A30000000000000000000004 /* XCRemoteSwiftPackageReference "SnapKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SnapKit/SnapKit";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 6.0.0;
+			};
+		};
+		A30000000000000000000005 /* XCRemoteSwiftPackageReference "SwifterSwift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SwifterSwift/SwifterSwift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 8.0.0;
+			};
+		};
+		A30000000000000000000006 /* XCRemoteSwiftPackageReference "Dog" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Lakr233/Dog";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.1.2;
+			};
+		};
+		A40000000000000000000103 /* XCRemoteSwiftPackageReference "ScrubberKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Lakr233/ScrubberKit";
+			requirement = {
+				kind = revision;
+				revision = b69932dc44461dd4a73aafeb78d514222f68d3e1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		AA0000000000000000000102 /* ApelinCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000101 /* XCLocalSwiftPackageReference "Packages/ApelinKit" */;
+			productName = ApelinCore;
+		};
+		AA0000000000000000000104 /* ApelinProtocol */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000101 /* XCLocalSwiftPackageReference "Packages/ApelinKit" */;
+			productName = ApelinProtocol;
+		};
+		AA0000000000000000000106 /* ApelinProject */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000101 /* XCLocalSwiftPackageReference "Packages/ApelinKit" */;
+			productName = ApelinProject;
+		};
+		AA0000000000000000000501 /* ApelinConsole */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000101 /* XCLocalSwiftPackageReference "Packages/ApelinKit" */;
+			productName = ApelinConsole;
+		};
+		AA0000000000000000000108 /* ApelinCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000101 /* XCLocalSwiftPackageReference "Packages/ApelinKit" */;
+			productName = ApelinCore;
+		};
+		AA000000000000000000010A /* ApelinProtocol */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000101 /* XCLocalSwiftPackageReference "Packages/ApelinKit" */;
+			productName = ApelinProtocol;
+		};
+		AA0000000000000000000116 /* ApelinCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000101 /* XCLocalSwiftPackageReference "Packages/ApelinKit" */;
+			productName = ApelinCore;
+		};
+		AA0000000000000000000118 /* ApelinProtocol */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000101 /* XCLocalSwiftPackageReference "Packages/ApelinKit" */;
+			productName = ApelinProtocol;
+		};
+		AA000000000000000000011A /* ApelinEnvironment */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000101 /* XCLocalSwiftPackageReference "Packages/ApelinKit" */;
+			productName = ApelinEnvironment;
+		};
+		AA000000000000000000011C /* ApelinGit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000101 /* XCLocalSwiftPackageReference "Packages/ApelinKit" */;
+			productName = ApelinGit;
+		};
+		AA0000000000000000000128 /* ApelinCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000101 /* XCLocalSwiftPackageReference "Packages/ApelinKit" */;
+			productName = ApelinCore;
+		};
+		AA000000000000000000012A /* ApelinProtocol */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000101 /* XCLocalSwiftPackageReference "Packages/ApelinKit" */;
+			productName = ApelinProtocol;
+		};
+		AA000000000000000000012C /* ApelinProject */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000101 /* XCLocalSwiftPackageReference "Packages/ApelinKit" */;
+			productName = ApelinProject;
+		};
+		AA000000000000000000012E /* ApelinBuild */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000101 /* XCLocalSwiftPackageReference "Packages/ApelinKit" */;
+			productName = ApelinBuild;
+		};
+		AA000000000000000000013A /* ApelinCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000101 /* XCLocalSwiftPackageReference "Packages/ApelinKit" */;
+			productName = ApelinCore;
+		};
+		AA000000000000000000013C /* ApelinProtocol */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000101 /* XCLocalSwiftPackageReference "Packages/ApelinKit" */;
+			productName = ApelinProtocol;
+		};
+		AA000000000000000000013E /* ApelinProject */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000101 /* XCLocalSwiftPackageReference "Packages/ApelinKit" */;
+			productName = ApelinProject;
+		};
+		AA000000000000000000014A /* ApelinCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000101 /* XCLocalSwiftPackageReference "Packages/ApelinKit" */;
+			productName = ApelinCore;
+		};
+		AA000000000000000000014C /* ApelinProtocol */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000101 /* XCLocalSwiftPackageReference "Packages/ApelinKit" */;
+			productName = ApelinProtocol;
+		};
+		AA0000000000000000000158 /* ApelinCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000101 /* XCLocalSwiftPackageReference "Packages/ApelinKit" */;
+			productName = ApelinCore;
+		};
+		AA000000000000000000015A /* ApelinProtocol */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000101 /* XCLocalSwiftPackageReference "Packages/ApelinKit" */;
+			productName = ApelinProtocol;
+		};
+		AA0000000000000000000403 /* ApelinAgentWorker */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000402 /* XCLocalSwiftPackageReference "Packages/ApelinAgent" */;
+			productName = ApelinAgentWorker;
+		};
+		AA0000000000000000000405 /* ApelinDiagnosticsWorker */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000401 /* XCLocalSwiftPackageReference "Packages/ApelinDiagnostics" */;
+			productName = ApelinDiagnosticsWorker;
+		};
+		AA0000000000000000000407 /* ApelinLogReaderWorker */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000401 /* XCLocalSwiftPackageReference "Packages/ApelinDiagnostics" */;
+			productName = ApelinLogReaderWorker;
+		};
+		A10000000000000000000002 /* ApelinToolHost */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A10000000000000000000001 /* XCLocalSwiftPackageReference "Packages/ApelinToolHost" */;
+			productName = ApelinToolHost;
+		};
+		A10000000000000000000004 /* ApelinToolCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A10000000000000000000001 /* XCLocalSwiftPackageReference "Packages/ApelinToolHost" */;
+			productName = ApelinToolCore;
+		};
+		A20000000000000000000110 /* DisplayLink */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A20000000000000000000001 /* XCRemoteSwiftPackageReference "DisplayLink" */;
+			productName = DisplayLink;
+		};
+		A20000000000000000000120 /* ListViewKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A20000000000000000000002 /* XCRemoteSwiftPackageReference "ListViewKit" */;
+			productName = ListViewKit;
+		};
+		A20000000000000000000130 /* Litext */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A20000000000000000000003 /* XCRemoteSwiftPackageReference "Litext" */;
+			productName = Litext;
+		};
+		A20000000000000000000140 /* LitextAnimation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A20000000000000000000003 /* XCRemoteSwiftPackageReference "Litext" */;
+			productName = LitextAnimation;
+		};
+		A20000000000000000000150 /* MarkdownView */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A20000000000000000000004 /* XCRemoteSwiftPackageReference "MarkdownView" */;
+			productName = MarkdownView;
+		};
+		A20000000000000000000160 /* MarkdownParser */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A20000000000000000000004 /* XCRemoteSwiftPackageReference "MarkdownView" */;
+			productName = MarkdownParser;
+		};
+		A20000000000000000000170 /* Runestone */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A20000000000000000000007 /* XCLocalSwiftPackageReference "Packages/Runestone" */;
+			productName = Runestone;
+		};
+		A20000000000000000000172 /* RunestoneLanguageSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A20000000000000000000007 /* XCLocalSwiftPackageReference "Packages/Runestone" */;
+			productName = RunestoneLanguageSupport;
+		};
+		A20000000000000000000174 /* RunestoneThemeSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A20000000000000000000007 /* XCLocalSwiftPackageReference "Packages/Runestone" */;
+			productName = RunestoneThemeSupport;
+		};
+		A20000000000000000000180 /* GhosttyTerminal */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A20000000000000000000006 /* XCRemoteSwiftPackageReference "libghostty-spm" */;
+			productName = GhosttyTerminal;
+		};
+		A20000000000000000000190 /* GhosttyTheme */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A20000000000000000000006 /* XCRemoteSwiftPackageReference "libghostty-spm" */;
+			productName = GhosttyTheme;
+		};
+		A30000000000000000000110 /* SPIndicator */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A30000000000000000000001 /* XCRemoteSwiftPackageReference "SPIndicator" */;
+			productName = SPIndicator;
+		};
+		A30000000000000000000120 /* AlertController */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A30000000000000000000002 /* XCRemoteSwiftPackageReference "AlertController" */;
+			productName = AlertController;
+		};
+		A30000000000000000000130 /* Then */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A30000000000000000000003 /* XCRemoteSwiftPackageReference "Then" */;
+			productName = Then;
+		};
+		A30000000000000000000140 /* SnapKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A30000000000000000000004 /* XCRemoteSwiftPackageReference "SnapKit" */;
+			productName = SnapKit;
+		};
+		A30000000000000000000150 /* SwifterSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A30000000000000000000005 /* XCRemoteSwiftPackageReference "SwifterSwift" */;
+			productName = SwifterSwift;
+		};
+		A30000000000000000000160 /* Dog */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A30000000000000000000006 /* XCRemoteSwiftPackageReference "Dog" */;
+			productName = Dog;
+		};
+		A40000000000000000000102 /* ScrubberKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A40000000000000000000103 /* XCRemoteSwiftPackageReference "ScrubberKit" */;
+			productName = ScrubberKit;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = AA0000000000000000000001 /* Project object */;
+}

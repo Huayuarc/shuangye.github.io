@@ -1,0 +1,16 @@
+{
+  "name": "i2-sdk-import",
+  "steps": [
+    {"op": "hello"},
+    {"op": "sdkList", "request": {"includeSources": true}, "label": "before"},
+    {"op": "sdkImport", "request": {"source": {"inbox": {"path": "iPhoneOS.sdk"}}}, "label": "import", "timeoutSeconds": 1800},
+    {"op": "expect", "request": {"step": "import", "state": "succeeded"}},
+    {"op": "sdkList", "request": {"includeSources": true}, "label": "after"},
+    {"op": "expect", "request": {"step": "after", "path": "response.sdks.0.id", "exists": true}},
+    {"op": "expect", "request": {"step": "after", "path": "response.sources", "equals": "${before.response.sources}"}},
+    {"op": "sdkImport", "request": {"source": {"inbox": {"path": "../SDKs"}}}, "label": "escape", "allowError": true},
+    {"op": "expect", "request": {"step": "escape", "ok": false}},
+    {"op": "sdkImport", "request": {"source": {"url": {"_0": "http://example.com/sdk.zip"}}}, "label": "plain-http", "allowError": true},
+    {"op": "expect", "request": {"step": "plain-http", "errorCode": "badRequest"}}
+  ]
+}

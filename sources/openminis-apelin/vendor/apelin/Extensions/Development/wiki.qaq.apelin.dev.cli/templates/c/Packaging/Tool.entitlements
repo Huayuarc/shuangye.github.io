@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+	A command-line tool run from a shell on a jailbroken device. Changing this
+	file changes the build description, so under Confirm the next build is
+	reviewed.
+
+	platform-application: an ad-hoc signed executable without it is denied
+	process inspection and much file access.
+	no-sandbox: the tool works outside any container.
+	storage.AppBundles and .AppDataContainers: roothide places the bootstrap
+	inside an app container path; its developer notes require both.
+	container-required = false: keeps the tool out of a per-binary data
+	container, so HOME stays the real home of whoever ran it. Absence is not
+	equivalent; the switch has to be explicitly false.
+
+	The IOKit user-client classes are the app template's list. A bootstrap
+	withholds the GPU's, IOSurface's and the media accelerators' user
+	clients from an ad-hoc signed binary until they are named, and a tool
+	that calls VideoToolbox, Core Video, Core Image or Metal then fails
+	inside the framework: on a device, CVPixelBufferCreate answered -6662
+	until the tool was signed with this list. Both spellings of the key
+	carry the same list.
+-->
+<plist version="1.0">
+<dict>
+	<key>platform-application</key>
+	<true/>
+	<key>com.apple.private.security.no-sandbox</key>
+	<true/>
+	<key>com.apple.private.security.storage.AppBundles</key>
+	<true/>
+	<key>com.apple.private.security.storage.AppDataContainers</key>
+	<true/>
+	<key>com.apple.private.security.container-required</key>
+	<false/>
+	<key>com.apple.security.iokit-user-client-class</key>
+	<array>
+		<string>AGXCommandQueue</string>
+		<string>AGXDevice</string>
+		<string>AGXDeviceUserClient</string>
+		<string>AGXSharedUserClient</string>
+		<string>AGXGLContext</string>
+		<string>AppleParavirtDeviceUserClient</string>
+		<string>IOAccelerator</string>
+		<string>IOAccelContext</string>
+		<string>IOAccelContext2</string>
+		<string>IOAccelDevice</string>
+		<string>IOAccelDevice2</string>
+		<string>IOAccelSharedUserClient</string>
+		<string>IOAccelSharedUserClient2</string>
+		<string>IOAccelSubmitter2</string>
+		<string>IOGPUDeviceUserClient</string>
+		<string>IOSurfaceRootUserClient</string>
+		<string>IOSurfaceAcceleratorClient</string>
+		<string>IOSurfaceAcceleratorParavirtClient</string>
+		<string>IOMobileFramebufferUserClient</string>
+		<string>AppleJPEGDriverUserClient</string>
+		<string>H11ANEInDirectPathClient</string>
+		<string>AppleVirtIONeuralEngineDeviceUserClient</string>
+		<string>IOHIDLibUserClient</string>
+		<string>IOHIDEventServiceFastPathUserClient</string>
+	</array>
+	<key>com.apple.security.exception.iokit-user-client-class</key>
+	<array>
+		<string>AGXCommandQueue</string>
+		<string>AGXDevice</string>
+		<string>AGXDeviceUserClient</string>
+		<string>AGXSharedUserClient</string>
+		<string>AGXGLContext</string>
+		<string>AppleParavirtDeviceUserClient</string>
+		<string>IOAccelerator</string>
+		<string>IOAccelContext</string>
+		<string>IOAccelContext2</string>
+		<string>IOAccelDevice</string>
+		<string>IOAccelDevice2</string>
+		<string>IOAccelSharedUserClient</string>
+		<string>IOAccelSharedUserClient2</string>
+		<string>IOAccelSubmitter2</string>
+		<string>IOGPUDeviceUserClient</string>
+		<string>IOSurfaceRootUserClient</string>
+		<string>IOSurfaceAcceleratorClient</string>
+		<string>IOSurfaceAcceleratorParavirtClient</string>
+		<string>IOMobileFramebufferUserClient</string>
+		<string>AppleJPEGDriverUserClient</string>
+		<string>H11ANEInDirectPathClient</string>
+		<string>AppleVirtIONeuralEngineDeviceUserClient</string>
+		<string>IOHIDLibUserClient</string>
+		<string>IOHIDEventServiceFastPathUserClient</string>
+	</array>
+</dict>
+</plist>

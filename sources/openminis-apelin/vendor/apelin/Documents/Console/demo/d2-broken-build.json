@@ -1,0 +1,9 @@
+{
+  "name": "d2-broken-build: after an error was put into Demo Broken CLI's Sources/main.c by hand; the build must fail with compiler diagnostics",
+  "steps": [
+    {"op": "hello"},
+    {"op": "projectCheck", "label": "check", "allowError": true, "request": {"projectID": "<projectID of Demo Broken CLI, from d1>"}},
+    {"op": "buildStart", "label": "build", "allowError": true, "timeoutSeconds": 600, "request": {"projectID": "<projectID of Demo Broken CLI, from d1>", "configuration": "debug"}},
+    {"op": "expect", "request": {"step": "build", "state": "failed"}}
+  ]
+}

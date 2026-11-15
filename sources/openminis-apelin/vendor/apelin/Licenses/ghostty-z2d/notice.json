@@ -1,0 +1,6 @@
+{
+  "name": "z2d (in libghostty)",
+  "url": "https://github.com/vancluever/z2d",
+  "version": "0.12.1 (7dbae85c8178)",
+  "note": "Compiled into libghostty.a (ghostty 1e9e14af5df1 as built into libghostty-spm 2.2.2026101502 (GhosttyKit.xcframework upstream.1e9e14af5df1-3)), a prebuilt static library with no license file of its own. Fetched from https://deps.files.ghostty.org/z2d-7dbae85c81784dba9988320bf9543ed9a81350c8.tar.gz -> LICENSE, COPYING. MPL-2.0, unmodified; the source of the covered files is the upstream repository at that commit."
+}

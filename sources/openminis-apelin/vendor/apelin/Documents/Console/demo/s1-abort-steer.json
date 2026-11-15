@@ -1,0 +1,27 @@
+{
+  "name": "s1-abort-steer: one Relaxed DeepSeek session on Demo CLI aborted mid-run and closed, and one on Demo App steered mid-run and followed to its end",
+  "steps": [
+    {"op": "hello"},
+    {"op": "agentOpen", "label": "abort", "follow": false, "request": {
+      "projectName": "Demo CLI", "provider": "openAICompatible", "model": "deepseek-chat", "approvalMode": "relaxed",
+      "prompt": "Read every file in this project one at a time, then explain every line of each file in detail, then write a long essay about the history of the C language."
+    }},
+    {"op": "wait", "request": {"seconds": 3}},
+    {"op": "agentAbort", "label": "aborted", "allowError": true, "request": {"sessionID": "${abort.response.sessionID}"}},
+    {"op": "wait", "request": {"seconds": 4}},
+    {"op": "agentAttach", "label": "abort-events", "follow": false, "request": {"taskID": "${abort.response.task.taskID}", "afterSeq": 0, "waitMilliseconds": 2000}},
+    {"op": "agentClose", "label": "abort-close", "allowError": true, "request": {"sessionID": "${abort.response.sessionID}"}},
+    {"op": "wait", "request": {"seconds": 2}},
+    {"op": "agentAttach", "label": "abort-final", "allowError": true, "timeoutSeconds": 60, "request": {"taskID": "${abort.response.task.taskID}", "afterSeq": "${abort-events.response.lastSeq}", "waitMilliseconds": 5000}},
+
+    {"op": "agentOpen", "label": "steer", "follow": false, "request": {
+      "projectName": "Demo App", "provider": "openAICompatible", "model": "deepseek-chat", "approvalMode": "relaxed",
+      "prompt": "List the files in this project, read Sources/RootViewController.m, and describe what the app shows on screen.",
+      "closeWhenFinished": true
+    }},
+    {"op": "wait", "request": {"seconds": 1}},
+    {"op": "agentSteer", "label": "steered", "allowError": true, "request": {"sessionID": "${steer.response.sessionID}", "text": "Change of plan: answer in exactly three short bullet points, and mention the window's background colour."}},
+    {"op": "agentAttach", "label": "steer-events", "allowError": true, "timeoutSeconds": 900, "request": {"taskID": "${steer.response.task.taskID}", "afterSeq": 0, "waitMilliseconds": 10000}},
+    {"op": "agentList", "label": "listed"}
+  ]
+}

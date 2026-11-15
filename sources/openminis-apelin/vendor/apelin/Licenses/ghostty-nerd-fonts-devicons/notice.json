@@ -1,0 +1,6 @@
+{
+  "name": "Devicons (glyphs in Symbols Nerd Font, in libghostty)",
+  "url": "https://github.com/devicons/devicon",
+  "version": "2.16.0",
+  "note": "One of the glyph sets Nerd Fonts 3.4.0 assembles into Symbols Nerd Font, which libghostty.a embeds; listed in that release's license-audit.md. Text from devicons/devicon v2.16.0 (6910f0503efd), LICENSE; Nerd Fonts keeps no licence file beside its devicons.otf."
+}

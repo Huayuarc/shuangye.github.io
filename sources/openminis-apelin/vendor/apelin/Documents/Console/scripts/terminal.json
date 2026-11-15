@@ -1,0 +1,30 @@
+{
+  "name": "terminal: needs nothing; opens a shell as mobile without following it, resizes it, reads its events back, closes it and checks it ended",
+  "steps": [
+    {"op": "hello"},
+    {"op": "ptyOpen", "label": "pty", "follow": false,
+     "request": {"columns": 80, "rows": 24, "initialInput": "stty size; echo apelin-terminal-$((6*7))\n"}},
+    {"op": "expect", "request": {"step": "pty", "path": "response.task.kind", "equals": "terminal"}},
+    {"op": "wait", "request": {"seconds": 1}},
+
+    {"op": "ptyResize", "label": "resize",
+     "request": {"sessionID": "${pty.response.sessionID}", "columns": 100, "rows": 30}},
+
+    {"op": "ptyAttach", "label": "read", "follow": false, "request": {
+      "taskID": "${pty.response.task.taskID}", "afterSeq": 0, "waitMilliseconds": 2000, "wantsDescriptor": false
+    }},
+    {"op": "expect", "request": {"step": "read", "path": "response.events.0.kind", "equals": "started"}},
+    {"op": "expect", "request": {"step": "read", "path": "response.events.0.payload.uid", "equals": 501}},
+
+    {"op": "ptyClose", "request": {"sessionID": "${pty.response.sessionID}"}},
+    {"op": "wait", "request": {"seconds": 2}},
+    {"op": "ptyAttach", "label": "closed", "allowError": true, "request": {
+      "taskID": "${pty.response.task.taskID}", "afterSeq": "${read.response.lastSeq}", "waitMilliseconds": 5000, "wantsDescriptor": false
+    }},
+    {"op": "expect", "request": {"step": "closed", "path": "state", "exists": true}},
+
+    {"op": "ptyResize", "label": "gone", "allowError": true,
+     "request": {"sessionID": "${pty.response.sessionID}", "columns": 80, "rows": 24}},
+    {"op": "expect", "request": {"step": "gone", "errorCode": "notFound"}}
+  ]
+}

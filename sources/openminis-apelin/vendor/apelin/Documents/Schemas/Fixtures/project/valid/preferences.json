@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 1,
+  "projectID": "068016e0-5aa0-53f9-81c3-8f3e46dda518",
+  "kind": "preferences",
+  "template": {
+    "extensionID": "wiki.qaq.apelin.dev.preferences",
+    "templateID": "objc-bundle",
+    "version": "0.1.3",
+    "digest": "sha256:f85d273d84fd93f0faf5ccdc7e56dad0f58a45da8889cbe368e446afd20a2311"
+  },
+  "environment": {
+    "toolchain": {
+      "id": "clt-27.0-sample",
+      "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+    },
+    "sdk": {
+      "id": "iPhoneOS27.0-00000000",
+      "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+    }
+  },
+  "language": "objc",
+  "deploymentTarget": "16.0",
+  "architectures": {
+    "rootless": [
+      "arm64",
+      "arm64e"
+    ],
+    "roothide": [
+      "arm64e"
+    ]
+  },
+  "configurations": {
+    "Debug": {
+      "optimization": "0",
+      "debugInfo": true,
+      "defines": {
+        "DEBUG": "1"
+      }
+    },
+    "Release": {
+      "optimization": "2",
+      "debugInfo": true
+    }
+  },
+  "products": [
+    {
+      "id": "prefs",
+      "type": "bundle",
+      "name": "ApelinSettings",
+      "sources": [
+        "Sources/*.m"
+      ],
+      "headerSearchPaths": [
+        "Sources"
+      ],
+      "resources": [
+        "Resources/Root.plist",
+        "Resources/icon.png",
+        "Resources/icon@2x.png",
+        "Resources/icon@3x.png"
+      ],
+      "infoPlist": "Resources/Info.plist",
+      "objcARC": true,
+      "frameworks": [
+        "Foundation",
+        "UIKit",
+        "Preferences"
+      ],
+      "extensionSupport": [
+        {
+          "extension": "wiki.qaq.apelin.dev.preferences",
+          "component": "preferences"
+        }
+      ]
+    }
+  ],
+  "build": {
+    "steps": [
+      {
+        "type": "compile",
+        "product": "prefs"
+      },
+      {
+        "type": "link",
+        "product": "prefs"
+      },
+      {
+        "type": "bundle-resources",
+        "product": "prefs"
+      },
+      {
+        "type": "lipo",
+        "product": "prefs"
+      },
+      {
+        "type": "dsym",
+        "product": "prefs"
+      },
+      {
+        "type": "strip",
+        "product": "prefs",
+        "style": "non-global"
+      },
+      {
+        "type": "sign",
+        "product": "prefs",
+        "identity": "adhoc"
+      }
+    ]
+  },
+  "package": {
+    "id": "com.example.apelinsettings",
+    "name": "Apelin Settings",
+    "version": "0.0.1",
+    "description": "Built on this device with Apelin.",
+    "icon": "https://owngoal-dev.github.io/Apelin/icons/wiki.qaq.apelin.dev.preferences.png",
+    "author": "Apelin User",
+    "section": "Addons",
+    "depends": [
+      "preferenceloader"
+    ],
+    "layout": [
+      {
+        "path": "/Library/PreferenceBundles/ApelinSettings.bundle",
+        "product": "prefs"
+      },
+      {
+        "path": "/Library/PreferenceLoader/Preferences/ApelinSettings.plist",
+        "file": "Packaging/entry.plist",
+        "mode": "0644"
+      }
+    ]
+  }
+}

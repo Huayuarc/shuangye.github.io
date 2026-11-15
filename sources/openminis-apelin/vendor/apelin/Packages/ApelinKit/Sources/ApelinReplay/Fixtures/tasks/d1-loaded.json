@@ -1,0 +1,13 @@
+{
+"kind":"confirmLoaded",
+"name":"d1-loaded",
+"source":"d1-projects.json step 23",
+"start":{"operation":"confirmLoaded","request":{"buildID":"fd2c6782-59df-46ab-a93c-f1bf993fd51f","logWindowSeconds":45,"projectID":"f1c4002a-5469-4e71-83b0-e62fc158e061","targetID":"com.apple.springboard","trigger":"respring"},"response":{"kind":"confirmLoaded","taskID":"446216f7-8015-42f6-a3cc-31741fd27a20"}},
+"state":"succeeded",
+"taskID":"446216f7-8015-42f6-a3cc-31741fd27a20",
+"events":[
+{"kind":"stage","payload":{"marker":"ApelinLoaded fd2c6782-59df-46ab-a93c-f1bf993fd51f","process":"SpringBoard","stage":"listening","windowSeconds":45},"seq":1,"time":"2026-10-17T11:29:13Z"},
+{"kind":"stage","payload":{"stage":"trigger","trigger":"respring"},"seq":2,"time":"2026-10-17T11:29:13Z"},
+{"kind":"state","payload":{"result":{"evidence":[{"detail":"confirmed: Marker logged by pid 415.","kind":"log","passed":true},{"detail":"notRead: The image list is not read: reading another process's image list panicked the iOS 27 kernel.","kind":"image","passed":false},{"detail":"confirmed: Bundles: com.apple.springboard is loaded.","kind":"filter","passed":true}],"loaded":true},"state":"succeeded"},"seq":3,"time":"2026-10-17T11:29:58Z"}
+]
+}

@@ -1,0 +1,6 @@
+{
+  "name": "JetBrains Mono (font, in libghostty)",
+  "url": "https://github.com/JetBrains/JetBrainsMono",
+  "version": "2.304",
+  "note": "Compiled into libghostty.a (ghostty 1e9e14af5df1 as built into libghostty-spm 2.2.2026101502 (GhosttyKit.xcframework upstream.1e9e14af5df1-3)), a prebuilt static library with no license file of its own. Fetched from https://deps.files.ghostty.org/JetBrainsMono-2.304.tar.gz -> OFL.txt."
+}

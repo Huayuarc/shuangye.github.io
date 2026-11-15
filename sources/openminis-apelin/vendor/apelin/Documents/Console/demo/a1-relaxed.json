@@ -1,0 +1,17 @@
+{
+  "name": "a1-relaxed: imports the openai-compatible credential, then a Relaxed DeepSeek session on Agent Relaxed Tweak edits the tweak, builds it and reports; closes when the run ends",
+  "steps": [
+    {"op": "hello"},
+    {"op": "agentCredentialImport", "label": "credentials", "allowError": true},
+    {"op": "agentList", "label": "before"},
+    {"op": "agentOpen", "label": "agent", "follow": true, "timeoutSeconds": 1800, "request": {
+      "projectName": "Agent Relaxed Tweak",
+      "provider": "openAICompatible",
+      "model": "deepseek-chat",
+      "approvalMode": "relaxed",
+      "prompt": "Work in this tweak project. 1) In Sources/Tweak.m, change the message logged in HookedDidFinishLaunching from 'ApelinHooked ...' to 'ApelinDemo SpringBoard finished launching (build %{public}s)'. Leave the 'ApelinLoaded' marker line in the constructor exactly as it is. 2) Add a small feature: in the constructor, after the SpringBoard class check succeeds, log SpringBoard's version (CFBundleShortVersionString and CFBundleVersion of [NSBundle mainBundle]) with os_log under the same log object, marked %{public}@. 3) Build the project with the build tool and fix any compiler error until it builds. Do not install it. 4) Report in at most four sentences what you changed and whether the build succeeded.",
+      "closeWhenFinished": true
+    }},
+    {"op": "agentList", "label": "after"}
+  ]
+}

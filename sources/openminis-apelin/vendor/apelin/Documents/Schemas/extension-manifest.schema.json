@@ -1,0 +1,392 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://owngoal-dev.github.io/Apelin/schemas/extension-manifest-1.json",
+  "title": "Apelin development extension manifest, version 1",
+  "description": "<install-root>/usr/share/apelin/development/<id>/manifest.json. Read, never executed: nothing here names a program the app or host runs. Each manifest is validated on its own; a bad one isolates that extension only. Documents/Schemas/README.md is the prose specification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "version",
+    "kind",
+    "displayName",
+    "summary",
+    "apelinCompatibility",
+    "requirements",
+    "templates",
+    "provenance",
+    "licenses"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": {
+      "description": "Equal to the Debian package id and to the directory name under usr/share/apelin/development/.",
+      "$ref": "#/$defs/reverseDNS"
+    },
+    "version": {
+      "description": "Equal to the package Version. Recorded in every project made from this extension.",
+      "$ref": "#/$defs/version"
+    },
+    "kind": { "enum": ["app", "tweak", "cli", "preferences"] },
+    "displayName": { "$ref": "#/$defs/text" },
+    "summary": { "$ref": "#/$defs/text" },
+    "apelinCompatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minimumAppVersion", "projectSchemaVersions", "manifestSchemaVersion"],
+      "properties": {
+        "minimumAppVersion": { "$ref": "#/$defs/version" },
+        "projectSchemaVersions": {
+          "description": "apelin-project.json schema versions the templates produce.",
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "integer", "minimum": 1, "maximum": 1000 }
+        },
+        "manifestSchemaVersion": { "const": 1 }
+      }
+    },
+    "requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["toolchainComponents", "languages", "bootstraps", "architectures"],
+      "properties": {
+        "toolchainComponents": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["c-family", "swift"] }
+        },
+        "languages": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["c", "objc", "swift"] }
+        },
+        "sdkFrameworks": {
+          "description": "Public SDK frameworks the templates link. Private frameworks come from support stubs, never assumed in the SDK.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/identifier" }
+        },
+        "bootstraps": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["rootless", "roothide"] }
+        },
+        "architectures": {
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "properties": {
+            "rootless": { "$ref": "#/$defs/archList" },
+            "roothide": { "$ref": "#/$defs/archList" }
+          }
+        },
+        "runtimeDependencies": {
+          "description": "What a package built from these templates needs installed on the device, per bootstrap, as Debian relations (virtual package names, never one implementation).",
+          "$ref": "#/$defs/perBootstrapRelations"
+        }
+      }
+    },
+    "support": {
+      "description": "Headers and link stubs the extension ships for its templates. A project names a component with extensionSupport; the build adds its include and library paths.",
+      "type": "object",
+      "maxProperties": 8,
+      "propertyNames": { "pattern": "^[a-z][a-z0-9-]{0,63}$" },
+      "additionalProperties": { "$ref": "#/$defs/supportComponent" }
+    },
+    "templates": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": { "$ref": "#/$defs/template" }
+    },
+    "provenance": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/provenanceEntry" }
+    },
+    "licenses": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "spdx", "covers"],
+        "properties": {
+          "path": { "$ref": "#/$defs/relativePath" },
+          "spdx": { "enum": ["MIT", "BSD-2-Clause", "BSD-3-Clause", "Apache-2.0", "0BSD", "MIT-0"] },
+          "covers": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "$ref": "#/$defs/scope" }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "reverseDNS": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128,
+      "pattern": "^[a-z0-9][a-z0-9-]*(\\.[a-z0-9][a-z0-9-]*)+$"
+    },
+    "version": {
+      "type": "string",
+      "maxLength": 64,
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+([~+-][0-9A-Za-z.]+)?$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "identifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$"
+    },
+    "text": {
+      "description": "English source text; the app resolves it against its string catalogue like any other user-facing string.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300,
+      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+    },
+    "relativePath": {
+      "description": "Inside the extension directory. No component may be empty or start with '.'; the scanner realpaths it and refuses anything outside the extension root.",
+      "type": "string",
+      "maxLength": 1024,
+      "pattern": "^[A-Za-z0-9_+@][A-Za-z0-9._+@ -]*(/[A-Za-z0-9_+@][A-Za-z0-9._+@ -]*)*$"
+    },
+    "templatePath": {
+      "description": "A path inside a template directory. A component may contain {{placeholder}} tokens naming parameters whose type is path-safe (README ▸ Placeholders).",
+      "type": "string",
+      "maxLength": 1024,
+      "pattern": "^([A-Za-z0-9_+@]|\\{\\{[a-z][A-Za-z0-9]*\\}\\})([A-Za-z0-9._+@ -]|\\{\\{[a-z][A-Za-z0-9]*\\}\\})*(/([A-Za-z0-9_+@]|\\{\\{[a-z][A-Za-z0-9]*\\}\\})([A-Za-z0-9._+@ -]|\\{\\{[a-z][A-Za-z0-9]*\\}\\})*)*$"
+    },
+    "archList": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "enum": ["arm64", "arm64e"] }
+    },
+    "relation": {
+      "type": "string",
+      "maxLength": 512,
+      "pattern": "^[a-z0-9][a-z0-9+.-]+( \\((<<|<=|=|>=|>>) [0-9A-Za-z.+:~-]+\\))?( \\| [a-z0-9][a-z0-9+.-]+( \\((<<|<=|=|>=|>>) [0-9A-Za-z.+:~-]+\\))?)*$"
+    },
+    "perBootstrapRelations": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "rootless": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/relation" } },
+        "roothide": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/relation" } }
+      }
+    },
+    "scope": {
+      "description": "template:<id>, support:<component>, or manifest.",
+      "type": "string",
+      "pattern": "^(template:[a-z][a-z0-9-]{0,63}|support:[a-z][a-z0-9-]{0,63}|manifest)$"
+    },
+    "supportComponent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["summary", "architectures", "spdx", "license"],
+      "properties": {
+        "summary": { "$ref": "#/$defs/text" },
+        "includeDirectories": {
+          "type": "array",
+          "maxItems": 8,
+          "items": { "$ref": "#/$defs/relativePath" }
+        },
+        "linkStubDirectories": {
+          "description": "Directories holding hand-written .tbd stubs, per bootstrap, added with -L/-F. A stub is a link input only: nothing in it is loaded or executed on the build device.",
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "properties": {
+            "rootless": { "$ref": "#/$defs/relativePath" },
+            "roothide": { "$ref": "#/$defs/relativePath" }
+          }
+        },
+        "libraries": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[A-Za-z0-9_][A-Za-z0-9_+.-]{0,63}$" }
+        },
+        "frameworks": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/identifier" }
+        },
+        "rpaths": {
+          "description": "LC_RPATH entries per bootstrap. @PREFIX@ is replaced with '' (roothide) or '/var/jb' (rootless) by the build, like the packager does.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "rootless": { "type": "array", "items": { "type": "string", "pattern": "^(@PREFIX@|@loader_path|@executable_path)?/[A-Za-z0-9._/+-]+$" } },
+            "roothide": { "type": "array", "items": { "type": "string", "pattern": "^(@PREFIX@|@loader_path|@executable_path)?/[A-Za-z0-9._/+-]+$" } }
+          }
+        },
+        "installNames": {
+          "description": "The install name each stub carries, recorded so a reviewer and projectCheck can compare it with the stub file.",
+          "$ref": "#/$defs/perBootstrapString"
+        },
+        "symbols": {
+          "description": "The exported symbols the stubs declare and the templates may call: the declared compatible set.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^_[A-Za-z0-9_$.]+$" }
+        },
+        "architectures": { "$ref": "#/$defs/archList" },
+        "runtimeDependencies": {
+          "description": "The package providing these symbols at run time, per bootstrap.",
+          "$ref": "#/$defs/perBootstrapRelations"
+        },
+        "spdx": { "enum": ["MIT", "BSD-2-Clause", "BSD-3-Clause", "Apache-2.0", "0BSD", "MIT-0"] },
+        "license": { "$ref": "#/$defs/relativePath" }
+      }
+    },
+    "perBootstrapString": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "rootless": { "type": "string", "maxLength": 512 },
+        "roothide": { "type": "string", "maxLength": 512 }
+      }
+    },
+    "parameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "type", "label"],
+      "properties": {
+        "name": { "type": "string", "pattern": "^[a-z][A-Za-z0-9]{0,63}$" },
+        "type": {
+          "enum": [
+            "projectName",
+            "identifier",
+            "bundleID",
+            "packageID",
+            "version",
+            "deploymentTarget",
+            "bundleIDList",
+            "executableList",
+            "string",
+            "enum",
+            "bool"
+          ]
+        },
+        "label": { "$ref": "#/$defs/text" },
+        "help": { "$ref": "#/$defs/text" },
+        "required": {
+          "description": "Informational: the create sheet marks the field. Every parameter needs a value or a default.",
+          "type": "boolean"
+        },
+        "default": {},
+        "values": {
+          "description": "The allowed values of an enum parameter.",
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[A-Za-z0-9_.+-]{1,64}$" }
+        },
+        "maxLength": { "type": "integer", "minimum": 1, "maximum": 200 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "enum" } } },
+          "then": { "required": ["values"] },
+          "else": { "not": { "required": ["values"] } }
+        }
+      ]
+    },
+    "templateFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "format"],
+      "properties": {
+        "path": { "$ref": "#/$defs/templatePath" },
+        "format": {
+          "description": "Decides how every {{placeholder}} in the file is escaped and which parameter types may appear (README ▸ Placeholders). 'copy' substitutes nothing.",
+          "enum": ["c", "objc", "swift", "plist-xml", "json", "deb-control", "shell", "text", "copy"]
+        },
+        "mode": { "enum": ["0644", "0755"] }
+      }
+    },
+    "template": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "directory", "displayName", "summary", "language", "project", "parameters", "files", "digest"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,63}$" },
+        "directory": {
+          "description": "templates/<id>.",
+          "type": "string",
+          "pattern": "^templates/[a-z][a-z0-9-]{0,63}$"
+        },
+        "displayName": { "$ref": "#/$defs/text" },
+        "summary": { "$ref": "#/$defs/text" },
+        "language": { "enum": ["c", "objc", "swift"] },
+        "toolchainComponents": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "enum": ["c-family", "swift"] }
+        },
+        "project": {
+          "description": "The project description template inside the directory; after substitution it must validate as apelin-project.json.",
+          "const": "apelin-project.json"
+        },
+        "parameters": {
+          "type": "array",
+          "maxItems": 32,
+          "items": { "$ref": "#/$defs/parameter" }
+        },
+        "files": {
+          "description": "Every file of the template, and nothing else: an undeclared file in the directory isolates the extension.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "items": { "$ref": "#/$defs/templateFile" }
+        },
+        "digest": {
+          "description": "README ▸ Template digest. Recorded as template.digest in every project made from it.",
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "provenanceEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scope", "origin", "adaptations"],
+      "properties": {
+        "scope": { "$ref": "#/$defs/scope" },
+        "origin": {
+          "enum": ["imported", "written"],
+          "description": "imported: taken from a repository at a pinned commit. written: written for this extension, nothing copied."
+        },
+        "repository": {
+          "type": "string",
+          "pattern": "^(https://github\\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+|local:[A-Za-z0-9_.-]+)$"
+        },
+        "commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "paths": {
+          "type": "array",
+          "items": { "type": "string", "maxLength": 512 }
+        },
+        "adaptations": {
+          "type": "array",
+          "items": { "type": "string", "maxLength": 600 }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "origin": { "const": "imported" } } },
+          "then": { "required": ["repository", "commit", "paths"] }
+        }
+      ]
+    }
+  }
+}

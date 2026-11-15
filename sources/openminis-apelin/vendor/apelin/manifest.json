@@ -1,0 +1,6 @@
+{
+  "name": "Apelin",
+  "description": "An on-device IDE where an agent writes, builds and installs tweaks.",
+  "icon": "https://owngoal-dev.github.io/Apelin/icon.png",
+  "homepage": "https://github.com/owngoal-dev/Apelin"
+}

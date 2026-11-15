@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- as a person writes it, the way a template's entitlements file is -->
+    <key>platform-application</key>
+    <true/>
+    <key>com.apple.private.security.no-sandbox</key>
+    <true/>
+    <key>get-task-allow</key>
+    <true/>
+    <key>com.apple.private.skip-library-validation</key>
+    <true/>
+    <key>application-identifier</key>
+    <string>com.example.fixture &amp; &lt;app&gt;</string>
+    <key>keychain-access-groups</key>
+    <array>
+        <string>com.example.fixture</string>
+    </array>
+    <key>com.example.level</key>
+    <integer>300</integer>
+</dict>
+</plist>

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+	apelind, Apelin's privileged backend. On demand: no RunAtLoad and no
+	KeepAlive. launchd starts it for the first message to its Mach service;
+	it stays up while it has work (a connected app, a request, a task or a
+	worker in its session host) and exits 30 seconds after the last of them,
+	longer than launchd's respawn throttle, so the next message starts it
+	again at once. Its session host and workers are its children, in its
+	process group, and go with it: no AbandonProcessGroup.
+	The install prefix in ProgramArguments is substituted at package time:
+	empty for roothide, whose launchctl puts the bootstrap root in front at
+	every load, and /var/jb for rootless.
+-->
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>wiki.qaq.apelind</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>@PREFIX@/usr/libexec/apelind</string>
+	</array>
+	<key>UserName</key>
+	<string>root</string>
+	<key>ProcessType</key>
+	<string>Interactive</string>
+	<!-- 0022: files the daemon creates are not group- or world-writable. -->
+	<key>Umask</key>
+	<integer>18</integer>
+	<key>MachServices</key>
+	<dict>
+		<key>wiki.qaq.apelin.service</key>
+		<true/>
+	</dict>
+	<key>SoftResourceLimits</key>
+	<dict>
+		<key>NumberOfFiles</key>
+		<integer>10240</integer>
+	</dict>
+	<!-- Nothing may inject into the process that does privileged work. -->
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>DISABLE_TWEAKS</key>
+		<string>1</string>
+	</dict>
+</dict>
+</plist>

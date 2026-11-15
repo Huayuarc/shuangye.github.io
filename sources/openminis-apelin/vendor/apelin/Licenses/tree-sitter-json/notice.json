@@ -1,0 +1,5 @@
+{
+  "name": "tree-sitter-json (in Runestone)",
+  "url": "https://github.com/tree-sitter/tree-sitter-json",
+  "note": "The JSON grammar, vendored in Packages/Runestone/Sources/TreeSitterJSON as Lakr233/Runestone.xcframework 2688e46 carried it (from simonbs/TreeSitterLanguages, with no license file of its own); the same text is the LICENSE beside it. This is the upstream LICENSE at 254c42a6476413b776221e03982ac8ae159eeb72; its license has not changed over the repository's history."
+}

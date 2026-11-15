@@ -1,0 +1,6 @@
+{
+  "name": "Wuffs (in libghostty)",
+  "url": "https://github.com/google/wuffs",
+  "version": "0.4 (7411f488fe2e)",
+  "note": "Compiled into libghostty.a (ghostty 1e9e14af5df1 as built into libghostty-spm 2.2.2026101502 (GhosttyKit.xcframework upstream.1e9e14af5df1-3)), a prebuilt static library with no license file of its own. Fetched from https://deps.files.ghostty.org/wuffs-7411f488fe2e2c205c3d3b3d28638b7356522930.tar.gz -> LICENSE, LICENSE-MIT, LICENSE-APACHE."
+}

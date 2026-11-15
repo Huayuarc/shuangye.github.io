@@ -1,0 +1,52 @@
+{
+  "name": "t4-toolchain-swift",
+  "steps": [
+    {"op": "hello"},
+    {"op": "toolchainStatus", "label": "before"},
+    {"op": "expect", "request": {"step": "before", "path": "response.toolchains.1", "exists": false}},
+    {"op": "toolchainSetup", "request": {"source": {"appleCatalog": {"productID": "142-50405"}}, "components": ["c", "swift"]}, "label": "setup", "timeoutSeconds": 3600},
+    {"op": "expect", "request": {"step": "setup", "state": "succeeded"}},
+    {"op": "expect", "request": {"step": "setup", "path": "lastEvent.payload.state", "equals": "succeeded"}},
+    {"op": "toolchainStatus", "label": "after"},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.0.id", "equals": "${before.response.toolchains.0.id}"}},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.1.version", "equals": "27.2"}},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.1.components.0.kind", "equals": "c"}},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.1.components.0.selfCheckPassed", "equals": true}},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.1.components.1.kind", "equals": "swift"}},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.1.components.1.selfCheckPassed", "equals": true}},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.1.components.1.problem", "exists": false}},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.1.selfTests.6.language", "equals": "Swift"}},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.1.selfTests.6.passed", "equals": true}},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.1.selfTests.7.language", "equals": "Swift dylib"}},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.1.selfTests.7.passed", "equals": true}},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.1.selfTests.8.language", "equals": "Swift async"}},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.1.selfTests.8.passed", "equals": true}},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.1.selfTests.9.language", "equals": "Swift macro"}},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.1.selfTests.9.passed", "equals": true}},
+    {"op": "projectCreate", "label": "project", "request": {
+      "templateID": "wiki.qaq.apelin.dev.app/uikit-swift",
+      "name": "T4 Swift App",
+      "values": {"toolchainID": "${after.response.toolchains.1.id}", "packageID": "local.apelin.t4-swift-app", "displayName": "T4 Swift App"}
+    }},
+    {"op": "projectCheck", "label": "check", "request": {"projectID": "${project.response.projectID}"}},
+    {"op": "expect", "request": {"step": "check", "path": "response.passed", "equals": true}},
+    {"op": "buildStart", "label": "build", "timeoutSeconds": 1800, "request": {
+      "projectID": "${project.response.projectID}",
+      "configuration": "debug"
+    }},
+    {"op": "expect", "request": {"step": "build", "state": "succeeded"}},
+    {"op": "buildStart", "label": "again", "timeoutSeconds": 900, "request": {
+      "projectID": "${project.response.projectID}",
+      "configuration": "release"
+    }},
+    {"op": "expect", "request": {"step": "again", "state": "succeeded"}},
+    {"op": "installPackage", "label": "install", "request": {
+      "artifactID": "${build.lastEvent.payload.artifactID}",
+      "digest": "${build.lastEvent.payload.digest}"
+    }},
+    {"op": "expect", "request": {"step": "install", "state": "succeeded"}},
+    {"op": "removePackage", "label": "remove", "timeoutSeconds": 300,
+     "request": {"installationID": "${install.lastEvent.payload.result.installationID}"}},
+    {"op": "expect", "request": {"step": "remove", "state": "succeeded"}}
+  ]
+}

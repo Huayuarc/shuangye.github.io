@@ -1,0 +1,6 @@
+{
+  "name": "libxev (in libghostty)",
+  "url": "https://github.com/mitchellh/libxev",
+  "version": "9ce8e8e6ff89",
+  "note": "Compiled into libghostty.a (ghostty 1e9e14af5df1 as built into libghostty-spm 2.2.2026101502 (GhosttyKit.xcframework upstream.1e9e14af5df1-3)), a prebuilt static library with no license file of its own. Fetched from https://deps.files.ghostty.org/libxev-9ce8e8e6ff89e583258a7f8e7adeeeaeae8611bf.tar.gz -> LICENSE."
+}

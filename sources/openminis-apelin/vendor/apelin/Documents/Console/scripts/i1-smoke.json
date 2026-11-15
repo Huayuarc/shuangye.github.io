@@ -1,0 +1,62 @@
+{
+  "name": "i1-smoke",
+  "setup": [
+    "Run as root on the device before dropping this script into console/inbox/ (JB is the install root hello answers: the jbroot on roothide, /var/jb on rootless):",
+    "printf 'apelin smoke original\\n' > $JB/etc/apelin-smoke.conf && chown 0:0 $JB/etc/apelin-smoke.conf && chmod 644 $JB/etc/apelin-smoke.conf",
+    "Copy Documents/Console/fixtures/apelin-smoke_1.0_all.deb to ~mobile/Documents/wiki.qaq.apelin/console/apelin-smoke_1.0_all.deb (owned by mobile)",
+    "Irisin 4.7.3 or later must be installed; com.example.apelin-smoke must not be installed already.",
+    "Afterwards: cat $JB/etc/apelin-smoke.conf reads 'apelin smoke edited', the backup is in ~mobile/Documents/wiki.qaq.apelin/backups/, and $JB/usr/share/apelin-smoke/ is gone again."
+  ],
+  "steps": [
+    {"op": "hello", "label": "hello"},
+    {"op": "expect", "request": {"step": "hello", "path": "response.installRoot", "exists": true}},
+
+    {"op": "ptyOpen", "label": "pty", "follow": true, "timeoutSeconds": 60,
+     "request": {"columns": 80, "rows": 24, "initialInput": "id -u; echo apelin-smoke-$((6*7)); exit 0\n"}},
+    {"op": "expect", "request": {"step": "pty", "state": "succeeded"}},
+    {"op": "expect", "request": {"step": "pty", "path": "events.0.kind", "equals": "started"}},
+    {"op": "expect", "request": {"step": "pty", "path": "events.0.payload.uid", "equals": 501}},
+    {"op": "expect", "request": {"step": "pty", "path": "events.0.payload.gid", "equals": 501}},
+
+    {"op": "protectedEditOpen", "label": "edit",
+     "request": {"path": "${hello.response.installRoot}/etc/apelin-smoke.conf"}},
+    {"op": "expect", "request": {"step": "edit", "path": "response.needsConfirmation", "equals": false}},
+
+    {"op": "fileRead", "label": "read",
+     "request": {"scopeID": "grant:${edit.response.grantID}", "relativePath": ""}},
+    {"op": "expect", "request": {"step": "read", "path": "response.version.sha256", "exists": true}},
+
+    {"op": "protectedEditCommit", "label": "commit",
+     "request": {"grantID": "${edit.response.grantID}", "contentsBase64": "YXBlbGluIHNtb2tlIGVkaXRlZAo=",
+                 "expectedVersion": "${edit.response.version}"}},
+    {"op": "expect", "request": {"step": "commit", "path": "response.backupID", "exists": true}},
+
+    {"op": "protectedEditCommit", "label": "spent", "allowError": true,
+     "request": {"grantID": "${edit.response.grantID}", "contentsBase64": "eA==",
+                 "expectedVersion": "${edit.response.version}"}},
+    {"op": "expect", "request": {"step": "spent", "errorCode": "notFound"}},
+
+    {"op": "protectedEditOpen", "label": "refused", "allowError": true,
+     "request": {"path": "${hello.response.installRoot}/var/lib/dpkg/status"}},
+    {"op": "expect", "request": {"step": "refused", "errorCode": "denied"}},
+
+    {"op": "installPackage", "label": "install", "timeoutSeconds": 300,
+     "request": {"artifactID": "file:console/apelin-smoke_1.0_all.deb",
+                 "digest": "282c2829cf1f5ffca8a11b4eb2e26f3d8ef0002b454efdc7fc46376c564a107d"}},
+    {"op": "expect", "request": {"step": "install", "state": "succeeded"}},
+    {"op": "expect", "request": {"step": "install", "path": "lastEvent.payload.result.packageID", "equals": "com.example.apelin-smoke"}},
+
+    {"op": "installPackage", "label": "wrongDigest", "allowError": true,
+     "request": {"artifactID": "file:console/apelin-smoke_1.0_all.deb",
+                 "digest": "0000000000000000000000000000000000000000000000000000000000000000"}},
+    {"op": "expect", "request": {"step": "wrongDigest", "errorCode": "conflict"}},
+
+    {"op": "removePackage", "label": "remove", "timeoutSeconds": 300,
+     "request": {"installationID": "${install.lastEvent.payload.result.installationID}"}},
+    {"op": "expect", "request": {"step": "remove", "state": "succeeded"}},
+
+    {"op": "removePackage", "label": "removeAgain", "allowError": true,
+     "request": {"installationID": "${install.lastEvent.payload.result.installationID}"}},
+    {"op": "expect", "request": {"step": "removeAgain", "errorCode": "denied"}}
+  ]
+}

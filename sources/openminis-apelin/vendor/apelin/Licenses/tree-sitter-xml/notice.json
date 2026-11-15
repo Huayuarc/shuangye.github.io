@@ -1,0 +1,6 @@
+{
+  "name": "tree-sitter-xml (in Runestone)",
+  "url": "https://github.com/tree-sitter-grammars/tree-sitter-xml",
+  "version": "0.7.0 (5000ae8f22d11fbe93939b05c1e37cf21117162d)",
+  "note": "The XML grammar, vendored in Packages/Runestone/Sources/TreeSitterXML with this LICENSE beside it; MIT since its first commit."
+}

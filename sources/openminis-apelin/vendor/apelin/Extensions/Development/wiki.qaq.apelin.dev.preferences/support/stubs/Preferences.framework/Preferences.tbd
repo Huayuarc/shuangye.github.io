@@ -1,0 +1,16 @@
+--- !tapi-tbd
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 OwnGoal Studio
+# Link stub for the private Preferences framework, so a preference bundle
+# links whether or not the registered SDK carries PrivateFrameworks. Declares
+# only what support/include/Preferences/PSListController.h uses.
+tbd-version:     4
+targets:         [ arm64-ios, arm64e-ios ]
+install-name:    '/System/Library/PrivateFrameworks/Preferences.framework/Preferences'
+current-version: 1
+compatibility-version: 1
+exports:
+  - targets:         [ arm64-ios, arm64e-ios ]
+    objc-classes:    [ PSListController, PSSpecifier, PSViewController ]
+    objc-ivars:      [ PSListController._specifiers ]
+...

@@ -1,0 +1,5 @@
+{
+  "name": "tree-sitter-markdown (in Runestone)",
+  "url": "https://github.com/tree-sitter-grammars/tree-sitter-markdown",
+  "note": "The Markdown and Markdown inline grammar, vendored in Packages/Runestone/Sources/TreeSitterMarkdown and TreeSitterMarkdownInline as Lakr233/Runestone.xcframework 2688e46 carried it (from simonbs/TreeSitterLanguages, with no license file of its own); the same text is the LICENSE beside it. This is the upstream LICENSE at a0a00f817d02412bd92c54d316f164d827b57b5c; its license has not changed over the repository's history."
+}

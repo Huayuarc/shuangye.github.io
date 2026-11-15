@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "projectID": "28d52b40-b86a-56a1-b2af-c173b8e1f4dc",
+  "kind": "app",
+  "template": {
+    "extensionID": "wiki.qaq.apelin.dev.app",
+    "templateID": "uikit-objc",
+    "version": "0.1.1",
+    "digest": "sha256:e9addbec114a1e796527c0d5734b42100a5ea286af32be617ee8da406e718c1b"
+  },
+  "environment": {
+    "toolchain": {
+      "id": "clt-27.0-sample",
+      "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+    },
+    "sdk": {
+      "id": "iPhoneOS27.0-00000000",
+      "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+    }
+  },
+  "language": "objc",
+  "deploymentTarget": "16.0",
+  "architectures": {
+    "rootless": [
+      "arm64",
+      "arm64e"
+    ],
+    "roothide": [
+      "arm64e"
+    ]
+  },
+  "configurations": {
+    "Debug": {
+      "optimization": "0",
+      "debugInfo": true,
+      "defines": {
+        "DEBUG": "1"
+      }
+    },
+    "Release": {
+      "optimization": "2",
+      "debugInfo": true
+    }
+  },
+  "products": [
+    {
+      "id": "app",
+      "type": "app",
+      "name": "ApelinApp",
+      "sources": [
+        "Sources/*.m"
+      ],
+      "headerSearchPaths": [
+        "Sources"
+      ],
+      "resources": [],
+      "infoPlist": "Resources/Info.plist",
+      "entitlements": "Packaging/App.entitlements",
+      "objcARC": true,
+      "frameworks": [
+        "Foundation",
+        "UIKit"
+      ]
+    }
+  ],
+  "build": {
+    "steps": [
+      {
+        "type": "compile",
+        "product": "app"
+      },
+      {
+        "type": "link",
+        "product": "app"
+      },
+      {
+        "type": "bundle-resources",
+        "product": "app"
+      },
+      {
+        "type": "lipo",
+        "product": "app"
+      },
+      {
+        "type": "dsym",
+        "product": "app"
+      },
+      {
+        "type": "strip",
+        "product": "app",
+        "style": "non-global"
+      },
+      {
+        "type": "sign",
+        "product": "app",
+        "identity": "adhoc"
+      }
+    ]
+  },
+  "package": {
+    "id": "com.example.apelinapp",
+    "name": "Apelin App",
+    "version": "0.0.1",
+    "description": "Built on this device with Apelin.",
+    "icon": "https://owngoal-dev.github.io/Apelin/icons/wiki.qaq.apelin.dev.app.png",
+    "author": "Apelin User",
+    "section": "Applications",
+    "depends": [
+      "uikittools"
+    ],
+    "layout": [
+      {
+        "path": "/Applications/ApelinApp.app",
+        "product": "app"
+      }
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "apelin-banner",
+  "private": true,
+  "type": "module",
+  "description": "Fills Banner.fig's screenshot slots and renders the banner",
+  "dependencies": {
+    "fzstd": "^0.1.1",
+    "kiwi-schema": "^0.5.0",
+    "pako": "^3.0.2"
+  }
+}

@@ -1,0 +1,6 @@
+"NSFaceIDUsageDescription" = "エージェントがコマンドを root として実行する前に本人であることを確認します。";
+"NSCameraUsageDescription" = "写真を撮ってチャットに添付します。";
+"NSPhotoLibraryAddUsageDescription" = "作成したカードを写真に保存します。";
+"Apelin Toolchain" = "Apelinツールチェーン";
+"Apelin SDK" = "Apelin SDK";
+"Apelin Project" = "Apelinプロジェクト";

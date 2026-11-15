@@ -1,0 +1,6 @@
+"NSFaceIDUsageDescription" = "Xác nhận đó là bạn trước khi tác nhân chạy một lệnh với quyền root.";
+"NSCameraUsageDescription" = "Chụp ảnh để đính kèm vào cuộc trò chuyện.";
+"NSPhotoLibraryAddUsageDescription" = "Lưu thẻ bạn tạo vào Ảnh.";
+"Apelin Toolchain" = "Chuỗi công cụ Apelin";
+"Apelin SDK" = "SDK Apelin";
+"Apelin Project" = "Dự án Apelin";

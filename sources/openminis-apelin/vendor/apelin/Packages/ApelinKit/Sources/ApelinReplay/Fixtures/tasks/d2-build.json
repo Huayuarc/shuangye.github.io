@@ -1,0 +1,25 @@
+{
+"kind":"build",
+"name":"d2-build",
+"source":"d2-broken-build.json step 2",
+"start":{"operation":"buildStart","request":{"configuration":"debug","projectID":"bca56468-34f9-4eed-9bb1-173e4c67921d"},"response":{"kind":"build","taskID":"7956d375-807d-4e68-96bd-9a2e7adecbd3"}},
+"state":"failed",
+"taskID":"7956d375-807d-4e68-96bd-9a2e7adecbd3",
+"events":[
+{"kind":"stage","payload":{"stage":"check"},"seq":1,"time":"2026-10-17T11:38:21Z"},
+{"kind":"log","payload":{"line":"apelin-build 7956d375-807d-4e68-96bd-9a2e7adecbd3: local.apelin.demo-broken-cli 0.0.1, Debug, roothide [arm64e]"},"seq":2,"time":"2026-10-17T11:38:21Z"},
+{"kind":"log","payload":{"line":"toolchain 4d6b25eba45adc2bf317de90, SDK iphoneos26.4-02dfb69e at /private/var/containers/Bundle/Application/.jbroot-0000000000000000/var/mobile/Documents/wiki.qaq.apelin/SDKs/iphoneos26.4-02dfb69e"},"seq":3,"time":"2026-10-17T11:38:21Z"},
+{"kind":"stage","payload":{"product":"tool","stage":"compile"},"seq":4,"time":"2026-10-17T11:38:21Z"},
+{"kind":"log","payload":{"line":"$ /private/var/containers/Bundle/Application/.jbroot-0000000000000000/usr/lib/apelin/toolchains/4d6b25eba45adc2bf317de90/usr/bin/clang -isysroot /private/var/containers/Bundle/Application/.jbroot-0000000000000000/var/mobile/Documents/wiki.qaq.apelin/SDKs/iphoneos26.4-02dfb69e -arch arm64e -mios-version-min=16.0 -O0 -Wall -Wextra -Werror=unguarded-availability-new -fvisibility=hidden '-ffile-prefix-map=/private/var/containers/Bundle/Application/.jbroot-0000000000000000/var/mobile/Documents/wiki.qaq.apelin/Projects/Demo Broken CLI=.' -fno-color-diagnostics -g '-DAPELIN_BUILD_ID=\"7956d375-807d-4e68-96bd-9a2e7adecbd3\"' '-DAPELIN_PACKAGE_ID=\"local.apelin.demo-broken-cli\"' '-DAPELIN_VERSION=\"0.0.1\"' -DAPELIN_BOOTSTRAP_ROOTHIDE=1 -DAPELIN_CONFIGURATION_DEBUG=1 -DDEBUG=1 '-DAPELIN_PRODUCT_NAME=\"DemoBrokenCLI\"' '-I/private/var/containers/Bundle/Application/.jbroot-0000000000000000/var/mobile/Documents/wiki.qaq.apelin/Projects/Demo Broken CLI/Sources' -c Sources/main.c -o /private/var/containers/Bundle/Application/.jbroot-0000000000000000/var/mobile/Documents/wiki.qaq.apelin/Builds/bca56468-34f9-4eed-9bb1-173e4c67921d/7956d375-807d-4e68-96bd-9a2e7adecbd3/obj/tool/arm64e/Sources__main.c.o"},"seq":5,"time":"2026-10-17T11:38:21Z"},
+{"kind":"log","payload":{"line":"Sources/main.c:34:21: error: use of undeclared identifier 'missing_greeting_count'"},"seq":6,"time":"2026-10-17T11:38:21Z"},
+{"kind":"log","payload":{"line":"   34 |     int greetings = missing_greeting_count + 1;"},"seq":7,"time":"2026-10-17T11:38:21Z"},
+{"kind":"log","payload":{"line":"      |                     ^~~~~~~~~~~~~~~~~~~~~~"},"seq":8,"time":"2026-10-17T11:38:21Z"},
+{"kind":"log","payload":{"line":"Sources/main.c:35:17: error: incompatible integer to pointer conversion initializing 'const char *' with an expression of type 'int' [-Wint-conversion]"},"seq":9,"time":"2026-10-17T11:38:21Z"},
+{"kind":"log","payload":{"line":"   35 |     const char *label = greetings;"},"seq":10,"time":"2026-10-17T11:38:21Z"},
+{"kind":"log","payload":{"line":"      |                 ^       ~~~~~~~~~"},"seq":11,"time":"2026-10-17T11:38:21Z"},
+{"kind":"log","payload":{"line":"2 errors generated."},"seq":12,"time":"2026-10-17T11:38:21Z"},
+{"kind":"diagnostic","payload":{"code":"clang.error","column":21,"file":"Sources/main.c","fixes":[],"line":34,"message":"use of undeclared identifier 'missing_greeting_count'","severity":"error"},"seq":13,"time":"2026-10-17T11:38:21Z"},
+{"kind":"diagnostic","payload":{"code":"clang.error","column":17,"file":"Sources/main.c","fixes":[],"line":35,"message":"incompatible integer to pointer conversion initializing 'const char *' with an expression of type 'int' [-Wint-conversion]","severity":"error"},"seq":14,"time":"2026-10-17T11:38:21Z"},
+{"kind":"state","payload":{"message":"clang failed with status 1","state":"failed"},"seq":15,"time":"2026-10-17T11:38:21Z"}
+]
+}

@@ -1,0 +1,22 @@
+{
+  "name": "transfer-toolchain: needs an installed toolchain; exports it as an .apetc (RootHide's runtime brand undone, every file checked against its manifest), reads the file back, and is refused importing it again here",
+  "steps": [
+    {"op": "hello"},
+    {"op": "toolchainStatus", "label": "status"},
+    {"op": "expect", "request": {"step": "status", "path": "response.toolchains.0.id", "exists": true}},
+
+    {"op": "transferExport", "label": "export", "timeoutSeconds": 3600,
+     "request": {"kind": "toolchain", "id": "${status.response.toolchains.0.id}", "createdBy": "Apelin console"}},
+    {"op": "expect", "request": {"step": "export", "state": "succeeded"}},
+
+    {"op": "transferInspect", "label": "inspect",
+     "request": {"source": {"exported": {"path": "${export.lastEvent.payload.result.export.exportedPath}"}}}},
+    {"op": "expect", "request": {"step": "inspect", "path": "response.summary.kind", "equals": "toolchain"}},
+    {"op": "expect", "request": {"step": "inspect", "path": "response.existingID", "equals": "${status.response.toolchains.0.id}"}},
+    {"op": "expect", "request": {"step": "inspect", "path": "response.importable", "equals": false}},
+
+    {"op": "transferImport", "label": "again", "allowError": true,
+     "request": {"source": {"exported": {"path": "${export.lastEvent.payload.result.export.exportedPath}"}}, "kind": "toolchain"}},
+    {"op": "expect", "request": {"step": "again", "errorCode": "conflict"}}
+  ]
+}

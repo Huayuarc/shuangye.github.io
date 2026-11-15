@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "id": "com.example.apelin.dev.minimal",
+  "version": "1.0.0",
+  "kind": "agent-tool",
+  "displayName": "Minimal",
+  "summary": "The smallest valid manifest.",
+  "apelinCompatibility": {
+    "minimumAppVersion": "0.1.0",
+    "projectSchemaVersions": [
+      1
+    ],
+    "manifestSchemaVersion": 1
+  },
+  "requirements": {
+    "toolchainComponents": [
+      "c-family"
+    ],
+    "languages": [
+      "c"
+    ],
+    "bootstraps": [
+      "rootless"
+    ],
+    "architectures": {
+      "rootless": [
+        "arm64"
+      ]
+    }
+  },
+  "templates": [
+    {
+      "id": "hello",
+      "directory": "templates/hello",
+      "displayName": "Hello",
+      "summary": "Says hello.",
+      "language": "c",
+      "project": "apelin-project.json",
+      "parameters": [],
+      "files": [
+        {
+          "path": "apelin-project.json",
+          "format": "json"
+        },
+        {
+          "path": "main.c",
+          "format": "c"
+        }
+      ],
+      "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "provenance": [
+    {
+      "scope": "template:hello",
+      "origin": "written",
+      "adaptations": []
+    }
+  ],
+  "licenses": [
+    {
+      "path": "LICENSE",
+      "spdx": "MIT",
+      "covers": [
+        "template:hello"
+      ]
+    }
+  ]
+}

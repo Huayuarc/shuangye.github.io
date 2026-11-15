@@ -1,0 +1,167 @@
+# Pushes and pull requests: test on the host and on an old iOS runtime, and in
+# parallel build and package the IDE and every extension (the four development
+# extensions, the agent tool extensions and the GPL assembler's
+# corresponding-source archive), keeping them for thirty days. Nothing is
+# published from here: a tag publishes, through `release.yml`, the
+# packages of its commit's run, once that run has passed.
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A pull request's new push cancels the run of its old one. A push to
+# main keeps its own run however soon the next one follows, since a tag
+# on that commit publishes what the run built.
+concurrency:
+  group: apelin-${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: true
+
+env:
+  HOMEBREW_NO_AUTO_UPDATE: "1"
+  HOMEBREW_NO_INSTALL_CLEANUP: "1"
+  HOMEBREW_NO_ANALYTICS: "1"
+
+# Both jobs run on the Xcode 27 image, the one with the iOS 27.1 SDK the
+# packages are linked against (`IOS_SDK_TIER` in the Makefile: the tier an
+# iPhone Duo runs edge to edge, with vertical bars). Its default Xcode may be
+# newer than 27.1, so 27.1 is named rather than the newest found.
+jobs:
+  # Seconds, where the build takes minutes, so a broken host test says so
+  # long before the packages would.
+  test:
+    name: Host tests
+    runs-on: xcode-27
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Select Xcode 27.1
+        run: |
+          sudo xcode-select -s /Applications/Xcode_27.1.app/Contents/Developer
+          xcodebuild -version
+          echo "iPhoneOS SDK $(xcrun --sdk iphoneos --show-sdk-version)"
+
+      - name: Run host tests
+        run: make harness SWIFTPM_SCRATCH="$RUNNER_TEMP/apelin-spm"
+
+  # The vphones run iOS 26 and 27, where `Data` through an @objc thunk costs
+  # nothing; on an older Foundation unpacking a toolchain ran out of memory.
+  # The runtime is kept between runs: its first download is 5.4 GB.
+  old-runtime:
+    name: Old iOS runtime
+    runs-on: xcode-27
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Select Xcode 27.1
+        run: |
+          sudo xcode-select -s /Applications/Xcode_27.1.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Restore the runtime
+        id: runtime
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/Library/Caches/apelin-old-runtime
+          key: apelin-old-runtime-ios15.5-${{ hashFiles('Scripts/old-runtime/runtime-root.py') }}
+
+      - name: Run the checks
+        run: make old-runtime
+
+      # Kept whatever the checks said: a failing commit's retry should not
+      # download 5.4 GB again.
+      - name: Keep the runtime
+        if: always() && steps.runtime.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/Library/Caches/apelin-old-runtime
+          key: ${{ steps.runtime.outputs.cache-primary-key }}
+
+  build:
+    name: Build and verify Debian packages
+    runs-on: xcode-27
+    timeout-minutes: 90
+
+    steps:
+      - name: Configure build paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "DERIVED_DATA=$RUNNER_TEMP/apelin-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Select Xcode 27.1
+        run: |
+          sudo xcode-select -s /Applications/Xcode_27.1.app/Contents/Developer
+          xcodebuild -version
+          echo "iPhoneOS SDK $(xcrun --sdk iphoneos --show-sdk-version)"
+
+      - name: Install packaging dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          formulae=()
+          command -v dpkg-deb >/dev/null 2>&1 || formulae+=(dpkg)
+          command -v ldid >/dev/null 2>&1 || formulae+=(ldid)
+          command -v zstd >/dev/null 2>&1 || formulae+=(zstd)
+          if (( ${#formulae[@]} > 0 )); then
+            brew install "${formulae[@]}"
+          fi
+
+      # The harness runs in the job beside this one. deb-all packages the IDE
+      # for both flavours, then every extension: the development extensions
+      # (their templates built with the iPhoneOS SDK first) and the agent
+      # tool extensions, each read back and verified.
+      - name: Build, package and verify the IDE and every extension
+        run: make deb-all CONFIGURATION=Release SKIP_HARNESS=1 DERIVED_DATA="$DERIVED_DATA" BUILD_NUMBER="$GITHUB_RUN_NUMBER"
+
+      # Both flavours package the one build, and neither strip nor ldid touches
+      # LC_UUID, so one set of dSYMs matches every shipped binary.
+      - name: Archive dSYMs
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(make --no-print-directory print-version)"
+          cd "$DERIVED_DATA/Build/Products/Release-iphoneos"
+          zip -qry "$GITHUB_WORKSPACE/build/Packages/Apelin_${version}_dSYMs.zip" ./*.dSYM
+
+      - name: Write checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd build/Packages
+          shasum -a 256 ./*.deb ./*_source.tar.xz ./*_dSYMs.zip ./*_Templates.tar.zst > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Upload Debian packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: apelin-${{ github.sha }}
+          path: |
+            build/Packages/*.deb
+            build/Packages/*_source.tar.xz
+            build/Packages/*_dSYMs.zip
+            build/Packages/*_Templates.tar.zst
+            build/Packages/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "id": "wiki.qaq.apelin.agent-tools.disassembler",
+  "name": "Disassembler",
+  "version": "1.1.0",
+  "license": "MIT AND BSD-3-Clause AND NCSA",
+  "licenseFiles": [
+    "licenses/Apelin/LICENSE",
+    "licenses/Capstone/LICENSE.TXT",
+    "licenses/Capstone/LICENSE_BSD_3_CLAUSE.txt",
+    "licenses/Capstone/LICENSE_LLVM.TXT",
+    "licenses/libcapstone-spm/LICENSE"
+  ],
+  "executable": "usr/libexec/apelin/agent-tools/apelin-disassembler",
+  "protocolVersions": [
+    1
+  ],
+  "tools": [
+    {
+      "description": "Disassemble instructions from a Mach-O binary with Capstone, starting at a virtual address or a symbol. Lines show address, bytes, instruction, and the symbol a branch lands on.",
+      "name": "disassemble",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "description": "Start: a virtual address in hex (0x100003f50) or decimal, or a symbol name (_main or main).",
+            "minLength": 1,
+            "type": "string"
+          },
+          "arch": {
+            "description": "Slice of a fat file to read. Defaults to arm64e, then arm64, then the first slice.",
+            "enum": [
+              "arm64",
+              "arm64e",
+              "x86_64"
+            ],
+            "type": "string"
+          },
+          "binary": {
+            "description": "Path to a Mach-O file (thin or fat) this process can read.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "count": {
+            "description": "Instructions to disassemble. Default 32.",
+            "maximum": 1000,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "binary",
+          "address"
+        ],
+        "type": "object"
+      },
+      "risk": "readOnly",
+      "timeoutSeconds": 30
+    },
+    {
+      "description": "List the symbol table (LC_SYMTAB) of a Mach-O binary, nm-style, sorted by address.",
+      "name": "symbols",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "arch": {
+            "description": "Slice of a fat file to read. Defaults to arm64e, then arm64, then the first slice.",
+            "enum": [
+              "arm64",
+              "arm64e",
+              "x86_64"
+            ],
+            "type": "string"
+          },
+          "binary": {
+            "description": "Path to a Mach-O file (thin or fat) this process can read.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "filter": {
+            "description": "Only symbols whose name contains this text (case-insensitive).",
+            "type": "string"
+          },
+          "kind": {
+            "description": "Defined, undefined (imports), or all. Default all.",
+            "enum": [
+              "all",
+              "defined",
+              "undefined"
+            ],
+            "type": "string"
+          },
+          "limit": {
+            "description": "Symbols to return. Default 200.",
+            "maximum": 5000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "offset": {
+            "description": "Matching symbols to skip, for paging. Default 0.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "output": {
+            "description": "text: the page inline (default). file: every matching symbol, unpaged, as a text/plain attachment, with a one-line summary inline.",
+            "enum": [
+              "text",
+              "file"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "binary"
+        ],
+        "type": "object"
+      },
+      "risk": "readOnly",
+      "timeoutSeconds": 30
+    }
+  ]
+}

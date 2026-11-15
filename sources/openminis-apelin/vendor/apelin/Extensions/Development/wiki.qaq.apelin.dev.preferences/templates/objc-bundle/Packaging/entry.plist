@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+	PreferenceLoader's entry: the row Settings shows, and the bundle it opens
+	from /Library/PreferenceBundles/<bundle>.bundle. `icon` names the row's
+	image in that bundle: Resources/icon.png and its @2x and @3x, 29 points.
+	Replace those three files to give the pane an icon of its own.
+-->
+<plist version="1.0">
+<dict>
+	<key>entry</key>
+	<dict>
+		<key>bundle</key>
+		<string>{{productName}}</string>
+		<key>cell</key>
+		<string>PSLinkCell</string>
+		<key>detail</key>
+		<string>{{productName}}RootListController</string>
+		<key>icon</key>
+		<string>icon.png</string>
+		<key>isController</key>
+		<true/>
+		<key>label</key>
+		<string>{{displayName}}</string>
+	</dict>
+</dict>
+</plist>

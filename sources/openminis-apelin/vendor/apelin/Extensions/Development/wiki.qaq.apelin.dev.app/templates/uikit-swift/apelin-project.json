@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "projectID": "{{projectID}}",
+  "kind": "app",
+  "template": {
+    "extensionID": "{{templateExtensionID}}",
+    "templateID": "{{templateID}}",
+    "version": "{{templateVersion}}",
+    "digest": "{{templateDigest}}"
+  },
+  "environment": {
+    "toolchain": { "id": "{{toolchainID}}", "digest": "{{toolchainDigest}}" },
+    "sdk": { "id": "{{sdkID}}", "digest": "{{sdkDigest}}" }
+  },
+  "language": "swift",
+  "deploymentTarget": "{{deploymentTarget}}",
+  "architectures": {{architectures}},
+  "configurations": {
+    "Debug": { "optimization": "0", "debugInfo": true, "defines": { "DEBUG": "1" } },
+    "Release": { "optimization": "2", "debugInfo": true }
+  },
+  "products": [
+    {
+      "id": "app",
+      "type": "app",
+      "name": "{{productName}}",
+      "sources": ["Sources/*.swift"],
+      "resources": [],
+      "infoPlist": "Resources/Info.plist",
+      "entitlements": "Packaging/App.entitlements",
+      "frameworks": ["Foundation", "UIKit"]
+    }
+  ],
+  "build": {
+    "steps": [
+      { "type": "compile", "product": "app" },
+      { "type": "link", "product": "app" },
+      { "type": "bundle-resources", "product": "app" },
+      { "type": "lipo", "product": "app" },
+      { "type": "dsym", "product": "app" },
+      { "type": "strip", "product": "app", "style": "non-global" },
+      { "type": "sign", "product": "app", "identity": "adhoc" }
+    ]
+  },
+  "package": {
+    "id": "{{packageID}}",
+    "name": "{{displayName}}",
+    "version": "0.0.1",
+    "description": "{{summary}}",
+    "icon": "https://owngoal-dev.github.io/Apelin/icons/wiki.qaq.apelin.dev.app.png",
+    "author": "{{author}}",
+    "section": "Applications",
+    "depends": ["uikittools"],
+    "layout": [
+      { "path": "/Applications/{{productName}}.app", "product": "app" }
+    ]
+  }
+}

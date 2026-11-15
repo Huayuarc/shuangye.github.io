@@ -1,0 +1,6 @@
+"NSFaceIDUsageDescription" = "Confirmez votre identité avant que l’agent exécute une commande en tant que root.";
+"NSCameraUsageDescription" = "Prenez des photos à joindre à votre discussion.";
+"NSPhotoLibraryAddUsageDescription" = "Enregistrez dans Photos les cartes que vous créez.";
+"Apelin Toolchain" = "Chaîne d’outils Apelin";
+"Apelin SDK" = "SDK Apelin";
+"Apelin Project" = "Projet Apelin";

@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "projectID": "{{projectID}}",
+  "kind": "preferences",
+  "template": {
+    "extensionID": "{{templateExtensionID}}",
+    "templateID": "{{templateID}}",
+    "version": "{{templateVersion}}",
+    "digest": "{{templateDigest}}"
+  },
+  "environment": {
+    "toolchain": { "id": "{{toolchainID}}", "digest": "{{toolchainDigest}}" },
+    "sdk": { "id": "{{sdkID}}", "digest": "{{sdkDigest}}" }
+  },
+  "language": "objc",
+  "deploymentTarget": "{{deploymentTarget}}",
+  "architectures": {{architectures}},
+  "configurations": {
+    "Debug": { "optimization": "0", "debugInfo": true, "defines": { "DEBUG": "1" } },
+    "Release": { "optimization": "2", "debugInfo": true }
+  },
+  "products": [
+    {
+      "id": "prefs",
+      "type": "bundle",
+      "name": "{{productName}}",
+      "sources": ["Sources/*.m"],
+      "headerSearchPaths": ["Sources"],
+      "resources": ["Resources/Root.plist", "Resources/icon.png", "Resources/icon@2x.png", "Resources/icon@3x.png"],
+      "infoPlist": "Resources/Info.plist",
+      "objcARC": true,
+      "frameworks": ["Foundation", "UIKit", "Preferences"],
+      "extensionSupport": [{ "extension": "wiki.qaq.apelin.dev.preferences", "component": "preferences" }]
+    }
+  ],
+  "build": {
+    "steps": [
+      { "type": "compile", "product": "prefs" },
+      { "type": "link", "product": "prefs" },
+      { "type": "bundle-resources", "product": "prefs" },
+      { "type": "lipo", "product": "prefs" },
+      { "type": "dsym", "product": "prefs" },
+      { "type": "strip", "product": "prefs", "style": "non-global" },
+      { "type": "sign", "product": "prefs", "identity": "adhoc" }
+    ]
+  },
+  "package": {
+    "id": "{{packageID}}",
+    "name": "{{displayName}}",
+    "version": "0.0.1",
+    "description": "{{summary}}",
+    "icon": "https://owngoal-dev.github.io/Apelin/icons/wiki.qaq.apelin.dev.preferences.png",
+    "author": "{{author}}",
+    "section": "Addons",
+    "depends": ["preferenceloader"],
+    "layout": [
+      { "path": "/Library/PreferenceBundles/{{productName}}.bundle", "product": "prefs" },
+      { "path": "/Library/PreferenceLoader/Preferences/{{productName}}.plist", "file": "Packaging/entry.plist", "mode": "0644" }
+    ]
+  }
+}

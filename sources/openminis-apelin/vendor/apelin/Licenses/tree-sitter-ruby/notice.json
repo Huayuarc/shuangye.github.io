@@ -1,0 +1,5 @@
+{
+  "name": "tree-sitter-ruby (in Runestone)",
+  "url": "https://github.com/tree-sitter/tree-sitter-ruby",
+  "note": "The Ruby grammar, vendored in Packages/Runestone/Sources/TreeSitterRuby as Lakr233/Runestone.xcframework 2688e46 carried it (from simonbs/TreeSitterLanguages, with no license file of its own); the same text is the LICENSE beside it. This is the upstream LICENSE at ad907a69da0c8a4f7a943a7fe012712208da6dee; its license has not changed over the repository's history."
+}

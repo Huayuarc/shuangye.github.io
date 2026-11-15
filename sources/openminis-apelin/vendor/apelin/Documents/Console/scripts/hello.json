@@ -1,0 +1,13 @@
+{
+  "name": "hello: needs nothing; apelind starts on demand and answers, the session host brings up the build and environment workers, and a temporary chat's folder is refused as a project to delete before anything is read",
+  "steps": [
+    {"op": "hello", "label": "hello"},
+    {"op": "expect", "request": {"step": "hello", "path": "response.installRoot", "exists": true}},
+    {"op": "extensionList", "label": "extensions"},
+    {"op": "sdkList", "label": "sdks"},
+    {"op": "toolchainStatus", "label": "toolchains"},
+    {"op": "expect", "request": {"step": "toolchains", "path": "response.activeTasks", "exists": true}},
+    {"op": "projectDelete", "label": "delete-temporary", "allowError": true, "request": {"projectID": "temporary:00000000-0000-4000-8000-000000000000"}},
+    {"op": "expect", "request": {"step": "delete-temporary", "errorCode": "badRequest"}}
+  ]
+}

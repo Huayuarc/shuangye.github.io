@@ -1,0 +1,22 @@
+{
+  "name": "logs: needs nothing; streams 5 s of the log, lists crash reports, and opens and symbolicates the newest one (those two fail when the device has no crash report)",
+  "steps": [
+    {"op": "hello"},
+    {"op": "logStream", "label": "logs", "follow": false,
+     "request": {"filter": {"windowSeconds": 5, "limit": 200, "level": "default"}, "afterSeq": 0, "waitMilliseconds": 1000}},
+    {"op": "wait", "request": {"seconds": 6}},
+    {"op": "logStream", "label": "logs-read",
+     "request": {"stream": "${logs.response.taskID}", "afterSeq": 0, "waitMilliseconds": 5000}},
+    {"op": "expect", "request": {"step": "logs-read", "path": "response.finished", "equals": true}},
+    {"op": "expect", "request": {"step": "logs-read", "path": "response.state", "equals": "succeeded"}},
+
+    {"op": "crashList", "label": "crashes", "request": {}},
+    {"op": "expect", "request": {"step": "crashes", "path": "response.reports", "exists": true}},
+
+    {"op": "crashOpen", "label": "open", "allowError": true, "request": {"id": "${crashes.response.reports.0.id}"}},
+    {"op": "crashSymbolicate", "label": "symbolicate", "allowError": true, "request": {"id": "${crashes.response.reports.0.id}"}},
+
+    {"op": "crashOpen", "label": "no-report", "allowError": true, "request": {"id": "no-such-report"}},
+    {"op": "expect", "request": {"step": "no-report", "ok": false}}
+  ]
+}

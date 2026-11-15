@@ -1,0 +1,26 @@
+{
+  "name": "i2-git",
+  "steps": [
+    {"op": "hello"},
+    {"op": "gitClone", "request": {"url": "https://github.com/libgit2/TestGitRepository.git", "branch": "first-merge", "projectName": "I2GitCheck"}, "label": "clone", "timeoutSeconds": 300},
+    {"op": "expect", "request": {"step": "clone", "state": "succeeded"}},
+    {"op": "gitStatus", "request": {"projectID": "I2GitCheck"}, "label": "status"},
+    {"op": "expect", "request": {"step": "status", "path": "response.branch", "equals": "first-merge"}},
+    {"op": "expect", "request": {"step": "status", "path": "response.head", "equals": "0966a434eb1a025db6b71485ab63a3bfbea520b6"}},
+    {"op": "expect", "request": {"step": "status", "path": "response.entries", "equals": []}},
+    {"op": "gitDiff", "request": {"projectID": "I2GitCheck"}, "label": "diff"},
+    {"op": "expect", "request": {"step": "diff", "path": "response.diff", "equals": ""}},
+    {"op": "gitStage", "request": {"projectID": "I2GitCheck", "paths": ["master.txt"]}, "label": "stage"},
+    {"op": "gitUnstage", "request": {"projectID": "I2GitCheck", "paths": ["master.txt"]}, "label": "unstage"},
+    {"op": "gitDiff", "request": {"projectID": "I2GitCheck", "staged": true}, "label": "staged"},
+    {"op": "expect", "request": {"step": "staged", "path": "response.diff", "equals": ""}},
+    {"op": "gitCommit", "request": {"projectID": "I2GitCheck", "message": "Nothing changed", "authorName": "Apelin Console", "authorEmail": "console@apelin.invalid"}, "label": "empty-commit", "allowError": true},
+    {"op": "expect", "request": {"step": "empty-commit", "errorCode": "badRequest"}},
+    {"op": "gitInit", "request": {"projectID": "I2GitCheck"}, "label": "init-again", "allowError": true},
+    {"op": "expect", "request": {"step": "init-again", "errorCode": "conflict"}},
+    {"op": "gitStage", "request": {"projectID": "I2GitCheck", "paths": ["../../SDKs"]}, "label": "escape", "allowError": true},
+    {"op": "expect", "request": {"step": "escape", "errorCode": "badRequest"}},
+    {"op": "gitClone", "request": {"url": "https://github.com/libgit2/TestGitRepository.git", "branch": "first-merge", "projectName": "I2GitCheck"}, "label": "again", "allowError": true},
+    {"op": "expect", "request": {"step": "again", "errorCode": "conflict"}}
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "sha256": {
+    "vendor/apelin/Documents/Schemas/apelin-project.schema.json": "df74c9546940903714592b26d2c1e922e6a4428e84b1031755f325683e5d61ae",
+    "vendor/apelin/Packages/ApelinAgent/Sources/ApelinAgent/Skills/BuiltIn/BootstrapPaths.swift": "6d97e4757d2f0f8544495ca53489a6c4ad7a6e871767121d322b629256a6540a",
+    "vendor/apelin/Packages/ApelinAgent/Sources/ApelinAgent/Skills/BuiltIn/CrashTriage.swift": "da057588cfdd80a5cb0f455b326a7bc1e227ee45f5457f821403d7d0317bcf69",
+    "vendor/apelin/Packages/ApelinAgent/Sources/ApelinAgent/Skills/BuiltIn/DeviceCLI.swift": "995afb55bea7623b94dec2e9894677510d1025bda9717cfb9d98852678614b25",
+    "vendor/apelin/Packages/ApelinAgent/Sources/ApelinAgent/Skills/BuiltIn/DeviceExecutables.swift": "eaf4e440ee08f3e53effa68a531e7854fbe76ca4708c7a155196fce818afacb9",
+    "vendor/apelin/Packages/ApelinAgent/Sources/ApelinAgent/Skills/BuiltIn/ExternalBuild.swift": "b2a38eee88f24887b51bf1d8720743a101caaa5c7972cc028eeb1ad9fedfbc02",
+    "vendor/apelin/Packages/ApelinAgent/Sources/ApelinAgent/Skills/BuiltIn/GitWorkflow.swift": "6cc3d14b950dddfeff94970fc423c16db46ec5bdc470dcd53821cb52ca7594bc",
+    "vendor/apelin/Packages/ApelinAgent/Sources/ApelinAgent/Skills/BuiltIn/PackageDependencies.swift": "464f95e77c020cc95a71501e0c68b53d7914eacd63c79e1609f16adade39904b",
+    "vendor/apelin/Packages/ApelinAgent/Sources/ApelinAgent/Skills/BuiltIn/PackageDepiction.swift": "648dba9b85583b67e2c5ac3d55427cf86f8c5ae8ee02d964de88154440c476d5",
+    "vendor/apelin/Packages/ApelinAgent/Sources/ApelinAgent/Skills/BuiltIn/PackageRepository.swift": "184a7380b1665779a6844525d4e7190962007cc54a7ae922ef5f8d0c3aa96478",
+    "vendor/apelin/Packages/ApelinAgent/Sources/ApelinAgent/Skills/BuiltIn/PackagingAndInstall.swift": "925141496ecaa5bb9bf4c56657b9cec145b50c4283ce6506c9e468a6d94b8910",
+    "vendor/apelin/Packages/ApelinAgent/Sources/ApelinAgent/Skills/BuiltIn/PreferenceBundle.swift": "2602c3fd6c988b6bb55c5297d03edb381c8f80914e5e427cffba67c0e9d37572",
+    "vendor/apelin/Packages/ApelinAgent/Sources/ApelinAgent/Skills/BuiltIn/ProjectDescription.swift": "69470cea1f053ae3783b76b0e34d589c78140c31d9c4d07fc5e9edaf87a0f2fd",
+    "vendor/apelin/Packages/ApelinAgent/Sources/ApelinAgent/Skills/BuiltIn/TweakDevelopment.swift": "ad0d6bb71ed0f3dde4f9dabba73fd03ba3ecdbb10683de91d0cbb128bf13d029",
+    "vendor/apelin/Packages/ApelinAgent/Sources/ApelinAgent/Skills/BuiltIn/TweakRuntime.swift": "116f2a9c9b4391ca402128a2d2f178aa52b26ffb87da97697a43fc138f4fa52b",
+    "vendor/apelin/Packages/ApelinAgent/Sources/ApelinAgent/Skills/BuiltInSkills.swift": "5472c3f4f37356016d3d4011f100d6969ca121d5ae6ef4645417e3e1ad1ad028"
+  },
+  "upstreamCommit": "05d899306d010dd739a4c03fcbf26825813d28c3"
+}

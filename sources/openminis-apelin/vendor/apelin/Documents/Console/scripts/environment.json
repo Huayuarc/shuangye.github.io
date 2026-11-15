@@ -1,0 +1,35 @@
+{
+  "name": "environment: needs the network and a registered SDK for the setup it starts; starts a toolchain setup, reads it back, cancels it, and refuses removing, self-testing or making the default a toolchain, and removing an SDK, that do not exist",
+  "steps": [
+    {"op": "hello"},
+    {"op": "toolchainStatus", "label": "status"},
+    {"op": "expect", "request": {"step": "status", "path": "response.activeTasks", "exists": true}},
+
+    {"op": "toolchainSetup", "label": "setup", "follow": false,
+     "request": {"source": {"appleCatalog": {}}, "components": ["c"]}},
+    {"op": "expect", "request": {"step": "setup", "path": "response.kind", "equals": "environment"}},
+
+    {"op": "environmentAttach", "label": "first", "follow": false,
+     "request": {"taskID": "${setup.response.taskID}", "afterSeq": 0, "waitMilliseconds": 5000}},
+    {"op": "expect", "request": {"step": "first", "path": "response.taskID", "equals": "${setup.response.taskID}"}},
+
+    {"op": "environmentCancel", "label": "cancel", "request": {"taskID": "${setup.response.taskID}"}},
+    {"op": "wait", "request": {"seconds": 5}},
+    {"op": "environmentAttach", "label": "after", "allowError": true,
+     "request": {"taskID": "${setup.response.taskID}", "afterSeq": "${first.response.lastSeq}", "waitMilliseconds": 20000}},
+    {"op": "expect", "request": {"step": "after", "state": "cancelled"}},
+
+    {"op": "toolchainStatus", "label": "status-after"},
+
+    {"op": "toolchainRemove", "label": "no-toolchain", "allowError": true, "request": {"id": "no-such-toolchain"}},
+    {"op": "expect", "request": {"step": "no-toolchain", "ok": false}},
+    {"op": "toolchainSelfTest", "label": "no-toolchain-test", "allowError": true, "request": {"id": "no-such-toolchain"}},
+    {"op": "expect", "request": {"step": "no-toolchain-test", "ok": false}},
+    {"op": "toolchainSetDefault", "label": "no-toolchain-default", "allowError": true, "request": {"id": "no-such-toolchain"}},
+    {"op": "expect", "request": {"step": "no-toolchain-default", "ok": false}},
+
+    {"op": "sdkList", "label": "sdks", "request": {"includeSources": true, "readSources": false}},
+    {"op": "sdkRemove", "label": "no-sdk", "allowError": true, "request": {"id": "no-such-sdk"}},
+    {"op": "expect", "request": {"step": "no-sdk", "ok": false}}
+  ]
+}

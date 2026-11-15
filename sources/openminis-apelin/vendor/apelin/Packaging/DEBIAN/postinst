@@ -1,0 +1,96 @@
+#!/bin/sh
+# Scripts/package-deb.sh substitutes the install prefix below: empty for
+# roothide (whose dpkg relocates rootful paths into the randomized bootstrap
+# root) and /var/jb for rootless.
+
+find_tool() {
+    for candidate in "@PREFIX@/usr/bin/$1" "/usr/bin/$1" "/bin/$1"; do
+        if [ -x "$candidate" ]; then
+            echo "$candidate"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# The app has no container, so its home is mobile's, shared with every other
+# app without one: inside the jbroot on roothide (whose sh reads /var/mobile
+# there, as the app does), the system's own on rootless. A sandbox would hand
+# it a Documents folder of its own; here the shared Documents is made for
+# mobile when missing, and the app keeps its data in a folder named for its
+# bundle id inside it, so no two such apps write into each other's. dpkg runs
+# this as root, so each missing level is made and handed to mobile on its
+# own: `mkdir -p` leaves every level above the last one root's, and mobile
+# can then make nothing beside it. A level that exists is left as it is, and
+# a symlink is never followed: mobile could plant one to have root hand it
+# some other directory.
+app_data=/var/mobile/Documents/wiki.qaq.apelin
+mobile_dir() {
+    if [ -L "$1" ]; then
+        return 1
+    fi
+    if [ -d "$1" ]; then
+        return 0
+    fi
+    mkdir -m 0755 "$1" && chown -h 501:501 "$1"
+}
+for directory in /var/mobile /var/mobile/Documents "$app_data"; do
+    mobile_dir "$directory" || {
+        echo "warning: unable to set up $directory for Apelin's data. Make sure it is a folder, not a file or a link." >&2
+        break
+    }
+done
+
+# The daemon id is named once, alone on its line. A rename that swallows the
+# space before a redirect turns `system/<id> 2>/dev/null` into
+# `system/<id>2>/dev/null`: still valid sh, so `sh -n` passes, but launchctl is
+# handed the wrong label and its errors are no longer silenced.
+label=wiki.qaq.apelind
+launch_plist="@PREFIX@/Library/LaunchDaemons/$label.plist"
+# A successful bootstrap reply alone does not prove a job was registered.
+loaded() {
+    for domain in system user/501 gui/501; do
+        if "$launchctl" print "$domain/$label" >/dev/null 2>&1; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+if launchctl="$(find_tool launchctl)"; then
+    # Roothide redirects system + plist to the foreground user's domain.
+    # Use the same path form for bootout; the service-label form does not
+    # make that redirection. Also clear labels left by previous versions.
+    "$launchctl" bootout system "$launch_plist" 2>/dev/null || true
+    "$launchctl" bootout "system/$label" 2>/dev/null || true
+    "$launchctl" bootout "user/501/$label" 2>/dev/null || true
+    "$launchctl" bootout "gui/501/$label" 2>/dev/null || true
+    "$launchctl" enable "system/$label" 2>/dev/null || true
+    waited=0
+    while loaded; do
+        if [ "$waited" -ge 15 ]; then
+            echo "error: Apelin's background service ($label) did not finish unloading. Try installing again." >&2
+            exit 1
+        fi
+        waited=$((waited + 1))
+        sleep 1
+    done
+    # Bootout returns before launchd finishes tearing down the old service.
+    # EALREADY during this interval can still leave no registered job.
+    attempt=0
+    while [ "$attempt" -lt 15 ]; do
+        failure="$("$launchctl" bootstrap system "$launch_plist" 2>&1)" || true
+        if loaded; then exit 0; fi
+        failure="$("$launchctl" bootstrap user/501 "$launch_plist" 2>&1)" || true
+        if loaded; then exit 0; fi
+        attempt=$((attempt + 1))
+        if [ "$attempt" -lt 15 ]; then sleep 1; fi
+    done
+    echo "error: Apelin's background service ($label) could not be registered: ${failure:-launchctl gave no reason}. Try installing again." >&2
+    exit 1
+else
+    echo "error: launchctl is required to register Apelin's background service ($label). Reinstall launchctl, then try again." >&2
+    exit 1
+fi
+
+exit 0

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+	apelin-diagnostics, started by apelind's session host as mobile.
+	Logs, crash reports, screenshots, the UI tree and UI actions through icli,
+	and, when a load check asks, what a tweak's target process has mapped; it
+	reads the target app's bundle and container, so it carries the storage
+	pair.
+
+	Each group below is a row of Packages/ApelinDiagnostics/README.md's
+	privilege matrix, read from icli 0.8.6's docs/entitlements.md. Only the
+	rows apelin-diagnostics serves are here: no pasteboard, keychain, install,
+	location, launchd or reboot key. None has been run from an Apelin process
+	on a device yet; icli verified them as a whole profile.
+
+	Never `wiki.qaq.apelin.client` and never the Mach-lookup of
+	`wiki.qaq.apelin.service`: a worker reaches the session host only
+	through the socketpair it was spawned with, and the packager refuses
+	either key here. Add what the domain needs, with the reason, in this
+	file only.
+-->
+<plist version="1.0">
+<dict>
+	<!-- Identity, and reading other processes' files and apps. -->
+	<key>com.apple.private.security.no-sandbox</key>
+	<true/>
+	<key>com.apple.private.security.storage.AppBundles</key>
+	<true/>
+	<key>com.apple.private.security.storage.AppDataContainers</key>
+	<true/>
+	<key>platform-application</key>
+	<true/>
+
+	<!-- Live log (logStream, apelin_log_read, the confirmLoaded marker). -->
+	<key>com.apple.private.logging.stream</key>
+	<true/>
+	<key>com.apple.diagnosticd.stream</key>
+	<true/>
+	<key>com.apple.private.logging.diagnostic</key>
+	<true/>
+
+	<!-- Crash reports (crashList, crashSymbolicate). -->
+	<key>com.apple.private.security.storage.DiagnosticReports.read-write</key>
+	<true/>
+
+	<!-- Screenshot (captureScreen). -->
+	<key>com.apple.QuartzCore.global-capture</key>
+	<true/>
+	<key>com.apple.QuartzCore.displayable-context</key>
+	<true/>
+	<key>com.apple.QuartzCore.secure-mode</key>
+	<true/>
+	<key>com.apple.private.allow-explicit-graphics-priority</key>
+	<true/>
+	<key>com.apple.private.IOSurface.protected-access</key>
+	<true/>
+
+	<!-- UI tree (readUITree, uiAction tapElement). -->
+	<key>com.apple.private.accessibility.inspection</key>
+	<true/>
+	<key>com.apple.accessibility.api</key>
+	<true/>
+
+	<!-- Taps, swipes and typing (uiAction). -->
+	<key>com.apple.private.hid.client.event-dispatch</key>
+	<true/>
+	<key>com.apple.hid.manager.user-access-device</key>
+	<true/>
+	<key>com.apple.backboard.client</key>
+	<true/>
+
+	<!-- IOKit classes: screenshot (IOSurface, framebuffer, JPEG) and HID. -->
+	<key>com.apple.security.iokit-user-client-class</key>
+	<array>
+		<string>IOSurfaceRootUserClient</string>
+		<string>IOSurfaceAcceleratorClient</string>
+		<string>IOMobileFramebufferUserClient</string>
+		<string>AppleJPEGDriverUserClient</string>
+		<string>IOHIDLibUserClient</string>
+		<string>IOHIDEventServiceFastPathUserClient</string>
+	</array>
+
+	<!-- Running apps by bundle id (confirmLoaded's target). -->
+	<key>com.apple.private.coreservices.canmaplsdatabase</key>
+	<true/>
+	<key>com.apple.private.coreservices.lsaw</key>
+	<true/>
+
+	<!-- Other processes' paths (confirmLoaded's target), and the kernel's
+	     region paths for the image check a request opts into. No task port
+	     key: reading SpringBoard's memory through one is the likeliest cause
+	     of the iOS 27 kernel panic of 2026-10-17, and nothing here reads
+	     another task's memory. -->
+	<key>proc_info-allow</key>
+	<true/>
+
+	<!-- Respring fallback when the host has no closed respring to give
+	     (confirmLoaded trigger): FrontBoard relaunch only; the launchd half
+	     needs root and is not attempted from here. -->
+	<key>com.apple.frontboard.shutdown</key>
+	<true/>
+	<key>com.apple.frontboard.launchapplications</key>
+	<true/>
+</dict>
+</plist>

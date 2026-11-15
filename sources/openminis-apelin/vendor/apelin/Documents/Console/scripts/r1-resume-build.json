@@ -1,0 +1,22 @@
+{
+  "name": "r1-resume-build",
+  "steps": [
+    {"op": "hello", "label": "hello"},
+    {"op": "projectCreate", "label": "project", "request": {
+      "templateID": "wiki.qaq.apelin.dev.tweak/objc-hook",
+      "name": "R1 Resume Tweak",
+      "values": {"packageID": "local.apelin.r1-resume", "displayName": "R1 Resume Tweak"}
+    }},
+    {"op": "buildStart", "label": "build", "follow": false, "request": {
+      "projectID": "${project.response.projectID}",
+      "configuration": "debug"
+    }},
+    {"op": "wait", "request": {"seconds": 20}},
+    {"op": "buildAttach", "label": "after-kill", "follow": true, "timeoutSeconds": 900, "request": {
+      "taskID": "${build.response.taskID}",
+      "afterSeq": 0,
+      "waitMilliseconds": 0
+    }},
+    {"op": "expect", "request": {"step": "after-kill", "state": "succeeded"}}
+  ]
+}

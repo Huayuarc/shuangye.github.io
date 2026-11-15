@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+	What an app installed into /Applications by a package needs on a
+	jailbroken device. Changing this file changes the build description, so
+	under Confirm the next build is reviewed.
+
+	platform-application and no-sandbox: an ad-hoc signed app outside any
+	container. Add com.apple.private.security.storage.AppBundles and
+	.AppDataContainers only if the app reads other apps' bundles or data.
+
+	The IOKit user-client classes name the GPU and what sits beside it. A
+	bootstrap withholds them from an ad-hoc signed binary until they are
+	named, and system frameworks reach for them inside every app's process:
+	IconServices composites the app's own icon through Core Image, and an app
+	without the list crashed at launch that way on an A12 iPhone on iOS 18
+	RootHide. Bold Text and the share sheet go the same way. Both spellings
+	of the key carry the same list.
+-->
+<plist version="1.0">
+<dict>
+	<key>application-identifier</key>
+	<string>{{bundleID}}</string>
+	<key>platform-application</key>
+	<true/>
+	<key>com.apple.private.security.no-sandbox</key>
+	<true/>
+	<key>com.apple.security.iokit-user-client-class</key>
+	<array>
+		<string>AGXCommandQueue</string>
+		<string>AGXDevice</string>
+		<string>AGXDeviceUserClient</string>
+		<string>AGXSharedUserClient</string>
+		<string>AGXGLContext</string>
+		<string>AppleParavirtDeviceUserClient</string>
+		<string>IOAccelerator</string>
+		<string>IOAccelContext</string>
+		<string>IOAccelContext2</string>
+		<string>IOAccelDevice</string>
+		<string>IOAccelDevice2</string>
+		<string>IOAccelSharedUserClient</string>
+		<string>IOAccelSharedUserClient2</string>
+		<string>IOAccelSubmitter2</string>
+		<string>IOGPUDeviceUserClient</string>
+		<string>IOSurfaceRootUserClient</string>
+		<string>IOSurfaceAcceleratorClient</string>
+		<string>IOSurfaceAcceleratorParavirtClient</string>
+		<string>IOMobileFramebufferUserClient</string>
+		<string>AppleJPEGDriverUserClient</string>
+		<string>H11ANEInDirectPathClient</string>
+		<string>AppleVirtIONeuralEngineDeviceUserClient</string>
+		<string>IOHIDLibUserClient</string>
+		<string>IOHIDEventServiceFastPathUserClient</string>
+	</array>
+	<key>com.apple.security.exception.iokit-user-client-class</key>
+	<array>
+		<string>AGXCommandQueue</string>
+		<string>AGXDevice</string>
+		<string>AGXDeviceUserClient</string>
+		<string>AGXSharedUserClient</string>
+		<string>AGXGLContext</string>
+		<string>AppleParavirtDeviceUserClient</string>
+		<string>IOAccelerator</string>
+		<string>IOAccelContext</string>
+		<string>IOAccelContext2</string>
+		<string>IOAccelDevice</string>
+		<string>IOAccelDevice2</string>
+		<string>IOAccelSharedUserClient</string>
+		<string>IOAccelSharedUserClient2</string>
+		<string>IOAccelSubmitter2</string>
+		<string>IOGPUDeviceUserClient</string>
+		<string>IOSurfaceRootUserClient</string>
+		<string>IOSurfaceAcceleratorClient</string>
+		<string>IOSurfaceAcceleratorParavirtClient</string>
+		<string>IOMobileFramebufferUserClient</string>
+		<string>AppleJPEGDriverUserClient</string>
+		<string>H11ANEInDirectPathClient</string>
+		<string>AppleVirtIONeuralEngineDeviceUserClient</string>
+		<string>IOHIDLibUserClient</string>
+		<string>IOHIDEventServiceFastPathUserClient</string>
+	</array>
+</dict>
+</plist>

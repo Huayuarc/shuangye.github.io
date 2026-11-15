@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "id": "wiki.qaq.apelin.dev.tweak",
+  "version": "0.1.1",
+  "kind": "tweak",
+  "displayName": "Tweak Development",
+  "summary": "Objective-C tweaks that hook through the substrate-compatible API, with a process filter and package layout.",
+  "apelinCompatibility": {
+    "minimumAppVersion": "0.1.0",
+    "projectSchemaVersions": [1],
+    "manifestSchemaVersion": 1
+  },
+  "requirements": {
+    "toolchainComponents": ["c-family"],
+    "languages": ["objc"],
+    "sdkFrameworks": ["Foundation", "UIKit"],
+    "bootstraps": ["rootless", "roothide"],
+    "architectures": {
+      "rootless": ["arm64", "arm64e"],
+      "roothide": ["arm64e"]
+    },
+    "runtimeDependencies": {
+      "rootless": ["mobilesubstrate"],
+      "roothide": ["mobilesubstrate"]
+    }
+  },
+  "support": {
+    "substrate": {
+      "summary": "Substrate-compatible hooking API: MSHookMessageEx, MSHookFunction, MSGetImageByName, MSFindSymbol.",
+      "includeDirectories": ["support/include"],
+      "linkStubDirectories": {
+        "rootless": "support/lib/rootless",
+        "roothide": "support/lib/roothide"
+      },
+      "libraries": ["substrate"],
+      "rpaths": {
+        "rootless": ["@PREFIX@/Library/Frameworks", "@PREFIX@/usr/lib"],
+        "roothide": []
+      },
+      "installNames": {
+        "rootless": "@rpath/CydiaSubstrate.framework/CydiaSubstrate",
+        "roothide": "@loader_path/.jbroot/usr/lib/libsubstrate.dylib"
+      },
+      "symbols": ["_MSFindSymbol", "_MSGetImageByName", "_MSHookFunction", "_MSHookMessageEx"],
+      "architectures": ["arm64", "arm64e"],
+      "runtimeDependencies": {
+        "rootless": ["mobilesubstrate"],
+        "roothide": ["mobilesubstrate"]
+      },
+      "spdx": "MIT",
+      "license": "LICENSE"
+    }
+  },
+  "templates": [
+    {
+      "id": "objc-hook",
+      "directory": "templates/objc-hook",
+      "displayName": "Objective-C Tweak",
+      "summary": "A dylib injected into SpringBoard that hooks -[SpringBoard applicationDidFinishLaunching:] and logs when it loads.",
+      "language": "objc",
+      "toolchainComponents": ["c-family"],
+      "project": "apelin-project.json",
+      "parameters": [
+        {
+          "name": "productName",
+          "type": "identifier",
+          "label": "Product Name",
+          "help": "The dylib and filter file name.",
+          "required": true,
+          "default": "ApelinTweak"
+        },
+        {
+          "name": "displayName",
+          "type": "string",
+          "label": "Package Name",
+          "default": "Apelin Tweak",
+          "maxLength": 64
+        },
+        {
+          "name": "summary",
+          "type": "string",
+          "label": "Description",
+          "default": "Built on this device with Apelin.",
+          "maxLength": 200
+        },
+        {
+          "name": "author",
+          "type": "string",
+          "label": "Author",
+          "default": "Apelin User",
+          "maxLength": 64
+        },
+        {
+          "name": "filterBundles",
+          "type": "bundleIDList",
+          "label": "Inject Into",
+          "help": "Bundle identifiers of the processes the tweak is loaded into.",
+          "default": ["com.apple.springboard"]
+        }
+      ],
+      "files": [
+        { "path": "apelin-project.json", "format": "json" },
+        { "path": "Sources/Tweak.m", "format": "objc" }
+      ],
+      "digest": "sha256:f7aa0129fcb88ba57ea493d55f34828fd0bc1a435e5a0e3145dedf16118d4dc6"
+    }
+  ],
+  "provenance": [
+    {
+      "scope": "template:objc-hook",
+      "origin": "imported",
+      "repository": "local:platformize-tweak-ios",
+      "commit": "26910cd8c524165a085232d72559b66ae0cc298c",
+      "paths": ["template/src/tweak.m", "template/packaging/TWEAK.plist", "template/configuration/depends.env", "template/scripts/build-ios.sh"],
+      "adaptations": [
+        "Kept: one constructor, identity check before any hook, os_log subsystem equal to the package id, the filter scoped to SpringBoard, mobilesubstrate as the provider dependency, the compile flags (-fvisibility=hidden, -Werror=unguarded-availability-new, -ffile-prefix-map) and the dSYM-before-strip order, now apelin-build's fixed baseline.",
+        "Changed: the runtime-only TW_HOOK table is replaced by one MSHookMessageEx call through the extension's substrate support, so the template exercises the declared hook API; the filter plist becomes package.tweakFilter; build.env/version.txt become apelin-project.json; the badge example becomes a SpringBoard launch hook.",
+        "Added: the ApelinLoaded <build id> and ApelinHooked markers confirm_loaded reads.",
+        "Added: package.icon, this extension's icon on Apelin's Pages, written as the control's Icon so a package manager shows it beside the package.",
+        "Dropped: the kill-switch file, the preferences reader and the helper daemon (other templates or later work), and the Mac-side scripts.",
+        "The hook target is the one Documents/Research/ApelinHello validated on the iOS 27 vphone."
+      ]
+    },
+    {
+      "scope": "support:substrate",
+      "origin": "written",
+      "adaptations": [
+        "substrate.h is written for Apelin from the published signatures. The two .tbd stubs are hand-written; their install names follow the layout the bootstraps' ElleKit packages install and Theos's own rootless/roothide stubs link against (owngoal-dev/theos-lib 514d139524300afd2fe04dc69e4be361f872c39d), read for the install names only."
+      ]
+    }
+  ],
+  "licenses": [
+    { "path": "LICENSE", "spdx": "MIT", "covers": ["template:objc-hook", "support:substrate", "manifest"] }
+  ]
+}

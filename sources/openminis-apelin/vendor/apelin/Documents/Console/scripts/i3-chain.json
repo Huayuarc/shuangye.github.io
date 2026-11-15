@@ -1,0 +1,49 @@
+{
+  "name": "i3-chain",
+  "steps": [
+    {"op": "hello", "label": "hello"},
+    {"op": "extensionList", "label": "extensions"},
+    {"op": "projectCreate", "label": "project", "request": {
+      "templateID": "wiki.qaq.apelin.dev.tweak/objc-hook",
+      "name": "I3 Chain Tweak",
+      "values": {"packageID": "local.apelin.i3-chain", "displayName": "I3 Chain Tweak"}
+    }},
+    {"op": "expect", "request": {"step": "project", "path": "response.baseline.projectID", "exists": true}},
+    {"op": "projectRename", "label": "renamed", "request": {"projectID": "${project.response.projectID}", "displayName": "I3 Chain Verification", "onlyIfAutomatic": false}},
+    {"op": "expect", "request": {"step": "renamed", "path": "response.projectID", "equals": "${project.response.projectID}"}},
+    {"op": "expect", "request": {"step": "renamed", "path": "response.displayName", "equals": "I3 Chain Verification"}},
+    {"op": "projectCheck", "label": "check", "request": {"projectID": "${project.response.projectID}"}},
+    {"op": "expect", "request": {"step": "check", "path": "response.passed", "equals": true}},
+    {"op": "buildStart", "label": "build", "timeoutSeconds": 900, "request": {
+      "projectID": "${project.response.projectID}",
+      "configuration": "debug"
+    }},
+    {"op": "expect", "request": {"step": "build", "state": "succeeded"}},
+    {"op": "expect", "request": {"step": "build", "path": "lastEvent.payload.artifactID", "exists": true}},
+    {"op": "installPackage", "label": "install", "request": {
+      "artifactID": "${build.lastEvent.payload.artifactID}",
+      "digest": "${build.lastEvent.payload.digest}"
+    }},
+    {"op": "expect", "request": {"step": "install", "state": "succeeded"}},
+    {"op": "installationList", "label": "installed", "request": {"projectID": "${project.response.projectID}"}},
+    {"op": "expect", "request": {"step": "installed", "path": "response.installations.0.installationID", "equals": "${install.lastEvent.payload.result.installationID}"}},
+    {"op": "expect", "request": {"step": "installed", "path": "response.installations.0.packageID", "equals": "local.apelin.i3-chain"}},
+    {"op": "confirmLoaded", "label": "loaded", "timeoutSeconds": 120, "request": {
+      "buildID": "${build.lastEvent.payload.buildID}",
+      "targetID": "com.apple.springboard",
+      "projectID": "${project.response.projectID}",
+      "trigger": "respring",
+      "logWindowSeconds": 45
+    }},
+    {"op": "expect", "request": {"step": "loaded", "state": "succeeded"}},
+    {"op": "expect", "request": {"step": "loaded", "path": "lastEvent.payload.result.loaded", "equals": true}},
+    {"op": "expect", "request": {"step": "loaded", "path": "lastEvent.payload.result.evidence.0.kind", "equals": "log"}},
+    {"op": "expect", "request": {"step": "loaded", "path": "lastEvent.payload.result.evidence.0.passed", "equals": true}},
+    {"op": "expect", "request": {"step": "loaded", "path": "lastEvent.payload.result.evidence.1.kind", "equals": "image"}},
+    {"op": "expect", "request": {"step": "loaded", "path": "lastEvent.payload.result.evidence.1.passed", "equals": false}},
+    {"op": "removePackage", "label": "remove", "request": {
+      "installationID": "${install.lastEvent.payload.result.installationID}"
+    }},
+    {"op": "expect", "request": {"step": "remove", "state": "succeeded"}}
+  ]
+}

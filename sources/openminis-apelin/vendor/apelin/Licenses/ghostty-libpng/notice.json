@@ -1,0 +1,6 @@
+{
+  "name": "libpng (in libghostty)",
+  "url": "https://github.com/pnggroup/libpng",
+  "version": "1.6.43",
+  "note": "Compiled into libghostty.a (ghostty 1e9e14af5df1 as built into libghostty-spm 2.2.2026101502 (GhosttyKit.xcframework upstream.1e9e14af5df1-3)), a prebuilt static library with no license file of its own. Fetched from https://deps.files.ghostty.org/libpng-1220aa013f0c83da3fb64ea6d327f9173fa008d10e28bc9349eac3463457723b1c66.tar.gz -> LICENSE."
+}

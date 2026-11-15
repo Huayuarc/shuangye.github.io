@@ -28,3 +28,4 @@ exclude:
   - Gemfile.lock
   - README.md
   - vendor/
+  - sources/

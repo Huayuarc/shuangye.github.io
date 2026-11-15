@@ -1,0 +1,16 @@
+--- !tapi-tbd
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 OwnGoal Studio
+# Link stub for the rootless `mobilesubstrate` provider. ElleKit installs
+# /var/jb/Library/Frameworks/CydiaSubstrate.framework/CydiaSubstrate; the
+# tweak carries LC_RPATH /var/jb/Library/Frameworks (manifest rpaths).
+tbd-version:     4
+targets:         [ arm64-ios, arm64e-ios ]
+install-name:    '@rpath/CydiaSubstrate.framework/CydiaSubstrate'
+current-version: 0
+compatibility-version: 0
+exports:
+  - targets:         [ arm64-ios, arm64e-ios ]
+    symbols:         [ _MSFindSymbol, _MSGetImageByName, _MSHookFunction,
+                       _MSHookMessageEx ]
+...

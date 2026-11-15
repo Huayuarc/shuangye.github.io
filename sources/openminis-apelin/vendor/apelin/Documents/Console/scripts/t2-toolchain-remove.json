@@ -1,0 +1,14 @@
+{
+  "name": "t2-toolchain-remove",
+  "steps": [
+    {"op": "hello"},
+    {"op": "toolchainStatus", "label": "before"},
+    {"op": "expect", "request": {"step": "before", "path": "response.toolchains.0.installationID", "exists": true}},
+    {"op": "toolchainRemove", "request": {"id": "${before.response.toolchains.0.id}"}, "label": "remove", "timeoutSeconds": 600},
+    {"op": "expect", "request": {"step": "remove", "state": "succeeded"}},
+    {"op": "toolchainStatus", "label": "after"},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains", "equals": []}},
+    {"op": "removePackage", "request": {"installationID": "${before.response.toolchains.0.installationID}"}, "label": "again", "allowError": true},
+    {"op": "expect", "request": {"step": "again", "errorCode": "denied"}}
+  ]
+}

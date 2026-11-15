@@ -1,0 +1,11 @@
+{
+  "name": "t5-toolchain-auto-sdk",
+  "steps": [
+    {"op": "hello"},
+    {"op": "toolchainSetup", "request": {"source": {"appleCatalog": {"productID": "052-59890"}}, "components": ["c"]}, "label": "setup", "timeoutSeconds": 3600},
+    {"op": "expect", "request": {"step": "setup", "state": "succeeded"}},
+    {"op": "toolchainStatus", "label": "installed"},
+    {"op": "sdkList", "request": {"includeSources": true}, "label": "sdks"},
+    {"op": "expect", "request": {"step": "sdks", "path": "response.sources.0.enabled", "equals": true}}
+  ]
+}

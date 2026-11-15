@@ -1,0 +1,38 @@
+{
+  "name": "i6-tool-attachments",
+  "setup": [
+    "Install the disassembler agent tool extension 1.1.0 or later (wiki.qaq.apelin.agent-tools.disassembler, from build/Packages/ after make deb-agent-tools) with your preferred package manager: 1.1.0 adds symbols{output: file}, which returns the listing as an attachment.",
+    "Proves toolHostCall carries a tool's file back. The console keeps no descriptors, so the file is observed through what the host says about the copy it made: response.attachments.0 has mimeType, name, byteCount and sha256 (of the bytes behind the read-only descriptor the console was handed and closed).",
+    "Pass: the run ends ok. The page call answers inline text and no attachment; the file call answers a one-line summary and one text/plain attachment named dyld.symbols.txt with a byteCount above zero; a second identical call answers the same sha256 (the copy is the bytes, read whole each time). The close ends the extension.",
+    "Afterwards, as root: ls -la <install root>/var/lib/apelin/attachments/ is empty (each copy is unlinked the moment it is opened), and no apelin-disassembler process is left (ps ax | grep apelin-disassembler)."
+  ],
+  "steps": [
+    {"op": "hello"},
+    {"op": "toolHostOpen", "label": "open", "request": {"id": "wiki.qaq.apelin.agent-tools.disassembler"}},
+    {
+      "op": "toolHostCall",
+      "label": "page",
+      "request": {"sessionID": "${open.response.sessionID}", "tool": "symbols", "arguments": {"binary": "/usr/lib/dyld", "kind": "defined", "limit": 5}}
+    },
+    {
+      "op": "toolHostCall",
+      "label": "file",
+      "request": {"sessionID": "${open.response.sessionID}", "tool": "symbols", "arguments": {"binary": "/usr/lib/dyld", "kind": "defined", "output": "file"}}
+    },
+    {
+      "op": "toolHostCall",
+      "label": "file-again",
+      "request": {"sessionID": "${open.response.sessionID}", "tool": "symbols", "arguments": {"binary": "/usr/lib/dyld", "kind": "defined", "output": "file"}}
+    },
+    {"op": "toolHostClose", "request": {"sessionID": "${open.response.sessionID}"}},
+    {"op": "expect", "request": {"step": "page", "path": "response.error", "exists": false}},
+    {"op": "expect", "request": {"step": "page", "path": "response.attachments.0", "exists": false}},
+    {"op": "expect", "request": {"step": "file", "path": "response.error", "exists": false}},
+    {"op": "expect", "request": {"step": "file", "path": "response.attachments.0.mimeType", "equals": "text/plain"}},
+    {"op": "expect", "request": {"step": "file", "path": "response.attachments.0.name", "equals": "dyld.symbols.txt"}},
+    {"op": "expect", "request": {"step": "file", "path": "response.attachments.0.byteCount", "exists": true}},
+    {"op": "expect", "request": {"step": "file", "path": "response.attachments.0.descriptor.index", "equals": 0}},
+    {"op": "expect", "request": {"step": "file", "path": "response.attachments.1", "exists": false}},
+    {"op": "expect", "request": {"step": "file-again", "path": "response.attachments.0.sha256", "equals": "${file.response.attachments.0.sha256}"}}
+  ]
+}

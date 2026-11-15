@@ -1,0 +1,6 @@
+{
+  "name": "Ghostty (in libghostty)",
+  "url": "https://github.com/ghostty-org/ghostty",
+  "version_file": "libghostty-spm/Ghostty.ref",
+  "note": "libghostty-spm ships Ghostty as a prebuilt XCFramework with no license file; this is ghostty-org/ghostty's LICENSE at the ref the package builds from (Ghostty.ref), the same text iGhostVT reviewed."
+}

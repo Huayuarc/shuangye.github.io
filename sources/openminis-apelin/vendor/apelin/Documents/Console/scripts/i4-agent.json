@@ -1,0 +1,32 @@
+{
+  "name": "i4-agent",
+  "steps": [
+    {"op": "hello"},
+    {
+      "op": "agentCredentialImport",
+      "label": "credentials",
+      "allowError": true
+    },
+    {
+      "op": "projectCreate",
+      "label": "project",
+      "request": {"templateID": "wiki.qaq.apelin.dev.tweak/objc-hook", "name": "Hello", "values": {}},
+      "allowError": true
+    },
+    {
+      "op": "agentOpen",
+      "label": "agent",
+      "request": {
+        "projectName": "Hello",
+        "provider": "githubCopilot",
+        "model": "claude-sonnet-5.5",
+        "approvalMode": "relaxed",
+        "prompt": "change the hello marker text, build, install, respring and confirm it loaded",
+        "closeWhenFinished": true
+      },
+      "follow": true,
+      "timeoutSeconds": 3600
+    },
+    {"op": "expect", "request": {"step": "agent", "state": "succeeded"}}
+  ]
+}

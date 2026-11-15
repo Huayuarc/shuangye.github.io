@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "projectID": "bac78ee8-eb34-559c-9db9-c5f880280aa1",
+  "kind": "cli",
+  "template": {
+    "extensionID": "wiki.qaq.apelin.dev.cli",
+    "templateID": "c",
+    "version": "0.1.2",
+    "digest": "sha256:ba1812f5d18b75f193dde0277db553e147c1f01e2f0e7f14fe1eb43907dc59ff"
+  },
+  "environment": {
+    "toolchain": {
+      "id": "clt-27.0-sample",
+      "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+    },
+    "sdk": {
+      "id": "iPhoneOS27.0-00000000",
+      "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+    }
+  },
+  "language": "c",
+  "deploymentTarget": "16.0",
+  "architectures": {
+    "rootless": [
+      "arm64",
+      "arm64e"
+    ],
+    "roothide": [
+      "arm64e"
+    ]
+  },
+  "configurations": {
+    "Debug": {
+      "optimization": "0",
+      "debugInfo": true,
+      "defines": {
+        "DEBUG": "1"
+      }
+    },
+    "Release": {
+      "optimization": "2",
+      "debugInfo": true
+    }
+  },
+  "products": [
+    {
+      "id": "tool",
+      "type": "executable",
+      "name": "apelinhello",
+      "sources": [
+        "Sources/*.c"
+      ],
+      "headerSearchPaths": [
+        "Sources"
+      ],
+      "entitlements": "Packaging/Tool.entitlements"
+    }
+  ],
+  "build": {
+    "steps": [
+      {
+        "type": "compile",
+        "product": "tool"
+      },
+      {
+        "type": "link",
+        "product": "tool"
+      },
+      {
+        "type": "lipo",
+        "product": "tool"
+      },
+      {
+        "type": "dsym",
+        "product": "tool"
+      },
+      {
+        "type": "strip",
+        "product": "tool",
+        "style": "non-global"
+      },
+      {
+        "type": "sign",
+        "product": "tool",
+        "identity": "adhoc"
+      }
+    ]
+  },
+  "package": {
+    "id": "com.example.apelinhello",
+    "name": "Apelin Hello",
+    "version": "0.0.1",
+    "description": "Built on this device with Apelin.",
+    "icon": "https://owngoal-dev.github.io/Apelin/icons/wiki.qaq.apelin.dev.cli.png",
+    "author": "Apelin User",
+    "section": "Utilities",
+    "layout": [
+      {
+        "path": "/usr/bin/apelinhello",
+        "product": "tool",
+        "mode": "0755"
+      }
+    ]
+  }
+}
