@@ -163,11 +163,3 @@ src/android/app/libs/rclone.aar
 deps/aot/*.S
 deps/aot/.build/
 deps/aot/.build-iphonesimulator/
-
-# Archive handoff may contain local LAME object remnants; never publish them.
-deps/lame-3.100/**/*.o
-deps/lame-3.100/**/*.lo
-# Recreated at exact manifest commits by CI, not vendored branch heads.
-deps/ish/
-deps/proot/
-!**/Package.resolved

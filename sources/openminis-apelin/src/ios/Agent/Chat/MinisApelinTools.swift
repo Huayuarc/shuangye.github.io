@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import CryptoKit
+import MinisNativeDevelopment
 
 /// Read-only tools that do not require the privileged development backend.
 /// The existing iSH shell and file tools keep their Linux semantics.
@@ -162,7 +163,7 @@ final class MinisDevelopmentContextStore {
         guard !id.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw MinisApelinTools.ToolError.invalidArgument("Empty verified project identity")
         }
-        MinisDevelopmentApprovals.shared.cancelAll()
+        MinisNativeDevelopmentHost.shared.invalidateContext()
         // Selecting a project always resets to conservative defaults.
         snapshot = .init(mode: .strict, asksBeforeScreen: true,
                          projectID: id, revision: UUID())
@@ -171,13 +172,13 @@ final class MinisDevelopmentContextStore {
     /// Only a local settings action may call this; never a tool argument.
     func updateLocalSettings(mode: MinisDevelopmentPolicy.Mode, asksBeforeScreen: Bool) {
         guard let current = snapshot else { return }
-        MinisDevelopmentApprovals.shared.cancelAll()
+        MinisNativeDevelopmentHost.shared.invalidateContext()
         snapshot = .init(mode: mode, asksBeforeScreen: asksBeforeScreen,
                          projectID: current.projectID, revision: UUID())
     }
 
     func clearSelection() {
-        MinisDevelopmentApprovals.shared.cancelAll()
+        MinisNativeDevelopmentHost.shared.invalidateContext()
         snapshot = nil
     }
 }
@@ -225,6 +226,7 @@ final class MinisDevelopmentApprovals: ObservableObject {
         let id: UUID
         let invocation: Invocation
         let reason: String
+        let serviceReview: ServiceReview?
     }
 
     @Published private(set) var pending: [Request] = []
@@ -234,7 +236,8 @@ final class MinisDevelopmentApprovals: ObservableObject {
 
     /// All requests remain denied unless their exact visible request is approved.
     /// Multiple calls can wait independently; cancellation removes only its call.
-    func request(_ invocation: Invocation, reason: String) async -> Bool {
+    func request(_ invocation: Invocation, reason: String,
+                 serviceReview: ServiceReview? = nil) async -> Bool {
         let id = UUID()
         let allowed = await withTaskCancellationHandler(operation: {
             await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
@@ -243,7 +246,8 @@ final class MinisDevelopmentApprovals: ObservableObject {
                     return
                 }
                 continuations[id] = continuation
-                pending.append(Request(id: id, invocation: invocation, reason: reason))
+                pending.append(Request(id: id, invocation: invocation, reason: reason,
+                                       serviceReview: serviceReview))
             }
         }, onCancel: {
             Task { @MainActor in self.resolve(id, fingerprint: invocation.fingerprint, allowed: false) }
@@ -296,6 +300,181 @@ final class MinisDevelopmentApprovals: ObservableObject {
     func cancel(sessionID: String) {
         for request in pending.filter({ $0.invocation.sessionID == sessionID }) {
             resolve(request.id, fingerprint: request.invocation.fingerprint, allowed: false)
+        }
+    }
+}
+
+/// Trusted UI/host boundary for the independent native service. The model-facing
+/// dispatcher can request an operation, but never receives the signer, connection,
+/// challenge credential, executable URL, or project registration.
+@MainActor
+final class MinisNativeDevelopmentHost {
+    static let shared = MinisNativeDevelopmentHost()
+
+    private var connection: NativeConnection?
+    private var signer: DecisionSigner?
+    private var boundContext: MinisDevelopmentApprovals.Context?
+    private var connectionGeneration = UUID()
+
+    private init() {}
+
+    var backendAvailable: Bool { connection != nil && signer != nil && boundContext != nil }
+
+    static func isChallengeLive(expiresAt: TimeInterval, now: TimeInterval) -> Bool {
+        expiresAt.isFinite && now.isFinite && expiresAt > now
+    }
+
+    /// Called only by trusted host startup with a bundled executable and a verified
+    /// project record. On iOS the package throws unsupportedPlatform and this method
+    /// leaves the backend unavailable; there is deliberately no in-process fallback.
+    func connect(executable: URL, project: ProjectRegistration, sessions: [String],
+                 context: MinisDevelopmentApprovals.Context) async throws {
+        invalidateContext()
+        let generation = connectionGeneration
+        let pair: (NativeConnection, DecisionSigner)
+        do {
+            pair = try await withTaskCancellationHandler(operation: {
+                try await withCheckedThrowingContinuation { continuation in
+                    DispatchQueue.global(qos: .userInitiated).async {
+                        do {
+                            continuation.resume(returning: try NativeConnection.connect(
+                                executable: executable, projects: [project], sessions: sessions))
+                        } catch {
+                            continuation.resume(throwing: error)
+                        }
+                    }
+                }
+            }, onCancel: {
+                Task { @MainActor in
+                    self.invalidateConnection(generation: generation)
+                }
+            })
+        } catch {
+            invalidateConnection(generation: generation)
+            throw error
+        }
+
+        guard connectionGeneration == generation,
+              MinisDevelopmentContextStore.shared.snapshot == context,
+              !Task.isCancelled else {
+            pair.0.disconnect()
+            if Task.isCancelled { throw CancellationError() }
+            throw MinisApelinTools.ToolError.invalidArgument("Development context changed during backend launch")
+        }
+        connection = pair.0
+        signer = pair.1
+        boundContext = context
+    }
+
+    func invalidateContext() {
+        connectionGeneration = UUID()
+        MinisDevelopmentApprovals.shared.cancelAll()
+        connection?.disconnect()
+        connection = nil
+        signer = nil
+        boundContext = nil
+    }
+
+    private func invalidateConnection(generation: UUID) {
+        guard connectionGeneration == generation else { return }
+        invalidateContext()
+    }
+
+    /// Stop is conservative: revoke the visible approvals and close the whole
+    /// capability connection so blocked RPC and every outstanding challenge die.
+    func cancel(sessionID: String) {
+        MinisDevelopmentApprovals.shared.cancel(sessionID: sessionID)
+        invalidateContext()
+    }
+
+    func execute(_ operation: NativeOperation, invocation: MinisDevelopmentApprovals.Invocation,
+                 descriptionDigest: String) async throws -> String {
+        guard !Task.isCancelled,
+              let connection, let signer, let original = boundContext,
+              MinisDevelopmentContextStore.shared.snapshot == original,
+              invocation.sessionID.isEmpty == false,
+              invocation.projectID == original.projectID,
+              invocation.tool == operation.rawValue,
+              invocation.descriptionDigest == descriptionDigest else {
+            throw MinisApelinTools.ToolError.invalidArgument("Native development backend unavailable or context mismatch")
+        }
+
+        let call = Call(session: invocation.sessionID, project: invocation.projectID,
+                        operation: operation, cwd: invocation.workingDirectory,
+                        descriptionDigest: descriptionDigest)
+        return try await withTaskCancellationHandler(operation: {
+            let prepared = try await rpc { try connection.prepare(call) }
+            guard !Task.isCancelled,
+                  self.connection === connection, self.boundContext == original,
+                  MinisDevelopmentContextStore.shared.snapshot == original else {
+                if Task.isCancelled { throw CancellationError() }
+                throw MinisApelinTools.ToolError.invalidArgument("Development context changed")
+            }
+
+            if operation == .hostEnvironment {
+                guard !Task.isCancelled,
+                      prepared.challenge == nil, let environment = prepared.environment else {
+                    if Task.isCancelled { throw CancellationError() }
+                    throw MinisApelinTools.ToolError.invalidArgument("Invalid host environment reply")
+                }
+                let data = try JSONSerialization.data(withJSONObject: environment,
+                                                      options: [.sortedKeys, .prettyPrinted])
+                guard !Task.isCancelled else { throw CancellationError() }
+                return String(decoding: data, as: UTF8.self)
+            }
+
+            guard let challenge = prepared.challenge, let facts = challenge.facts,
+                  facts.operation == operation, facts.requiresAsk,
+                  challenge.call == call,
+                  challenge.canonicalRoot == invocation.workingDirectory,
+                  facts.canonicalRoot == invocation.workingDirectory,
+                  facts.descriptionDigest == descriptionDigest,
+                  Self.isChallengeLive(expiresAt: challenge.expiresAt,
+                                       now: ProcessInfo.processInfo.systemUptime) else {
+                throw MinisApelinTools.ToolError.invalidArgument("Invalid authenticated service review")
+            }
+
+            let approved = await MinisDevelopmentApprovals.shared.request(
+                invocation, reason: challenge.review, serviceReview: challenge)
+            guard self.connection === connection, self.signer === signer,
+                  self.boundContext == original,
+                  MinisDevelopmentContextStore.shared.snapshot == original,
+                  Self.isChallengeLive(expiresAt: challenge.expiresAt,
+                                       now: ProcessInfo.processInfo.systemUptime),
+                  !Task.isCancelled else {
+                if self.connection === connection { self.invalidateContext() }
+                throw CancellationError()
+            }
+
+            let decision: Decision = approved ? .allowOnce : .deny
+            let reply = try await rpc { try connection.decide(signer.sign(challenge, decision: decision)) }
+            guard !Task.isCancelled,
+                  self.connection === connection, self.signer === signer,
+                  self.boundContext == original,
+                  MinisDevelopmentContextStore.shared.snapshot == original else {
+                if Task.isCancelled { throw CancellationError() }
+                throw MinisApelinTools.ToolError.invalidArgument("Development context changed")
+            }
+            guard approved else {
+                throw MinisApelinTools.ToolError.invalidArgument("Native development operation denied")
+            }
+            guard reply.markerCreated == true else {
+                throw MinisApelinTools.ToolError.invalidArgument("Native development service did not confirm execution")
+            }
+            return "{\"markerCreated\":true}"
+        }, onCancel: {
+            Task { @MainActor in
+                if self.connection === connection { self.invalidateContext() }
+            }
+        })
+    }
+
+    private func rpc<T>(_ body: @escaping () throws -> T) async throws -> T {
+        try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                do { continuation.resume(returning: try body()) }
+                catch { continuation.resume(throwing: error) }
+            }
         }
     }
 }

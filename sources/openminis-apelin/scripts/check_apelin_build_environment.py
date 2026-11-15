@@ -19,7 +19,7 @@ report = {
     'minimumSwiftForFullApelinAgent': '6.1',
     'minimumHostDeployment': '16.0',
     'upstreamWidgetDeployment': '16.2',
-    'currentIntegration': 'built-in skills and status tools only',
+    'currentIntegration': 'read-only host tools; independent native package in source, iOS launcher unsupported',
 }
 # Do not print environment paths: a resolved roothide root is temporary.
 if report['commands']['swiftc']:

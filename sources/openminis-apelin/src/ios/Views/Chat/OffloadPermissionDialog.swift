@@ -72,6 +72,16 @@ private struct DevelopmentPermissionDialogContent: View {
                     Text(verbatim: "Project: " + request.invocation.projectID)
                     Text(verbatim: "Directory: " + request.invocation.workingDirectory)
                     Text(verbatim: request.invocation.canonicalArguments).font(.footnote.monospaced())
+                    if let review = request.serviceReview {
+                        Text("Authenticated Service Review").font(.headline)
+                        Text(verbatim: review.review)
+                        Text(verbatim: "Operation: " + review.call.tool)
+                        Text(verbatim: "Canonical root: " + review.canonicalRoot)
+                        Text(verbatim: "Expires at uptime: " + String(review.expiresAt))
+                        if let facts = review.facts, let marker = facts.markerName {
+                            Text(verbatim: "Fixed marker: " + marker)
+                        }
+                    }
                     if let digest = request.invocation.descriptionDigest {
                         Text(verbatim: "Description digest: " + digest).font(.footnote.monospaced())
                     }

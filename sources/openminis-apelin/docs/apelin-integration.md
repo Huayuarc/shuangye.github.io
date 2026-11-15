@@ -27,20 +27,25 @@ from Linux tool availability. Available tools advertise only connected features.
 Compatibility targets iOS 16, preserving host features through reviewed API
 availability handling. RootHide resolves its changing bootstrap path at runtime;
 rootless uses its own logical prefix. Neither compatibility nor either package
-has been verified. Full Swift compilation and dual-bootstrap release packaging
-await actual macOS CI results. Source upload and normal push to the existing
-public `Huayuarc/shuangye.github.io` repository on `main` are user-authorized;
-no new remote is authorized. The independent workflow compiles unsigned for
-diagnostics only; it does not publish an app, service or release package.
+has been verified. The user has authorized CI source transfer and normal pushes
+to the existing public `Huayuarc/shuangye.github.io` repository on `main`.
+The integration uses `sources/openminis-apelin` and an independent
+`build-openminis-apelin.yml`; existing Theos workflows are preserved. This
+permission does not establish a successful build or authorize release publication.
+The unsigned Minis Release baseline compiled successfully in CI at source commit
+`bf24258847ed6406d78107049dd882a9d1a151c6` (Actions run `43696702961`,
+job `132758742001`). That baseline does not validate subsequent native-service
+changes, iOS runtime compatibility, signing or dual-bootstrap release packages.
 
 Current source review: definitions append to the host registry, the concurrent
 host dispatcher handles the four read-only integration tools, and the existing
-Linux shell branch remains separate. The embedded skills, partial policy and
-approval queue follow this architecture. Native execution, complete approval
-policy and independent service integration are still missing, so the architecture
-is not evidence that those capabilities work.
+Linux shell branch remains separate. The embedded skills, partial policy,
+approval queue and private minimal-service adapter follow this architecture.
+Model-facing native execution, complete approval policy and an independent iOS
+launcher are still missing, so this source architecture does not establish that
+those capabilities work.
 
-## Native authorization protocol boundary (design, not a transport)
+## Native authorization boundary and independent transport
 
 The local context store has no tool-facing configuration entry point. Its
 snapshot starts absent; verified host project selection initializes Strict and
@@ -50,7 +55,8 @@ project selection or settings to this store. The gate refuses an absent snapshot
 An arbitrary nonempty ID is not project verification: the future caller must
 resolve a host-owned project record and root before calling the selection API.
 
-Before implementing IPC, the independent service must own this sequence:
+Before enabling additional IPC operations, the independent service must own this
+sequence (the minimal implementation below covers only its fixed preset):
 
 1. Authenticate the host connection under independent identities and resolve a
    registered project root. Reject missing/unverified identity or project.
@@ -67,10 +73,23 @@ Before implementing IPC, the independent service must own this sequence:
    disconnect, denial, cancellation or replay invalidate it. Retrying requires a
    new challenge. Service restart invalidates outstanding challenges.
 
-No socket, service identity, signing credential, challenge transport or service
-ledger has been implemented. Until those boundaries can be compiled and tested,
-all side-effecting native tools remain unregistered/unavailable. This protocol
-outline must not be described as a connected service or replay protection.
+The requirements above now have a minimal source implementation in
+`src/native-development`, an independent Swift package. A private inherited
+socketpair carries startup credentials; subsequent frames use directional
+sequence numbers and HMAC authentication. The service owns the challenge ledger,
+revalidates project/root/description facts, and consumes each nonce before any
+decision succeeds. The only side effect is exclusive creation of a fixed marker
+under a pinned project root, always requiring a fresh signed Allow Once decision.
+No arbitrary command, elevated operation, named socket or installed service is used.
+
+`Scripts/test-macos.sh` builds the standalone service and runs actual child-process
+tests, including cancellation, replay, tampering, expiry and concurrent redemption.
+The app CI script now invokes it before dependency preparation. These tests have
+not run on this phone because Swift is unavailable. Both iOS connect and service
+entry points explicitly throw `unsupportedPlatform`; an independent iOS launcher,
+signing/entitlements and lifecycle route remain missing. Consequently the iOS
+host must continue advertising `backendConnected: false`. See the package README
+for inherited-capability trust assumptions and filesystem/cancellation race limits.
 
 ## Implemented in source
 
@@ -94,14 +113,28 @@ outline must not be described as a connected service or replay protection.
 - The existing permission sheet entry point now presents either offload or
   development requests, showing the full development context with Allow Once /
   Deny actions. Dismissal callbacks capture their presented request ID.
-  No native executor calls this queue yet. A partial `MinisDevelopmentPolicy`
+  The trusted native host adapter now calls this queue for authenticated fixed-marker
+  challenges, but no model-facing native executor or iOS launcher is enabled.
+  A partial `MinisDevelopmentPolicy`
   now covers integration reads, native command/root/preset facts, screen read/action,
   force push and remote reset; unsupported operations deny. The four integration
   reads pass an exact-name adapter at the actual host dispatcher. Other adapters
   are not connected. `authorize` joins policy and queue, refuses unavailable
   backends, and invalidates approval if the trusted context revision changes.
-  It does not mint service authorization tokens. User-selectable modes, complete
-  upstream policy parity and service authorization remain unavailable.
+  It does not mint service authorization tokens. User-selectable modes and complete
+  upstream policy parity remain unavailable; the separate private host adapter
+  below signs only the minimal service's fixed-preset decisions.
+- `MinisNativeDevelopmentHost` imports the local Swift package and keeps the
+  connection and decision signer private. It checks the service's exact call,
+  root, digest, review facts and monotonic expiry before displaying approval,
+  then rechecks context and expiry before signing. Context changes and Stop
+  invalidate the connection and pending approvals. Connection-generation and
+  task-cancellation checks reject stale startup results. These lifecycle paths
+  are source-reviewed; the current focused XCTest covers expiry boundaries,
+  approval cancellation, context reset and the unsupported iOS launcher, not
+  real concurrent successful launches. The local package is referenced by the
+  Xcode project; neither its new app linkage nor these tests is verified by the
+  earlier successful baseline.
 - `AIChatViewModel+Cancel.swift` cancels development requests for the current
   session when Stop ends the run or a model change terminates a retrying run.
   Healthy in-flight model switches retain the host's existing behavior.
@@ -125,8 +158,8 @@ been executed inside a compiled OpenMinis build on this device.
 | Capability | Upstream source location | OpenMinis integration status |
 | --- | --- | --- |
 | Built-in skills | `vendor/apelin/Packages/ApelinAgent/Sources/ApelinAgent/Skills` | Generated documents and four read-only integration tools are wired in source; runtime untested |
-| Agent tools and authorization | `vendor/apelin/Packages/ApelinAgent` | Independent per-call approval queue and sheet in source; policy, native dispatcher and service-side verification not connected |
-| IPC and independent service | `vendor/apelin/Packages/ApelinKit/Sources/ApelinProtocol`, `vendor/apelin/Shared/Protocol`, `vendor/apelin/Apelind` | Not connected; independent identities and service setup remain to be implemented |
+| Agent tools and authorization | `vendor/apelin/Packages/ApelinAgent` | Independent approval queue/sheet and private authenticated fixed-preset adapter in source; full policy and model-facing native dispatcher remain unavailable |
+| IPC and independent service | `vendor/apelin/Packages/ApelinKit/Sources/ApelinProtocol`, `vendor/apelin/Shared/Protocol`, `vendor/apelin/Apelind` | Independent minimal package in `src/native-development`; macOS process tests pending CI; iOS launcher unsupported |
 | Toolchains and SDKs | `vendor/apelin/Packages/ApelinKit/Sources/ApelinEnvironment`, `vendor/apelin/Packages/ApelinToolchain` | Source imported only |
 | Project descriptions and templates | `vendor/apelin/Packages/ApelinKit/Sources/ApelinProject`, `vendor/apelin/Extensions/Development` | Schema embedded as skill companion content; no project/template backend |
 | Native shell and filesystem | `vendor/apelin/Packages/ApelinKit/Sources/ApelinConsole`, `vendor/apelin/Packages/ApelinToolHost` | Not ported; existing host operations still use iSH |
@@ -186,9 +219,9 @@ releases to work around this constraint.
 
 The environment audit also found missing iSH libraries and headers, Rclone
 framework, Alpine rootfs resource and LAME library, as well as an uninitialized
-iSH submodule. Full dependency preparation and a suitable Swift/Xcode build
-environment are still required. A macOS build route needs a reviewed build and
-packaging entry point; it has not been configured or exercised here.
+iSH submodule in this phone's checkout. These are local prerequisites, not a
+failure of the successful CI baseline. Authorized macOS CI prepares dependencies
+and compiles the host; release packaging is still not configured or exercised.
 
 The following integration work remains: independent privileged backend and IPC;
 Strict/Relaxed/Full authorization at dispatch sites; toolchain and SDK management;
@@ -198,8 +231,9 @@ device testing. The current offload permission mechanism is not evidence that
 these independent backend operations are authorized correctly.
 
 `apelin-project.json` is an external workspace declaration without a build script.
-There is no successful full build, signed app, installed integration or release
-package yet. Declare and review a real external build entry point before using
+The unsigned CI baseline above succeeded; there is no verified signed app,
+installed integration, release package or CI result for the current native changes.
+Declare and review a real external build entry point before using
 `apelin_project_build` to produce packages. Do not repackage upstream binaries as
 if they were a compiled port. Final distribution requires separate rootless and
 roothide release builds and validation, with permanent package/app identifiers

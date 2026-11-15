@@ -100,7 +100,7 @@ extension AIChatViewModel {
             // rather than surfacing the old model's error — the whole point is
             // that the user has already moved on from it.
             if let sid = sessionId {
-                MinisDevelopmentApprovals.shared.cancel(sessionID: sid)
+                MinisNativeDevelopmentHost.shared.cancel(sessionID: sid)
             }
             userDidCancel = true
             currentTask?.cancel()
@@ -209,7 +209,7 @@ extension AIChatViewModel {
         // [T-user-ask] A question waiting on the user ends with the run.
         cancelPendingUserAsk()
         if let sid = sessionId {
-            MinisDevelopmentApprovals.shared.cancel(sessionID: sid)
+            MinisNativeDevelopmentHost.shared.cancel(sessionID: sid)
         }
         userDidCancel = true
         currentTask?.cancel()

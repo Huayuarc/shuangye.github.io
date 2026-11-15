@@ -1,7 +1,6 @@
 #!/bin/bash
 # Compile the real host and its dependencies; this is not a release packager.
 set -Eeuo pipefail
-# Surface the failing build command without dumping environment or raw log tails.
 trap 'rc=$?; printf "error: CI command failed (exit %s, line %s): %s\n" "$rc" "$LINENO" "$BASH_COMMAND" >&2; exit "$rc"' ERR
 cd "$(dirname "$0")/.."
 if [[ "$(uname -s)" != Darwin ]]; then
@@ -27,8 +26,11 @@ if not m or tuple(map(int, m.groups())) < (6, 1):
 PY
 python3 scripts/generate_apelin_skills.py --check
 python3 scripts/check_development_policy.py
-# Dependencies are checked out by ci_fetch_dependencies.py at the manifest SHA.
-# This archive import has no root gitlinks; never follow .gitmodules branches.
+# Exercise the independent service in real macOS child processes before the
+# expensive app dependencies. A failure must stop CI, never become a skip.
+mkdir -p "${RUNNER_TEMP:?}/openminis-diagnostics"
+sh src/native-development/Scripts/test-macos.sh 2>&1 | tee "${RUNNER_TEMP:?}/openminis-diagnostics/native-package-tests.log"
+# Archive imports have no root gitlinks: ci_fetch_dependencies.py uses manifest SHAs.
 test -d deps/ish/.git
 test -d deps/proot/.git
 if [[ ! -f src/ios/Configs/ProviderCustomization.xcconfig ]]; then

@@ -25,6 +25,8 @@
 		7F0DF01D0A /* ToolFoldPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F0DF01D0B /* ToolFoldPlanner.swift */; };
 		87764AE3691086C907B97519 /* UserAskCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF08A43E8045BF444E5F2DF1 /* UserAskCore.swift */; };
 		891443CAA4679D09A6D32AE4 /* RealTimeCutVADLibrary in Frameworks */ = {isa = PBXBuildFile; productRef = C42120806C66A2C804F89620 /* RealTimeCutVADLibrary */; };
+		9F01A0B10000000000000010 /* MinisNativeDevelopment in Frameworks */ = {isa = PBXBuildFile; productRef = 9F01A0B10000000000000013 /* MinisNativeDevelopment */; };
+		9F01A0B10000000000000011 /* MinisNativeDevelopment in Frameworks */ = {isa = PBXBuildFile; productRef = 9F01A0B10000000000000013 /* MinisNativeDevelopment */; };
 		8B886DA8A270E8FB58A9A1FA /* SpeechPlayerControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A302B074A0BE0AFED8EC7E9 /* SpeechPlayerControl.swift */; };
 		90EF21EB8AAB5C9B849883A4 /* UserAskSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F4078E062F701034D36265 /* UserAskSettings.swift */; };
 		9214E78B060BCD8BA7E118D4 /* NotificationCategoryCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D7227A3A4F8E20ED979981C /* NotificationCategoryCenter.swift */; };
@@ -1481,6 +1483,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9F01A0B10000000000000011 /* MinisNativeDevelopment in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1505,6 +1508,7 @@
 				E5M000002 /* cmark-gfm-extensions in Frameworks */,
 				E5S000005 /* CloudKit.framework in Frameworks */,
 				891443CAA4679D09A6D32AE4 /* RealTimeCutVADLibrary in Frameworks */,
+				9F01A0B10000000000000010 /* MinisNativeDevelopment in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2756,6 +2760,9 @@
 				BB1000012F700000000000AA /* MinisTests */,
 			);
 			name = MinisTests;
+			packageProductDependencies = (
+				9F01A0B10000000000000013 /* MinisNativeDevelopment */,
+			);
 			productName = MinisTests;
 			productReference = BB1000010F700000000000AA /* MinisTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -2795,6 +2802,7 @@
 				E5M000022 /* cmark-gfm-extensions */,
 				E5X000021 /* SwiftMath */,
 				C42120806C66A2C804F89620 /* RealTimeCutVADLibrary */,
+				9F01A0B10000000000000013 /* MinisNativeDevelopment */,
 			);
 			productName = Minis;
 			productReference = E51000010 /* Minis.app */;
@@ -2927,6 +2935,7 @@
 				E5M000020 /* XCRemoteSwiftPackageReference "swift-cmark" */,
 				E5X000020 /* XCRemoteSwiftPackageReference "SwiftMath" */,
 				B318C2F47DB3F301A17E49BE /* XCRemoteSwiftPackageReference "RealTimeCutVADLibrary" */,
+				9F01A0B10000000000000012 /* XCLocalSwiftPackageReference "../native-development" */,
 			);
 			productRefGroup = E51000032 /* Products */;
 			projectDirPath = "";
@@ -4448,6 +4457,13 @@
 		};
 /* End XCRemoteSwiftPackageReference section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		9F01A0B10000000000000012 /* XCLocalSwiftPackageReference "../native-development" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../native-development";
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		C42120806C66A2C804F89620 /* RealTimeCutVADLibrary */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -4473,6 +4489,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = E5X000020 /* XCRemoteSwiftPackageReference "SwiftMath" */;
 			productName = SwiftMath;
+		};
+		9F01A0B10000000000000013 /* MinisNativeDevelopment */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9F01A0B10000000000000012 /* XCLocalSwiftPackageReference "../native-development" */;
+			productName = MinisNativeDevelopment;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

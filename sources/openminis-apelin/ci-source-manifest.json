@@ -17,8 +17,8 @@
       "bytes": 214
     },
     "AGENTS.md": {
-      "sha256": "4696a7696ccb63fc3f0d5e421b1f3ecb457a409202a149bb8216788e552e634d",
-      "bytes": 5305
+      "sha256": "fddc2664ca89ba055caf6e40ff13d2880cd02149216d967855cf04ec5fcd83aa",
+      "bytes": 6813
     },
     "BUILDING.md": {
       "sha256": "c32eed396b8371f9ea11959d7a1bc91082cc0fd7d81f4eea47f02af6162059db",
@@ -848,14 +848,6 @@
       "sha256": "69f6de79f3e689ab794bcd04d23b3eda202311b690bf1b02ff485520d351b7e2",
       "bytes": 2929
     },
-    "deps/lame-3.100/libmp3lame/VbrTag.lo": {
-      "sha256": "93cda98783eaaec0f4762fff46819d175a8eb680b3f19060415d7cece4809ab4",
-      "bytes": 258
-    },
-    "deps/lame-3.100/libmp3lame/VbrTag.o": {
-      "sha256": "970a0714cd8fb231f5bee0264b34e23e92149e405a8a7ae1d376036f1d35641b",
-      "bytes": 27448
-    },
     "deps/lame-3.100/libmp3lame/bitstream.c": {
       "sha256": "567477da1d6f1ca99c5f1906e1e106b1952c5559f9215441a32240a55e1d952e",
       "bytes": 36111
@@ -863,14 +855,6 @@
     "deps/lame-3.100/libmp3lame/bitstream.h": {
       "sha256": "5c6bfb039c70ce1696782a53dae3255f462c49102d639c37c3a774c5d2c0d08a",
       "bytes": 1563
-    },
-    "deps/lame-3.100/libmp3lame/bitstream.lo": {
-      "sha256": "7fc9efb7d99610b631aed484b42328223d76afc2033a2d800f3d5d1d7aa446bd",
-      "bytes": 264
-    },
-    "deps/lame-3.100/libmp3lame/bitstream.o": {
-      "sha256": "710a5af045b8e857af18e15a45a326562e81893a48a4e9fd3a1b4e3718e2b3a4",
-      "bytes": 46792
     },
     "deps/lame-3.100/libmp3lame/depcomp": {
       "sha256": "534cc0f4c4bfc8f2c5a674741e46abfcc033776a011c3d5bc48cad7d0394ef91",
@@ -884,14 +868,6 @@
       "sha256": "e959801ad6fab370ad48245d91fd3fc4385d12ab7cfc743d4ea760a711af7517",
       "bytes": 4096
     },
-    "deps/lame-3.100/libmp3lame/encoder.lo": {
-      "sha256": "a7e9e0d375f70ce341b075654d290937ada3eb1dcc3a0dcf26877a6caf441475",
-      "bytes": 260
-    },
-    "deps/lame-3.100/libmp3lame/encoder.o": {
-      "sha256": "d8dfbe522078da43f54c06e17498ff21f594c926d6a336b38e20e2c8c5c09785",
-      "bytes": 19096
-    },
     "deps/lame-3.100/libmp3lame/fft.c": {
       "sha256": "e1f73f1db229d37cd5c9f2dfa0bebcbf730b73d57559802e45eada989a80176e",
       "bytes": 9941
@@ -900,14 +876,6 @@
       "sha256": "cadfc3c5d7ecb556d5f5829e28a7b0830a35478afb86ce0a01d83f3cdf977c4e",
       "bytes": 1227
     },
-    "deps/lame-3.100/libmp3lame/fft.lo": {
-      "sha256": "5b8242acdd54658bb943ce204e8b8105796ca58b97c592023683b7502e44f89d",
-      "bytes": 252
-    },
-    "deps/lame-3.100/libmp3lame/fft.o": {
-      "sha256": "42ee6070e77481baa9d002a3aea45e49b078eccdb71467c4a7eed24771d6dd05",
-      "bytes": 12240
-    },
     "deps/lame-3.100/libmp3lame/gain_analysis.c": {
       "sha256": "8b3fe4970fe6a19906af1573c6fdd7a51eab0599404204857d16fa55f96a83fa",
       "bytes": 20282
@@ -915,14 +883,6 @@
     "deps/lame-3.100/libmp3lame/gain_analysis.h": {
       "sha256": "e71703d716f6f99d6900ab4d1feaf91e9fe25135dd3ced66864cece7c82426be",
       "bytes": 4202
-    },
-    "deps/lame-3.100/libmp3lame/gain_analysis.lo": {
-      "sha256": "63157219a40e919f86ab7bc5708d511f8687fa9070ce6e26fe3323c3d521c8a0",
-      "bytes": 272
-    },
-    "deps/lame-3.100/libmp3lame/gain_analysis.o": {
-      "sha256": "d1110d308a7af3a2e9b474f45d8e040c94f2d0790f9c6f5f885b230e8b7dd44a",
-      "bytes": 15576
     },
     "deps/lame-3.100/libmp3lame/i386/Makefile.am": {
       "sha256": "6fe1f6f6a8ad309daf7d35bc0c7a92aacfea01db46c0b5f5bb3942ca7065614b",
@@ -976,14 +936,6 @@
       "sha256": "b78d8ebd1880fb1acd7ec6ed452e0b67555bbb6bff5a4312f5156bd1392ee6ca",
       "bytes": 1804
     },
-    "deps/lame-3.100/libmp3lame/id3tag.lo": {
-      "sha256": "8f3a4d9786874d944d3a1a74ef079bf08356e6924dbf1a1013adb214db125cbe",
-      "bytes": 258
-    },
-    "deps/lame-3.100/libmp3lame/id3tag.o": {
-      "sha256": "07e37e03f52c70a14c9131e74dbab2fd29b07968a35ce165682f8fe36b9eed5e",
-      "bytes": 71768
-    },
     "deps/lame-3.100/libmp3lame/l3side.h": {
       "sha256": "e4e60ea6b93b7cb7b90cf35ef43bfcd9c7570ff91d79c8a305e95739556d988a",
       "bytes": 2414
@@ -995,14 +947,6 @@
     "deps/lame-3.100/libmp3lame/lame.c": {
       "sha256": "561882821f4b9575e2d171d2e8f797c50e4ea2eb2f9c7a58b5f02353ba7f36c0",
       "bytes": 84713
-    },
-    "deps/lame-3.100/libmp3lame/lame.lo": {
-      "sha256": "22abb30ab18c2b0f81b3d11ff0ff0a74b2badd2943fc3d08fe38ac7358b6901e",
-      "bytes": 254
-    },
-    "deps/lame-3.100/libmp3lame/lame.o": {
-      "sha256": "958fb629583707bd9a261cb19838654017c56082bd57e56a2072adca3f84a449",
-      "bytes": 83488
     },
     "deps/lame-3.100/libmp3lame/lame.rc": {
       "sha256": "bb4cb2861ac220dca68dc23dcadcc72d2a017860bf73cbde141eda5c965e06ce",
@@ -1028,14 +972,6 @@
       "sha256": "26def6f73e3ba902ffe5ef05cab78a0afc9039700386fbd466dd160424dbc4cd",
       "bytes": 13949
     },
-    "deps/lame-3.100/libmp3lame/mpglib_interface.lo": {
-      "sha256": "c97e6fcce12f8cdda00efe98ea57a2c608b6257128e54f8f1df0d2ac26f9a014",
-      "bytes": 278
-    },
-    "deps/lame-3.100/libmp3lame/mpglib_interface.o": {
-      "sha256": "c03adc4e830edd9c6fbb0c94dc0346c884ae6769f7cd6ddd54d69552dd63d63c",
-      "bytes": 2768
-    },
     "deps/lame-3.100/libmp3lame/newmdct.c": {
       "sha256": "4c5a3a62f83861edfac3a0d0b4b8025277376e8e93079baad0fcf8f5d3e182ab",
       "bytes": 37124
@@ -1044,25 +980,9 @@
       "sha256": "9aa3a331f57a68ab59d83857dbb85fcf279d39177c6aae311b7442499994ae23",
       "bytes": 993
     },
-    "deps/lame-3.100/libmp3lame/newmdct.lo": {
-      "sha256": "9b3c2f6be83ce62a29c7db22d2277559f2912ed51d382811175465b5e34e1f51",
-      "bytes": 260
-    },
-    "deps/lame-3.100/libmp3lame/newmdct.o": {
-      "sha256": "bcbac194d227f7c9afa1105ad4d49710e57639cfe6c8a3908a25d20a8e1aa89c",
-      "bytes": 22568
-    },
     "deps/lame-3.100/libmp3lame/presets.c": {
       "sha256": "feb47d97b3014e201d52fa75930b02e18c18568caf6b2f9d9bb02a42a0313ec3",
       "bytes": 15592
-    },
-    "deps/lame-3.100/libmp3lame/presets.lo": {
-      "sha256": "b92cc04ba07297afd93ed243dc548551a2904ccc1d7804c858bbbfa00c6265a0",
-      "bytes": 260
-    },
-    "deps/lame-3.100/libmp3lame/presets.o": {
-      "sha256": "ddc505c5dfc949458d4f4ce9fbc7846793b6d91f4b25edaeaf5b74b6ba50c100",
-      "bytes": 24272
     },
     "deps/lame-3.100/libmp3lame/psymodel.c": {
       "sha256": "de8e3787d403d07d8dfdf40dc1141bee6ff92c9ea9a55506a5bd49a03d15d377",
@@ -1072,14 +992,6 @@
       "sha256": "1785c6e8798b3b1ce19d12af36f27f4beee5c33de5f6675074d6e2b911b97bbb",
       "bytes": 2024
     },
-    "deps/lame-3.100/libmp3lame/psymodel.lo": {
-      "sha256": "15e1aeece88ec22e8297610767013adecac0d2502b02a7a54b5c0c12821ecfda",
-      "bytes": 262
-    },
-    "deps/lame-3.100/libmp3lame/psymodel.o": {
-      "sha256": "32a7512721c95db23f8273171dafab41265677a8121a319293c6269891d74d3e",
-      "bytes": 65752
-    },
     "deps/lame-3.100/libmp3lame/quantize.c": {
       "sha256": "e56a882246e8ccd2c9cd23df189529001b7143348f1e1e43f1add40bd29ad5df",
       "bytes": 65770
@@ -1087,14 +999,6 @@
     "deps/lame-3.100/libmp3lame/quantize.h": {
       "sha256": "adc9ff50e49c948d7afcb27eb51a6ad8fdce1a764f0149136ac5f04b5899a653",
       "bytes": 1556
-    },
-    "deps/lame-3.100/libmp3lame/quantize.lo": {
-      "sha256": "5e09bdc7a3f341afc0c57f8b0bda29c13fbc8ff171b9e29703744b8cc4129c93",
-      "bytes": 262
-    },
-    "deps/lame-3.100/libmp3lame/quantize.o": {
-      "sha256": "248c7c1d41f3eb4ee3d3e8c3f630eb1ca5700d23b3000d7bc3269c69b44a015f",
-      "bytes": 56240
     },
     "deps/lame-3.100/libmp3lame/quantize_pvt.c": {
       "sha256": "8629525b480e3ac172294fa00a39032db525228b7aa15eb5d05cd3ef4bf5595a",
@@ -1104,14 +1008,6 @@
       "sha256": "e01a2362f8a13009025b72ee20114a166a06bfc18f614cabf0f3692ae84443cd",
       "bytes": 4263
     },
-    "deps/lame-3.100/libmp3lame/quantize_pvt.lo": {
-      "sha256": "b4ab0d3901be3ea8b2c2abf7a3c86d9aa901fd321ef5c31956613e59300468bf",
-      "bytes": 270
-    },
-    "deps/lame-3.100/libmp3lame/quantize_pvt.o": {
-      "sha256": "3c9b1ebd5f8f07aa27bd6fbec248d23a99cf873cbaf4b24be1fc2b5c3f075543",
-      "bytes": 35912
-    },
     "deps/lame-3.100/libmp3lame/reservoir.c": {
       "sha256": "97f2e870bd20f943fbb30ea43bfe4967247f233fc91292a38597a1c6afed2848",
       "bytes": 10263
@@ -1119,14 +1015,6 @@
     "deps/lame-3.100/libmp3lame/reservoir.h": {
       "sha256": "410a2486d4756544ed2b10c8f432150adc166a576466dccf620927bb336fe2bf",
       "bytes": 1221
-    },
-    "deps/lame-3.100/libmp3lame/reservoir.lo": {
-      "sha256": "ce93a3cf48313821425619da6dcb200fd6664665275be22925ac89fbc9a60d40",
-      "bytes": 264
-    },
-    "deps/lame-3.100/libmp3lame/reservoir.o": {
-      "sha256": "e91f4c19b7d8848c7d35234c0014f3a8652c883b111499abf3ab2a5ad5d0e2cf",
-      "bytes": 11208
     },
     "deps/lame-3.100/libmp3lame/set_get.c": {
       "sha256": "29b6f5b13e9317b1c116f746d71d400313af7642639edda432e5734713bc3af3",
@@ -1136,14 +1024,6 @@
       "sha256": "fe2af5e1b3c18e44e8e91fd1c7fdc337770fecbf62dbc93cfd98af44b1f3cdf2",
       "bytes": 2587
     },
-    "deps/lame-3.100/libmp3lame/set_get.lo": {
-      "sha256": "8a0771a55969066864442b2d97fa4a2fca5a5189e9c70fbdb32fb95519e5ef4b",
-      "bytes": 260
-    },
-    "deps/lame-3.100/libmp3lame/set_get.o": {
-      "sha256": "8ca42f6e62fa46309ae63b56564b7fbd20ac57e15a0cc908ef01ef9bfd1e5011",
-      "bytes": 75968
-    },
     "deps/lame-3.100/libmp3lame/tables.c": {
       "sha256": "023461e4dd0f2efc4fa7afe85a03e8ed7ee768f47d3b40f4d06d3950547d50fb",
       "bytes": 21364
@@ -1152,25 +1032,9 @@
       "sha256": "826f3a189d7b20f0bcd91692f25c9447a3986fecc5e8a9c21487e4cc0862689d",
       "bytes": 2473
     },
-    "deps/lame-3.100/libmp3lame/tables.lo": {
-      "sha256": "8a3ae0f25a2f74be9e2724fba09faf6f4454f5801d2a3e6bd5a1dfe0a0ecbe11",
-      "bytes": 258
-    },
-    "deps/lame-3.100/libmp3lame/tables.o": {
-      "sha256": "6059df64d8929f4c6458bd17202270725549024c47d96b297bcbe92c5c1a4e9c",
-      "bytes": 19280
-    },
     "deps/lame-3.100/libmp3lame/takehiro.c": {
       "sha256": "983b3202804a870e064cb6c39d3311a3198ab4254ce89b597a412523823c1e28",
       "bytes": 38192
-    },
-    "deps/lame-3.100/libmp3lame/takehiro.lo": {
-      "sha256": "efe94d1b6aaeb488996b1fda48924505b7651554f0f4ad0a8bfa58a8189e38f3",
-      "bytes": 262
-    },
-    "deps/lame-3.100/libmp3lame/takehiro.o": {
-      "sha256": "0203021cf0edabad6cd33b50758379f0d6cdeb0acbffe297d9bf9e5676aebf5b",
-      "bytes": 39320
     },
     "deps/lame-3.100/libmp3lame/util.c": {
       "sha256": "c9af05c4b5b834a815d37d0da4758dedab4f61b43bbf9bef0efa67f35bf97a55",
@@ -1180,14 +1044,6 @@
       "sha256": "0497e5bc89ee1d93bd537e703cd2db14b7b0e6d934946afa4a798203fb669f6a",
       "bytes": 21928
     },
-    "deps/lame-3.100/libmp3lame/util.lo": {
-      "sha256": "c316800069e3089b7517751e8406ec5c9ef87036d91470b886b0ac041fdbd7e5",
-      "bytes": 254
-    },
-    "deps/lame-3.100/libmp3lame/util.o": {
-      "sha256": "8fcd2d588d2b06a5ac666242549671efb092f105eb0338cc6a181aea813a904d",
-      "bytes": 29496
-    },
     "deps/lame-3.100/libmp3lame/vbrquantize.c": {
       "sha256": "83a61036c20df8b71db2071ec5fa81dee4704b24eeffcb6da465334004bb2e54",
       "bytes": 46724
@@ -1195,14 +1051,6 @@
     "deps/lame-3.100/libmp3lame/vbrquantize.h": {
       "sha256": "28f1095266c721c2870a2af8f884e815ff984557d49a47ec62854dbce9b3f24f",
       "bytes": 1072
-    },
-    "deps/lame-3.100/libmp3lame/vbrquantize.lo": {
-      "sha256": "e0fd72927ae7f2d100882da9d7cbd7ba16078eed34c81669db6eb4e50ff51abb",
-      "bytes": 268
-    },
-    "deps/lame-3.100/libmp3lame/vbrquantize.o": {
-      "sha256": "7e337cc058cee3b827db678fea3dfbc8557c22d83f17d730bb5d9dd47912d662",
-      "bytes": 43664
     },
     "deps/lame-3.100/libmp3lame/vector/Makefile.am": {
       "sha256": "69167f0f3069b532f7c478da909e621d941013bd4f897dc23caccd884fc0b87a",
@@ -1227,14 +1075,6 @@
     "deps/lame-3.100/libmp3lame/version.h": {
       "sha256": "6b59fde33ee149cd0b8ea6946b0a92dabf60ef9d77e26f65565a323ba3698b54",
       "bytes": 2306
-    },
-    "deps/lame-3.100/libmp3lame/version.lo": {
-      "sha256": "7886c83e54f8d6865a6fad5719788172e81e268c541326c28bbc99da285f7af0",
-      "bytes": 260
-    },
-    "deps/lame-3.100/libmp3lame/version.o": {
-      "sha256": "e34a400fd6c4e2ba75d8d0b15acf39e14279e90f210b960d997165ffc34ebaae",
-      "bytes": 6512
     },
     "deps/lame-3.100/ltmain.sh": {
       "sha256": "34ffaa53e9becccce1cee4f149a3b1cbba3c4cda06ab7dfaf1ae905ea4b2c0e3",
@@ -1404,14 +1244,6 @@
       "sha256": "f47bbea9f98f72db86230c7180dd5fa53cb778e0524ac053498d813cc3b864d6",
       "bytes": 1502
     },
-    "deps/lame-3.100/mpglib/common.lo": {
-      "sha256": "cd84ff5e321b186c3c20254369c769af02ff8d6d997199add2cbe81112f7b69f",
-      "bytes": 258
-    },
-    "deps/lame-3.100/mpglib/common.o": {
-      "sha256": "5baf3ea48e3a7997713d75c8f08b16bff6f721ca1bccc3546e1045e29ce30ac7",
-      "bytes": 13520
-    },
     "deps/lame-3.100/mpglib/dct64_i386.c": {
       "sha256": "eef192f5c6e069bc5729066b8b6be3df0663b860ac59ee6bc616cf3dc8128f29",
       "bytes": 11879
@@ -1420,14 +1252,6 @@
       "sha256": "654703e2b1f38d77e5fc861b2bfb50551e978a0ed77ddb6d649b9866bf7e5024",
       "bytes": 1021
     },
-    "deps/lame-3.100/mpglib/dct64_i386.lo": {
-      "sha256": "100710277844150bf4160a9624417215ab91fd9689d1e531e340346d8c4b75e7",
-      "bytes": 266
-    },
-    "deps/lame-3.100/mpglib/dct64_i386.o": {
-      "sha256": "122d2bf47f14f9c0d9346816bc773f0d1e74422eeb873e9c25ef3976dab32ab1",
-      "bytes": 7672
-    },
     "deps/lame-3.100/mpglib/decode_i386.c": {
       "sha256": "bbc20970be2dc070ed80ec0ebbde62e3f692018603431e8fe3dc5dbf53fa0e6f",
       "bytes": 10229
@@ -1435,14 +1259,6 @@
     "deps/lame-3.100/mpglib/decode_i386.h": {
       "sha256": "09951072f3d4305050c1a6070f4732c0904e1b90ea5735d45988d4c1c6b2b1c9",
       "bytes": 1328
-    },
-    "deps/lame-3.100/mpglib/decode_i386.lo": {
-      "sha256": "0f364addc50b0aeeb9e0953ac6ec5296b1ccccea0d24268285a63f975f0d3d3f",
-      "bytes": 268
-    },
-    "deps/lame-3.100/mpglib/decode_i386.o": {
-      "sha256": "e1b69851827b8ce147ef08cd0849489c09cb9839aa2780a2f66994068a751e3e",
-      "bytes": 13440
     },
     "deps/lame-3.100/mpglib/depcomp": {
       "sha256": "534cc0f4c4bfc8f2c5a674741e46abfcc033776a011c3d5bc48cad7d0394ef91",
@@ -1460,14 +1276,6 @@
       "sha256": "fc9e0856fbd9d51b6e5c3072a1cee99924b8eb3ab4ac4a4e5e7f0ed58b68cb7b",
       "bytes": 2037
     },
-    "deps/lame-3.100/mpglib/interface.lo": {
-      "sha256": "b86bf246edf807f43e0dc9f4510e0214f6db2998a6bda59d6593a39584f13cb2",
-      "bytes": 264
-    },
-    "deps/lame-3.100/mpglib/interface.o": {
-      "sha256": "96b23807039ad94b256e8a73a2d02ccb4887ab6875aaae3b1f2f26b87f20390a",
-      "bytes": 22600
-    },
     "deps/lame-3.100/mpglib/l2tables.h": {
       "sha256": "d4c75c00984ea46e564b14c9d5845df9ec551d24d300798e6c756f370367a918",
       "bytes": 11949
@@ -1480,14 +1288,6 @@
       "sha256": "0cff0feea359fe1a96b8de03690376707bdf1d8a28b3a85f5065b586eb2a9184",
       "bytes": 1096
     },
-    "deps/lame-3.100/mpglib/layer1.lo": {
-      "sha256": "8f86fcaf2b5521040790158cc0d7c693751406494414e55cbe120c94257a75f5",
-      "bytes": 258
-    },
-    "deps/lame-3.100/mpglib/layer1.o": {
-      "sha256": "09a7e82c18c564d57915ec15e97c9362d84057edd64df9feb1a812714ba337ac",
-      "bytes": 15160
-    },
     "deps/lame-3.100/mpglib/layer2.c": {
       "sha256": "1f8eea0d6ab2dcc73c1b68f32dcaa6feefd1006eb6feb5f91a446280a336d4a8",
       "bytes": 13407
@@ -1496,14 +1296,6 @@
       "sha256": "e51ae0fe66b9279e603538222c8ccbf8e14a9241da5d0805c832a00db85ff678",
       "bytes": 1157
     },
-    "deps/lame-3.100/mpglib/layer2.lo": {
-      "sha256": "b0698a00ccdfcf766e97db121a25cd78abb5a642c010a692cf08f1b573a717d4",
-      "bytes": 258
-    },
-    "deps/lame-3.100/mpglib/layer2.o": {
-      "sha256": "cf8c6d016e19f0df8ed9eae3210b9dcb3c72b9de8944090679e71d1696a6993d",
-      "bytes": 26352
-    },
     "deps/lame-3.100/mpglib/layer3.c": {
       "sha256": "1f72aacfc1b9217aa13f2531caa9769e6ef1e79c7b01a6e6490210ba4968c8c8",
       "bytes": 64155
@@ -1511,14 +1303,6 @@
     "deps/lame-3.100/mpglib/layer3.h": {
       "sha256": "b28942a7aacc35b960f9d8b5d00949d57768e48a70be67ae5feded0493748b32",
       "bytes": 1322
-    },
-    "deps/lame-3.100/mpglib/layer3.lo": {
-      "sha256": "05c7870e927cb7103d81f9e2152fe614818f8614c72c2beccb905727945c1cf2",
-      "bytes": 258
-    },
-    "deps/lame-3.100/mpglib/layer3.o": {
-      "sha256": "7acb36917fce0b2577cdb04337e4ac6a0c6f4fee5efb1e825b2f67f29ad5c4fb",
-      "bytes": 79560
     },
     "deps/lame-3.100/mpglib/mpg123.h": {
       "sha256": "2905b99a1e9dcd918b9bf1fe31d56fa166c73b5b80cdb745728b5faf153495ac",
@@ -1535,14 +1319,6 @@
     "deps/lame-3.100/mpglib/tabinit.h": {
       "sha256": "1ee134d8fdd345f5b8c828ab39b2a52da191568b69f7e11572732806a6b1dd0d",
       "bytes": 1062
-    },
-    "deps/lame-3.100/mpglib/tabinit.lo": {
-      "sha256": "ae20ea8c7fe810d2f59338326d1d3b1bc38da4a2682fb55113f53d73927e5596",
-      "bytes": 260
-    },
-    "deps/lame-3.100/mpglib/tabinit.o": {
-      "sha256": "88091a2c9155a3beca8a03989cb1cb9f4c555c1158b18940fd192df3cde9f5d4",
-      "bytes": 13000
     },
     "deps/lame-3.100/testcase.mp3": {
       "sha256": "2d6c0def12d1fbdc86fabc39496bb53f43270acaafde4ed007592efbc09e2333",
@@ -1881,12 +1657,16 @@
       "bytes": 65526
     },
     "docs/apelin-integration.md": {
-      "sha256": "7fa16d0bdc3b276bfefb6e6babd26a954ae21bb0bb6cd4fe363f7dca9228e2b1",
-      "bytes": 13678
+      "sha256": "9519e5758912c0d531a582fb9126229c61aa8343237347c16a3bea8b73f19824",
+      "bytes": 16446
     },
     "docs/apelin-skill-sources.json": {
       "sha256": "d9a27d1c809b0d838f64848119c5a356bffc7465a9b613d854655d1f73f1fb57",
       "bytes": 2712
+    },
+    "docs/openminis-ci.md": {
+      "sha256": "3898d903702f782c2138b4e933fab9a5ad39e4b82f246bbb8d36790a33f167a1",
+      "bytes": 2941
     },
     "docs/specs/debug-server-api.md": {
       "sha256": "b19ef735901b46c213394655ff46ea654ac88b89bfc5c0c8a82fd51bf4e8b26b",
@@ -1913,8 +1693,8 @@
       "bytes": 8232
     },
     "scripts/check_apelin_build_environment.py": {
-      "sha256": "44fcd484c4d5b0234f09e48ef762099cc9695234a5986d66ffde9786b003ab6b",
-      "bytes": 1459
+      "sha256": "a036ed9dba6a90f9faefc5b02a5e8703858c62a8a0023ab251a89d1de4d3f969",
+      "bytes": 1506
     },
     "scripts/check_development_policy.py": {
       "sha256": "9308e9dc04bad92242f5f611861b8b0bedcdeb9e44f25b10f8f8b9f41d447780",
@@ -1925,12 +1705,12 @@
       "bytes": 3154
     },
     "scripts/ci_build_openminis.sh": {
-      "sha256": "bb835b03955fce487f45fe57312bee0bd1e63e350ea534be1ecec278792bc9e4",
-      "bytes": 2206
+      "sha256": "ed90caa1a5e55f0aed09e37de163a9df9670dcfb468ca1c02d4adc9b78521832",
+      "bytes": 2405
     },
     "scripts/export_openminis_ci_source.py": {
-      "sha256": "aef007d8cd1de3aecd30c317262eb183895ee28f0d3a1d83c000004a65077b13",
-      "bytes": 4057
+      "sha256": "98c2d318f2e25fcf72339d5b25f6982461c5c3ef393aaa3bb7286dde6af4d81e",
+      "bytes": 4228
     },
     "scripts/gen_debug_skill.sh": {
       "sha256": "789226795fecd9a068557a934303785f59e4c6c11ec325de7650c3862b3f4ddb",
@@ -10881,8 +10661,8 @@
       "bytes": 56409
     },
     "src/ios/Agent/Chat/AIChatViewModel+Cancel.swift": {
-      "sha256": "24dbc0049e881fe31467ed4278bca6a693612255bbe72ca74f313ff0193bcb09",
-      "bytes": 14567
+      "sha256": "c1c06fda3a7792f642d48e0598c3983c1a898902aa1d91d0a9efd59f00e9c274",
+      "bytes": 14569
     },
     "src/ios/Agent/Chat/AIChatViewModel+Compaction.swift": {
       "sha256": "5fa257929329ce277451491f9458002cc19ad9f4fc78c1371764c43079d70676",
@@ -11149,8 +10929,8 @@
       "bytes": 133147
     },
     "src/ios/Agent/Chat/MinisApelinTools.swift": {
-      "sha256": "52eb798ad881301d9137e20b978667fae0f186494d8bd77ddf49fa457ed7987e",
-      "bytes": 14489
+      "sha256": "8ea1ee863a0eeae96f217c15ea34ce902a44319307de9ee2f96a2740060d739d",
+      "bytes": 23156
     },
     "src/ios/Agent/Chat/MinisURLPathDecoding.swift": {
       "sha256": "9445c0edda5531536e66ee7bf17643962c35bb35b6060f07ddfeefabcefc940b",
@@ -11933,8 +11713,8 @@
       "bytes": 1081
     },
     "src/ios/Minis.xcodeproj/project.pbxproj": {
-      "sha256": "854a6db6fca01eb22551527feae34f53567b63fe8f8fbe5d2cde9fd54fe8a7c1",
-      "bytes": 340111
+      "sha256": "ea0cd052115262b49a55f041f80c92bee86fdeefddb8ed1e70f475867d11d95d",
+      "bytes": 341352
     },
     "src/ios/Minis.xcodeproj/project.xcworkspace/contents.xcworkspacedata": {
       "sha256": "7f3b00b5c3fdb45242d7b87e1e5c4e25d1fa8129a16c94295ecc4e8ea2235c5f",
@@ -12103,6 +11883,10 @@
     "src/ios/MinisTests/MarkdownStripperInputCapTests.swift": {
       "sha256": "fead460ddabbcee2650fa032fed03b4d198d27c053884137c679705cc0515ec3",
       "bytes": 6318
+    },
+    "src/ios/MinisTests/MinisNativeDevelopmentHostTests.swift": {
+      "sha256": "60d48631aca5168d0dab23034e4eea9582639e49845d685c583778bece398b9f",
+      "bytes": 4394
     },
     "src/ios/MinisTests/ModelUseTransientRetryTests.swift": {
       "sha256": "de747fede40d04bb39ad338cce4ad26420a0c3a2d03a4b53662c938981af2607",
@@ -15213,8 +14997,8 @@
       "bytes": 4811
     },
     "src/ios/Views/Chat/OffloadPermissionDialog.swift": {
-      "sha256": "9b60a8fad6f3debd27c75abc037a99ee31884f66a8a2330315a4482adf48a952",
-      "bytes": 8253
+      "sha256": "318937794b9348b164d8054e5c70e4f805a8e86bf389ed24c422bea495e5d419",
+      "bytes": 8891
     },
     "src/ios/Views/Chat/PaginatedMarkdownView.swift": {
       "sha256": "4a6c934ed1cff9cef908324eec5b112cc4c3374c04022bc07b2b2c21386a19ce",
@@ -15935,6 +15719,46 @@
     "src/ios/zh-Hant.lproj/InfoPlist.strings": {
       "sha256": "b18595c4c5a01d034b11d2deacafece0f1e0d9733201e3bcc6c25e2d4d665443",
       "bytes": 2260
+    },
+    "src/native-development/.gitignore": {
+      "sha256": "acc718146d21aae829cba1761475e05de39d73209d83af2ab8487a74843cead0",
+      "bytes": 18
+    },
+    "src/native-development/Package.swift": {
+      "sha256": "977e213bbfd1d92b8d28470c99ce8314642ee3d9f8cd825e827a4794c0ec7efe",
+      "bytes": 661
+    },
+    "src/native-development/README.md": {
+      "sha256": "ea04dd14299ec89ddd81e0af8136eb781d481dc5893a99d22c86ef687feea23a",
+      "bytes": 9150
+    },
+    "src/native-development/Scripts/test-macos.sh": {
+      "sha256": "d2aba4a11c469a9adb97964426afee2fc6c4791925ab59da72264e3fe3297bfe",
+      "bytes": 446
+    },
+    "src/native-development/Sources/NativeDevelopment/Host.swift": {
+      "sha256": "03632e186a2e5be5133f394bce4af70f7f4d297cb3d370c07c8c24e6319ed28d",
+      "bytes": 4719
+    },
+    "src/native-development/Sources/NativeDevelopment/Protocol.swift": {
+      "sha256": "3036aae88e9c59f1f508ed901e59c594491717a726d398ac028dd419020ac21e",
+      "bytes": 5133
+    },
+    "src/native-development/Sources/NativeDevelopment/Service.swift": {
+      "sha256": "7edb4222ccc2e382c7f678d0c50987535fab6f9c274224e350cf6cb375e94ff5",
+      "bytes": 9890
+    },
+    "src/native-development/Sources/NativeDevelopment/Transport.swift": {
+      "sha256": "af31d1f6e72126d33cabfe6c0328771c45489c12fb68d62bf3b4d4d4fae22205",
+      "bytes": 4823
+    },
+    "src/native-development/Sources/NativeDevelopmentService/main.swift": {
+      "sha256": "2351d84d274ae49f4620c0af03b2cacdb07fab20dd887f16c496a62d276e719d",
+      "bytes": 345
+    },
+    "src/native-development/Tests/NativeDevelopmentTests/NativeDevelopmentTests.swift": {
+      "sha256": "d488202fb8050fbe6274e2a035b6f96d5b93b24a870371039317e01827f13762",
+      "bytes": 15473
     },
     "src/shared/backup-restore/b01_restore_counts.json": {
       "sha256": "3795a10a53be269ec9f7b5d951faf5241e7b2703b19b5a24899dcba9d44ce444",

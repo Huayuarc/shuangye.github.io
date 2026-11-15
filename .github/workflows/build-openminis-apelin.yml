@@ -102,3 +102,60 @@ jobs:
             ${{ runner.temp }}/openminis-build.xcresult/
           if-no-files-found: warn
           retention-days: 14
+
+  native-host-xctest:
+    name: Native host XCTest (iOS Simulator)
+    runs-on: macos-26
+    timeout-minutes: 120
+    env:
+      GOTOOLCHAIN: go1.25.5
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Prepare simulator build tools
+        run: |
+          set -euo pipefail
+          mkdir -p "${RUNNER_TEMP:?}/openminis-host-diagnostics"
+          test -d "$DEVELOPER_DIR"
+          brew install ninja llvm lld libarchive pkg-config meson 2>&1 | tee "${RUNNER_TEMP:?}/openminis-host-diagnostics/brew.log"
+          echo "$(brew --prefix lld)/bin" >> "$GITHUB_PATH"
+          xcodebuild -version
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.5'
+          cache: false
+      - name: Fetch exact dependency commits
+        working-directory: sources/openminis-apelin
+        run: |
+          set -euo pipefail
+          test "$(go env GOVERSION)" = go1.25.5
+          python3 scripts/ci_fetch_dependencies.py 2>&1 | tee "${RUNNER_TEMP:?}/openminis-host-diagnostics/dependencies.log"
+      - name: Execute native-development host XCTest class
+        working-directory: sources/openminis-apelin
+        run: |
+          set -euo pipefail
+          set +e
+          bash scripts/ci_test_native_host.sh 2>&1 | tee "${RUNNER_TEMP:?}/openminis-host-diagnostics/host.log"
+          statuses=("${PIPESTATUS[@]}")
+          result=${statuses[0]}
+          if (( result == 0 && statuses[1] != 0 )); then result=${statuses[1]}; fi
+          set -e
+          if (( result != 0 )); then
+            python3 scripts/ci_error_summary.py "${RUNNER_TEMP:?}/openminis-host-diagnostics/host.log" || true
+          fi
+          exit "$result"
+      - name: Upload host XCTest diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openminis-native-host-tests-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/openminis-host-diagnostics/
+            ${{ runner.temp }}/openminis-host-tests.xcresult/
+          if-no-files-found: warn
+          retention-days: 14

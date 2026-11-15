@@ -43,6 +43,8 @@ def main():
         path = ROOT / name
         parts = Path(name).parts
         reviewed = path.is_file() and not path.is_symlink() and REVIEWED.get(name) == hashlib.sha256(path.read_bytes()).hexdigest()
+        if path.suffix in {'.o', '.lo', '.lai'} and name.startswith('deps/lame-3.100/'):
+            continue  # Upstream tracked build leftovers; rebuild from C sources.
         if any(p in DENIED or p.startswith('.env.') for p in parts) or (parts and parts[0] == 'Attachments') or (path.suffix in SUFFIXES and not reviewed) or name == 'apelin-project.json':
             problems.append(f'excluded/private candidate: {name}')
             continue
