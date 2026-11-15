@@ -30,7 +30,8 @@ overwrite existing dependency directories.
 
 GitHub's `macos-26` image provides `/Applications/Xcode_26.2.app`; the workflow
 selects that real installation and records architecture, Xcode, Swift and SDK.
-It installs `ninja llvm libarchive pkg-config meson go` with Homebrew, then runs
+It installs `ninja llvm lld libarchive pkg-config meson go` with Homebrew, adds
+`lld`'s bin directory to the CI PATH for the iSH ARM64 ELF VDSO linker, then runs
 `bash scripts/ci_build_openminis.sh` from this directory. The script checks SDK
 26.2+ and Swift 6.1+, verifies generated skills and Swift policy, prepares native
 dependencies, resolves Swift packages and compiles the complete Minis scheme in

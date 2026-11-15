@@ -42,7 +42,9 @@ jobs:
       - name: Install build dependencies
         run: |
           set -euo pipefail
-          brew install ninja llvm libarchive pkg-config meson go 2>&1 | tee "${RUNNER_TEMP:?}/openminis-diagnostics/brew.log"
+          brew install ninja llvm lld libarchive pkg-config meson go 2>&1 | tee "${RUNNER_TEMP:?}/openminis-diagnostics/brew.log"
+          echo "$(brew --prefix lld)/bin" >> "$GITHUB_PATH"
+          "$(brew --prefix lld)/bin/ld.lld" --version
       - name: Fetch exact dependency commits
         working-directory: sources/openminis-apelin
         run: |
