@@ -7,10 +7,12 @@ not build entry points for this host.
 
 ## Provenance and archive verification
 
-All 5920 file sizes and SHA256 values in `ci-source-manifest.json` were verified
-against the received archive before integration edits. That manifest remains the
-original archive inventory, not a claim that integration edits have identical
-hashes. Local LAME `.o` and `.lo` leftovers are excluded from publication.
+The original import verified 5920 files. The reviewed native integration v2
+archive (SHA256 `b494667ba66d050839fe1b9ef66a799e6eb1e07fe14f3f705a864a8e397b93ed`,
+65923135 bytes) verified all 5876 file sizes and SHA256 values against its manifest
+before integration edits. The manifest remains the received archive inventory,
+not a claim that CI integration edits have identical hashes. Local LAME `.o` and
+`.lo` leftovers are excluded from publication.
 Vendored upstream binary test fixtures and documented Android proot loader
 resources are retained for their original purposes, never copied as an iOS app
 or represented as newly compiled artifacts. Licenses and notices are preserved.
@@ -53,3 +55,23 @@ project; native backend, signing and dual-bootstrap packages remain separate wor
 `_config.yml` excludes `sources/` from the Jekyll site. The public Git repository
 still exposes the source itself, as authorized. CI has only `contents: read` and
 does not commit artifacts or trigger APT publication.
+
+## Reviewed native integration verification
+
+Commit `6f1f36c351342e45c99bd52f68b31e2c622e02a8`, run `43703110882`,
+job `132778326791` passed the production policy truth table (42 verdicts),
+13 real native package tests (zero failures), and the complete unsigned Release
+app build. The independent simulator job `132778326958` failed before XCTest:
+Debug-only `DebugJSONRPC.handleISHMemStats` exceeded Swift type-check time.
+The CI patch extracts three explicitly typed Double subexpressions and types the
+response dictionary without changing fields or calculations. Host XCTest remains
+unverified until a subsequent run executes all six expected methods, with no
+skips. Successful concurrent connection lifecycles remain outside these tests.
+
+The CI scripts preserve manifest-pinned dependency checks rather than attempting
+root gitlink checkout in the imported archive, keep ERR diagnostics and app
+xcresult output, and save native package test output separately. The simulator
+job builds Debug Minis for its debug dylib, builds the isolated MinisTestHost,
+checks its bundle identity/xctestrun, runs only MinisNativeDevelopmentHostTests,
+and verifies exact source-method coverage against xcresult JSON.
+

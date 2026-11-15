@@ -2425,25 +2425,29 @@ final class DebugJSONRPC: @unchecked Sendable {
         }
 
         let decided = full &+ single
-        return [
+        let clusterHitRate: Double = decided > 0 ? Double(full) * 100.0 / Double(decided) : 0
+        let averageClusterPages: Double = decided > 0 ? Double(pagesCommitted) / Double(decided) : 0
+        let averageAnonPages: Double = anonMmaps > 0 ? Double(anonPages) / Double(anonMmaps) : 0
+        let result: [String: Any] = [
             "clusterCalls": calls,
             "clusterFull": full,
             "clusterSingle": single,
-            "clusterHitRatePct": decided > 0 ? Double(full) * 100.0 / Double(decided) : 0,
+            "clusterHitRatePct": clusterHitRate,
             "missWhyNeighbourMapped": whyMapped,
             "missWhySameFlagsRefused": whyFlags,
             "missWhyHostPageEqualsGuest": whyNoCluster,
             "missWhyClusterMmapFailed": whyEnomem,
             "clusterPagesCommitted": pagesCommitted,
-            "avgPagesPerClusterCall": decided > 0 ? Double(pagesCommitted) / Double(decided) : 0,
+            "avgPagesPerClusterCall": averageClusterPages,
             "anonMmapCalls": anonMmaps,
             "anonPagesMapped": anonPages,
             "anonGuestMB": Double(guestBytes) / (1024 * 1024),
             "anonHostMBUpperBound": Double(hostBytes) / (1024 * 1024),
-            "avgPagesPerAnonMmap": anonMmaps > 0 ? Double(anonPages) / Double(anonMmaps) : 0,
+            "avgPagesPerAnonMmap": averageAnonPages,
             "hostPageSize": hostPage,
             "appFootprintMB": footprintMB,
         ]
+        return result
     }
 
     private func handleAppInfo(params: [String: Any] = [:]) -> Any {

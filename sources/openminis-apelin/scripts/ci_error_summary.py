@@ -14,8 +14,11 @@ IDENTIFIER = re.compile(r'\b(?:[0-9a-f]{8}-[0-9a-f-]{27,}|[0-9a-f]{32,}|(?:\d{1,
 
 def summarize(lines):
     hits = deque(maxlen=12)
+    primary = deque(maxlen=12)
     for raw in lines:
         text = ANSI.sub('', raw).strip()
+        if re.match(r'^(?:\d+\s*\||go: downloading\b)', text):
+            continue
         if not ERROR.search(text) or SENSITIVE.search(text):
             continue
         text = URL.sub('[address]', text)
@@ -24,7 +27,9 @@ def summarize(lines):
         text = ''.join(c for c in text if c.isprintable())[:400]
         if text and text not in hits:
             hits.append(text)
-    return list(hits)
+        if re.search(r'\berror:|Undefined symbols|ninja: build stopped', text, re.I) and text not in primary:
+            primary.append(text)
+    return (list(primary) + [text for text in hits if text not in primary])[:12]
 
 def escape(text):
     return text.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
