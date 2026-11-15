@@ -30,8 +30,13 @@ overwrite existing dependency directories.
 
 GitHub's `macos-26` image provides `/Applications/Xcode_26.2.app`; the workflow
 selects that real installation and records architecture, Xcode, Swift and SDK.
-It installs `ninja llvm lld libarchive pkg-config meson go` with Homebrew, adds
-`lld`'s bin directory to the CI PATH for the iSH ARM64 ELF VDSO linker, then runs
+It installs `ninja llvm lld libarchive pkg-config meson` with Homebrew and pins
+Go 1.25.5 using `actions/setup-go@v6` and `GOTOOLCHAIN`, matching rclone-mobile's
+go.mod. Run 43695887872 failed in the pinned experimental JSON module's alias
+bridge with `undefined: json.SkipFunc`; Go 1.25.5's JSON v2 source provides that
+API. The pinned toolchain fix still requires CI confirmation. Go version and
+experiment selection are retained in diagnostics. CI adds `lld`'s bin directory
+to PATH for the iSH ARM64 ELF VDSO linker, then runs
 `bash scripts/ci_build_openminis.sh` from this directory. The script checks SDK
 26.2+ and Swift 6.1+, verifies generated skills and Swift policy, prepares native
 dependencies, resolves Swift packages and compiles the complete Minis scheme in

@@ -19,6 +19,8 @@ jobs:
   build:
     runs-on: macos-26
     timeout-minutes: 120
+    env:
+      GOTOOLCHAIN: go1.25.5
     defaults:
       run:
         shell: bash
@@ -42,9 +44,22 @@ jobs:
       - name: Install build dependencies
         run: |
           set -euo pipefail
-          brew install ninja llvm lld libarchive pkg-config meson go 2>&1 | tee "${RUNNER_TEMP:?}/openminis-diagnostics/brew.log"
+          brew install ninja llvm lld libarchive pkg-config meson 2>&1 | tee "${RUNNER_TEMP:?}/openminis-diagnostics/brew.log"
           echo "$(brew --prefix lld)/bin" >> "$GITHUB_PATH"
           "$(brew --prefix lld)/bin/ld.lld" --version
+      - name: Select compatible Go toolchain
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.5'
+          cache: false
+      - name: Record Go toolchain
+        run: |
+          set -euo pipefail
+          {
+            go version
+            go env GOVERSION GOEXPERIMENT GOTOOLCHAIN
+          } 2>&1 | tee "${RUNNER_TEMP:?}/openminis-diagnostics/go.log"
+          test "$(go env GOVERSION)" = go1.25.5
       - name: Fetch exact dependency commits
         working-directory: sources/openminis-apelin
         run: |
