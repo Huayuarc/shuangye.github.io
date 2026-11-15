@@ -29,6 +29,7 @@ python3 scripts/check_development_policy.py
 # Exercise the independent service in real macOS child processes before the
 # expensive app dependencies. A failure must stop CI, never become a skip.
 mkdir -p "${RUNNER_TEMP:?}/openminis-diagnostics"
+shasum -a 256 src/native-development/Tests/NativeDevelopmentTests/NativeDevelopmentTests.swift src/native-development/README.md | tee "${RUNNER_TEMP:?}/openminis-diagnostics/native-source-SHA256SUMS"
 sh src/native-development/Scripts/test-macos.sh 2>&1 | tee "${RUNNER_TEMP:?}/openminis-diagnostics/native-package-tests.log"
 # Archive imports have no root gitlinks: ci_fetch_dependencies.py uses manifest SHAs.
 test -d deps/ish/.git
@@ -52,4 +53,5 @@ xcodebuild build -project src/ios/Minis.xcodeproj -scheme Minis \
     -clonedSourcePackagesDirPath "${RUNNER_TEMP:?}/openminis-packages" \
     -resultBundlePath "${RUNNER_TEMP:?}/openminis-build.xcresult" \
     CODE_SIGNING_ALLOWED=NO IPHONEOS_DEPLOYMENT_TARGET=16.0
-# This unsigned build is diagnostic only. No app/service/package is published.
+# A following CI step archives this unsigned app for downstream packaging only.
+# This script does not sign, publish a release, build a package, or install it.
