@@ -81,7 +81,13 @@ jobs:
           exit "$result"
       - name: Archive verified unsigned Release app
         working-directory: sources/openminis-apelin
-        run: python3 scripts/ci_archive_unsigned_app.py
+        run: |
+          set -o pipefail
+          set +e
+          python3 scripts/ci_archive_unsigned_app.py 2>&1 | tee "${RUNNER_TEMP:?}/openminis-diagnostics/archive.log"
+          result=${PIPESTATUS[0]}
+          set -e
+          exit "$result"
       - name: Upload unsigned app for downstream packaging
         uses: actions/upload-artifact@v4
         with:

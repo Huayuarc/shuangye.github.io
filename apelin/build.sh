@@ -28,10 +28,16 @@ expected = {
 }
 with zipfile.ZipFile(archive) as z:
     infos = z.infolist()
-    names = {i.filename for i in infos}
+    names = {item.filename for item in infos}
+    for item in infos:
+        path = pathlib.PurePosixPath(item.filename)
+        if path.is_absolute() or '..' in path.parts or '\\\\' in item.filename:
+            raise SystemExit(f'Unsafe IPA archive path: {item.filename!r}')
+    expected_metadata = {bundle + '/Info.plist' for bundle in expected}
+    actual_metadata = {name for name in names if name.endswith(('.app/Info.plist', '.appex/Info.plist'))}
+    if actual_metadata != expected_metadata:
+        raise SystemExit(f'Unexpected app/extension bundles: {sorted(actual_metadata)}')
     for bundle, identifier in expected.items():
-        if bundle + '/Info.plist' not in names:
-            raise SystemExit(f'Missing bundle metadata: {bundle}')
         info = plistlib.loads(z.read(bundle + '/Info.plist'))
         if info.get('CFBundleIdentifier') != identifier:
             raise SystemExit(f'Unexpected bundle id for {bundle}: {info.get("CFBundleIdentifier")}')
