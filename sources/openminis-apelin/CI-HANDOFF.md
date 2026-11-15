@@ -34,7 +34,8 @@ It installs `ninja llvm lld libarchive pkg-config meson` with Homebrew and pins
 Go 1.25.5 using `actions/setup-go@v6` and `GOTOOLCHAIN`, matching rclone-mobile's
 go.mod. Run 43695887872 failed in the pinned experimental JSON module's alias
 bridge with `undefined: json.SkipFunc`; Go 1.25.5's JSON v2 source provides that
-API. The pinned toolchain fix still requires CI confirmation. Go version and
+API. Run 43696702961 confirmed the fix with a successful complete unsigned
+build at commit bf24258847ed6406d78107049dd882a9d1a151c6. Go version and
 experiment selection are retained in diagnostics. CI adds `lld`'s bin directory
 to PATH for the iSH ARM64 ELF VDSO linker, then runs
 `bash scripts/ci_build_openminis.sh` from this directory. The script checks SDK
@@ -45,7 +46,7 @@ Release with signing disabled and deployment target 16.0.
 The workflow always uploads available environment/dependency/build logs and the
 Xcode result bundle. If a dependency fails before Xcode build, no xcresult exists;
 the dependency log is the evidence. No app, IPA or DEB is published. A successful
-unsigned compile would not prove iOS 16.1.2 runtime compatibility or produce a
+unsigned compile does not prove iOS 16.1.2 runtime compatibility or produce a
 release. Source/API compatibility changes must be coordinated with the source
 project; native backend, signing and dual-bootstrap packages remain separate work.
 
