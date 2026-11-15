@@ -1,6 +1,8 @@
 #!/bin/bash
 # Compile the real host and its dependencies; this is not a release packager.
-set -euo pipefail
+set -Eeuo pipefail
+# Surface the failing build command without dumping environment or raw log tails.
+trap 'rc=$?; printf "error: CI command failed (exit %s, line %s): %s\n" "$rc" "$LINENO" "$BASH_COMMAND" >&2; exit "$rc"' ERR
 cd "$(dirname "$0")/.."
 if [[ "$(uname -s)" != Darwin ]]; then
     echo 'A macOS runner with Xcode 26.2+ is required.' >&2
