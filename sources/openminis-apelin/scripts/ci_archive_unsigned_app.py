@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+"""Export only a successful unsigned Release app, never DerivedData or sources."""
 import hashlib
 import json
 import os
