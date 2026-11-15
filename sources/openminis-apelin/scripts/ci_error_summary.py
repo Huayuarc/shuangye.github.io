@@ -6,7 +6,7 @@ import sys
 from collections import deque
 
 ANSI = re.compile(r'\x1b\[[0-?]*[ -/]*[@-~]')
-ERROR = re.compile(r'(?:\bfatal error:|\berror:|\bERROR:|\bconfigure: error:|\bxcodebuild: error:|Undefined symbols for architecture|ld: (?:symbol|library|framework).*not found|No rule to make target|C compiler cannot create executables|❌|ninja: (?:error|build stopped)|meson(?:\.build)?:.*ERROR|curl: \(\d+\)|command not found|No such file or directory)', re.I)
+ERROR = re.compile(r'(?:\bfatal error:|\berror:|\bERROR:|\bconfigure: error:|\bxcodebuild: error:|Undefined symbols for architecture|ld: (?:symbol|library|framework).*not found|No rule to make target|C compiler cannot create executables|❌|ninja: (?:error|build stopped)|meson(?:\.build)?:.*ERROR|curl: \(\d+\)|command not found|No such file or directory|^go:|missing go\.sum entry|\.go:\d+:\d+:|requires go >=|^# [\w./-]+|^ld:|^clang:)', re.I)
 SENSITIVE = re.compile(r'(?:token|password|passwd|secret|authorization|credential|private.key|bearer|gh[pousr]_|github_pat_)', re.I)
 URL = re.compile(r'\b(?:https?|ssh|git)://\S+|\b[\w.+-]+@[\w.-]+\b')
 PATH = re.compile(r'(?<![\w])(?:~?/|[A-Za-z]:\\)[^\s\'\"<>|,;:]+')
