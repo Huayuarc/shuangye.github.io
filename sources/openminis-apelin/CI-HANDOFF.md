@@ -70,8 +70,16 @@ skips. Run `43705690886` passed Debug app compilation but stopped in test-bundle
 compilation: the CI script cloned Swift packages outside DerivedData while the
 existing MinisTests header paths resolve under DerivedData/SourcePackages. The
 CI script now uses that expected package checkout location for all three Xcode
-invocations; this does not change project sources or dependencies. Real XCTest
-execution remains unverified pending the next run.
+invocations; this does not change project sources or dependencies. Run
+`43707552984` at `2079cc2b8bb86eabd2c66e0e380a90053cda3710` passed the
+independent build job. Its simulator job compiled and executed all six host
+methods: five passed, one failed, none skipped. The launcher test received the
+expected `unsupportedPlatform`, but its typed catch did not match. Raw test.log
+explicitly reports the same native package classes in both Minis.debug.dylib and
+MinisTests, warning of casting failures. Remove the test target's duplicate
+static package link and resolve its native symbols from the already linked app
+debug dylib; retain the original typed error assertion. Six passing methods
+remain unverified until the next real simulator run.
 Successful concurrent connection lifecycles remain outside these tests.
 
 The CI scripts preserve manifest-pinned dependency checks rather than attempting

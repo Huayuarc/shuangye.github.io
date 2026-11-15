@@ -26,7 +26,6 @@
 		87764AE3691086C907B97519 /* UserAskCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF08A43E8045BF444E5F2DF1 /* UserAskCore.swift */; };
 		891443CAA4679D09A6D32AE4 /* RealTimeCutVADLibrary in Frameworks */ = {isa = PBXBuildFile; productRef = C42120806C66A2C804F89620 /* RealTimeCutVADLibrary */; };
 		9F01A0B10000000000000010 /* MinisNativeDevelopment in Frameworks */ = {isa = PBXBuildFile; productRef = 9F01A0B10000000000000013 /* MinisNativeDevelopment */; };
-		9F01A0B10000000000000011 /* MinisNativeDevelopment in Frameworks */ = {isa = PBXBuildFile; productRef = 9F01A0B10000000000000013 /* MinisNativeDevelopment */; };
 		8B886DA8A270E8FB58A9A1FA /* SpeechPlayerControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A302B074A0BE0AFED8EC7E9 /* SpeechPlayerControl.swift */; };
 		90EF21EB8AAB5C9B849883A4 /* UserAskSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F4078E062F701034D36265 /* UserAskSettings.swift */; };
 		9214E78B060BCD8BA7E118D4 /* NotificationCategoryCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D7227A3A4F8E20ED979981C /* NotificationCategoryCenter.swift */; };
@@ -1483,7 +1482,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9F01A0B10000000000000011 /* MinisNativeDevelopment in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2760,9 +2758,8 @@
 				BB1000012F700000000000AA /* MinisTests */,
 			);
 			name = MinisTests;
-			packageProductDependencies = (
-				9F01A0B10000000000000013 /* MinisNativeDevelopment */,
-			);
+			// Resolve native package symbols from the linked Minis.debug.dylib.
+			// A second static package copy breaks Swift error type identity.
 			productName = MinisTests;
 			productReference = BB1000010F700000000000AA /* MinisTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
