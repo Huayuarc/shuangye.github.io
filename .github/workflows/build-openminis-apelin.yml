@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: macos-26
+    runs-on: macos-latest
     timeout-minutes: 120
     env:
       GOTOOLCHAIN: go1.25.5
@@ -121,7 +121,7 @@ jobs:
 
   native-host-xctest:
     name: Native host XCTest (iOS Simulator)
-    runs-on: macos-26
+    runs-on: macos-latest
     timeout-minutes: 120
     env:
       GOTOOLCHAIN: go1.25.5
