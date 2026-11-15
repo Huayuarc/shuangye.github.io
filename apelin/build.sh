@@ -1,61 +1,91 @@
 #!/bin/sh
-# 本机打包脚本：给 apelin_project_build 用，产出可安装的 CCSIM .deb
-# （原 CCSIM 的 bundle + CCSIMTool + iOS 17 卡死守卫，一个包）。
-# 正式发行包仍由 GitHub Actions（Theos）构建；这里只是让本机能编译、打包、验证。
+# Package a verified unsigned OpenMinis IPA as the one Apelin-installable deb.
 set -eu
 : "${APELIN_PACKAGE_DIR:?run this through apelin_project_build}"
 : "${APELIN_PROJECT_ROOT:?}" "${APELIN_BOOTSTRAP:?}" "${APELIN_ARCHITECTURE:?}"
 : "${APELIN_BUILD_ID:?}" "${TMPDIR:?}"
-: "${APELIN_PREFIX?}" # roothide 上为空
+: "${APELIN_PREFIX?}"
 
-src_dir="tweaks/CCSIM"
-stage="$(mktemp -d "${TMPDIR:?}stage.XXXXXX")"
-objdir="$(mktemp -d "${TMPDIR:?}obj.XXXXXX")"
-trap 'rm -rf -- "${stage:?}" "${objdir:?}"' EXIT
+input="${OPENMINIS_IPA:-${APELIN_PROJECT_ROOT}/sources/openminis-apelin/artifacts/Minis-unsigned.ipa}"
+[ -f "$input" ] || {
+  echo "OpenMinis IPA input is missing: $input" >&2
+  echo "Place the CI artifact at sources/openminis-apelin/artifacts/Minis-unsigned.ipa" >&2
+  exit 2
+}
 
-# 1) 编译守卫 dylib
-case "$APELIN_BOOTSTRAP" in
-  roothide) archs="arm64e" ;;
-  *)        archs="arm64 arm64e" ;;
-esac
+stage="$(mktemp -d "${TMPDIR:?}openminis-stage.XXXXXX")"
+work="$(mktemp -d "${TMPDIR:?}openminis-work.XXXXXX")"
+trap 'rm -rf -- "${stage:?}" "${work:?}"' EXIT
 
-dylibs=""
-for arch in $archs; do
-  clang -arch "$arch" -dynamiclib -O2 -fno-objc-arc \
-    -DAPELIN_BUILD_ID="\"$APELIN_BUILD_ID\"" \
-    -install_name "${APELIN_PREFIX}/Library/MobileSubstrate/DynamicLibraries/CCSIMGuard.dylib" \
-    -framework Foundation \
-    -o "$objdir/CCSIMGuard-$arch.dylib" "$src_dir/Tweak.m"
-  dylibs="$dylibs $objdir/CCSIMGuard-$arch.dylib"
-done
+python3 - "$input" "$work/app" "$APELIN_PROJECT_ROOT/sources/openminis-apelin/src/ios/Minis.xcodeproj/project.pbxproj" <<'PY'
+import os, pathlib, plistlib, re, stat, sys, zipfile
+archive, destination, project = map(pathlib.Path, sys.argv[1:])
+expected = {
+    'Payload/Minis.app': 'com.openminis.app',
+    'Payload/Minis.app/PlugIns/MinisShare.appex': 'com.openminis.app.ShareExtension',
+    'Payload/Minis.app/PlugIns/MinisFileProvider.appex': 'com.openminis.app.FileProvider',
+    'Payload/Minis.app/PlugIns/AgentWidgetExtension.appex': 'com.openminis.app.AgentWidget',
+}
+with zipfile.ZipFile(archive) as z:
+    infos = z.infolist()
+    names = {i.filename for i in infos}
+    for bundle, identifier in expected.items():
+        if bundle + '/Info.plist' not in names:
+            raise SystemExit(f'Missing bundle metadata: {bundle}')
+        info = plistlib.loads(z.read(bundle + '/Info.plist'))
+        if info.get('CFBundleIdentifier') != identifier:
+            raise SystemExit(f'Unexpected bundle id for {bundle}: {info.get("CFBundleIdentifier")}')
+    if any('_CodeSignature' in pathlib.PurePosixPath(n).parts or n.endswith('/embedded.mobileprovision') for n in names):
+        raise SystemExit('Signed or provisioned IPA is not accepted')
+    text = project.read_text()
+    marker = 'PRODUCT_BUNDLE_IDENTIFIER = com.openminis.app;'
+    if marker not in text:
+        raise SystemExit('App build settings were not found')
+    version_line = re.search(r'MARKETING_VERSION = ([^;]+);', text[text.index(marker):])
+    if not version_line:
+        raise SystemExit('Could not determine app marketing version')
+    version = version_line.group(1).strip()
+    for item in infos:
+        name = item.filename
+        if not name.startswith('Payload/'):
+            continue
+        target = destination / name.removeprefix('Payload/')
+        mode = item.external_attr >> 16
+        if stat.S_ISLNK(mode):
+            link = z.read(item).decode()
+            resolved = (target.parent / link).resolve()
+            if not resolved.is_relative_to(destination.resolve()):
+                raise SystemExit(f'IPA symlink escapes app: {name}')
+            target.parent.mkdir(parents=True, exist_ok=True)
+            os.symlink(link, target)
+        elif item.is_dir():
+            target.mkdir(parents=True, exist_ok=True)
+            os.chmod(target, stat.S_IMODE(mode) or 0o755)
+        else:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(z.read(item))
+            os.chmod(target, stat.S_IMODE(mode) or 0o644)
+    (destination.parent / 'version').write_text(version)
+PY
+version="$(cat "$work/version")"
+app="$work/app/Minis.app"
+[ -d "$app" ] || { echo 'IPA must contain Payload/Minis.app' >&2; exit 3; }
 
-# 2) 合并架构并签名
-# shellcheck disable=SC2086
-lipo -create $dylibs -output "$objdir/CCSIMGuard.dylib"
-ldid -S "$objdir/CCSIMGuard.dylib"
+prefix="${APELIN_PREFIX?}"
+mkdir -p "$stage${prefix}/Applications/Minis.app" "$stage/DEBIAN"
+cp -RP "$app/." "$stage${prefix}/Applications/Minis.app/"
+cat > "$stage/DEBIAN/control" <<EOF
+Package: com.openminis.apelin
+Name: OpenMinis Apelin
+Version: $version
+Architecture: $APELIN_ARCHITECTURE
+Maintainer: Huayuarc <738985817@qq.com>
+Author: Huayuarc
+Section: Applications
+Description: OpenMinis iOS application packaged for Apelin
+EOF
 
-# 3) 打包布局：守卫 dylib + 原 CCSIM 的 bundle 与工具
-libdir="$stage${APELIN_PREFIX?}/Library/MobileSubstrate/DynamicLibraries"
-mkdir -p "$libdir" "$stage/DEBIAN"
-cp "$objdir/CCSIMGuard.dylib" "$libdir/CCSIMGuard.dylib"
-cp "$src_dir/CCSIMGuard.plist" "$libdir/CCSIMGuard.plist"
-
-# layout/ 里除 DEBIAN 之外的文件按前缀装；DEBIAN/ 下的维护者脚本进包的 DEBIAN
-if [ -d "$src_dir/layout/DEBIAN" ]; then
-  cp -RP "$src_dir/layout/DEBIAN/." "$stage/DEBIAN/"
-fi
-for d in "$src_dir"/layout/*/; do
-  n=$(basename "$d")
-  [ "$n" = DEBIAN ] && continue
-  cp -RP "$d." "$stage${APELIN_PREFIX?}/$n"
-done
-
-for f in Package Version Name Author Maintainer Section Description Depends Conflicts Replaces; do
-  v=$(sed -n "s/^$f: *//p" "$src_dir/control" | head -1)
-  [ -n "$v" ] && printf '%s: %s\n' "$f" "$v" >> "$stage/DEBIAN/control"
-done
-printf 'Architecture: %s\n' "$APELIN_ARCHITECTURE" >> "$stage/DEBIAN/control"
-
-# 4) 产出唯一的包
 dpkg-deb -b --root-owner-group "$stage" "$APELIN_PACKAGE_DIR/" >/dev/null
-dpkg-deb -c "$APELIN_PACKAGE_DIR"/*.deb
+set -- "$APELIN_PACKAGE_DIR"/*.deb
+[ "$#" -eq 1 ] || { echo 'external build must produce exactly one deb' >&2; exit 8; }
+dpkg-deb -f "$1" Package Version Architecture

@@ -34,6 +34,9 @@ __pycache__/
 # 本地编译产物
 *.dylib
 
+# OpenMinis CI unsigned app input (downloaded artifact)
+sources/openminis-apelin/artifacts/
+
 # 本地诊断二进制
 diag/CTProbe
 
