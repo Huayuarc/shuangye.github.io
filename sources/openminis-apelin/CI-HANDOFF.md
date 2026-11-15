@@ -78,8 +78,18 @@ expected `unsupportedPlatform`, but its typed catch did not match. Raw test.log
 explicitly reports the same native package classes in both Minis.debug.dylib and
 MinisTests, warning of casting failures. Remove the test target's duplicate
 static package link and resolve its native symbols from the already linked app
-debug dylib; retain the original typed error assertion. Six passing methods
-remain unverified until the next real simulator run.
+debug dylib; retain the original typed error assertion. Run `43711192309` at
+`120ff55e3c4ed265b44b5de4a2dcedabb861da8a` verified this fix: host job
+`132802891809` passed all six real simulator XCTest methods (six passed, zero
+failed, zero skipped), with exact method coverage checked from xcresult JSON.
+The duplicate native-class warnings disappeared and the typed error assertion
+passed unchanged. Independent build job `132802891533` also passed: 42 policy
+verdicts, 13 real native package tests with zero failures, and the complete
+unsigned Release build. Both diagnostic artifacts were SHA256-verified against
+the GitHub API: host `14161736998`
+(`89b5363f27db80ab35aa1aa10dfd4a95f0e91414ab4e96e54bf18b8b26413cfe`),
+build `14161132761`
+(`80a616d89c54ec5dd5f73edef0680e13885a06df7d859b5bba25e82f00c9669c`).
 Successful concurrent connection lifecycles remain outside these tests.
 
 The CI scripts preserve manifest-pinned dependency checks rather than attempting
