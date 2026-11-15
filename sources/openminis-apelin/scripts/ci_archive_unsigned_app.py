@@ -50,22 +50,35 @@ for path in sorted(app.rglob('*')):
     entries.append(item)
 out = root / 'openminis-unsigned-app'
 out.mkdir(exist_ok=True)
-archive = out / 'Minis-unsigned.zip'
-subprocess.run(['ditto', '-c', '-k', '--keepParent', '--sequesterRsrc', str(app), str(archive)], check=True)
+# An IPA is a ZIP with the app under Payload/, rather than a ZIP whose root is
+# Minis.app. Build it with ditto so symlinks and bundle permissions survive.
+ipa_root = root / 'openminis-ipa'
+payload = ipa_root / 'Payload'
+if ipa_root.exists():
+    import shutil
+    shutil.rmtree(ipa_root)
+payload.mkdir(parents=True)
+subprocess.run(['ditto', str(app), str(payload / 'Minis.app')], check=True)
+archive = out / 'Minis-unsigned.ipa'
+subprocess.run(['ditto', '-c', '-k', '--sequesterRsrc', str(payload), str(archive)], check=True)
 with zipfile.ZipFile(archive) as z:
+    names = set(z.namelist())
+    if 'Payload/Minis.app/Info.plist' not in names:
+        raise SystemExit('IPA is missing Payload/Minis.app/Info.plist')
     for item in entries:
-        member = z.getinfo(item['path'] + ('/' if 'sha256' not in item and 'symlink' not in item else ''))
+        zip_path = 'Payload/' + item['path']
+        member_name = zip_path + ('/' if 'sha256' not in item and 'symlink' not in item else '')
+        member = z.getinfo(member_name)
         if stat.S_IMODE(member.external_attr >> 16) != int(item['mode'], 8):
             raise SystemExit(f'Archive permission mismatch: {item["path"]}')
         if 'sha256' in item:
-            if hashlib.sha256(z.read(item['path'])).hexdigest() != item['sha256']:
+            if hashlib.sha256(z.read(member_name)).hexdigest() != item['sha256']:
                 raise SystemExit(f'Archive content mismatch: {item["path"]}')
         if 'symlink' in item:
-            member = z.getinfo(item['path'])
             if not stat.S_ISLNK(member.external_attr >> 16) or z.read(member).decode() != item['symlink']:
                 raise SystemExit('Archive symlink mismatch')
 summary = {'commit': os.environ['GITHUB_SHA'], 'run': os.environ['GITHUB_RUN_ID'],
-           'app_path': 'Minis.app', 'unsigned': True, 'bundle_ids': expected,
+           'app_path': 'Payload/Minis.app', 'unsigned': True, 'bundle_ids': expected,
            'app_bytes': sum(e.get('size', 0) for e in entries), 'files': entries}
 (out / 'APP-MANIFEST.json').write_text(json.dumps(summary, indent=2) + '\n')
 (out / 'SHA256SUMS').write_text(''.join(hashlib.sha256(p.read_bytes()).hexdigest() + '  ' + p.name + '\n' for p in (archive, out / 'APP-MANIFEST.json')))
